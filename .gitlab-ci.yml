@@ -1,6 +1,7 @@
 image: continuumio/miniconda3:4.7.12
 
 before_script:
+  - conda env create --force --file environment.yml
   - source activate hydra
 
 test:
