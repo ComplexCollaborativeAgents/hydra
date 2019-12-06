@@ -1,0 +1,14 @@
+.DS_store
+
+*.wbproj
+
+#Pycharm
+.idea/*
+.pytest_cache/*
+
+
+
+#Python
+__pycache__/
+*.py[cod]
+*$py.class
