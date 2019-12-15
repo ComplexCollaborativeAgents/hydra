@@ -1,1 +1,7 @@
-# Just us AI gym? Or something more custom
+# Simple Sarsa-Learning
+
+import numpy as np
+
+class SarsaLearner():
+    pass
+

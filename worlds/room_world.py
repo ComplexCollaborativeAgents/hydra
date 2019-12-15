@@ -23,9 +23,9 @@ class RoomWorld(World):
 # map cell to cell, add circular cell to goal point
     def __init__(self):
         self.actions = []
-        points_list = [(0,1), (1,5), (5,6), (5,4), (1,2), (2,3), (2,7)]
+        points_list = [(0,1), (1,5), (5,6), (5,4), (1,2), (2,3), (2,5),(6,7)]
         self.goal = 7
-        self.current_state = RoomState(1)
+        self.current_state = RoomState(2)
         MATRIX_SIZE = 8
         self.Reward = np.array(np.ones(shape=(MATRIX_SIZE, MATRIX_SIZE)))
 
@@ -33,7 +33,8 @@ class RoomWorld(World):
 
         for point in points_list:
             self.actions.append(RoomAction(point[0],point[1]))
-            print(point)
+            self.actions.append(RoomAction(point[1],point[0]))
+
             if point[1] == self.goal:
                 self.Reward[point] = 100
             else:
@@ -44,14 +45,23 @@ class RoomWorld(World):
             else:
                 # reverse of point
                 self.Reward[point[::-1]] = 0
+        self.actions.append(RoomAction(self.goal,self.goal))
         self.Reward[self.goal, self.goal] = 100
+
+    def available_actions(self):
+        """This is a discrete set, probably doesn't work for birds"""
+        return [act for act in self.actions if act.from_id == self.current_state.room]
 
     def act(self,action):
         '''returns the new current state and reward'''
-        reward = self.Reward[self.current_state.room][action.to_id]
+#        print("state: " + str(self.current_state.room))
+#        print("taking action " + str(action.from_id) + " to " + str(action.to_id))
         if (self.current_state.room == action.from_id):
+            reward = self.Reward[self.current_state.room][action.to_id]
             self.current_state = RoomState(action.to_id)
-        return self.current_state,reward
+            return self.current_state, reward
+        else:
+            return self.current_state,-1
 
 
 
