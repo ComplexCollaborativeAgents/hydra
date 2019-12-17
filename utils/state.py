@@ -7,6 +7,9 @@ class State():
     def __init__(self):
         self.id = next(State.newid)
 
+    def get_rl_id(self):
+        return self.id
+
 class Action():
     """
     This class defines actions and will be specialized in worlds
@@ -15,6 +18,14 @@ class Action():
 
     def __init__(self):
         self.id = next(Action.newid)
+
+    def get_rl_id(self):
+        return self.id
+
+class InvokeBasicRL(Action):
+    def __init__(self,state):
+       self.state = state
+
 
 class World():
     def __init__(self):
