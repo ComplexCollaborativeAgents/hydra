@@ -54,9 +54,10 @@ class ScienceBirds(World):
         self.create_interface()
 
     def kill(self):
-        cmd = '{}/kill_ab.sh'.format(settings.SCIENCE_BIRDS_BIN_DIR)
-        subprocess.run(cmd,shell=True)
+#        cmd = '{}/kill_ab.sh'.format(settings.SCIENCE_BIRDS_BIN_DIR)
+#        subprocess.run(cmd,shell=True)
         self.SB_server_process.kill()
+        self.SB_process.kill()
 
 
 
@@ -69,13 +70,14 @@ class ScienceBirds(World):
         if sys.platform=='darwin':
             cmd='open {}/ab.app'.format(settings.SCIENCE_BIRDS_BIN_DIR)
         else:
-            cmd='{}/ab.sh'.format(settings.SCIENCE_BIRDS_BIN_DIR)
+            cmd='{}/ScienceBirds_Linux/science_birds_linux.x86_64'.format(settings.SCIENCE_BIRDS_BIN_DIR)
         # Not sure if run will work this way on ubuntu...
-        self.SB_process = subprocess.run(cmd,stdout=subprocess.PIPE, stderr=subprocess.STDOUT,shell=True)
+        self.SB_process = subprocess.Popen(cmd,stdout=subprocess.PIPE, stderr=subprocess.STDOUT,shell=True)
         print('launching java interface')
         # Popen is necessary as we have to run it in the background
         self.SB_server_process = subprocess.Popen(settings.SCIENCE_BIRDS_SERVER_CMD,
                                 stdout=subprocess.PIPE, stderr=subprocess.STDOUT,shell=True)
+        # print(self.SB_server_process.communicate()[0])
         print('done')
 
     def create_interface(self):
