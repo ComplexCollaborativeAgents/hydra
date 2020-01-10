@@ -6,4 +6,5 @@ before_script:
 
 test:
   script:
+    - unzip bin/ScienceBirds_Linux.zip -d bin/
     - python -m pytest

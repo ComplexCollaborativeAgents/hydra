@@ -2,13 +2,21 @@
 
 *.wbproj
 
+#Science Birds
+*levelscore*
+*bestscore*
+*/serverbackup
+*/shots_taken*
+*/DB/*
+
 #Pycharm
 .idea/*
 .pytest_cache/*
-
-
 
 #Python
 __pycache__/
 *.py[cod]
 *$py.class
+
+#OSX
+*/*.app/*
