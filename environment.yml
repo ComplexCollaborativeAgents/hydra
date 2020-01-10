@@ -5,4 +5,7 @@ dependencies:
   - pytest=5.3.1
   - python=3.7.5
   - numpy=1.17.3
+  - shapely
+  - pillow
+  - opencv-python
 
