@@ -1,6 +1,7 @@
 
 import worlds.science_birds as sb
 
+@pytest.mark.skip(reason='No headless launching of Science Birds yet.')
 def test_science_birds():
     env = sb.ScienceBirds()
     state = env.get_current_state()
