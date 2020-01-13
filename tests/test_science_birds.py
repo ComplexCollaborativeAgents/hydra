@@ -1,5 +1,6 @@
 
 import worlds.science_birds as sb
+import pytest
 
 @pytest.mark.skip(reason='No headless launching of Science Birds yet.')
 def test_science_birds():
