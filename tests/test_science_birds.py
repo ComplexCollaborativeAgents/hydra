@@ -1,8 +1,9 @@
 
 import worlds.science_birds as sb
 import pytest
+import sys
 
-@pytest.mark.skip(reason='No headless launching of Science Birds yet.')
+@pytest.mark.skipif(not(sys.platform == 'darwin'), reason='No headless launching of Science Birds yet.')
 def test_science_birds():
     env = sb.ScienceBirds()
     state = env.get_current_state()
