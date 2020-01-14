@@ -12,6 +12,10 @@ import time
 import demo.naive_agent_groundtruth as na
 from client.agent_client import GameState
 from shapely.geometry import box
+#WP imports
+import signal
+import pickle
+from os import path
 
 
 class SBState(State):
@@ -51,11 +55,14 @@ class ScienceBirds(World):
         if launch:
             self.launch_SB()
             time.sleep(1)
+        else:
+            self.cur_state = self.load_from_serialized_state(path.join(settings.ROOT_PATH, 'data', 'science_birds', 'serialized_levels', 'level-00.p'))
         self.create_interface()
 
     def kill(self):
 #        cmd = '{}/kill_ab.sh'.format(settings.SCIENCE_BIRDS_BIN_DIR)
 #        subprocess.run(cmd,shell=True)
+        os.kill(self.SB_server_process.pid+1, signal.SIGKILL)
         self.SB_server_process.kill()
         self.SB_process.kill()
 
@@ -143,3 +150,9 @@ class ScienceBirds(World):
         self.cur_state = SBState(objs)
         return self.cur_state
 
+    def serialize_current_state(self, level_filename):
+        pickle.dump(self.cur_state, open(level_filename, 'wb'))
+
+    def load_from_serialized_state(self, level_filename):
+        loaded_state = pickle.load(open(level_filename, 'rb'))
+        return loaded_state
