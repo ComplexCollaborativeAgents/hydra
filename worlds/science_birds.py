@@ -29,6 +29,12 @@ class SBState(State):
     def get_rl_id(self):
         return self.id
 
+    def serialize_current_state(self, level_filename):
+        pickle.dump(self, open(level_filename, 'wb'))
+
+    def load_from_serialized_state(level_filename):
+        return pickle.load(open(level_filename, 'rb'))
+
 
 class SBAction(Action):
     """first a bird, x,y position of first tap, and then the time of the second tap"""
@@ -150,9 +156,3 @@ class ScienceBirds(World):
         self.cur_state = SBState(objs)
         return self.cur_state
 
-    def serialize_current_state(self, level_filename):
-        pickle.dump(self.cur_state, open(level_filename, 'wb'))
-
-    def load_from_serialized_state(self, level_filename):
-        loaded_state = pickle.load(open(level_filename, 'rb'))
-        return loaded_state
