@@ -2,6 +2,8 @@
 import worlds.science_birds as sb
 import pytest
 import sys
+from os import path
+import settings
 
 @pytest.mark.skipif(not(sys.platform == 'darwin'), reason='No headless launching of Science Birds yet.')
 def test_science_birds():
