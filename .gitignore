@@ -2,6 +2,9 @@
 
 *.wbproj
 
+#Settings
+settings/local_settings.py
+
 #Science Birds
 *levelscore*
 *bestscore*

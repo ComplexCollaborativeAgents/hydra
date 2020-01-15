@@ -61,8 +61,6 @@ class ScienceBirds(World):
         if launch:
             self.launch_SB()
             time.sleep(1)
-        else:
-            self.cur_state = self.load_from_serialized_state(path.join(settings.ROOT_PATH, 'data', 'science_birds', 'serialized_levels', 'level-00.p'))
         self.create_interface()
 
     def kill(self):
@@ -83,12 +81,16 @@ class ScienceBirds(World):
         if sys.platform=='darwin':
             cmd='open {}/ab.app'.format(settings.SCIENCE_BIRDS_BIN_DIR)
         else:
-            cmd='{}/ScienceBirds_Linux/science_birds_linux.x86_64'.format(settings.SCIENCE_BIRDS_BIN_DIR)
+            cmd='{}/ScienceBirds_Linux/science_birds_linux.x86_64 {}'.\
+                format(settings.SCIENCE_BIRDS_BIN_DIR,
+                       '-batchmode -nographics' if settings.HEADLESS else '')
         # Not sure if run will work this way on ubuntu...
         self.SB_process = subprocess.Popen(cmd,stdout=subprocess.PIPE, stderr=subprocess.STDOUT,shell=True)
         print('launching java interface')
         # Popen is necessary as we have to run it in the background
-        self.SB_server_process = subprocess.Popen(settings.SCIENCE_BIRDS_SERVER_CMD,
+        cmd2 = '{}{}'.format('xvfb-run ' if settings.HEADLESS else '',
+                             settings.SCIENCE_BIRDS_SERVER_CMD)
+        self.SB_server_process = subprocess.Popen(cmd2,
                                 stdout=subprocess.PIPE, stderr=subprocess.STDOUT,shell=True)
         # print(self.SB_server_process.communicate()[0])
         print('done')
