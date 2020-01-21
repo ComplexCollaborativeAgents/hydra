@@ -3,6 +3,7 @@ image: aaronang/miniconda3-jdk
 before_script:
   - conda env create --force --file environment.yml
   - source activate hydra
+  - apt-get update
   - apt-get -y install xvfb
 
 test:
