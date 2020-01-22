@@ -64,14 +64,20 @@ class ScienceBirds(World):
         self.create_interface()
 
     def kill(self):
-#        cmd = '{}/kill_ab.sh'.format(settings.SCIENCE_BIRDS_BIN_DIR)
-#        subprocess.run(cmd,shell=True)
-        os.kill(self.SB_server_process.pid+1, signal.SIGKILL)
-        self.SB_server_process.kill()
-        self.SB_process.kill()
+        try:
+            os.kill(self.SB_server_process.pid+1, signal.SIGKILL)
+        except:
+            print("Unable to shut down science birds1")
+        try:
+            self.SB_server_process.kill()
+        except:
+            print("Unable to shut down science birds2")
+        try:
+            self.SB_process.kill()
+        except:
+            print("Unable to shut down science birds3")
 
-
-
+            
     def launch_SB(self):
         """
         Maybe this would be better in a shell script than in python
