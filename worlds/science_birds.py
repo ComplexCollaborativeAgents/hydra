@@ -64,18 +64,13 @@ class ScienceBirds(World):
         self.create_interface()
 
     def kill(self):
-        try:
-            os.kill(self.SB_server_process.pid+1, signal.SIGKILL)
-        except:
-            print("Unable to shut down science birds1")
-        try:
-            self.SB_server_process.kill()
-        except:
-            print("Unable to shut down science birds2")
-        try:
-            self.SB_process.kill()
-        except:
-            print("Unable to shut down science birds3")
+        print("Killing processes: {}, {}, {}".format(self.SB_server_process.pid+1,
+                                                     self.SB_server_process.pid,
+                                                     self.SB_process.pid))
+        os.killpg(os.getpgid(self.SB_server_process.pid), signal.SIGTERM)
+        os.killpg(os.getpgid(self.SB_process.pid), signal.SIGTERM)
+
+            
 
             
     def launch_SB(self):
@@ -91,13 +86,17 @@ class ScienceBirds(World):
                 format(settings.SCIENCE_BIRDS_BIN_DIR,
                        '-batchmode -nographics' if settings.HEADLESS else '')
         # Not sure if run will work this way on ubuntu...
-        self.SB_process = subprocess.Popen(cmd,stdout=subprocess.PIPE, stderr=subprocess.STDOUT,shell=True)
+        self.SB_process = subprocess.Popen(cmd,stdout=subprocess.PIPE,
+                                           stderr=subprocess.STDOUT,
+                                           shell=True,
+                                           preexec_fn=os.setsid)
         print('launching java interface')
         # Popen is necessary as we have to run it in the background
         cmd2 = '{}{}'.format('xvfb-run ' if settings.HEADLESS else '',
                              settings.SCIENCE_BIRDS_SERVER_CMD)
         self.SB_server_process = subprocess.Popen(cmd2,
-                                stdout=subprocess.PIPE, stderr=subprocess.STDOUT,shell=True)
+                                stdout=subprocess.PIPE, stderr=subprocess.STDOUT,shell=True,
+                                                  preexec_fn=os.setsid)
         # print(self.SB_server_process.communicate()[0])
         print('done')
 
