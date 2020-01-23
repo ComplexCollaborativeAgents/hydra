@@ -5,7 +5,7 @@ import sys
 from os import path
 import settings
 
-@pytest.mark.skipif(settings.HEADLESS==True)
+@pytest.mark.skipif(settings.HEADLESS==True,reason="headless does not work in docker")
 def test_science_birds():
     print("starting")
     env = sb.ScienceBirds()
