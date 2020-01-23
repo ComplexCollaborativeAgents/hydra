@@ -79,25 +79,30 @@ class ScienceBirds(World):
         """
         print('launching science birds')
         cmd = ''
-        if sys.platform=='darwin':
-            cmd='open {}/ab.app'.format(settings.SCIENCE_BIRDS_BIN_DIR)
+        if settings.HEADLESS == True:
+            self.SB_process = subprocess.run('{}/launch_sb.sh'.format(settings.SCIENCE_BIRDS_BIN_DIR),
+                                            stdout=subprocess.PIPE,
+                                            stderr=subprocess.STDOUT,shell=True)
         else:
-            cmd='{}/ScienceBirds_Linux/science_birds_linux.x86_64 {}'.\
-                format(settings.SCIENCE_BIRDS_BIN_DIR,
-                       '-batchmode -nographics' if settings.HEADLESS else '')
+            if sys.platform=='darwin':
+                cmd='open {}/ab.app'.format(settings.SCIENCE_BIRDS_BIN_DIR)
+            else:
+                cmd='{}/ScienceBirds_Linux/science_birds_linux.x86_64 {}'.\
+                    format(settings.SCIENCE_BIRDS_BIN_DIR,
+                           '-batchmode -nographics' if settings.HEADLESS else '')
         # Not sure if run will work this way on ubuntu...
-        self.SB_process = subprocess.Popen(cmd,stdout=subprocess.PIPE,
-                                           stderr=subprocess.STDOUT,
-                                           shell=True,
-                                           preexec_fn=os.setsid)
-        print('launching java interface')
-        # Popen is necessary as we have to run it in the background
-        cmd2 = '{}{}'.format('xvfb-run ' if settings.HEADLESS else '',
-                             settings.SCIENCE_BIRDS_SERVER_CMD)
-        self.SB_server_process = subprocess.Popen(cmd2,
-                                stdout=subprocess.PIPE, stderr=subprocess.STDOUT,shell=True,
-                                                  preexec_fn=os.setsid)
-        # print(self.SB_server_process.communicate()[0])
+            self.SB_process = subprocess.Popen(cmd,stdout=subprocess.PIPE,
+                                               stderr=subprocess.STDOUT,
+                                               shell=True,
+                                               preexec_fn=os.setsid)
+            print('launching java interface')
+            # Popen is necessary as we have to run it in the background
+            cmd2 = '{}{}'.format('xvfb-run ' if settings.HEADLESS else '',
+                                  settings.SCIENCE_BIRDS_SERVER_CMD)
+            self.SB_server_process = subprocess.Popen(cmd2,
+                                    stdout=subprocess.PIPE, stderr=subprocess.STDOUT,shell=True,
+                                                      preexec_fn=os.setsid)
+    #        print(self.SB_server_process.communicate()[0])
         print('done')
 
     def create_interface(self):

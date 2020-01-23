@@ -9,4 +9,4 @@ before_script:
 test:
   script:
     - tar -xzvf bin/ScienceBirds_Linux.tar.gz -C bin/
-    - python -m pytest -s
+    - python -m pytest
