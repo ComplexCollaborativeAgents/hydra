@@ -1,0 +1,47 @@
+Sending build context to Docker daemon    150kB
+Step 1/15 : FROM ubuntu:latest
+ ---> ccc6e87d482b
+Step 2/15 : RUN /bin/bash -c "echo 'deb http://archive.ubuntu.com/ubuntu trusty-backports main restricted universe multiverse' >> /etc/apt/sources.list"
+ ---> Using cache
+ ---> 71c24d0e3b8b
+Step 3/15 : RUN apt update
+ ---> Using cache
+ ---> ec1b5d01890e
+Step 4/15 : RUN apt install -y -t trusty-backports flex=2.5.39-8~ubuntu14.04.1
+ ---> Using cache
+ ---> 7ba1859e62bd
+Step 5/15 : RUN apt-mark hold flex
+ ---> Using cache
+ ---> 9d4479d7ebec
+Step 6/15 : RUN apt-get install -y build-essential bison libc6-dev-i386 gcc-multilib g++-multilib git
+ ---> Using cache
+ ---> d8bd9c9dc422
+Step 7/15 : WORKDIR /home/
+ ---> Using cache
+ ---> 98103e8fb0aa
+Step 8/15 : RUN git clone --single-branch --branch master-x64 https://github.com/gdellapenna/UPMurphi.git
+ ---> Using cache
+ ---> 6bafd5e89f65
+Step 9/15 : WORKDIR /home/UPMurphi/src
+ ---> Using cache
+ ---> 42b162a1b206
+Step 10/15 : RUN make
+ ---> Using cache
+ ---> 4f10d0721193
+Step 11/15 : WORKDIR /home/UPMurphi/ex/science_birds
+ ---> Using cache
+ ---> 605c26db5f8c
+Step 12/15 : COPY ./run_script.sh /home/UPMurphi/ex/science_birds/
+ ---> Using cache
+ ---> 3fb1fb83cc30
+Step 13/15 : COPY ./sb_domain.pddl /home/UPMurphi/ex/science_birds/
+ ---> Using cache
+ ---> a5df901b81f1
+Step 14/15 : COPY ./sb_prob.pddl /home/UPMurphi/ex/science_birds/
+ ---> Using cache
+ ---> 19409ba4ebc1
+Step 15/15 : ENTRYPOINT ["/bin/bash", "run_script.sh"]
+ ---> Using cache
+ ---> 97db2a2585eb
+Successfully built 97db2a2585eb
+Successfully tagged upm_from_dockerfile:latest

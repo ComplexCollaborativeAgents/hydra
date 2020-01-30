@@ -15,6 +15,8 @@ else:
 
 SCIENCE_BIRDS_SERVER_CMD = 'java -jar {}'.format(path.join(ROOT_PATH,'bin','game_playing_interface.jar'))
 
+PLANNING_DOCKER_PATH = path.join(ROOT_PATH, 'agent', 'planning', 'docker_scripts')
+
 sc_json_config =  [{
     "host": "127.0.0.1",
     "port": "2004",
