@@ -4,8 +4,10 @@ import pytest
 import sys
 from os import path
 import settings
+import math
+import agent.planning.planner as pl
 
-@pytest.mark.skipif(not(sys.platform == 'darwin'), reason='No headless launching of Science Birds yet.')
+# @pytest.mark.skipif(not(sys.platform == 'darwin'), reason='No headless launching of Science Birds yet.')
 def test_science_birds():
     env = sb.ScienceBirds()
     state = env.get_current_state()
@@ -14,14 +16,22 @@ def test_science_birds():
     # assert isinstance(state, sb.SBState)
     # assert state.objects == loaded_serialized_state.objects
     print(state.objects)
-    assert(len(state.objects) == 5)
+    # assert(len(state.objects) == 5)
 
-    ref_point = env.sb_client.tp.get_reference_point(env.cur_sling)
-    action = sb.SBAction(ref_point.X + 25,ref_point.Y + 25,50) # no idea what the scale of these should be
+    planner = pl.Planner()
+    planner.write_problem_file(env.translate_state_to_pddl())
+
+    print("\n\nACTIONS: ")
+    print(planner.get_plan_actions())
+
+    # ref_point = env.sb_client.tp.get_reference_point(env.cur_sling)
+    release_point_from_plan = env.sb_client.tp.find_release_point(env.cur_sling, math.radians(planner.get_plan_actions()[0][1]*10*1.0))
+
+    action = sb.SBAction(release_point_from_plan.X, release_point_from_plan.Y,500) # no idea what the scale of these should be
     state,reward,done = env.act(action)
     assert isinstance(state,sb.SBState)
     assert reward == 0
-    assert not done
+    # assert not done
     env.kill()
 
 def test_state_serialization():
