@@ -7,14 +7,11 @@ import settings
 import math
 import agent.planning.planner as pl
 
-# @pytest.mark.skipif(not(sys.platform == 'darwin'), reason='No headless launching of Science Birds yet.')
+@pytest.mark.skipif(settings.HEADLESS==True,reason="headless does not work in docker")
 def test_science_birds():
+    print("starting")
     env = sb.ScienceBirds()
     state = env.get_current_state()
-    # env.serialize_current_state(path.join(settings.ROOT_PATH, 'data', 'science_birds', 'serialized_levels', 'level-00.p'))
-    # loaded_serialized_state = env.load_from_serialized_state(path.join(settings.ROOT_PATH, 'data', 'science_birds', 'serialized_levels', 'level-00.p'))
-    # assert isinstance(state, sb.SBState)
-    # assert state.objects == loaded_serialized_state.objects
     print(state.objects)
     # assert(len(state.objects) == 5)
 

@@ -2,12 +2,16 @@
 
 ## Setting up
 1. Unzip the science birds executable for your systems in the binary directory
-2. create the hydra python environment
+2. Install Java13 (for additional debugging of science birds issues look at the science birds repo below)
+```
+https://gitlab.com/aibirds/sciencebirdsframework
+```
+3. create the hydra python environment
 ```
 conda env create -f environment.yml
 conda activate hydra
 ```
-3. run the tests from HYDRA directory
+4. run the tests from HYDRA directory
 ```
 pytest
 ```
