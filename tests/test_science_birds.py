@@ -7,6 +7,7 @@ import settings
 import math
 import agent.planning.planner as pl
 import subprocess
+import agent.perception.perception as perception
 
 @pytest.mark.skipif(settings.HEADLESS==True,reason="headless does not work in docker")
 def test_science_birds():
@@ -21,10 +22,21 @@ def test_science_birds():
     env = sb.ScienceBirds()
     state = env.get_current_state()
     print(state.objects)
+    assert(len(state.objects) == 7)
+    assert('id' in state.objects[0].keys() and
+           'type' in state.objects[0].keys() and
+           'yindex' in state.objects[0].keys() and
+           'colormap' in state.objects[0].keys())
+
+    p = perception.Perception()
+    p.process_state(state)
     assert(len(state.objects) == 5)
+    assert('type' in state.objects[0].keys() and
+           'bbox' in state.objects[0].keys())
 
     planner = pl.Planner()
-    planner.write_problem_file(env.translate_state_to_pddl())
+
+    planner.write_problem_file(planner.translate_state_to_pddl(state.objects))
 
     print("\n\nACTIONS: ")
     print(planner.get_plan_actions())
@@ -38,6 +50,9 @@ def test_science_birds():
     assert reward == 0
     # assert not done
     env.kill()
+
+
+
 
 def test_state_serialization():
     # state = SBState.serialize_current_state(path.join(settings.ROOT_PATH, 'data', 'science_birds', 'serialized_levels', 'level-00.p'))

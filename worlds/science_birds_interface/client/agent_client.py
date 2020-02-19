@@ -295,7 +295,7 @@ class AgentClient:
 
 if __name__ == "__main__":
     """ TEST AGENT """
-    with open('./server_client_config.json', 'r') as config:
+    with open('worlds/science_birds_interface/client/server_client_config.json', 'r') as config:
         sc_json_config = json.load(config)
 
     client = AgentClient(**sc_json_config[0])
