@@ -24,10 +24,11 @@
     	    (not (bird_dead ?b))
         )
         :effect (and
-    		; (increase (y_bird ?b) (* #t (vy_bird ?b)))
-    		(decrease (vy_bird ?b) (* #t (gravity)) )
-    		(increase (y_bird ?b) (* #t (vy_bird ?b)))
-        	(increase (x_bird ?b) (* #t (* (v_bird ?b) (/ (* (* 4 (angle)) (- 180 (angle))) (- 40500 (* (angle) (- 180 (angle)))) ) ) ))
+    		; (increase (y_bird ?b) (* #t (* 0.5 (vy_bird ?b))))
+    		(decrease (vy_bird ?b) (* #t (* 1.0 (gravity)) ))
+    		(increase (y_bird ?b) (* #t (* 1.0 (vy_bird ?b))))
+        	(increase (x_bird ?b) (* #t (* (v_bird ?b) (- 1 (/ (* (* (angle) 0.0174533) (* (angle) 0.0174533) ) 2) ) ) ))
+        	; (increase (x_bird ?b) (* #t (* (v_bird ?b) (/ (* (* 4 (angle)) (- 180 (angle))) (- 40500 (* (angle) (- 180 (angle)))) ) ) ))
         )
     )
     
@@ -39,7 +40,7 @@
     		(not (bird_released ?b))
         )
         :effect (and 
-    	    (assign (vy_bird ?b) (* (v_bird ?b) (- 1 (/ (* (* (angle) 0.0174533) (* (angle) 0.0174533) ) 2) )  ) )
+    	    (assign (vy_bird ?b) (* (v_bird ?b) (/ (* (* 4 (angle)) (- 180 (angle))) (- 40500 (* (angle) (- 180 (angle)))) )  ) )
             (bird_released ?b)
     	    (angle_adjusted)
     	    (not (bird_in_slingshot))
