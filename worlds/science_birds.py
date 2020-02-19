@@ -170,32 +170,47 @@ class ScienceBirds(World):
             self.cur_state = self.load_from_serialized_state(path.join(settings.ROOT_PATH, 'data', 'science_birds', 'serialized_levels', 'level-00.p'))
         self.create_interface(sel_level)
 
+
     def kill(self):
-#        cmd = '{}/kill_ab.sh'.format(settings.SCIENCE_BIRDS_BIN_DIR)
-#        subprocess.run(cmd,shell=True)
-        os.kill(self.SB_server_process.pid+1, signal.SIGKILL)
-        self.SB_server_process.kill()
-        self.SB_process.kill()
+        print("Killing processes: {}, {}, {}".format(self.SB_server_process.pid+1,
+                                                     self.SB_server_process.pid,
+                                                     self.SB_process.pid))
+        try:
+            os.kill(self.SB_server_process.pid + 1,signal.SIGTERM )
+            self.SB_process.kill()
+            self.SB_server_process.kill()
+        except:
+            pass
 
+            
 
-
+            
     def launch_SB(self):
         """
         Maybe this would be better in a shell script than in python
         """
         print('launching science birds')
         cmd = ''
+
         if sys.platform=='darwin':
             cmd='open {}/ab.app'.format(settings.SCIENCE_BIRDS_BIN_DIR)
         else:
-            cmd='{}/ScienceBirds_Linux/science_birds_linux.x86_64'.format(settings.SCIENCE_BIRDS_BIN_DIR)
+            cmd='{}/ScienceBirds_Linux/science_birds_linux.x86_64 {}'. \
+                format(settings.SCIENCE_BIRDS_BIN_DIR,
+                       '-batchmode -nographics' if settings.HEADLESS else '')
         # Not sure if run will work this way on ubuntu...
-        self.SB_process = subprocess.Popen(cmd,stdout=subprocess.PIPE, stderr=subprocess.STDOUT,shell=True)
+        self.SB_process = subprocess.Popen(cmd,stdout=subprocess.PIPE,
+                                           stderr=subprocess.STDOUT,
+                                           shell=True,
+                                           preexec_fn=os.setsid)
         print('launching java interface')
         # Popen is necessary as we have to run it in the background
-        self.SB_server_process = subprocess.Popen(settings.SCIENCE_BIRDS_SERVER_CMD,
-                                stdout=subprocess.PIPE, stderr=subprocess.STDOUT,shell=True)
-        # print(self.SB_server_process.communicate()[0])
+        cmd2 = '{}{}'.format('xvfb-run ' if settings.HEADLESS else '',
+                             settings.SCIENCE_BIRDS_SERVER_CMD)
+        self.SB_server_process = subprocess.Popen(cmd2,
+                                                  stdout=subprocess.PIPE, stderr=subprocess.STDOUT,shell=True,
+                                                  preexec_fn=os.setsid)
+    #        print(self.SB_server_process.communicate()[0])
         print('done')
 
     def create_interface(self,first_level=0):

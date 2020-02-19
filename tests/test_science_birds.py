@@ -9,7 +9,7 @@ import agent.planning.planner as pl
 from pprint import pprint
 from utils.point2D import Point2D
 
-# @pytest.mark.skipif(not(sys.platform == 'darwin'), reason='No headless launching of Science Birds yet.')
+@pytest.mark.skipif(settings.HEADLESS==True,reason="headless does not work in docker")
 def test_science_birds():
     env = sb.ScienceBirds(0)
     state = env.get_current_state()
@@ -18,6 +18,7 @@ def test_science_birds():
     # assert isinstance(state, sb.SBState)
     # assert state.objects == loaded_serialized_state.objects
     print('\nAll Objects: ')
+
     print(state.objects)
     # assert(len(state.objects) == 5)
 
