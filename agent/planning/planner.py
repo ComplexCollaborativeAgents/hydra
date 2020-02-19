@@ -36,10 +36,18 @@ class Planner():
             "cd %s; docker build -t upm_from_dockerfile . > docker_build_trace.txt;docker run upm_from_dockerfile sb_domain.pddl sb_prob.pddl > docker_plan_trace.txt;" % (
                 settings.PLANNING_DOCKER_PATH), shell=True)
         angle_theta_str = 0
+        lines_list = open("%s/docker_plan_trace.txt" % str(path.join(settings.ROOT_PATH, 'agent', 'planning', 'docker_scripts'))).readlines()
+
         with open("%s/docker_plan_trace.txt" % str(path.join(settings.ROOT_PATH, 'agent', 'planning', 'docker_scripts'))) as plan_trace_file:
-            for i, line in enumerate(plan_trace_file, 120):
+            for i, line in enumerate(plan_trace_file):
+                # print(str(i) + " =====> " + str(line))
                 if " pa-twang " in line:
-                    plan_actions.append((line.split(':')[1].split('[')[0].replace('(','').replace(')','').strip(), float(line.split(':')[0])))
+                    plan_actions.append((line.split(':')[1].split('[')[0].replace('(','').replace(')','').strip(), float(str(lines_list[i+1].split(',')[1].split('angle:')[1]))))
+                    # print(str(lines_list[i]))
+                    # print(float(str(lines_list[i+1].split(',')[1].split('angle:')[1])))
+
+        print("\nACTIONS: " + str(plan_actions))
+        print('Adjusted Angle: ' + str(plan_actions[0][1]*1.05) + "\n")
 
         return plan_actions
 
