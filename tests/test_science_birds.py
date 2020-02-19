@@ -6,14 +6,22 @@ from os import path
 import settings
 import math
 import agent.planning.planner as pl
+import subprocess
 
 @pytest.mark.skipif(settings.HEADLESS==True,reason="headless does not work in docker")
 def test_science_birds():
     print("starting")
+
+    if sys.platform == 'darwin':
+        cmd = 'cp data/science_birds/level-00.xml bin/ScienceBirds_MacOS.app/Contents/Resources/Data/StreamingAssets/Levels'
+        subprocess.run(cmd, shell=True)
+    else:
+        cmd = 'cp data/science_birds/level-00.xml bin/ScienceBirds_Linux/sciencebirds_linux_Data/StreamingAssets/Levels'
+        subprocess.run(cmd, shell=True)
     env = sb.ScienceBirds()
     state = env.get_current_state()
     print(state.objects)
-    # assert(len(state.objects) == 5)
+    assert(len(state.objects) == 5)
 
     planner = pl.Planner()
     planner.write_problem_file(env.translate_state_to_pddl())

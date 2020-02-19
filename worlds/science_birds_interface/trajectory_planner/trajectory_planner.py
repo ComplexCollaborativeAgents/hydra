@@ -26,7 +26,7 @@ class SimpleTrajectoryPlanner:
         self._velocity = 9.5/self.scale_factor
 
         # conversion between the trajectory time and actual time in milliseconds
-        self._time_unit = 1000
+        self._time_unit = 815
 
         # boolean flag on set trajectory
         self._traj_set = False
@@ -68,8 +68,8 @@ class SimpleTrajectoryPlanner:
         #print ('scale ', scale)
         #System.out.println("scale " + scale)
         ref = self.get_reference_point(slingshot)
-        x = (targetPoint.X - ref.X)
-        y = -(targetPoint.Y - ref.Y)
+        x = (targetPoint.X - ref.X) 
+        y = -(targetPoint.Y - ref.Y) 
 
         #gravity
         g = 0.48*9.81 / self.scale_factor * scale

@@ -86,7 +86,7 @@ class ScienceBirds(World):
         cmd = ''
 
         if sys.platform=='darwin':
-            cmd='open {}/ab.app'.format(settings.SCIENCE_BIRDS_BIN_DIR)
+            cmd='open {}/ScienceBirds_MacOS.app'.format(settings.SCIENCE_BIRDS_BIN_DIR)
         else:
             cmd='{}/ScienceBirds_Linux/science_birds_linux.x86_64 {}'. \
                 format(settings.SCIENCE_BIRDS_BIN_DIR,
