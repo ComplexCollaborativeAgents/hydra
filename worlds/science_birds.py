@@ -9,8 +9,8 @@ import subprocess
 import settings
 import sys
 import time
-import demo.naive_agent_groundtruth as na
-from client.agent_client import GameState
+import json
+import client.agent_client as ac
 from shapely.geometry import box
 #WP imports
 import signal
@@ -22,9 +22,10 @@ import math
 class SBState(State):
     """Current State of Science Birds"""
     id = 0
-    def __init__(self,objs):
+    def __init__(self,objs,image):
         super().__init__()
         self.objects = objs
+        self.image = image
 
 
     def get_rl_id(self):
@@ -162,12 +163,12 @@ class ScienceBirds(World):
     sb_client = None
     history = []
 
+
     def __init__(self,sel_level=0,launch=True):
+        self.id = 2228
         if launch:
             self.launch_SB()
-            time.sleep(1)
-        else:
-            self.cur_state = self.load_from_serialized_state(path.join(settings.ROOT_PATH, 'data', 'science_birds', 'serialized_levels', 'level-00.p'))
+            time.sleep(5)
         self.create_interface(sel_level)
 
 
@@ -193,7 +194,7 @@ class ScienceBirds(World):
         cmd = ''
 
         if sys.platform=='darwin':
-            cmd='open {}/ab.app'.format(settings.SCIENCE_BIRDS_BIN_DIR)
+            cmd='open {}/ScienceBirds_MacOS.app'.format(settings.SCIENCE_BIRDS_BIN_DIR)
         else:
             cmd='{}/ScienceBirds_Linux/science_birds_linux.x86_64 {}'. \
                 format(settings.SCIENCE_BIRDS_BIN_DIR,
@@ -213,19 +214,21 @@ class ScienceBirds(World):
     #        print(self.SB_server_process.communicate()[0])
         print('done')
 
+
     def create_interface(self,first_level=0):
         self.sb_client = na.ClientNaiveAgent()
-        # self.init_first_level()
         self.init_selected_level(first_level)
 
-    def init_selected_level(self, s_level):
-        self.sb_client.ar.configure(self.sb_client.id)
-        levels = self.sb_client.update_no_of_levels()
 
-        self.sb_client.solved = [0 for x in range(levels)]
+    def init_selected_level(self, s_level):
+        with open('worlds/science_birds_interface/client/server_client_config.json', 'r') as config:
+            sc_json_config = json.load(config)
+        self.sb_client = ac.AgentClient(**sc_json_config[0])
         self.sb_client.current_level = s_level
-        self.sb_client.ar.load_level(self.sb_client.current_level)
-        print('solving level: {}'.format(self.sb_client.current_level))
+        self.sb_client.connect_to_server()
+        self.sb_client.load_level(self.current_level)
+
+
 
     def available_actions(self,state=None):
         """
@@ -237,41 +240,23 @@ class ScienceBirds(World):
     def act(self,action):
         '''returns the new current state and reward'''
         self.history.append(action)
+        prev_score = self.sb_client.get_current_score()
         ref_point = self.sb_client.tp.get_reference_point(self.cur_sling)
         dx = int(action.x - ref_point.X)
         dy = int(action.y - ref_point.Y)
         # this blocks until scene is doing
         self.sb_client.ar.shoot(ref_point.X, ref_point.Y, dx, dy, 0, action.tap, False)
-        reward = 0 # this will require getting the score before and after
+        reward =  self.sb_client.ab.get_current_score() - prev_score
         self.get_current_state()
-        return self.cur_state, reward, self.sb_client.ar.get_game_state() is not GameState.PLAYING
+        return self.cur_state, reward, self.sb_client.get_game_state() is not ac.GameState.PLAYING
 
     def get_current_state(self):
         """
         side effects to set the current game status and sling objects on the environment
         """
-        ground_truth_type = 'groundTruth'
 
-        vision = self.sb_client._updateReader(ground_truth_type)
-
-        if isinstance(vision, GameState):
-            return vision
-
-        if self.sb_client.showGroundTruth:
-            vision.showResult()
-
-        sling = vision.find_slingshot_mbr()[0]
-        # TODO: look into the width and height issue of Traj planner
-        sling.width, sling.height = sling.height, sling.width
-        objs = {}
-        for key,value in vision.allObj.items():
-            for obj in value:
-                objs[obj.id] = {'type' : key ,
-                                'bbox': box(min(obj.points[1]),
-                                            min(obj.points[0]),
-                                            max(obj.points[1]),
-                                            max(obj.points[0]))}
-        self.cur_sling = sling
-        self.cur_game_window = self.sb_client.ar.get_game_state()
-        self.cur_state = SBState(objs)
+        image, ground_truth = self.sb_client.get_ground_truth_with_screenshot()
+        self.cur_game_window = self.sb_client.get_game_state()
+        self.cur_state = SBState(ground_truth,image)
         return self.cur_state
+

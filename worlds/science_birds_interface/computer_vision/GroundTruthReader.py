@@ -5,16 +5,12 @@ Created on Sat Dec 14 09:58:27 2019
 
 @author: chengxue
 """
-import sys
-sys.path.append('./science_birds_interface')
-
-
 import numpy as np
 import os
 import cv2
 import json
-from computer_vision.game_object import GameObject, GameObjectType,GameObjectShape
-from computer_vision.cv_utils import Rectangle, platformCombiner
+from computer_vision.game_object import GameObject, GameObjectType
+from computer_vision.cv_utils import Rectangle
 
 class NotVaildStateError(Exception):
    """NotVaildStateError exceptions"""
@@ -28,27 +24,165 @@ class GroundTruthReader:
         if sreenshot is required, and the rest of them is the ground truth of game
         objects
         '''
+        
+        #print('reading json')
 
-        self.shape_transformer = {
-                    "RectTiny": GameObjectShape.RectTiny,
-                    "RectSmall": GameObjectShape.RectSmall,
-                    "Rect": GameObjectShape.Rect,
-                    "RectMedium": GameObjectShape.RectMedium,
-                    "RectBig": GameObjectShape.RectBig,
-                    "RectFat": GameObjectShape.RectFat,
-
-                    "SquareTiny": GameObjectShape.SquareTiny,
-                    "SquareSmall": GameObjectShape.SquareSmall,
-                    "Square": GameObjectShape.Square,
-                    "SquareBig": GameObjectShape.SquareBig,
-                    "SquareHole": GameObjectShape.SquareHole,
-
-                    "Triangle": GameObjectShape.Triangle,
-                    "TriangleHole": GameObjectShape.TriangleHole,
-
-                    "CircleSmall": GameObjectShape.CircleSmall,
-                    "Circle": GameObjectShape.Circle
-                }
+#        self.shape_transformer = {
+#                    "RectTiny": GameObjectShape.RectTiny,
+#                    "RectSmall": GameObjectShape.RectSmall,
+#                    "Rect": GameObjectShape.Rect,
+#                    "RectMedium": GameObjectShape.RectMedium,
+#                    "RectBig": GameObjectShape.RectBig,
+#                    "RectFat": GameObjectShape.RectFat,
+#
+#                    "SquareTiny": GameObjectShape.SquareTiny,
+#                    "SquareSmall": GameObjectShape.SquareSmall,
+#                    "Square": GameObjectShape.Square,
+#                    "SquareBig": GameObjectShape.SquareBig,
+#                    "SquareHole": GameObjectShape.SquareHole,
+#
+#                    "Triangle": GameObjectShape.Triangle,
+#                    "TriangleHole": GameObjectShape.TriangleHole,
+#
+#                    "CircleSmall": GameObjectShape.CircleSmall,
+#                    "Circle": GameObjectShape.Circle
+#                }
+        # use top3 color to identify an object
+#        self.color_distribution_table = {(73, 0, 32): 'bird_black',
+#                                         (73, 32, 0): 'bird_black',
+#                                         (164,): 'bird_black',
+#                                         (36, 0, 109): 'bird_black',
+#                                         (64, 100): 'bird_black',
+#                                         (73, 0, 36): 'bird_black',
+#                                         (73, 36, 0): 'bird_black',
+#                                         (119, 0, 36): 'bird_blue',
+#                                         (119, 0, 82): 'bird_blue',
+#                                         (119, 0, 41): 'bird_blue',
+#                                         (0, 250, 244): 'bird_red',
+#                                         (36, 21, 255): 'bird_white',
+#                                         (36, 255, 21): 'bird_white',   
+#                                         (248, 36): 'bird_yellow',
+#                                         (248, 0): 'bird_yellow',
+#                                         (248,): 'bird_yellow',
+#                                         (248, 0, 36): 'bird_yellow',
+#                                         (36, 68): 'Platform',
+#                                         (205, 68, 172): 'TNT',
+#                                         (19, 87, 123): 'Ice',
+#                                         (19, 123, 87): 'Ice',
+#                                         (123, 19, 87): 'Ice',
+#                                         (123, 87, 19): 'Ice',
+#                                         (19, 87, 255): 'Ice',
+#                                         (19, 255, 87): 'Ice',
+#                                         (124, 156, 19): 'Ice',
+#                                         (19, 123, 255): 'Ice',
+#                                         (19, 255, 123): 'Ice',
+#                                         (87, 19, 123): 'Ice',
+#                                         (87, 123, 19): 'Ice',
+#                                         (19, 123, 155): 'Ice',
+#                                         (19, 155, 123): 'Ice',
+#                                         (19, 155, 136): 'Ice',
+#                                         (125, 36, 4): 'pig_basic_big',
+#                                         (125, 84): 'pig_basic_small',
+#                                         (125, 203): 'pig_basic_medium',
+#                                         (125, 203, 4): 'pig_basic_medium',
+#                                         (125, 36, 84): 'pig_basic_big',
+#                                         (125, 84, 80): 'pig_basic_medium',
+#                                         (125,): 'pig_basic_small',
+#                                         (125, 36): 'pig_basic_medium',
+#                                         (125, 121): 'pig_basic_small',
+#                                         (125, 84, 121): 'pig_basic_small',
+#                                         (125, 84, 36): 'pig_king',
+#                                         (73, 19, 182): 'Stone',
+#                                         (146, 73, 182): 'Stone',
+#                                         (146, 182, 73): 'Stone',
+#                                         (182, 73, 146): 'Stone',
+#                                         (182, 146, 73): 'Stone',
+#                                         (73, 146, 182): 'Stone',
+#                                         (73, 182, 146): 'Stone',
+#                                         (136, 172, 168): 'Wood',
+#                                         (136, 240, 172): 'Wood',
+#                                         (136, 240, 245): 'Wood',
+#                                         (136, 240, 208): 'Wood',
+#                                         (136, 245, 240): 'Wood',
+#                                         (136, 172, 240): 'Wood',
+#                                         (136, 245, 172): 'Wood',
+#                                         (240, 136, 204): 'Wood',
+#                                         (136, 240, 19): 'Wood',
+#                                         (240, 136, 172): 'Wood',
+#                                         (136, 73, 240): 'Wood',
+#                                         (136, 240, 73): 'Wood'}
+        
+        self.color_distribution_table = {(73, 0, 32): 'bird_black',
+                                         (73, 32, 0): 'bird_black',
+                                         (164, 36, 64): 'bird_black',
+                                         (64, 100, 0): 'bird_black',
+                                         (36, 0, 109): 'bird_black',
+                                         (73, 0, 36): 'bird_black',
+                                         (73, 36, 0): 'bird_black',
+                                         (119, 0, 36): 'bird_blue',
+                                         (119, 0, 82): 'bird_blue',
+                                         (119, 0, 41): 'bird_blue',
+                                         (0, 250, 244): 'bird_red',
+                                         (165, 128, 250): 'bird_red_big',
+                                         (36, 21, 255): 'bird_white',
+                                         (36, 255, 21): 'bird_white',
+                                         (248, 36, 72): 'bird_yellow',
+                                         (248, 36, 212): 'bird_yellow',
+                                         (248, 0, 36): 'bird_yellow',
+                                         (248, 36, 0): 'bird_yellow',
+                                         (146, 219, 182): 'effects_',
+                                         (32, 255, 68): 'effects_',
+                                         (146, 182, 255): 'effects_',
+                                         (182, 255, 146): 'effects_',
+                                         (36, 255, 219): 'effects_',
+                                         (172, 146, 32): 'effects_',
+                                         (205, 68, 172): 'TNT',
+                                         (36, 68, 32): 'Platform',
+                                         (19, 87, 123): 'Ice',
+                                         (123, 87, 19): 'Ice',
+                                         (19, 123, 87): 'Ice',
+                                         (123, 19, 87): 'Ice',
+                                         (19, 87, 255): 'Ice',
+                                         (19, 255, 87): 'Ice',
+                                         (124, 156, 19): 'Ice',
+                                         (87, 123, 19): 'Ice',
+                                         (87, 19, 123): 'Ice',
+                                         (19, 123, 255): 'Ice',
+                                         (19, 255, 123): 'Ice',
+                                         (19, 123, 155): 'Ice',
+                                         (19, 155, 123): 'Ice',
+                                         (19, 155, 136): 'Ice',
+                                         (125, 203, 84): 'pig_basic_medium',
+                                         (125, 36, 4): 'pig_basic_medium',
+                                         (125, 84, 88): 'pig_basic_small',
+                                         (125, 203, 4): 'pig_basic_big',
+                                         (125, 36, 84): 'pig_basic_medium',
+                                         (125, 84, 203): 'pig_basic_big',
+                                         (125, 36, 88): 'pig_basic_medium',
+                                         (125, 84, 80): 'pig_basic_medium',
+                                         (125, 121, 84): 'pig_basic_small',
+                                         (125, 84, 36): 'pig_basic_small',
+                                         (125, 84, 121): 'pig_basic_small',
+                                         (125, 84, 0): 'pig_basic_small',
+                                         (73, 19, 182): 'Stone',
+                                         (146, 73, 182): 'Stone',
+                                         (146, 182, 73): 'Stone',
+                                         (182, 73, 146): 'Stone',
+                                         (73, 182, 146): 'Stone',
+                                         (182, 146, 73): 'Stone',
+                                         (73, 146, 182): 'Stone',
+                                         (136, 240, 172): 'Wood',
+                                         (136, 240, 245): 'Wood',
+                                         (240, 136, 172): 'Wood',
+                                         (136, 172, 168): 'Wood',
+                                         (136, 240, 208): 'Wood',
+                                         (136, 245, 240): 'Wood',
+                                         (136, 172, 240): 'Wood',
+                                         (136, 73, 240): 'Wood',
+                                         (136, 240, 19): 'Wood',
+                                         (240, 136, 204): 'Wood',
+                                         (136, 245, 172): 'Wood',
+                                         (136, 240, 73): 'Wood'}
 
         self.type_transformer = {
                 'bird_blue':'blueBird',
@@ -86,14 +220,14 @@ class GroundTruthReader:
 
 
         #combine the platforms
-        self.platformCombied = platformCombiner(json)
+#        self.platformCombied = platformCombiner(json)
 
         #replace exsiting platforms with new combined platforms
         self.alljson = []
         for j in json:
             if j['type'] != 'Platform':
                 self.alljson.append(j)
-        self.alljson.extend(self.platformCombied)
+#        self.alljson.extend(self.platformCombied)
 
         self._parseJsonToGameObject()
         
@@ -105,14 +239,13 @@ class GroundTruthReader:
         '''
         check if the stats received are vaild or not
         
-        for vaild state, there has to be at least one pig and one bird and a slingshot.
+        for vaild state, there has to be at least one pig and one bird.
         '''
 
         pigs = self.find_pigs_mbr()
         birds = self.find_birds()
-        sling = self.find_slingshot_mbr()
                     
-        if pigs and birds and sling:
+        if pigs and birds:
             return True
         else:
             return False
@@ -125,40 +258,74 @@ class GroundTruthReader:
         '''
         convert json objects to game objects
         '''
+        
         self.allObj = {}
         for j in self.alljson:
             #prepare rectangle
-            object_type = j['type']
-            if 'vertices' in j:
-                vertices = j['vertices']
-                x = []
-                y = []
-                for v in vertices:
-                    x.append(int(v['x']))
-                    y.append(480 - int(v['y']))
-                points = (np.array(y),np.array(x))
-                rect = Rectangle(points)
-                if 'name' in j:
-                    ##remove bracket - ad-hoc, will be fixed
-                    if '(' in j['name']:
-                        j['name'] = j['name'][:j['name'].find('(')]
-                    game_object = GameObject(rect,type = GameObjectType(self.type_transformer[object_type]), vertices = vertices,
-                                             shape = self.shape_transformer[j['name']])
-                else:
-                    game_object = GameObject(rect,GameObjectType(self.type_transformer[object_type]),vertices,
-                                             shape = GameObjectShape.Rect) # for the first release: use only the rectangle
-
+            
+            if j['type'] == "Slingshot":
+                
+            
+                rect = self._getRect(j)
+                vertices = j["vertices"]
+                
+                game_object = GameObject(rect,vertices,GameObjectType(self.type_transformer["Slingshot"]))
+                                         
                 try:
-                    self.allObj[self.type_transformer[object_type]].append(game_object)
+                    self.allObj[self.type_transformer["Slingshot"]].append(game_object)
                 except:
-                    self.allObj[self.type_transformer[object_type]] = [game_object]
+                    self.allObj[self.type_transformer["Slingshot"]] = [game_object]
+            
+            elif j['type'] == "Ground" or j['type'] == "Trajectory":
+                pass
+            
+            else:
+                #print(j['colormap'])
+                rect = self._getRect(j)
+                vertices = j["vertices"]
+
+
+                #use color map to decide the object type
+                
+                colorMap = j['colormap']
+                color_list = []
+                for color in colorMap:
+                    colorCleaned = [0,0]
+                    colorCleaned[0] = int(color['color'])
+                    colorCleaned[1] = float(color['percent'])
+                    
+                    color_list.append((int(colorCleaned[0]),float(colorCleaned[1])))
+                top_3_color = sorted(color_list,key = lambda x : x[1], reverse = True)[:3]
+                top_3_color = tuple([x[0] for x in top_3_color])
+               
+                game_object = GameObject(rect,vertices,GameObjectType(self.type_transformer[self.color_distribution_table[top_3_color]]))
+                                         
+                try:
+                    self.allObj[self.type_transformer[self.color_distribution_table[top_3_color]]].append(game_object)
+                except:
+                    self.allObj[self.type_transformer[self.color_distribution_table[top_3_color]]] = [game_object]               
+               
+               
+            
+    def _getRect(self,j):
+        '''
+        input: json object
+        output: rectangle of the object
+        '''
+        vertices = j['vertices']
+        x = []
+        y = []
+        for v in vertices:
+            x.append(int(v['x']))
+            y.append(480 - int(v['y']))
+        points = (np.array(y),np.array(x))
+        rect = Rectangle(points)
+        return rect
+
 
     def find_bird_on_sling(self,birds,sling):
-
-        
         sling_top_left = sling.top_left[1]
         distance = {}
-        
         for bird_type in birds:
             if len(birds[bird_type]) > 0:
                 for bird in birds[bird_type]:
@@ -170,7 +337,6 @@ class GroundTruthReader:
             if distance[bird] < min_distance:
                 ret = bird
                 min_distance = distance[bird]
-                
         return ret
 
     def find_hill_mbr(self):
@@ -209,56 +375,129 @@ class GroundTruthReader:
         else:
             return ret
 
+
     def showResult(self):
         '''
-        drew the ground truth result
+        draw the ground truth result
         '''
-        try:
-            contours = []
-            contour_types = []
-            for obj in self.alljson:
-                if obj['type'] == 'Ground':
-                    y_index = 480 - int(obj['yindex'] )
-                else:
-                    #create contours
-                    contour = np.zeros((len(obj['vertices']),1,2))
-                    for i in range(len(obj['vertices'])) :
-                        contour[i,:,0] = obj['vertices'][i]['x']
-                        contour[i,:,1] = 480 - obj['vertices'][i]['y']
-    
-                    contours.append(contour.astype(int))
-                    contour_types.append(obj['type'])
-    
-            #return contours
+
+        contours = []
+        contour_types = []
+        for obj in self.alljson:
+            if obj['type'] == 'Ground':
+                y_index = 480 - int(obj['yindex'] )
+            else:
+                #create contours
+                contour = np.zeros((len(obj['vertices']),1,2))
+                for i in range(len(obj['vertices'])) :
+                    contour[i,:,0] = obj['vertices'][i]['x']
+                    contour[i,:,1] = 480 - obj['vertices'][i]['y']
+
+                contours.append(contour.astype(int))
+                contour_types.append(obj['type'])
+
+        #return contours
+        
+        for i in range(len(contours)):
+            cv2.drawContours(self.screenshot, contours, i , self.contour_color[contour_types[i]],1)
+            cv2.putText(self.screenshot,contour_types[i],
+                    tuple(tuple(np.min(contours[i],0)[0])),
+                    0,
+                    0.3,
+                    (255,0,0))
             
-            for i in range(len(contours)):
-                cv2.drawContours(self.screenshot, contours, i , self.contour_color[contour_types[i]],1)
-                cv2.putText(self.screenshot,contour_types[i],
-                        tuple(tuple(np.min(contours[i],0)[0])),
-                        0,
-                        0.3,
-                        (255,0,0))
-                
-            cv2.line(self.screenshot, (0,y_index), (839,y_index), (0,255,0), 1)
-            cv2.imshow('ground truth',self.screenshot[:,:,::-1])
-            cv2.waitKey(30)
-            cv2.destroyAllWindows()
-        except:
-            print('Errors in displaying ground truth.')
-            pass
+        cv2.line(self.screenshot, (0,y_index), (839,y_index), (0,255,0), 1)
+        cv2.imshow('ground truth',self.screenshot[:,:,::-1])
+        cv2.waitKey(30)
+        cv2.destroyAllWindows()
 
 
 
 if __name__ == "__main__":
-    root = "/Users/chengxue/Gitlab/sciencebirds/"
+    root = "/Users/chengxue/Gitlab/pythongameplayingagent/"
     paths = os.listdir(root)
-    f = open(root + 'PigData.json','r')
+#    f = open(root + '0_GTData.json','r')
+    f = open(root + 'BaseMap.json','r')
     result = json.load(f)
-    gt = GroundTruthReader(result)
-#    gt.showResult()
-#    import matplotlib.pylab as plt
-#    aa =[j for j in gt.alljson if j['type'] == 'Ice']
-#    x = [597,597,597,597,629,629,598]
-#    y = [317,317,295,294,294,295,317]
-#    y = [480 - i for i in y]
-#    plt.scatter(x,y)
+    
+    type_transformer = {
+                    'bird_blue':'ABType.BlueBird',
+                    'bird_yellow':'ABType.YellowBird',
+                    'bird_black':'ABType.BlackBird',
+                    'bird_red':'ABType.RedBird',
+                    'bird_white':'ABType.WhiteBird',
+                    'Platform':'ABType.Hill',
+                    'pig_basic_big' : 'ABType.Pig',
+                    'pig_basic_small' : 'ABType.Pig',
+                    'pig_basic_medium' : 'ABType.Pig',
+                    "pig_king": 'ABType.Pig',
+                    'TNT' : 'ABType.TNT',
+                    'Slingshot':'slingshot',
+                    'Ice' : 'ABType.Ice',
+                    'Stone' : 'ABType.Stone',
+                    'Wood' : 'ABType.Wood'
+                    }
+        
+#    gt = GroundTruthReader(result)
+
+#    result = result["sprites"][2:]
+#    
+#    color_distribution_saver = {}
+#    
+#    for d in result:
+#        
+#        
+#        if 'effects_21' in d['type']:
+#            obj_name = 'Platform'
+#            
+#        elif 'effects_34' in d['type']:
+#            obj_name = 'TNT'
+#            
+#        elif 'ice' in d['type']:
+#            obj_name = 'Ice'
+#            
+#        elif 'wood' in d['type']:
+#            obj_name = 'Wood'
+#            
+#        elif 'stone' in d['type']:
+#            obj_name = 'Stone'
+#            
+#        else:
+#            obj_name = d['type'][:-2]
+#        
+#        obj_color_map = d['colormap']
+#        
+#        color_list = []
+#            
+#        for c in obj_color_map:
+#            #clearn_c = c.replace("(","").replace(")","").replace("color: ","").replace("percent: ","").replace("{","").replace("}","").split(',')
+#            color_list.append((int(c['x']),float(c['y'])))
+#        
+#        top_3_color = sorted(color_list,key = lambda x : x[1], reverse = True)
+#        top_3_color = tuple([x[0] for x in top_3_color])
+#        print(obj_name + "top_3_color:" + str(top_3_color))
+#        
+#        
+#        try:
+#            
+#            color_distribution_saver[obj_name].add(tuple(top_3_color[:3]))
+#        
+#        except KeyError:
+#            color_distribution_saver[obj_name] = {tuple(top_3_color[:3]),}
+#        #break
+#    #revers key and values
+#            
+#    value_key = {}
+#    for k in color_distribution_saver:
+#        for color in color_distribution_saver[k]:
+#            value_key[color] = k
+#            
+#    
+#    #transfer to java
+#    
+#    for k,v in value_key.items():
+#        try:
+#            print("lookupTable3Color.put(\"{},{},{}\",{});".format(k[0],k[1],k[2],type_transformer[v]))
+#        except:
+#            continue
+    

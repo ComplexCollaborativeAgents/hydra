@@ -9,5 +9,8 @@ dependencies:
   - shapely
   - pillow
   - opencv
+  - scipy
+  - matplotlib
+  - scikit-image
 
 

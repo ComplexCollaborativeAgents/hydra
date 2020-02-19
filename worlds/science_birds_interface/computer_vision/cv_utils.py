@@ -6,7 +6,7 @@ Created on Tue Dec  3 08:22:08 2019
 @author: chengxue
 """
 import numpy as np
-from shapely.geometry import MultiPolygon, Polygon
+from shapely.geometry import MultiPolygon, Polygon, box
 from shapely.ops import unary_union
 
 class Rectangle:
@@ -124,45 +124,90 @@ class Rectangle:
             self.bottom_right[1] = height - 1
 
 
+#def platformCombiner(parsed_json):
+#    '''
+#    This function combines any platforms that are intersecting with each other to one
+#    platform and return the combined list of all platforms.
+#    
+#    @input parsed_json : a list of json records
+#    @output: a list of json records with platform vertices
+#    '''
+#    #Obtaining sets of seperately connected polygons
+#    all_vert = []
+#    
+#    for item in parsed_json:
+#        if item["colormap"][0:24] == "{color: 36,percent: 0.55":
+#            poly = Polygon([(item["vertices"][0]["x"],item["vertices"][0]["y"]),
+#                            (item["vertices"][1]["x"],item["vertices"][1]["y"]),
+#                            (item["vertices"][2]["x"],item["vertices"][2]["y"]),
+#                            (item["vertices"][3]["x"],item["vertices"][3]["y"])])
+#            if poly.is_valid:
+#    
+#                all_vert.append(poly)  
+#            
+#    sep_vert = unary_union(all_vert)
+#    if sep_vert.geom_type == 'Polygon':
+#        sep_vert = MultiPolygon([sep_vert])
+#        
+#    plat_list = []
+#    #Obtaining bounds of the polygons if they contain similar x and y values 
+#    for platform in sep_vert:
+#        temp_dict = {}
+#        temp_dict['type'] = "Platform"
+#        temp_dict['vertices'] = []
+#        l1 = list(platform.exterior.coords)
+#        x = set(list(zip(*list(platform.exterior.coords)))[0]) # unique x elements in the list of seperate platforms
+#        y = set(list(zip(*list(platform.exterior.coords)))[1]) # unique y elements in the list of seperate platforms
+#        
+#        if len(x) >= len(y):
+#            for i in range(len(l1) - 1):
+#                x1, y1 = l1[i]
+#                x2, y2 = l1[i + 1]
+#                if y1 == y2:
+#                    continue
+#                else:
+#                    temp_dict['vertices'].append({"x": x1, "y": y1})
+#                    temp_dict['vertices'].append({"x": x2, "y": y2})
+#                    
+#        else:
+#            for i in range(len(l1) - 1):
+#                x1, y1 = l1[i]
+#                x2, y2 = l1[i + 1]
+#                if x1 == x2:
+#                    continue
+#                else:
+#                    temp_dict['vertices'].append({"x": x1, "y": y1})
+#                    temp_dict['vertices'].append({"x": x2, "y": y2})
+#                    
+#        plat_list.append(temp_dict)
+#        
+#    return plat_list
+
 
 def platformCombiner(parsed_json):
-    '''
-    This function combines any platforms that are intersecting with each other to one
-    platform and return the combined list of all platforms.
     
-    @input parsed_json : a list of json records
-    @output: a list of json records with platform vertices
-    '''
+    L= []
 
-    #Obtaining sets of seperately connected polygons
-    all_vert = []
-    
     for item in parsed_json:
         if item["type"] == "Platform":
-            poly = Polygon([(item["vertices"][0]["x"],item["vertices"][0]["y"]),
-                            (item["vertices"][1]["x"],item["vertices"][1]["y"]),
-                            (item["vertices"][2]["x"],item["vertices"][2]["y"]),
-                            (item["vertices"][3]["x"],item["vertices"][3]["y"])])
-            if poly.is_valid:
+            poly = Polygon([(item["vertices"][0]["x"],item["vertices"][0]["y"]),(item["vertices"][1]["x"],item["vertices"][1]["y"]),(item["vertices"][2]["x"],item["vertices"][2]["y"]),(item["vertices"][3]["x"],item["vertices"][3]["y"])])
+            L.append(poly)  
+
+    P = unary_union(L)
+
+    if P.geom_type == 'Polygon':
+        P = MultiPolygon([P])
     
-                all_vert.append(poly)  
-            
-    sep_vert = unary_union(all_vert)
+    
+    plat_dict = []
 
-    if sep_vert.geom_type == 'Polygon':
-        sep_vert = MultiPolygon([sep_vert])
-        
-    plat_list = []
-
-    #Obtaining bounds of the polygons if they contain similar x and y values 
-
-    for platform in sep_vert:
+    for Q in P:
         temp_dict = {}
         temp_dict['type'] = "Platform"
         temp_dict['vertices'] = []
-        l1 = list(platform.exterior.coords)
-        x = set(list(zip(*list(platform.exterior.coords)))[0]) # unique x elements in the list of seperate platforms
-        y = set(list(zip(*list(platform.exterior.coords)))[1]) # unique y elements in the list of seperate platforms
+        l1 = list(Q.exterior.coords)
+        x = set(list(zip(*list(Q.exterior.coords)))[0])
+        y = set(list(zip(*list(Q.exterior.coords)))[1])
         
         if len(x) >= len(y):
             for i in range(len(l1) - 1):
@@ -184,6 +229,6 @@ def platformCombiner(parsed_json):
                     temp_dict['vertices'].append({"x": x1, "y": y1})
                     temp_dict['vertices'].append({"x": x2, "y": y2})
                     
-        plat_list.append(temp_dict)
-        
-    return plat_list
+        plat_dict.append(temp_dict)    
+    return plat_dict
+
