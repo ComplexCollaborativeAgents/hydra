@@ -5,6 +5,7 @@ print(sys.path)
 sys.path.append(os.path.join(settings.ROOT_PATH, 'worlds', 'science_birds_interface'))
 print(sys.path)
 from utils.state import State, Action, World
+import trajectory_planner.trajectory_planner as tp
 import subprocess
 import settings
 import sys
@@ -143,11 +144,13 @@ class SBState(State):
 
 
 class SBAction(Action):
-    """first a bird, x,y position of first tap, and then the time of the second tap"""
-    def __init__(self,x,y,tap):
-        self.x = x
-        self.y = y
+    """first a bird, x,y position of first tap,and then the time of the second tap"""
+    def __init__(self,x,y,tap,ref_x,ref_y):
+        self.dx = ref_x - x
+        self.dy = ref_y - y
         self.tap = tap
+        self.ref_x = ref_x
+        self.ref_y = ref_y
 
     def get_rl_id(self):
         return self.to_id
@@ -166,6 +169,7 @@ class ScienceBirds(World):
 
     def __init__(self,sel_level=0,launch=True):
         self.id = 2228
+        self.tp = tp.SimpleTrajectoryPlanner()
         if launch:
             self.launch_SB()
             time.sleep(5)
@@ -216,16 +220,16 @@ class ScienceBirds(World):
 
 
     def create_interface(self,first_level=0):
-        self.sb_client = na.ClientNaiveAgent()
+        with open('worlds/science_birds_interface/client/server_client_config.json', 'r') as config:
+            sc_json_config = json.load(config)
+        self.sb_client = ac.AgentClient(sc_json_config[0]['host'], sc_json_config[0]['port'])
+        self.sb_client.connect_to_server()
+        self.sb_client.configure(self.id)
         self.init_selected_level(first_level)
 
 
     def init_selected_level(self, s_level):
-        with open('worlds/science_birds_interface/client/server_client_config.json', 'r') as config:
-            sc_json_config = json.load(config)
-        self.sb_client = ac.AgentClient(**sc_json_config[0])
-        self.sb_client.current_level = s_level
-        self.sb_client.connect_to_server()
+        self.current_level = s_level
         self.sb_client.load_level(self.current_level)
 
 
@@ -241,20 +245,16 @@ class ScienceBirds(World):
         '''returns the new current state and reward'''
         self.history.append(action)
         prev_score = self.sb_client.get_current_score()
-        ref_point = self.sb_client.tp.get_reference_point(self.cur_sling)
-        dx = int(action.x - ref_point.X)
-        dy = int(action.y - ref_point.Y)
         # this blocks until scene is doing
-        self.sb_client.ar.shoot(ref_point.X, ref_point.Y, dx, dy, 0, action.tap, False)
-        reward =  self.sb_client.ab.get_current_score() - prev_score
+        self.sb_client.shoot(action.ref_x, action.ref_y, action.dx, action.dy, 0, action.tap, False)
+        reward =  self.sb_client.get_current_score() - prev_score
         self.get_current_state()
-        return self.cur_state, reward, self.sb_client.get_game_state() is not ac.GameState.PLAYING
+        return self.cur_state, reward, self.cur_game_window is not ac.GameState.PLAYING
 
     def get_current_state(self):
         """
         side effects to set the current game status and sling objects on the environment
         """
-
         image, ground_truth = self.sb_client.get_ground_truth_with_screenshot()
         self.cur_game_window = self.sb_client.get_game_state()
         self.cur_state = SBState(ground_truth,image)
