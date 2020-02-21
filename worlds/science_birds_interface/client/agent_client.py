@@ -7,8 +7,9 @@ import json
 import logging
 import numpy as np
 from PIL import Image
+import sys
 
-
+logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 class GameState(Enum):
     """The state of the game at a particular instant"""
     UNKNOWN = 0
@@ -193,11 +194,14 @@ class AgentClient:
         rgb_image = img[:, :, ::-1].copy()
         # cv2.imwrite('image.png',img)
         return img
-	
+
     def read_ground_truth_from_stream(self):
         """Read Ground Truth fro sever_socket"""
+        self._logger.info("reading groundtruth from stream")
         msg_length = self._read_from_buff("I")[0]
         data = b''
+
+        self._logger.info("groundtruth length is %d bytes", msg_length)
         while len(data) < msg_length:
             packet = self.server_socket.recv(msg_length - len(data))
             if not packet:
@@ -239,14 +243,14 @@ class AgentClient:
         self._send_command(code, "iiiiii", fx, fy, dx, dy, t1, t2)
         return self._read_from_buff("B")[0]
 
-    def get_all_level_scores(self,n_levels):
+    def get_all_level_scores(self):
         if self.playing_mode != PlayingMode.COMPETITION:
             self._logger.warning(
                 "GetAllLevelScores is not recommended in %s",
                 self.playing_mode
             )
         self._send_command(RequestCodes.GetAllLevelScores)
-        
+        n_levels = self._read_from_buff("I")[0]
         return self._read_from_buff("" + n_levels * "I")
 
     def get_current_score(self):
@@ -273,29 +277,33 @@ class AgentClient:
         return self._read_from_buff("B")[0]
 
     def get_ground_truth_with_screenshot(self):
+        self._logger.info("sending get_ground_truth_with_screenshot request")
         self._send_command(RequestCodes.GetGroundTruthWithScreenshot)
         gt = self.read_ground_truth_from_stream()
         im = self.read_image_from_stream()
         return (im, gt)
 
     def get_ground_truth_without_screenshot(self):
+        self._logger.info("sending get_ground_truth_without_screenshot request")
         self._send_command(RequestCodes.GetGroundTruthWithoutScreenshot)
         return self.read_ground_truth_from_stream()
 
     def get_noisy_ground_truth_with_screenshot(self):
+        self._logger.info("sending get_noisy_ground_truth_with_screenshot request")
         self._send_command(RequestCodes.GetNoisyGroundTruthWithScreenshot)
         gt = self.read_ground_truth_from_stream()
         im = self.read_image_from_stream()
         return (im, gt)
 
     def get_noisy_ground_truth_without_screenshot(self):
+        self._logger.info("sending get_noisy_ground_truth_without_screenshot request")
         self._send_command(RequestCodes.GetNoisyGroundTruthWithoutScreenshot)
         return self.read_ground_truth_from_stream()
 
 
 if __name__ == "__main__":
     """ TEST AGENT """
-    with open('worlds/science_birds_interface/client/server_client_config.json', 'r') as config:
+    with open('./server_client_config.json', 'r') as config:
         sc_json_config = json.load(config)
 
     client = AgentClient(**sc_json_config[0])

@@ -27,6 +27,7 @@ class SBState(State):
         super().__init__()
         self.objects = objs
         self.image = image
+        self.sling = None
 
 
     def get_rl_id(self):
@@ -146,8 +147,8 @@ class SBState(State):
 class SBAction(Action):
     """first a bird, x,y position of first tap,and then the time of the second tap"""
     def __init__(self,x,y,tap,ref_x,ref_y):
-        self.dx = ref_x - x
-        self.dy = ref_y - y
+        self.dx =  int(x - ref_x)
+        self.dy =  int(y - ref_y)
         self.tap = tap
         self.ref_x = ref_x
         self.ref_y = ref_y
@@ -246,7 +247,9 @@ class ScienceBirds(World):
         self.history.append(action)
         prev_score = self.sb_client.get_current_score()
         # this blocks until scene is doing
-        self.sb_client.shoot(action.ref_x, action.ref_y, action.dx, action.dy, 0, action.tap, False)
+        ret = self.sb_client.shoot(action.ref_x, action.ref_y, action.dx, action.dy, 0, action.tap, False)
+        if ret == 1:
+            assert False
         reward =  self.sb_client.get_current_score() - prev_score
         self.get_current_state()
         return self.cur_state, reward, self.cur_game_window is not ac.GameState.PLAYING

@@ -17,14 +17,14 @@ class NotVaildStateError(Exception):
    pass
 
 class GroundTruthReader:
-    def __init__(self,json):
+    def __init__(self,json, ignore_invalid_state = False):
 
         '''
         json : a list of json objects. the first element is int id, 2nd is png sreenshot
         if sreenshot is required, and the rest of them is the ground truth of game
         objects
         '''
-        
+
         #print('reading json')
 
 #        self.shape_transformer = {
@@ -60,7 +60,7 @@ class GroundTruthReader:
 #                                         (119, 0, 41): 'bird_blue',
 #                                         (0, 250, 244): 'bird_red',
 #                                         (36, 21, 255): 'bird_white',
-#                                         (36, 255, 21): 'bird_white',   
+#                                         (36, 255, 21): 'bird_white',
 #                                         (248, 36): 'bird_yellow',
 #                                         (248, 0): 'bird_yellow',
 #                                         (248,): 'bird_yellow',
@@ -111,7 +111,7 @@ class GroundTruthReader:
 #                                         (240, 136, 172): 'Wood',
 #                                         (136, 73, 240): 'Wood',
 #                                         (136, 240, 73): 'Wood'}
-        
+
         self.color_distribution_table = {(73, 0, 32): 'bird_black',
                                          (73, 32, 0): 'bird_black',
                                          (164, 36, 64): 'bird_black',
@@ -198,7 +198,8 @@ class GroundTruthReader:
                 'Slingshot':'slingshot',
                 'Ice' : 'ice',
                 'Stone' : 'stone',
-                'Wood' : 'wood'
+                'Wood' : 'wood',
+                'Unknown': 'unknown'
                 }
 
         self.contour_color = {
@@ -230,26 +231,26 @@ class GroundTruthReader:
 #        self.alljson.extend(self.platformCombied)
 
         self._parseJsonToGameObject()
-        
-        if not self._if_vaild():
+
+        if not (self._if_vaild() or ignore_invalid_state):
             raise NotVaildStateError('request new state')
-        
-    
+
+
     def _if_vaild(self):
         '''
         check if the stats received are vaild or not
-        
+
         for vaild state, there has to be at least one pig and one bird.
         '''
 
         pigs = self.find_pigs_mbr()
         birds = self.find_birds()
-                    
+
         if pigs and birds:
             return True
         else:
             return False
-                    
+
 
     def set_screenshot(self, screenshot):
         self.screenshot = screenshot
@@ -258,27 +259,27 @@ class GroundTruthReader:
         '''
         convert json objects to game objects
         '''
-        
+
         self.allObj = {}
         for j in self.alljson:
             #prepare rectangle
-            
+
             if j['type'] == "Slingshot":
-                
-            
+
+
                 rect = self._getRect(j)
                 vertices = j["vertices"]
-                
+
                 game_object = GameObject(rect,vertices,GameObjectType(self.type_transformer["Slingshot"]))
-                                         
+
                 try:
                     self.allObj[self.type_transformer["Slingshot"]].append(game_object)
                 except:
                     self.allObj[self.type_transformer["Slingshot"]] = [game_object]
-            
+
             elif j['type'] == "Ground" or j['type'] == "Trajectory":
                 pass
-            
+
             else:
                 #print(j['colormap'])
                 rect = self._getRect(j)
@@ -286,27 +287,27 @@ class GroundTruthReader:
 
 
                 #use color map to decide the object type
-                
+
                 colorMap = j['colormap']
                 color_list = []
                 for color in colorMap:
                     colorCleaned = [0,0]
                     colorCleaned[0] = int(color['color'])
                     colorCleaned[1] = float(color['percent'])
-                    
+
                     color_list.append((int(colorCleaned[0]),float(colorCleaned[1])))
                 top_3_color = sorted(color_list,key = lambda x : x[1], reverse = True)[:3]
                 top_3_color = tuple([x[0] for x in top_3_color])
-               
-                game_object = GameObject(rect,vertices,GameObjectType(self.type_transformer[self.color_distribution_table[top_3_color]]))
-                                         
+
+                game_object = GameObject(rect,vertices,GameObjectType(self.type_transformer.get(self.color_distribution_table.get(top_3_color,'Unknown'),'unknown')))
+
                 try:
-                    self.allObj[self.type_transformer[self.color_distribution_table[top_3_color]]].append(game_object)
+                    self.allObj[self.type_transformer[self.color_distribution_table.get(top_3_color,'Unknown')]].append(game_object)
                 except:
-                    self.allObj[self.type_transformer[self.color_distribution_table[top_3_color]]] = [game_object]               
-               
-               
-            
+                    self.allObj[self.type_transformer[self.color_distribution_table.get(top_3_color,'Unknown')]] = [game_object]
+
+
+
     def _getRect(self,j):
         '''
         input: json object
@@ -346,11 +347,11 @@ class GroundTruthReader:
     def find_pigs_mbr(self):
         ret = self.allObj.get('pig',None)
         return ret
-    
+
     def find_platform_mbr(self):
         ret = self.allObj.get('Platform',None)
         return ret
-    
+
     def find_slingshot_mbr(self):
         ret = self.allObj.get('slingshot',None)
         return ret
@@ -397,7 +398,7 @@ class GroundTruthReader:
                 contour_types.append(obj['type'])
 
         #return contours
-        
+
         for i in range(len(contours)):
             cv2.drawContours(self.screenshot, contours, i , self.contour_color[contour_types[i]],1)
             cv2.putText(self.screenshot,contour_types[i],
@@ -405,99 +406,8 @@ class GroundTruthReader:
                     0,
                     0.3,
                     (255,0,0))
-            
+
         cv2.line(self.screenshot, (0,y_index), (839,y_index), (0,255,0), 1)
         cv2.imshow('ground truth',self.screenshot[:,:,::-1])
         cv2.waitKey(30)
         cv2.destroyAllWindows()
-
-
-
-if __name__ == "__main__":
-    root = "/Users/chengxue/Gitlab/pythongameplayingagent/"
-    paths = os.listdir(root)
-#    f = open(root + '0_GTData.json','r')
-    f = open(root + 'BaseMap.json','r')
-    result = json.load(f)
-    
-    type_transformer = {
-                    'bird_blue':'ABType.BlueBird',
-                    'bird_yellow':'ABType.YellowBird',
-                    'bird_black':'ABType.BlackBird',
-                    'bird_red':'ABType.RedBird',
-                    'bird_white':'ABType.WhiteBird',
-                    'Platform':'ABType.Hill',
-                    'pig_basic_big' : 'ABType.Pig',
-                    'pig_basic_small' : 'ABType.Pig',
-                    'pig_basic_medium' : 'ABType.Pig',
-                    "pig_king": 'ABType.Pig',
-                    'TNT' : 'ABType.TNT',
-                    'Slingshot':'slingshot',
-                    'Ice' : 'ABType.Ice',
-                    'Stone' : 'ABType.Stone',
-                    'Wood' : 'ABType.Wood'
-                    }
-        
-#    gt = GroundTruthReader(result)
-
-#    result = result["sprites"][2:]
-#    
-#    color_distribution_saver = {}
-#    
-#    for d in result:
-#        
-#        
-#        if 'effects_21' in d['type']:
-#            obj_name = 'Platform'
-#            
-#        elif 'effects_34' in d['type']:
-#            obj_name = 'TNT'
-#            
-#        elif 'ice' in d['type']:
-#            obj_name = 'Ice'
-#            
-#        elif 'wood' in d['type']:
-#            obj_name = 'Wood'
-#            
-#        elif 'stone' in d['type']:
-#            obj_name = 'Stone'
-#            
-#        else:
-#            obj_name = d['type'][:-2]
-#        
-#        obj_color_map = d['colormap']
-#        
-#        color_list = []
-#            
-#        for c in obj_color_map:
-#            #clearn_c = c.replace("(","").replace(")","").replace("color: ","").replace("percent: ","").replace("{","").replace("}","").split(',')
-#            color_list.append((int(c['x']),float(c['y'])))
-#        
-#        top_3_color = sorted(color_list,key = lambda x : x[1], reverse = True)
-#        top_3_color = tuple([x[0] for x in top_3_color])
-#        print(obj_name + "top_3_color:" + str(top_3_color))
-#        
-#        
-#        try:
-#            
-#            color_distribution_saver[obj_name].add(tuple(top_3_color[:3]))
-#        
-#        except KeyError:
-#            color_distribution_saver[obj_name] = {tuple(top_3_color[:3]),}
-#        #break
-#    #revers key and values
-#            
-#    value_key = {}
-#    for k in color_distribution_saver:
-#        for color in color_distribution_saver[k]:
-#            value_key[color] = k
-#            
-#    
-#    #transfer to java
-#    
-#    for k,v in value_key.items():
-#        try:
-#            print("lookupTable3Color.put(\"{},{},{}\",{});".format(k[0],k[1],k[2],type_transformer[v]))
-#        except:
-#            continue
-    

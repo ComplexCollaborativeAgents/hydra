@@ -51,13 +51,14 @@ def test_science_birds():
     planner = pl.Planner()
     planner.write_problem_file(state.translate_state_to_pddl())
 
-
     # env.sb_client.tp.estimate_launch_point(env.cur_sling, Point2D(540,355))
 
-    # ref_point = env.sb_client.tp.get_reference_point(env.cur_sling)
-    # release_point_from_plan = env.tp.find_release_point(state.cur_sling, math.radians(planner.get_plan_actions()[0][1]*1.05))
+
+    ref_point = env.tp.get_reference_point(state.sling)
+    release_point_from_plan = env.tp.find_release_point(state.sling, 0.174533) # 10 degree launch
+    #release_point_from_plan = env.tp.find_release_point(state.cur_sling, math.radians(planner.get_plan_actions()[0][1]*1.05))
     # action = sb.SBAction(release_point_from_plan.X, release_point_from_plan.Y,3000) # no idea what the scale of these should be
-    action = sb.SBAction(943, 264, 3000, 172, 264)
+    action = sb.SBAction(release_point_from_plan.X, release_point_from_plan.Y, 3000, ref_point.X, ref_point.Y)
 
 
 
