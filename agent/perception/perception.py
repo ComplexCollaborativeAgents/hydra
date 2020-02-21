@@ -13,7 +13,7 @@ class Perception():
         pass
 
     def process_state(self, state):
-        if isinstance(state,sb.State):
+        if isinstance(state,sb.SBState):
             return self.process_sb_state(state)
         return state
 
