@@ -18,12 +18,12 @@ import agent.perception.perception as perception
 def test_science_birds():
     print("starting")
 
-    # if sys.platform == 'darwin':
-    #     cmd = 'cp data/science_birds/level-00.xml bin/ScienceBirds_MacOS.app/Contents/Resources/Data/StreamingAssets/Levels'
-    #     subprocess.run(cmd, shell=True)
-    # else:
-    #     cmd = 'cp data/science_birds/level-00.xml bin/ScienceBirds_Linux/sciencebirds_linux_Data/StreamingAssets/Levels'
-    #     subprocess.run(cmd, shell=True)
+    if sys.platform == 'darwin':
+        cmd = 'cp data/science_birds/level-00-original.xml bin/ScienceBirds_MacOS.app/Contents/Resources/Data/StreamingAssets/Levels'
+        subprocess.run(cmd, shell=True)
+    else:
+        cmd = 'cp data/science_birds/level-00-original.xml bin/ScienceBirds_Linux/sciencebirds_linux_Data/StreamingAssets/Levels'
+        subprocess.run(cmd, shell=True)
     env = sb.ScienceBirds(0)
 
     state = env.get_current_state()

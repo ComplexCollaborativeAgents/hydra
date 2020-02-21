@@ -1,3 +1,9 @@
+import sys
+import os
+import settings
+print(sys.path)
+sys.path.append(os.path.join(settings.ROOT_PATH, 'worlds', 'science_birds_interface'))
+print(sys.path)
 from computer_vision.VisionRealShape import VisionRealShape
 from computer_vision.GroundTruthReader import GroundTruthReader,NotVaildStateError
 import worlds.science_birds as sb
@@ -13,7 +19,7 @@ class Perception():
         pass
 
     def process_state(self, state):
-        if isinstance(state,sb.State):
+        if isinstance(state,sb.SBState):
             return self.process_sb_state(state)
         return state
 
