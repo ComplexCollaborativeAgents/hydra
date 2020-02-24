@@ -221,7 +221,7 @@ class ScienceBirds(World):
 
 
     def create_interface(self,first_level=0):
-        with open('worlds/science_birds_interface/client/server_client_config.json', 'r') as config:
+        with open(str(path.join(settings.ROOT_PATH, 'worlds', 'science_birds_interface', 'client', 'server_client_config.json')), 'r') as config:
             sc_json_config = json.load(config)
         self.sb_client = ac.AgentClient(sc_json_config[0]['host'], sc_json_config[0]['port'])
         self.sb_client.connect_to_server()
@@ -248,7 +248,7 @@ class ScienceBirds(World):
         prev_score = self.sb_client.get_current_score()
         # this blocks until scene is doing
         ret = self.sb_client.shoot(action.ref_x, action.ref_y, action.dx, action.dy, 0, action.tap, False)
-        if ret == 1:
+        if ret == 0:
             assert False
         reward =  self.sb_client.get_current_score() - prev_score
         self.get_current_state()
