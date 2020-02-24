@@ -53,7 +53,7 @@ def test_science_birds():
 
     # env.sb_client.tp.estimate_launch_point(env.cur_sling, Point2D(540,355))
 
-
+    state.sling.width,state.sling.height = state.sling.height,state.sling.width
     ref_point = env.tp.get_reference_point(state.sling)
     release_point_from_plan = env.tp.find_release_point(state.sling, 0.174533) # 10 degree launch
     #release_point_from_plan = env.tp.find_release_point(state.cur_sling, math.radians(planner.get_plan_actions()[0][1]*1.05))
