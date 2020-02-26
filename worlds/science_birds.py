@@ -173,7 +173,7 @@ class ScienceBirds(World):
         self.tp = tp.SimpleTrajectoryPlanner()
         if launch:
             self.launch_SB()
-            time.sleep(5)
+            time.sleep(1)
         self.create_interface(sel_level)
 
 
@@ -182,9 +182,8 @@ class ScienceBirds(World):
                                                      self.SB_server_process.pid,
                                                      self.SB_process.pid))
         try:
-            os.kill(self.SB_server_process.pid + 1,signal.SIGTERM )
-            self.SB_process.kill()
-            self.SB_server_process.kill()
+            os.killpg(self.SB_process.pid,9)
+            os.killpg(self.SB_server_process.pid,9)
         except:
             pass
 
@@ -208,15 +207,17 @@ class ScienceBirds(World):
         self.SB_process = subprocess.Popen(cmd,stdout=subprocess.PIPE,
                                            stderr=subprocess.STDOUT,
                                            shell=True,
-                                           preexec_fn=os.setsid)
-        print('launching java interface')
+                                           start_new_session=True)
+        print('launching science birds interface:{}'.format(str(self.SB_process.pid)))
+        time.sleep(4)
         # Popen is necessary as we have to run it in the background
         cmd2 = '{}{}'.format('xvfb-run ' if settings.HEADLESS else '',
                              settings.SCIENCE_BIRDS_SERVER_CMD)
         self.SB_server_process = subprocess.Popen(cmd2,
                                                   stdout=subprocess.PIPE, stderr=subprocess.STDOUT,shell=True,
-                                                  preexec_fn=os.setsid)
-    #        print(self.SB_server_process.communicate()[0])
+                                                  start_new_session=True
+                                                  )
+        print('launching java birds : {}'.format(str(self.SB_server_process.pid)))
         print('done')
 
 

@@ -14,10 +14,9 @@ from utils.point2D import Point2D
 import subprocess
 import agent.perception.perception as perception
 
-@pytest.mark.skipif(settings.HEADLESS==True,reason="headless does not work in docker")
-def test_science_birds():
+@pytest.fixture(scope="module")
+def launch_science_birds():
     print("starting")
-
     if sys.platform == 'darwin':
         cmd = 'cp data/science_birds/level-00-original.xml bin/ScienceBirds_MacOS.app/Contents/Resources/Data/StreamingAssets/Levels'
         subprocess.run(cmd, shell=True)
@@ -25,14 +24,20 @@ def test_science_birds():
         cmd = 'cp data/science_birds/level-00-original.xml bin/ScienceBirds_Linux/sciencebirds_linux_Data/StreamingAssets/Levels'
         subprocess.run(cmd, shell=True)
     env = sb.ScienceBirds(0)
+    yield env
+    print("teardown tests")
+    env.kill()
 
-    state = env.get_current_state()
+
+@pytest.mark.skipif(settings.HEADLESS==True,reason="headless does not work in docker")
+def test_science_birds(launch_science_birds):
     # env.serialize_current_state(path.join(settings.ROOT_PATH, 'data', 'science_birds', 'serialized_levels', 'level-00.p'))
     # loaded_serialized_state = env.load_from_serialized_state(path.join(settings.ROOT_PATH, 'data', 'science_birds', 'serialized_levels', 'level-00.p'))
     # assert isinstance(state, sb.SBState)
     # assert state.objects == loaded_serialized_state.objects
     print('\nAll Objects: ')
-
+    env = launch_science_birds
+    state = env.get_current_state()
     print(state.objects)
     assert(len(state.objects) == 7)
     assert('id' in state.objects[0].keys() and
@@ -60,14 +65,10 @@ def test_science_birds():
     # action = sb.SBAction(release_point_from_plan.X, release_point_from_plan.Y,3000) # no idea what the scale of these should be
     action = sb.SBAction(release_point_from_plan.X, release_point_from_plan.Y, 3000, ref_point.X, ref_point.Y)
 
-
-
     state,reward,done = env.act(action)
     assert isinstance(state,sb.SBState)
     assert reward > 0
-    # assert not done
-    env.kill()
-
+    assert done == True
 
 
 
