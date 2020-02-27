@@ -1,5 +1,7 @@
 import sys
 import os
+import threading
+
 import settings
 print(sys.path)
 sys.path.append(os.path.join(settings.ROOT_PATH, 'worlds', 'science_birds_interface'))
@@ -166,7 +168,8 @@ class ScienceBirds(World):
 
     sb_client = None
     history = []
-
+    intermediate_states = []
+    lock = threading.Lock()
 
     def __init__(self,sel_level=0,launch=True):
         self.id = 2228
@@ -177,13 +180,14 @@ class ScienceBirds(World):
         self.create_interface(sel_level)
 
 
+
     def kill(self):
-        print("Killing processes: {}, {}, {}".format(self.SB_server_process.pid+1,
-                                                     self.SB_server_process.pid,
+        print("Killing process groups: {}, {}".format(self.SB_server_process.pid,
                                                      self.SB_process.pid))
         try:
             os.killpg(self.SB_process.pid,9)
             os.killpg(self.SB_server_process.pid,9)
+            self.gt_thread.kill()
         except:
             pass
 
@@ -221,6 +225,9 @@ class ScienceBirds(World):
         print('done')
 
 
+
+
+
     def create_interface(self,first_level=0):
         with open(str(path.join(settings.ROOT_PATH, 'worlds', 'science_birds_interface', 'client', 'server_client_config.json')), 'r') as config:
             sc_json_config = json.load(config)
@@ -228,7 +235,11 @@ class ScienceBirds(World):
         self.sb_client.connect_to_server()
         self.sb_client.configure(self.id)
         self.init_selected_level(first_level)
-
+        with open(str(path.join(settings.ROOT_PATH, 'worlds', 'science_birds_interface', 'client', 'server_observer_client_config.json')), 'r') as observer_config:
+            observer_sc_json_config = json.load(observer_config)
+        self.sb_observer = ac.AgentClient(observer_sc_json_config[0]['host'],observer_sc_json_config[0]['port'])
+        self.sb_observer.connect_to_server()
+        self.sb_observer.configure(self.id)
 
     def init_selected_level(self, s_level):
         self.current_level = s_level
@@ -243,12 +254,43 @@ class ScienceBirds(World):
         """
         assert None
 
+    def sample_state(self, frequency=0.5):
+        """
+         sample a state from the observer agent
+         this method allows to be run in a different thread
+         NOTE: Setting the frequency too high, i.e. <0.01 may cause lag in science birds game
+               due to the calculation of the groundtruth
+        """
+        count = 0
+        self.intermediate_states = []
+        while True:
+#            print('sampling {}'.format(count))
+            count+=1
+            ground_truth = self.sb_observer.get_ground_truth_without_screenshot()
+            state = SBState(ground_truth, None)
+            self.intermediate_states.append(state)
+#            print('sampling sleep')
+            time.sleep(frequency)
+            if self.lock.acquire(False):
+#                print('thread exiting')
+                break
+        self.lock.release()
+#        print('ending sampling')
+
+
     def act(self,action):
         '''returns the new current state and reward'''
         self.history.append(action)
         prev_score = self.sb_client.get_current_score()
         # this blocks until scene is doing
+        self.lock.acquire()
+        self.gt_thread = threading.Thread(target=self.sample_state)
+        self.gt_thread.start()
+        print("beforeshot")
         ret = self.sb_client.shoot(action.ref_x, action.ref_y, action.dx, action.dy, 0, action.tap, False)
+        time.sleep(8) # This is only here because ANU changed the API so shoot doesn't block
+        self.lock.release()
+        self.gt_thread.join()
         if ret == 0:
             assert False
         reward =  self.sb_client.get_current_score() - prev_score
