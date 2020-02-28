@@ -66,6 +66,9 @@ def test_science_birds(launch_science_birds):
     action = sb.SBAction(release_point_from_plan.X, release_point_from_plan.Y, 3000, ref_point.X, ref_point.Y)
 
     state,reward,done = env.act(action)
+    assert len(env.intermediate_states) > 1
+    # some objects should be destroyed by the last state
+    assert len(env.intermediate_states[0].objects) > len(env.intermediate_states[-1].objects)
     assert isinstance(state,sb.SBState)
     assert reward > 0
     assert done == True
