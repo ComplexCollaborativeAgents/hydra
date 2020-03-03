@@ -29,7 +29,7 @@ def launch_science_birds():
     env.kill()
 
 
-#@pytest.mark.skipif(settings.HEADLESS==True,reason="headless does not work in docker")
+@pytest.mark.skipif(settings.HEADLESS==True,reason="headless does not work in docker")
 def test_science_birds(launch_science_birds):
     # env.serialize_current_state(path.join(settings.ROOT_PATH, 'data', 'science_birds', 'serialized_levels', 'level-00.p'))
     # loaded_serialized_state = env.load_from_serialized_state(path.join(settings.ROOT_PATH, 'data', 'science_birds', 'serialized_levels', 'level-00.p'))
