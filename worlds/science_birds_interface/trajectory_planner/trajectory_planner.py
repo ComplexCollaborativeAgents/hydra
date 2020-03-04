@@ -1,13 +1,10 @@
-import sys
-sys.path.append('./science_birds_interface')
+from math import atan2, acos, sqrt, sin, cos
 
-import numpy as np
-from math import atan, atan2, acos, sqrt, sin, cos, radians
-from PIL import Image, ImageDraw
+from PIL import ImageDraw
 
-#TODO change geometric libs to shapely
-from computer_vision.cv_utils import Rectangle
 from utils.point2D import Point2D
+# TODO change geometric libs to shapely
+from worlds.science_birds_interface.computer_vision.cv_utils import Rectangle
 
 
 class SimpleTrajectoryPlanner:

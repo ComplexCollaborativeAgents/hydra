@@ -1,15 +1,7 @@
-import sys
-import os
-import settings
-print(sys.path)
-sys.path.append(os.path.join(settings.ROOT_PATH, 'worlds', 'science_birds_interface'))
-print(sys.path)
-from computer_vision.VisionRealShape import VisionRealShape
-from computer_vision.GroundTruthReader import GroundTruthReader,NotVaildStateError
-import worlds.science_birds as sb
 from shapely.geometry import box
 
-from computer_vision.game_object import GameObject
+import worlds.science_birds as sb
+from worlds.science_birds_interface.computer_vision.GroundTruthReader import GroundTruthReader
 
 
 class Perception():

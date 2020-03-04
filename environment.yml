@@ -12,5 +12,6 @@ dependencies:
   - scipy
   - matplotlib
   - scikit-image
-
+  - pip:
+      - -e .
 
