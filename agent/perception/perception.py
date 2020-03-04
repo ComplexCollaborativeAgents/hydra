@@ -27,6 +27,7 @@ class Perception():
     def process_sb_state(self,state):
         vision = GroundTruthReader(state.objects)
         state.sling = vision.find_slingshot_mbr()[0]
+        state.sling.width, state.sling.height = state.sling.height, state.sling.width
         new_objs = {}
         id = 0
         for type, objs in vision.allObj.items():

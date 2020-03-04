@@ -54,7 +54,9 @@ class SBState(State):
 
         birds = []
         pigs = []
-        blocks = []
+        wood_blocks = []
+        ice_blocks = []
+        stone_blocks = []
         platforms = []
         slingshot = {}
 
@@ -64,7 +66,11 @@ class SBState(State):
             elif 'Bird' in o[1]['type']:
                 birds.append(o)
             elif o[1]['type'] == 'wood':
-                blocks.append(o)
+                wood_blocks.append(o)
+            elif o[1]['type'] == 'ice':
+                ice_blocks.append(o)
+            elif o[1]['type'] == 'stone':
+                stone_blocks.append(o)
             elif o[1]['type'] == 'hill':
                 platforms.append(o)
             elif o[1]['type'] == 'slingshot':
@@ -73,22 +79,27 @@ class SBState(State):
         print('\nSLINGSHOT: ' + str(slingshot))
         print('BIRDS: ' + str(birds))
         print('PIGS: ' + str(pigs))
-        print('BLOCKS: ' + str(blocks))
+        print('BLOCKS: ' + str(wood_blocks))
+        print('ICES: ' + str(ice_blocks))
+        print('STONES: ' + str(stone_blocks))
         print('PLATFORMS: ' + str(platforms) + '\n')
 
 
         groundOffset = slingshot[1]['bbox'].bounds[3]
 
+        bird_index = 0
         # bbox.bounds = (minX, minY, maxX, maxY);
         for bo in birds:
             prob_instance += '{}_{} '.format(bo[1]['type'], bo[0])
             bird_params += '    (not (bird_dead {}_{}))\n'.format(bo[1]['type'], bo[0])
             bird_params += '    (not (bird_released {}_{}))\n'.format(bo[1]['type'], bo[0])
-            bird_params += '    (= (x_bird {}_{}) {})\n'.format(bo[1]['type'], bo[0],  round((bo[1]['bbox'].bounds[0] + bo[1]['bbox'].bounds[2])/2)-0)
-            bird_params += '    (= (y_bird {}_{}) {})\n'.format(bo[1]['type'], bo[0], round(abs(((bo[1]['bbox'].bounds[1] + bo[1]['bbox'].bounds[3])/2) - groundOffset)-0))
+            bird_params += '    (= (x_bird {}_{}) {})\n'.format(bo[1]['type'], bo[0], round((slingshot[1]['bbox'].bounds[0] + slingshot[1]['bbox'].bounds[2]) / 2) - 0)
+            bird_params += '    (= (y_bird {}_{}) {})\n'.format(bo[1]['type'], bo[0], round(abs(((slingshot[1]['bbox'].bounds[1] + slingshot[1]['bbox'].bounds[3]) / 2) - groundOffset) - 0))
             bird_params += '    (= (v_bird {}_{}) 270)\n'.format(bo[1]['type'], bo[0])
             bird_params += '    (= (vy_bird {}_{}) 0)\n'.format(bo[1]['type'], bo[0])
-            goal_conds += ' (not (bird_dead {}_{}))'.format(bo[1]['type'], bo[0])
+            bird_params += '    (= (bird_id {}_{}) {})\n'.format(bo[1]['type'], bo[0], bird_index)
+            # goal_conds += ' (not (bird_dead {}_{}))'.format(bo[1]['type'], bo[0])
+            bird_index += 1
 
         prob_instance += '- bird '
 
@@ -96,37 +107,74 @@ class SBState(State):
             prob_instance += '{}_{} '.format(po[1]['type'], po[0])
             pig_params += '    (not (pig_dead {}_{}))\n'.format(po[1]['type'], po[0])
             pig_params += '    (= (x_pig {}_{}) {})\n'.format(po[1]['type'], po[0], po[1]['bbox'].bounds[0])
-            pig_params += '    (= (y_pig {}_{}) {})\n'.format(po[1]['type'], po[0], abs(po[1]['bbox'].bounds[1] - groundOffset))
-            pig_params += '    (= (margin_pig {}_{}) {})\n'.format(po[1]['type'], po[0], round(abs(po[1]['bbox'].bounds[2] - po[1]['bbox'].bounds[0])*0.5))
+            pig_params += '    (= (y_pig {}_{}) {})\n'.format(po[1]['type'], po[0],
+                                                              abs(po[1]['bbox'].bounds[1] - groundOffset))
+            pig_params += '    (= (margin_pig {}_{}) {})\n'.format(po[1]['type'], po[0], round(
+                abs(po[1]['bbox'].bounds[2] - po[1]['bbox'].bounds[0]) * 0.75))
             goal_conds += ' (pig_dead {}_{})'.format(po[1]['type'], po[0])
 
         prob_instance += '- pig '
 
-        if blocks != []:
-            for blo in blocks:
-                prob_instance += '{}_{} - block '.format(blo[1]['type'], blo[0])
-                bird_params += '    (not (block_destroyed {}_{}))\n'.format(blo[1]['type'], blo[0])
-                bird_params += '    (= (x_block {}_{}) {})\n'.format(blo[1]['type'], blo[0],  blo[1]['bbox'].bounds[0])
-                bird_params += '    (= (y_block {}_{}) {})\n'.format(blo[1]['type'], blo[0], abs(blo[1]['bbox'].bounds[1] - groundOffset))
-                bird_params += '    (= (block_height {}_{}) {})\n'.format(blo[1]['type'], blo[0], abs(blo[1]['bbox'].bounds[3] - blo[1]['bbox'].bounds[1]))
-                bird_params += '    (= (block_width {}_{}) {})\n'.format(blo[1]['type'], blo[0], abs(blo[1]['bbox'].bounds[2] - blo[1]['bbox'].bounds[0]))
+        if wood_blocks != []:
+            for wbl in wood_blocks:
+                prob_instance += '{}_{} - wood_block '.format(wbl[1]['type'], wbl[0])
+                bird_params += '    (not (wood_destroyed {}_{}))\n'.format(wbl[1]['type'], wbl[0])
+                bird_params += '    (= (x_wood {}_{}) {})\n'.format(wbl[1]['type'], wbl[0], wbl[1]['bbox'].bounds[0])
+                bird_params += '    (= (y_wood {}_{}) {})\n'.format(wbl[1]['type'], wbl[0],
+                                                                    abs(wbl[1]['bbox'].bounds[1] - groundOffset))
+                bird_params += '    (= (wood_height {}_{}) {})\n'.format(wbl[1]['type'], wbl[0], abs(
+                    wbl[1]['bbox'].bounds[3] - wbl[1]['bbox'].bounds[1]))
+                bird_params += '    (= (wood_width {}_{}) {})\n'.format(wbl[1]['type'], wbl[0], abs(
+                    wbl[1]['bbox'].bounds[2] - wbl[1]['bbox'].bounds[0]))
         else:
-            prob_instance += 'dummy_block - block '
+            prob_instance += 'dummy_wood - wood_block '
+
+        if ice_blocks != []:
+            for ibl in ice_blocks:
+                prob_instance += '{}_{} - ice_block '.format(ibl[1]['type'], ibl[0])
+                bird_params += '    (not (ice_destroyed {}_{}))\n'.format(ibl[1]['type'], ibl[0])
+                bird_params += '    (= (x_ice {}_{}) {})\n'.format(ibl[1]['type'], ibl[0], ibl[1]['bbox'].bounds[0])
+                bird_params += '    (= (y_ice {}_{}) {})\n'.format(ibl[1]['type'], ibl[0],
+                                                                   abs(ibl[1]['bbox'].bounds[1] - groundOffset))
+                bird_params += '    (= (ice_height {}_{}) {})\n'.format(ibl[1]['type'], ibl[0], abs(
+                    ibl[1]['bbox'].bounds[3] - ibl[1]['bbox'].bounds[1]))
+                bird_params += '    (= (ice_width {}_{}) {})\n'.format(ibl[1]['type'], ibl[0], abs(
+                    ibl[1]['bbox'].bounds[2] - ibl[1]['bbox'].bounds[0]))
+        else:
+            prob_instance += 'dummy_ice - ice_block '
+
+        if stone_blocks != []:
+            for sbl in stone_blocks:
+                prob_instance += '{}_{} - stone_block '.format(sbl[1]['type'], sbl[0])
+                bird_params += '    (not (stone_destroyed {}_{}))\n'.format(sbl[1]['type'], sbl[0])
+                bird_params += '    (= (x_stone {}_{}) {})\n'.format(sbl[1]['type'], sbl[0], sbl[1]['bbox'].bounds[0])
+                bird_params += '    (= (y_stone {}_{}) {})\n'.format(sbl[1]['type'], sbl[0],
+                                                                     abs(sbl[1]['bbox'].bounds[1] - groundOffset))
+                bird_params += '    (= (stone_height {}_{}) {})\n'.format(sbl[1]['type'], sbl[0], abs(
+                    sbl[1]['bbox'].bounds[3] - sbl[1]['bbox'].bounds[1]))
+                bird_params += '    (= (stone_width {}_{}) {})\n'.format(sbl[1]['type'], sbl[0], abs(
+                    sbl[1]['bbox'].bounds[2] - sbl[1]['bbox'].bounds[0]))
+        else:
+            prob_instance += 'dummy_stone - stone_block '
 
         if platforms != []:
             for pla in platforms:
                 prob_instance += '{}_{} - platform '.format(pla[1]['type'], pla[0])
-                bird_params += '    (= (x_platform {}_{}) {})\n'.format(pla[1]['type'], pla[0],  pla[1]['bbox'].bounds[0])
-                bird_params += '    (= (y_platform {}_{}) {})\n'.format(pla[1]['type'], pla[0], abs(pla[1]['bbox'].bounds[1] - groundOffset))
-                bird_params += '    (= (platform_height {}_{}) {})\n'.format(pla[1]['type'], pla[0], abs(pla[1]['bbox'].bounds[3] - pla[1]['bbox'].bounds[1]))
-                bird_params += '    (= (platform_width {}_{}) {})\n'.format(pla[1]['type'], pla[0], abs(pla[1]['bbox'].bounds[2] - pla[1]['bbox'].bounds[0]))
+                bird_params += '    (= (x_platform {}_{}) {})\n'.format(pla[1]['type'], pla[0],
+                                                                        pla[1]['bbox'].bounds[0])
+                bird_params += '    (= (y_platform {}_{}) {})\n'.format(pla[1]['type'], pla[0],
+                                                                        abs(pla[1]['bbox'].bounds[1] - groundOffset))
+                bird_params += '    (= (platform_height {}_{}) {})\n'.format(pla[1]['type'], pla[0], abs(
+                    pla[1]['bbox'].bounds[3] - pla[1]['bbox'].bounds[1]))
+                bird_params += '    (= (platform_width {}_{}) {})\n'.format(pla[1]['type'], pla[0], abs(
+                    pla[1]['bbox'].bounds[2] - pla[1]['bbox'].bounds[0]))
         else:
             prob_instance += 'dummy_platform - platform '
 
-        prob_instance += ')\n' #close objects
+        prob_instance += ')\n'  # close objects
 
         init_params = '(:init '
-        init_params += '(= (gravity) 134.2)\n    (= (angle) 0)\n    (= (angle_rate) 10)\n    (bird_in_slingshot)\n    (not (angle_adjusted))\n'
+        init_params += '(= (gravity) 134.2)\n    (= (active_bird) 0)\n    (= (angle) 0)\n    (= (angle_rate) 20)\n    (not (angle_adjusted))\n'
 
         init_params += bird_params
         init_params += pig_params
@@ -178,11 +226,13 @@ class ScienceBirds(World):
 
 
     def kill(self):
-        print("Killing processes: {}, {}, {}".format(self.SB_server_process.pid+1,
+        print("Killing processes: {}, {}, {}".format(self.SB_server_process.pid+2,
+                                                     self.SB_server_process.pid+1,
                                                      self.SB_server_process.pid,
                                                      self.SB_process.pid))
         try:
-            os.kill(self.SB_server_process.pid + 1,signal.SIGTERM )
+            os.kill(self.SB_server_process.pid + 2,signal.SIGTERM)
+            os.kill(self.SB_server_process.pid + 1,signal.SIGTERM)
             self.SB_process.kill()
             self.SB_server_process.kill()
         except:
@@ -250,9 +300,10 @@ class ScienceBirds(World):
         ret = self.sb_client.shoot(action.ref_x, action.ref_y, action.dx, action.dy, 0, action.tap, False)
         if ret == 0:
             assert False
+        time.sleep(16)
         reward =  self.sb_client.get_current_score() - prev_score
         self.get_current_state()
-        return self.cur_state, reward, self.cur_game_window is not ac.GameState.PLAYING
+        return self.cur_state, reward, self.cur_game_window #is not ac.GameState.PLAYING
 
     def get_current_state(self):
         """
