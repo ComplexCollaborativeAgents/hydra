@@ -5,12 +5,12 @@ Created on Sat Dec 14 09:58:27 2019
 
 @author: chengxue
 """
-import numpy as np
-import os
 import cv2
-import json
-from computer_vision.game_object import GameObject, GameObjectType
-from computer_vision.cv_utils import Rectangle
+import numpy as np
+
+from worlds.science_birds_interface.computer_vision.cv_utils import Rectangle
+from worlds.science_birds_interface.computer_vision.game_object import GameObject, GameObjectType
+
 
 class NotVaildStateError(Exception):
    """NotVaildStateError exceptions"""
