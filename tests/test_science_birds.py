@@ -26,7 +26,9 @@ def test_science_birds():
     else:
         cmd = 'cp {}/data/science_birds/level-00-original.xml {}/bin/ScienceBirds_Linux/sciencebirds_linux_Data/StreamingAssets/Levels'.format(str(settings.ROOT_PATH), str(settings.ROOT_PATH))
         subprocess.run(cmd, shell=True)
-    env = sb.ScienceBirds(15)
+        cmd = 'cp {}/data/science_birds/level-01.xml {}/bin/ScienceBirds_Linux/sciencebirds_linux_Data/StreamingAssets/Levels'.format(str(settings.ROOT_PATH), str(settings.ROOT_PATH))
+        subprocess.run(cmd, shell=True)
+    env = sb.ScienceBirds(2)
 
     state = env.get_current_state()
     # env.serialize_current_state(path.join(settings.ROOT_PATH, 'data', 'science_birds', 'serialized_levels', 'level-00.p'))
