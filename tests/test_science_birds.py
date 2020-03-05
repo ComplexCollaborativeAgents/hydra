@@ -69,7 +69,7 @@ def test_science_birds(launch_science_birds):
     assert reward > 0
 
 
-@pytest.mark.skipif(settings.HEADLESS==True,, reason="headless does not work in docker")
+@pytest.mark.skipif(settings.HEADLESS==True, reason="headless does not work in docker")
 def test_multi_shot(launch_science_birds):
     print('\nAll Objects: ')
     env = launch_science_birds

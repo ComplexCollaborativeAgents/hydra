@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-16"?>
+<!-- Single red bird, one pig on a small square platform, low height, medium distance from the slingshot -->
+<Level width ="2">
+<Camera x="0" y="2" minWidth="20" maxWidth="30">
+<Score highScore ="25980">
+<Birds>
+<Bird type="BirdRed"/>
+</Birds>
+<Slingshot x="-8" y="-2.5">
+<GameObjects>
+<Pig type="BasicBig" material="" x="3.3651809581144877" y="0.0" rotation="0" />
+<Platform type="Platform" material="" x="3.2451809581144877" y="-0.31" />
+</GameObjects>
+</Level>
