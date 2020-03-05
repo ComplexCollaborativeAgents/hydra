@@ -43,9 +43,10 @@ class Planner():
             for i, line in enumerate(plan_trace_file):
                 # print(str(i) + " =====> " + str(line))
                 if " pa-twang " in line:
-                    plan_actions.append((line.split(':')[1].split('[')[0].replace('(','').replace(')','').strip(), float(str(lines_list[i+1].split(',')[1].split('angle:')[1]))))
                     # print(str(lines_list[i]))
-                    # print(float(str(lines_list[i+1].split(',')[1].split('angle:')[1])))
+                    # print(float(str(lines_list[i+1].split('angle:')[1].split(',')[0])))
+                    plan_actions.append((line.split(':')[1].split('[')[0].replace('(','').replace(')','').strip(), float(str(lines_list[i+1].split('angle:')[1].split(',')[0]))))
+
 
         print("\nACTIONS: " + str(plan_actions))
         print('Adjusted Angle: ' + str(plan_actions[0][1]*1.05) + "\n")

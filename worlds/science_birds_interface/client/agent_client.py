@@ -8,6 +8,7 @@ import logging
 import numpy as np
 from PIL import Image
 import sys
+import time
 
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 class GameState(Enum):
@@ -241,6 +242,7 @@ class AgentClient:
     def shoot(self, fx, fy, dx, dy, t1, t2, isPolar):
         code = RequestCodes.Pshoot if isPolar else RequestCodes.Cshoot
         self._send_command(code, "iiiiii", fx, fy, dx, dy, t1, t2)
+        # time.sleep(10)
         return self._read_from_buff("B")[0]
 
     def get_all_level_scores(self):
