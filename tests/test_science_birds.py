@@ -24,9 +24,9 @@ def launch_science_birds():
         cmd = 'cp data/science_birds/level-00-original.xml bin/ScienceBirds_MacOS.app/Contents/Resources/Data/StreamingAssets/Levels'
         subprocess.run(cmd, shell=True)
     else:
-        cmd = 'cp {}/data/science_birds/level-00.xml {}/bin/sciencebirds_linux/sciencebirds_linux_Data/StreamingAssets/Levels'.format(str(settings.ROOT_PATH), str(settings.ROOT_PATH))
+        cmd = 'cp {}/data/science_birds/level-00.xml {}/level-00.xml'.format(str(settings.ROOT_PATH), str(settings.SCIENCE_BIRDS_LEVELS_DIR))
         subprocess.run(cmd, shell=True)
-        cmd = 'cp {}/data/science_birds/level-13.xml {}/bin/sciencebirds_linux/sciencebirds_linux_Data/StreamingAssets/Levels/level-01.xml'.format(str(settings.ROOT_PATH), str(settings.ROOT_PATH))
+        cmd = 'cp {}/data/science_birds/level-13.xml {}/level-01.xml'.format(str(settings.ROOT_PATH), str(settings.SCIENCE_BIRDS_LEVELS_DIR))
         subprocess.run(cmd, shell=True)
     env = sb.ScienceBirds(None)
     yield env

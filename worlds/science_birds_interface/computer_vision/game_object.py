@@ -1,7 +1,5 @@
+from computer_vision.cv_utils import Rectangle
 from enum import Enum
-
-from worlds.science_birds_interface.computer_vision.cv_utils import Rectangle
-
 
 class GameObjectType(Enum):
     UNKNOWN = 'unknown'

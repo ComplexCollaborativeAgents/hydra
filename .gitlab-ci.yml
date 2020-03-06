@@ -9,4 +9,6 @@ before_script:
 test:
   script:
     - tar -xzvf bin/ScienceBirds_Linux.tar.gz -C bin/
+    - tar -xzvf data/science_birds/ANU_Levels.tar.gz -C data/science_birds/
+    - cp -r data/science_birds/Levels/novelty_level_0 bin/sciencebirds_linux/sciencebirds_linux_Data/StreamingAssets/Levels/
     - python -m pytest

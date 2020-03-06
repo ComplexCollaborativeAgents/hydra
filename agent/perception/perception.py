@@ -2,13 +2,41 @@ from shapely.geometry import box
 
 import worlds.science_birds as sb
 from worlds.science_birds_interface.computer_vision.GroundTruthReader import GroundTruthReader
+import settings
+import json
+import numpy as np
 
 
 class Perception():
 
 
     def __init__(self):
-        pass
+        '''Taken from naive_agent_groundtruth'''
+        f = open(settings.SB_INIT_COLOR_MAP, 'r')
+        result = json.load(f)
+        self.look_up_matrix = np.zeros((len(result), 256))
+        self.look_up_obj_type = np.zeros(len(result)).astype(str)
+        obj_number = 0
+        for d in result:
+            if 'effects_21' in d['type']:
+                obj_name = 'Platform'
+            elif 'effects_34' in d['type']:
+                obj_name = 'TNT'
+            elif 'ice' in d['type']:
+                obj_name = 'Ice'
+            elif 'wood' in d['type']:
+                obj_name = 'Wood'
+            elif 'stone' in d['type']:
+                obj_name = 'Stone'
+            else:
+                obj_name = d['type'][:-2]
+            obj_color_map = d['colormap']
+            self.look_up_obj_type[obj_number] = obj_name
+            for pair in obj_color_map:
+                self.look_up_matrix[obj_number][int(pair['x'])] = pair['y']
+            obj_number += 1
+        # normalise the look_up_matrix
+        self.look_up_matrix = self.look_up_matrix / np.sqrt((self.look_up_matrix ** 2).sum(1)).reshape(-1, 1)
 
     def process_state(self, state):
         if isinstance(state,sb.SBState):
@@ -17,7 +45,7 @@ class Perception():
 
 # Output: {0: {'type': 'redBird', 'bbox': <shapely.geometry.polygon.Polygon object at 0x112145b10>}, 1: {'type': 'slingshot', 'bbox': <shapely.geometry.polygon.Polygon object at 0x112145590>}, 2: {'type': 'wood', 'bbox': <shapely.geometry.polygon.Polygon object at 0x1120f4690>}, 3: {'type': 'wood', 'bbox': <shapely.geometry.polygon.Polygon object at 0x1120f4510>}, 4: {'type': 'pig', 'bbox': <shapely.geometry.polygon.Polygon object at 0x1120f4450>}}
     def process_sb_state(self,state):
-        vision = GroundTruthReader(state.objects)
+        vision = GroundTruthReader(state.objects,self.look_up_matrix,self.look_up_obj_type)
         state.sling = vision.find_slingshot_mbr()[0]
         state.sling.width, state.sling.height = state.sling.height, state.sling.width
         new_objs = {}
