@@ -15,8 +15,8 @@ import cv2
 import numpy as np
 from skimage import measure
 
-from computer_vision.cv_utils import Rectangle
-from computer_vision.game_object import GameObject, GameObjectType
+from worlds.science_birds_interface.computer_vision.cv_utils import Rectangle
+from worlds.science_birds_interface.computer_vision.game_object import GameObject, GameObjectType
 
 class VisionMBR:
 

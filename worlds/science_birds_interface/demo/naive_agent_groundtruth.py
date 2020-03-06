@@ -1,18 +1,16 @@
 import sys
-sys.path.append('./src')
 from datetime import datetime
 import time
 import numpy as np
-sys.path.append('..')
 from threading import Thread
 import random
 import json
 import socket
 from math import cos, sin, degrees, pi
-from client.agent_client import AgentClient, GameState, RequestCodes
-from trajectory_planner.trajectory_planner import SimpleTrajectoryPlanner
-from computer_vision.GroundTruthReader import GroundTruthReader,NotVaildStateError
-from computer_vision.game_object import GameObjectType
+from worlds.science_birds_interface.client.agent_client import AgentClient, GameState, RequestCodes
+from worlds.science_birds_interface.trajectory_planner.trajectory_planner import SimpleTrajectoryPlanner
+from worlds.science_birds_interface.computer_vision.GroundTruthReader import GroundTruthReader,NotVaildStateError
+from worlds.science_birds_interface.computer_vision.game_object import GameObjectType
 from utils.point2D import Point2D
 import logging
 

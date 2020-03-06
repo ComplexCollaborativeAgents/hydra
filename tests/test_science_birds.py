@@ -7,7 +7,7 @@ import settings
 import math
 import time
 import agent.planning.planner as pl
-from client.agent_client import GameState
+from worlds.science_birds_interface.client.agent_client import GameState
 
 from pprint import pprint
 from utils.point2D import Point2D

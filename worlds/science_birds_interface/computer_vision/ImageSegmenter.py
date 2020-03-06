@@ -10,7 +10,7 @@ The ImageSegmenter reimplementation in Python
 import numpy as np
 import cv2
 from scipy import signal
-from computer_vision.cv_utils import Rectangle
+from worlds.science_birds_interface.computer_vision.cv_utils import Rectangle
 import os
 import time
 import matplotlib.pylab as plt
