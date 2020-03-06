@@ -244,7 +244,7 @@ class ScienceBirds(World):
         if sys.platform=='darwin':
             cmd='open {}/ScienceBirds_MacOS.app'.format(settings.SCIENCE_BIRDS_BIN_DIR)
         else:
-            cmd='{}/ScienceBirds_Linux/sciencebirds_linux.x86_64 {}'. \
+            cmd='{}/sciencebirds_linux/sciencebirds_linux.x86_64 {}'. \
                 format(settings.SCIENCE_BIRDS_BIN_DIR,
                        '-batchmode -nographics' if settings.HEADLESS else '')
         # Not sure if run will work this way on ubuntu...

@@ -20,12 +20,13 @@ import agent.perception.perception as perception
 def launch_science_birds():
     print("starting")
     if sys.platform == 'darwin':
+        assert False
         cmd = 'cp data/science_birds/level-00-original.xml bin/ScienceBirds_MacOS.app/Contents/Resources/Data/StreamingAssets/Levels'
         subprocess.run(cmd, shell=True)
     else:
-        cmd = 'cp {}/data/science_birds/level-00-original.xml {}/bin/ScienceBirds_Linux/sciencebirds_linux_Data/StreamingAssets/Levels'.format(str(settings.ROOT_PATH), str(settings.ROOT_PATH))
+        cmd = 'cp {}/data/science_birds/level-00.xml {}/bin/sciencebirds_linux/sciencebirds_linux_Data/StreamingAssets/Levels'.format(str(settings.ROOT_PATH), str(settings.ROOT_PATH))
         subprocess.run(cmd, shell=True)
-        cmd = 'cp {}/data/science_birds/level-01.xml {}/bin/ScienceBirds_Linux/sciencebirds_linux_Data/StreamingAssets/Levels'.format(str(settings.ROOT_PATH), str(settings.ROOT_PATH))
+        cmd = 'cp {}/data/science_birds/level-13.xml {}/bin/sciencebirds_linux/sciencebirds_linux_Data/StreamingAssets/Levels/level-01.xml'.format(str(settings.ROOT_PATH), str(settings.ROOT_PATH))
         subprocess.run(cmd, shell=True)
     env = sb.ScienceBirds(None)
     yield env
