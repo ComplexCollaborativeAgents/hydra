@@ -37,7 +37,6 @@ def launch_science_birds():
 def test_science_birds(launch_science_birds):
     env = launch_science_birds
     env.init_selected_level(1)
-    time.sleep(2)
     state = env.get_current_state()
     print(state.objects)
     assert (len(state.objects) == 7)
@@ -83,7 +82,7 @@ def test_multi_shot(launch_science_birds):
 
     planner = pl.Planner()
     planner.write_problem_file(state.translate_state_to_pddl())
-    time.sleep(1)
+
 
     # env.sb_client.tp.estimate_launch_point(env.cur_sling, Point2D(540,355))
 
@@ -107,14 +106,14 @@ def test_multi_shot(launch_science_birds):
         game_state = env.sb_client.get_game_state()
         # p.process_state(state)
 
-        if game_state == GameState.WON:
+        if game_state.value == GameState.WON.value:
             print("\nWINNNNNNNNN\n==========================\n")
             break
-        elif game_state == GameState.LOST:
+        elif game_state.value == GameState.LOST.value:
             print("\nBOOOOOOOOOO\n==========================\n")
             assert(False)
-        elif game_state == GameState.PLAYING:
-            time.sleep(1)
+        elif game_state.value == GameState.PLAYING.value:
+
 
             if action_idx >= len(actions_from_plan):
                 print("\nexecuted last action...\n")
@@ -139,7 +138,6 @@ def test_multi_shot(launch_science_birds):
                 assert(False)
                 break
             wtf_counter += 1
-            time.sleep(5)
 
 def test_state_serialization():
     # state = SBState.serialize_current_state(path.join(settings.ROOT_PATH, 'data', 'science_birds', 'serialized_levels', 'level-00.p'))

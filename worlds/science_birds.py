@@ -327,14 +327,11 @@ class ScienceBirds(World):
         self.lock.acquire()
         self.gt_thread = threading.Thread(target=self.sample_state)
         self.gt_thread.start()
-        print("beforeshot")
         ret = self.sb_client.shoot(action.ref_x, action.ref_y, action.dx, action.dy, 0, action.tap, False)
-        time.sleep(8) # This is only here because ANU changed the API so shoot doesn't block
         self.lock.release()
         self.gt_thread.join()
         if ret == 0:
             assert False
-        time.sleep(16)
         reward =  self.sb_client.get_current_score() - prev_score
         self.get_current_state()
         return self.cur_state, reward, self.cur_game_window #is not ac.GameState.PLAYING
