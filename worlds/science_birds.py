@@ -1,25 +1,16 @@
-import sys
+import json
 import os
+import pickle
+import subprocess
+import sys
 import threading
+import time
+from os import path
 
 import settings
-print(sys.path)
-sys.path.append(os.path.join(settings.ROOT_PATH, 'worlds', 'science_birds_interface'))
-print(sys.path)
+import worlds.science_birds_interface.client.agent_client as ac
+import worlds.science_birds_interface.trajectory_planner.trajectory_planner as tp
 from utils.state import State, Action, World
-import trajectory_planner.trajectory_planner as tp
-import subprocess
-import settings
-import sys
-import time
-import json
-import client.agent_client as ac
-from shapely.geometry import box
-#WP imports
-import signal
-import pickle
-from os import path
-import math
 
 
 class SBState(State):

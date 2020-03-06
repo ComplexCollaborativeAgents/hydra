@@ -1,22 +1,17 @@
-import sys
-import os
-sys.path.append('/local/home/klenk/PycharmProjects/hydra')
-print(sys.path)
-from datetime import datetime
-import time
-import settings
-sys.path.append(os.path.join(settings.ROOT_PATH, 'worlds', 'science_birds_interface'))
-print(sys.path)
-from threading import Thread
-import random
 import json
+import random
 import socket
+import time
+from datetime import datetime
 from math import cos, sin, degrees, pi
-from client.agent_client import AgentClient, GameState, RequestCodes
-from trajectory_planner.trajectory_planner import SimpleTrajectoryPlanner
-from computer_vision.GroundTruthReader import GroundTruthReader,NotVaildStateError
-from computer_vision.game_object import GameObjectType
+from threading import Thread
+
 from utils.point2D import Point2D
+from worlds.science_birds_interface.client.agent_client import AgentClient, GameState, RequestCodes
+from worlds.science_birds_interface.computer_vision.GroundTruthReader import GroundTruthReader, NotVaildStateError
+from worlds.science_birds_interface.computer_vision.game_object import GameObjectType
+from worlds.science_birds_interface.trajectory_planner.trajectory_planner import SimpleTrajectoryPlanner
+
 
 class ClientNaiveAgent(Thread):
     """Naive agent (server/client version)"""

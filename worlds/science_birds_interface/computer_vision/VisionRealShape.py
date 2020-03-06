@@ -6,14 +6,14 @@ Created on Thu Dec 12 14:05:46 2019
 @author: chengxue
 """
 
-from computer_vision.ImageSegmenter import ImageSegmenter
+import time
+
 import cv2
 import numpy as np
-import time
-from computer_vision.cv_utils import Rectangle
-from computer_vision.game_object import GameObject, GameObjectType
-import sys
-sys.path.append('..')
+
+from worlds.science_birds_interface.computer_vision.ImageSegmenter import ImageSegmenter
+from worlds.science_birds_interface.computer_vision.cv_utils import Rectangle
+from worlds.science_birds_interface.computer_vision.game_object import GameObject, GameObjectType
 
 
 class VisionRealShape:

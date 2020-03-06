@@ -4,6 +4,7 @@ channels:
   - conda-forge
 dependencies:
   - python=3.7
+  - pip
   - pytest
   - numpy
   - shapely
@@ -12,5 +13,6 @@ dependencies:
   - scipy
   - matplotlib
   - scikit-image
-
+  - pip:
+      - -e .
 
