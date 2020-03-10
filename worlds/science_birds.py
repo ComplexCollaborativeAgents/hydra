@@ -340,7 +340,11 @@ class ScienceBirds(World):
         """
         side effects to set the current game status and sling objects on the environment
         """
-        image, ground_truth = self.sb_client.get_ground_truth_with_screenshot()
+        image = None
+        if settings.SCREENSHOT:
+            image, ground_truth = self.sb_client.get_ground_truth_with_screenshot()
+        else:
+            ground_truth = self.sb_client.get_ground_truth_without_screenshot()
         self.cur_game_window = self.sb_client.get_game_state()
         self.cur_state = SBState(ground_truth,image)
         return self.cur_state

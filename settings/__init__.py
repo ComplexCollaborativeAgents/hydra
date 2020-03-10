@@ -5,6 +5,7 @@ from os import path
 # Create your own local_settings.py file in this directory if you want
 # to override this variable and not run headless
 HEADLESS = True
+SCREENSHOT = False
 
 OS_ROOT_PATH = path.abspath(os.sep)
 ROOT_PATH = path.join(path.dirname(path.dirname(path.abspath(__file__))))
