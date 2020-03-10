@@ -58,7 +58,7 @@ def test_science_birds(launch_science_birds):
 
     ref_point = env.tp.get_reference_point(state.sling)
     #release_point_from_plan = env.tp.find_release_point(state.sling, 0.174533) # 10 degree launch
-    release_point_from_plan = env.tp.find_release_point(state.sling, math.radians(planner.get_plan_actions()[0][1] * 1.05))
+    release_point_from_plan = env.tp.find_release_point(state.sling, math.radians(planner.get_plan_actions()[0][1]))
     action = sb.SBAction(release_point_from_plan.X, release_point_from_plan.Y, 3000, ref_point.X, ref_point.Y)
 
     state, reward, done = env.act(action)
@@ -89,11 +89,32 @@ def test_multi_shot(launch_science_birds):
     # state.sling.width,state.sling.height = state.sling.height,state.sling.width
     ref_point = env.tp.get_reference_point(state.sling)
 
-    actions_from_plan = planner.get_plan_actions()
+    actions_from_plan = []
+
+    counter_syntax = 0
+
+    while True:
+        actions_from_plan = planner.get_plan_actions()
+        if len(actions_from_plan) > 0:
+            if actions_from_plan[0][1] != -999:
+                print("\nFound PDDL+ actions, executing...\n")
+                break
+            elif actions_from_plan[0][0] == "out of memory":
+                print("\nPDDL+ planner ran out of memory...\n")
+                env.kill()
+                return
+        else:
+            print("\nno actions to execute.. \nprobable cause: PDDL+ Syntax Error \nreplanning...\n")
+            # continue
+        counter_syntax += 1
+        if counter_syntax >= 5:
+            env.kill()
+            return
+
     assert(len(actions_from_plan) == 3)
     release_point_from_plan = env.tp.find_release_point(state.sling, math.radians(actions_from_plan[0][1] * 1.00))
     action = sb.SBAction(release_point_from_plan.X, release_point_from_plan.Y, 1000, ref_point.X, ref_point.Y)
-    print("\n\n ACTION EXECUTED: " + str(actions_from_plan[0]))
+    print("action executed: " + str(actions_from_plan[0]))
     state, reward, done = env.act(action)
 
     game_state = GameState.PLAYING
@@ -107,16 +128,16 @@ def test_multi_shot(launch_science_birds):
         # p.process_state(state)
 
         if game_state.value == GameState.WON.value:
-            print("\nWINNNNNNNNN\n==========================\n")
+            print("\ngame won!\n")
             break
         elif game_state.value == GameState.LOST.value:
-            print("\nBOOOOOOOOOO\n==========================\n")
+            print("\ngame lost!\n")
             assert(False)
         elif game_state.value == GameState.PLAYING.value:
 
 
             if action_idx >= len(actions_from_plan):
-                print("\nexecuted last action...\n")
+                print("\nexecuted last action...")
                 if wtf_counter == 10:
                     assert(False)
                 wtf_counter += 1
@@ -126,14 +147,14 @@ def test_multi_shot(launch_science_birds):
             # for a_i in planner.get_plan_actions():
             release_point_from_plan = env.tp.find_release_point(state.sling, math.radians(actions_from_plan[action_idx][1]*1.00))
             action = sb.SBAction(release_point_from_plan.X, release_point_from_plan.Y, 1000, ref_point.X, ref_point.Y)
-            print("\n\n ACTION EXECUTED: " + str(actions_from_plan[action_idx]))
+            print("\nexecuted action: " + str(actions_from_plan[action_idx]))
             state,reward,done = env.act(action)
             action_idx += 1
             assert isinstance(state,sb.SBState)
-            print("STILL PLAYING?!\n==========================\n")
+            # print("STILL PLAYING?!\n==========================\n")
 
         else:
-            print("WHATS HAPPENING?!\n==========================\n")
+            print("Unknown state...\n")
             if wtf_counter == 3:
                 assert(False)
                 break
