@@ -199,10 +199,10 @@ class SimpleTrajectoryPlanner:
         """
 
         mag = sling.height * 5
-        print('mag ', mag)
+        # print('mag ', mag)
         ref = self.get_reference_point(sling)
         print('ref ', ref)
-        print('cos theta ',cos(theta))
+        # print('cos theta ',cos(theta))
 #        print('sin theta ',sin(theta))
         release = Point2D(int(ref.X - mag * cos(theta)), int(ref.Y + mag * sin(theta)))
 
