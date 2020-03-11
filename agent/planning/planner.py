@@ -18,12 +18,16 @@ class Planner():
         The plan should be a list of actions that are either executable in the environment
         or invoking the RL agent
         '''
-        return [InvokeBasicRL(state)]
+        self.write_problem_file(state.translate_state_to_pddl())
+        return self.get_plan_actions()
 
     def execute(self,plan,policy_learner):
         '''Converts the symbolic action into an environment action'''
+        assert False
         if isinstance(plan[0],InvokeBasicRL):
             return policy_learner.act_and_learn(plan[0].state)
+        if isinstance(plan[0],SBShoot):
+            return None
 
 
     def write_problem_file(self, prob_string):
@@ -31,7 +35,7 @@ class Planner():
         pddl_problem_file.write(prob_string)
         pddl_problem_file.close()
 
-    def get_plan_actions(self):
+    def get_plan_actions(self,count=0):
         plan_actions = []
         subprocess.call(
             "cd %s; docker build -t upm_from_dockerfile . > docker_build_trace.txt;docker run upm_from_dockerfile sb_domain.pddl sb_prob.pddl > docker_plan_trace.txt;" % (
@@ -52,5 +56,9 @@ class Planner():
 
 
         print("\nACTIONS: " + str(plan_actions))
-
-        return plan_actions
+        if len(plan_actions) > 0:
+            return plan_actions
+        elif (count <10):
+            return self.get_plan_actions(count+1)
+        else:
+            return []
