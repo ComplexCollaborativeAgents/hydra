@@ -11,7 +11,7 @@ echo $domain
 
 #./"${domain%%.*}"_planner -print
 
-./"${domain%%.*}"_planner -m250 -print -format:pddlvv
+./"${domain%%.*}"_planner -m100 -print -format:pddlvv
 
 #target="/home/UPMurphi/ex/science_birds"
 #let count=0
