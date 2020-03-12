@@ -16,10 +16,11 @@ from utils.state import State, Action, World
 class SBState(State):
     """Current State of Science Birds"""
     id = 0
-    def __init__(self,objs,image):
+    def __init__(self,objs,image,game_state):
         super().__init__()
         self.objects = objs
         self.image = image
+        self.game_state = game_state
         self.sling = None
 
 
@@ -186,6 +187,15 @@ class SBState(State):
 
 
 class SBAction(Action):
+    '''Science Birds Action'''
+
+class SBLoadLevel(SBAction):
+    '''Loads the specific level'''
+    def __init__(self,level):
+        self.level = level
+
+
+class SBShoot(SBAction):
     """first a bird, x,y position of first tap,and then the time of the second tap"""
     def __init__(self,x,y,tap,ref_x,ref_y):
         self.dx =  int(x - ref_x)
@@ -308,7 +318,7 @@ class ScienceBirds(World):
 #            print('sampling {}'.format(count))
             count+=1
             ground_truth = self.sb_observer.get_ground_truth_without_screenshot()
-            state = SBState(ground_truth, None)
+            state = SBState(ground_truth, None, ac.GameState.UNKNOWN)
             self.intermediate_states.append(state)
 #            print('sampling sleep')
             time.sleep(frequency)
@@ -321,20 +331,27 @@ class ScienceBirds(World):
 
     def act(self,action):
         '''returns the new current state and reward'''
-        self.history.append(action)
-        prev_score = self.sb_client.get_current_score()
-        # this blocks until scene is doing
-        self.lock.acquire()
-        self.gt_thread = threading.Thread(target=self.sample_state)
-        self.gt_thread.start()
-        ret = self.sb_client.shoot(action.ref_x, action.ref_y, action.dx, action.dy, 0, action.tap, False)
-        self.lock.release()
-        self.gt_thread.join()
-        if ret == 0:
+        if isinstance(action,SBShoot):
+            self.history.append(action)
+            prev_score = self.sb_client.get_current_score()
+            # this blocks until scene is doing
+            self.lock.acquire()
+            self.gt_thread = threading.Thread(target=self.sample_state)
+            self.gt_thread.start()
+            ret = self.sb_client.shoot(action.ref_x, action.ref_y, action.dx, action.dy, 0, action.tap, False)
+            self.lock.release()
+            self.gt_thread.join()
+            if ret == 0:
+                assert False
+            reward =  self.sb_client.get_current_score() - prev_score
+            self.get_current_state()
+            return self.cur_state, reward
+        elif isinstance(action,SBLoadLevel):
+            self.init_selected_level(action.level)
+            self.get_current_state()
+            return self.cur_state, 0
+        else:
             assert False
-        reward =  self.sb_client.get_current_score() - prev_score
-        self.get_current_state()
-        return self.cur_state, reward, self.cur_game_window #is not ac.GameState.PLAYING
 
     def get_current_state(self):
         """
@@ -346,6 +363,9 @@ class ScienceBirds(World):
         else:
             ground_truth = self.sb_client.get_ground_truth_without_screenshot()
         self.cur_game_window = self.sb_client.get_game_state()
-        self.cur_state = SBState(ground_truth,image)
+        self.cur_state = SBState(ground_truth,image,self.cur_game_window)
         return self.cur_state
+
+    def get_all_scores(self):
+        return self.sb_client.get_all_level_scores()
 
