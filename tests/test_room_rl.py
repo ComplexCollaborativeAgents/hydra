@@ -3,6 +3,7 @@ import agent.hydra_agent as ha
 import numpy as np
 import pytest
 
+pytest.skip("Hydra only supports science birds now")
 def test_room_rl(): # ensures the environment works
     world = rm.RoomWorld()
     assert len(world.actions) == 17
@@ -15,6 +16,7 @@ def test_room_rl(): # ensures the environment works
         state,reward,done = world.act(world.actions[0])
 
 
+pytest.skip("Hydra only supports science birds now")
 def test_room_sarsa_learner():
     np.random.seed(0)
     env = rm.RoomWorld()  # initialize world
