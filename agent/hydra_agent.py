@@ -63,5 +63,4 @@ class HydraAgent():
     def set_env(self,env):
         '''Probably bad to have two pointers here'''
         self.env = env
-        self.rl.env = env
 
