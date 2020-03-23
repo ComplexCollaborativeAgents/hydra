@@ -11,7 +11,7 @@ import settings
 import worlds.science_birds_interface.client.agent_client as ac
 import worlds.science_birds_interface.trajectory_planner.trajectory_planner as tp
 from utils.state import State, Action, World
-
+#import shapely.geometry as geo
 
 class SBState(State):
     """Current State of Science Birds"""
@@ -23,6 +23,12 @@ class SBState(State):
         self.game_state = game_state
         self.sling = None
 
+    def summary(self):
+        '''returns a summary of state'''
+        ret = {}
+        for key, obj in self.objects.items():
+            ret['{}_{}'.format(obj['type'],key)] = (obj['bbox'].centroid.x,obj['bbox'].centroid.y)
+        return ret
 
     def get_rl_id(self):
         return self.id

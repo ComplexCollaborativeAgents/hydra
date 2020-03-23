@@ -1,0 +1,210 @@
+sb_domain.pddl
+Call with the -l flag or read the license file for terms
+and conditions of use.
+Run this program with "-h" for the list of options.
+Bugs, questions, and comments should be directed to
+"giuseppe.dellapenna@univaq.it".
+
+UPMurphi compiler last compiled date: Feb 11 2020
+===========================================================================
+﻿
+
+ Start UPMurphi translation... 
+
+ ----- CONFIG FILE ----- 
+PDDL Domain File: sb_domain.pddl
+PDDL Problem File: sb_prob.pddl
+The output model will be written on file: sb_domain.m
+The output external function file will be written on file: sb_domain.h
+ ----- DOMAIN SETTINGS ----- 
+ Time discretisation: 0.100000
+ Real number: (Integer): 7.000000 digits for the integer part
+ Real number: (Fractional) 7.000000 digits for the fractional part
+
+
+ ...Translation completed 
+
+
+Errors: 0, warnings: 0
+
+===========================================================================
+Universal Planner Murphi Release 3.0
+Universal Planner for PDDL+ models with continous processes and events.
+
+Universal Planner Murphi Release 3.0 :
+Copyright (C) 2007 - 2015: G. Della Penna, B. Intrigila, D. Magazzeni, F. Mercorio.
+Universal Planner Murphi Release 3.0 is based on CMurphi release 5.4.9.
+
+CMurphi Release 5.4.9 :
+Copyright (C) 2009 - 2012 by Sapienza University of Rome.
+CMurphi Release 5.4 is based on Murphi release 3.1.
+
+Murphi Release 3.1 :
+Copyright (C) 1992 - 1999 by the Board of Trustees of
+Leland Stanford Junior University.
+
+===========================================================================
+PDDL domain: sb_domain.pddl (found)
+PDDL problem: sb_prob.pddl (found)
+UPMurphi model: sb_domain.m (not found)
+C++ source: sb_domain.cpp (not found)
+Executable planner: sb_domain_planner (not found)
+Compiling PDDL to UPMurphi model, please wait...
+PDDL compilation successful, no errors
+UPMurphi model generated in file sb_domain.m
+Compiling model...
+Model compilation successful, no errors
+C++ source code generated in file sb_domain.cpp
+Compiling executable planner, please wait...
+Planner compilation successful, no errors
+Executable planner generated in file sb_domain_planner
+Call ./sb_domain_planner to execute the planner with default options
+
+======================================================
+
+UPMurphi Release 3.0
+Universal Planner for PDDL+ models with continous processes and events
+
+Copyright (C) 2007 - 2015
+G. Della Penna, B. Intrigila, D. Magazzeni, F. Mercorio
+
+Call with the -c flag or read the license file for terms
+and conditions of use.
+Run this program with "-h" for the list of options.
+Send bugs and comments to giuseppe.dellapenna@univaq.it
+
+======================================================
+
+======================================================
+Planning configuration
+
+* Source domain: sb_domain.pddl
+* Source problem: sb_prob.pddl
+* Planning Mode: Feasible Plan
+* Output format: Very Verbose PDDL+
+* Epsilon separation: 0.001
+* Output target: "sb_prob_plan.pddl"
+
+* UPMurphi Model: sb_domain
+* State size 2242 bits (rounded to 288 bytes).
+* Allocated memory: 100 Megabytes
+
+**  Time Discretisation = 0.100000
+**  Digits for representing the integer part of a real =  7.000000
+**  Digits for representing the fractional part of a real =  7
+======================================================
+
+=== Analyzing model... ===============================
+
+* State Space Expansion Algorithm: breadth first search.
+  with symmetry algorithm 3 -- Heuristic Small Memory Normalization
+  with permutation trial limit 10.
+* Maximum size of the state space: 2416093 states.
+  with states hash-compressed to 40 bits.
+
+
+======================================================
+
+Model exploration complete (in 0.10 seconds).
+	202 actions fired
+	1 start states
+	203 reachable states
+	1 goals found
+
+
+=== Building model dynamics... =======================
+
+* Transition Graph mode: Memory Image
+* Maximum size of graph: 2259862 transitions.
+
+
+======================================================
+
+Model dynamics rebuilding complete (in 0.10 seconds).
+	203 states
+	202 transitions
+	out degree: min 0 max 1 avg 1.00
+
+
+=== Finding control paths... =========================
+
+* Search Algorithm: Feasible Plan.
+
+
+======================================================
+
+Control paths calculation complete (in 0.10 seconds).
+	203 states
+	19 controllable
+
+
+=== Collecting plans... ==============================
+
+
+======================================================
+
+Plan(s) generation complete (in 0.10 seconds).
+	1 plans
+	plan length (actions): min 19 max 19 avg 19.00
+	plan duration (time): min 0 max 18 avg 18.00
+	plan weight: min 0 max 18 avg 18.00
+
+
+=== Writing final results... =========================
+
+* Output format: Very Verbose PDDL+
+* Output target: "sb_prob_plan.pddl" (copied to stdout).
+
+; --Plan #00001--------------------------
+; --Start state (0000000)----------------
+; TIME:+0.00000000000e+00, active_bird:+0.00000000000000e+00, angle:+0.00000000000000e+00, bird_id[redbird_0]:+0.00000000000000e+00, ice_height[dummy_ice]:+0.00000000000000e+00, ice_width[dummy_ice]:+0.00000000000000e+00, margin__pig[pig_4]:+2.10000000000000e+01, platfor_m_height[dummy_platfor_m]:+0.00000000000000e+00, platfor_m_width[dummy_platfor_m]:+0.00000000000000e+00, sto_ne_height[dummy_sto_ne]:+0.00000000000000e+00, sto_ne_width[dummy_sto_ne]:+0.00000000000000e+00, v_bird[redbird_0]:+2.70000000000000e+02, vy_bird[redbird_0]:+0.00000000000000e+00, wood_height[wood_2]:+1.30000000000000e+01, wood_height[wood_3]:+1.20000000000000e+01, wood_width[wood_2]:+2.40000000000000e+01, wood_width[wood_3]:+2.40000000000000e+01, x_bird[redbird_0]:+1.93000000000000e+02, x_ice[dummy_ice]:+0.00000000000000e+00, x_pig[pig_4]:+4.50000000000000e+02, x_platfor_m[dummy_platfor_m]:+0.00000000000000e+00, x_sto_ne[dummy_sto_ne]:+0.00000000000000e+00, x_wood[wood_2]:+4.47000000000000e+02, x_wood[wood_3]:+4.48000000000000e+02, y_bird[redbird_0]:+2.90000000000000e+01, y_ice[dummy_ice]:+0.00000000000000e+00, y_pig[pig_4]:+5.30000000000000e+01, y_platfor_m[dummy_platfor_m]:+0.00000000000000e+00, y_sto_ne[dummy_sto_ne]:+0.00000000000000e+00, y_wood[wood_2]:+2.50000000000000e+01, y_wood[wood_3]:+1.20000000000000e+01, bird_released[redbird_0]: false, bird_dead[redbird_0]: false, pig_dead[pig_4]: false, angle_adjusted: false, wood_destroyed[wood_2]: false, wood_destroyed[wood_3]: false, sto_ne_destroyed[dummy_sto_ne]: false, ice_destroyed[dummy_ice]: false, 
+; -- Discretisation: 0.100----------------
+; ---------------------------------------
+; 0.000: Clock tick: ( time passing ) [0.100]; weight = 001
+; TIME:+1.00000000000e-01, active_bird:+0.00000000000000e+00, angle:+2.00000000000000e+00, bird_id[redbird_0]:+0.00000000000000e+00, ice_height[dummy_ice]:+0.00000000000000e+00, ice_width[dummy_ice]:+0.00000000000000e+00, margin__pig[pig_4]:+2.10000000000000e+01, platfor_m_height[dummy_platfor_m]:+0.00000000000000e+00, platfor_m_width[dummy_platfor_m]:+0.00000000000000e+00, sto_ne_height[dummy_sto_ne]:+0.00000000000000e+00, sto_ne_width[dummy_sto_ne]:+0.00000000000000e+00, v_bird[redbird_0]:+2.70000000000000e+02, vy_bird[redbird_0]:+0.00000000000000e+00, wood_height[wood_2]:+1.30000000000000e+01, wood_height[wood_3]:+1.20000000000000e+01, wood_width[wood_2]:+2.40000000000000e+01, wood_width[wood_3]:+2.40000000000000e+01, x_bird[redbird_0]:+1.93000000000000e+02, x_ice[dummy_ice]:+0.00000000000000e+00, x_pig[pig_4]:+4.50000000000000e+02, x_platfor_m[dummy_platfor_m]:+0.00000000000000e+00, x_sto_ne[dummy_sto_ne]:+0.00000000000000e+00, x_wood[wood_2]:+4.47000000000000e+02, x_wood[wood_3]:+4.48000000000000e+02, y_bird[redbird_0]:+2.90000000000000e+01, y_ice[dummy_ice]:+0.00000000000000e+00, y_pig[pig_4]:+5.30000000000000e+01, y_platfor_m[dummy_platfor_m]:+0.00000000000000e+00, y_sto_ne[dummy_sto_ne]:+0.00000000000000e+00, y_wood[wood_2]:+2.50000000000000e+01, y_wood[wood_3]:+1.20000000000000e+01, bird_released[redbird_0]: false, bird_dead[redbird_0]: false, pig_dead[pig_4]: false, angle_adjusted: false, wood_destroyed[wood_2]: false, wood_destroyed[wood_3]: false, sto_ne_destroyed[dummy_sto_ne]: false, ice_destroyed[dummy_ice]: false, 
+; 0.100: Clock tick: ( time passing ) [0.100]; weight = 001
+; TIME:+2.00000000000e-01, active_bird:+0.00000000000000e+00, angle:+4.00000000000000e+00, bird_id[redbird_0]:+0.00000000000000e+00, ice_height[dummy_ice]:+0.00000000000000e+00, ice_width[dummy_ice]:+0.00000000000000e+00, margin__pig[pig_4]:+2.10000000000000e+01, platfor_m_height[dummy_platfor_m]:+0.00000000000000e+00, platfor_m_width[dummy_platfor_m]:+0.00000000000000e+00, sto_ne_height[dummy_sto_ne]:+0.00000000000000e+00, sto_ne_width[dummy_sto_ne]:+0.00000000000000e+00, v_bird[redbird_0]:+2.70000000000000e+02, vy_bird[redbird_0]:+0.00000000000000e+00, wood_height[wood_2]:+1.30000000000000e+01, wood_height[wood_3]:+1.20000000000000e+01, wood_width[wood_2]:+2.40000000000000e+01, wood_width[wood_3]:+2.40000000000000e+01, x_bird[redbird_0]:+1.93000000000000e+02, x_ice[dummy_ice]:+0.00000000000000e+00, x_pig[pig_4]:+4.50000000000000e+02, x_platfor_m[dummy_platfor_m]:+0.00000000000000e+00, x_sto_ne[dummy_sto_ne]:+0.00000000000000e+00, x_wood[wood_2]:+4.47000000000000e+02, x_wood[wood_3]:+4.48000000000000e+02, y_bird[redbird_0]:+2.90000000000000e+01, y_ice[dummy_ice]:+0.00000000000000e+00, y_pig[pig_4]:+5.30000000000000e+01, y_platfor_m[dummy_platfor_m]:+0.00000000000000e+00, y_sto_ne[dummy_sto_ne]:+0.00000000000000e+00, y_wood[wood_2]:+2.50000000000000e+01, y_wood[wood_3]:+1.20000000000000e+01, bird_released[redbird_0]: false, bird_dead[redbird_0]: false, pig_dead[pig_4]: false, angle_adjusted: false, wood_destroyed[wood_2]: false, wood_destroyed[wood_3]: false, sto_ne_destroyed[dummy_sto_ne]: false, ice_destroyed[dummy_ice]: false, 
+; 0.200: Clock tick: ( time passing ) [0.100]; weight = 001
+; TIME:+3.00000000000e-01, active_bird:+0.00000000000000e+00, angle:+6.00000000000000e+00, bird_id[redbird_0]:+0.00000000000000e+00, ice_height[dummy_ice]:+0.00000000000000e+00, ice_width[dummy_ice]:+0.00000000000000e+00, margin__pig[pig_4]:+2.10000000000000e+01, platfor_m_height[dummy_platfor_m]:+0.00000000000000e+00, platfor_m_width[dummy_platfor_m]:+0.00000000000000e+00, sto_ne_height[dummy_sto_ne]:+0.00000000000000e+00, sto_ne_width[dummy_sto_ne]:+0.00000000000000e+00, v_bird[redbird_0]:+2.70000000000000e+02, vy_bird[redbird_0]:+0.00000000000000e+00, wood_height[wood_2]:+1.30000000000000e+01, wood_height[wood_3]:+1.20000000000000e+01, wood_width[wood_2]:+2.40000000000000e+01, wood_width[wood_3]:+2.40000000000000e+01, x_bird[redbird_0]:+1.93000000000000e+02, x_ice[dummy_ice]:+0.00000000000000e+00, x_pig[pig_4]:+4.50000000000000e+02, x_platfor_m[dummy_platfor_m]:+0.00000000000000e+00, x_sto_ne[dummy_sto_ne]:+0.00000000000000e+00, x_wood[wood_2]:+4.47000000000000e+02, x_wood[wood_3]:+4.48000000000000e+02, y_bird[redbird_0]:+2.90000000000000e+01, y_ice[dummy_ice]:+0.00000000000000e+00, y_pig[pig_4]:+5.30000000000000e+01, y_platfor_m[dummy_platfor_m]:+0.00000000000000e+00, y_sto_ne[dummy_sto_ne]:+0.00000000000000e+00, y_wood[wood_2]:+2.50000000000000e+01, y_wood[wood_3]:+1.20000000000000e+01, bird_released[redbird_0]: false, bird_dead[redbird_0]: false, pig_dead[pig_4]: false, angle_adjusted: false, wood_destroyed[wood_2]: false, wood_destroyed[wood_3]: false, sto_ne_destroyed[dummy_sto_ne]: false, ice_destroyed[dummy_ice]: false, 
+; 0.300: Clock tick: ( time passing ) [0.100]; weight = 001
+; TIME:+4.00000000000e-01, active_bird:+0.00000000000000e+00, angle:+8.00000000000000e+00, bird_id[redbird_0]:+0.00000000000000e+00, ice_height[dummy_ice]:+0.00000000000000e+00, ice_width[dummy_ice]:+0.00000000000000e+00, margin__pig[pig_4]:+2.10000000000000e+01, platfor_m_height[dummy_platfor_m]:+0.00000000000000e+00, platfor_m_width[dummy_platfor_m]:+0.00000000000000e+00, sto_ne_height[dummy_sto_ne]:+0.00000000000000e+00, sto_ne_width[dummy_sto_ne]:+0.00000000000000e+00, v_bird[redbird_0]:+2.70000000000000e+02, vy_bird[redbird_0]:+0.00000000000000e+00, wood_height[wood_2]:+1.30000000000000e+01, wood_height[wood_3]:+1.20000000000000e+01, wood_width[wood_2]:+2.40000000000000e+01, wood_width[wood_3]:+2.40000000000000e+01, x_bird[redbird_0]:+1.93000000000000e+02, x_ice[dummy_ice]:+0.00000000000000e+00, x_pig[pig_4]:+4.50000000000000e+02, x_platfor_m[dummy_platfor_m]:+0.00000000000000e+00, x_sto_ne[dummy_sto_ne]:+0.00000000000000e+00, x_wood[wood_2]:+4.47000000000000e+02, x_wood[wood_3]:+4.48000000000000e+02, y_bird[redbird_0]:+2.90000000000000e+01, y_ice[dummy_ice]:+0.00000000000000e+00, y_pig[pig_4]:+5.30000000000000e+01, y_platfor_m[dummy_platfor_m]:+0.00000000000000e+00, y_sto_ne[dummy_sto_ne]:+0.00000000000000e+00, y_wood[wood_2]:+2.50000000000000e+01, y_wood[wood_3]:+1.20000000000000e+01, bird_released[redbird_0]: false, bird_dead[redbird_0]: false, pig_dead[pig_4]: false, angle_adjusted: false, wood_destroyed[wood_2]: false, wood_destroyed[wood_3]: false, sto_ne_destroyed[dummy_sto_ne]: false, ice_destroyed[dummy_ice]: false, 
+; 0.400: Clock tick: ( time passing ) [0.100]; weight = 001
+; TIME:+5.00000000000e-01, active_bird:+0.00000000000000e+00, angle:+1.00000000000000e+01, bird_id[redbird_0]:+0.00000000000000e+00, ice_height[dummy_ice]:+0.00000000000000e+00, ice_width[dummy_ice]:+0.00000000000000e+00, margin__pig[pig_4]:+2.10000000000000e+01, platfor_m_height[dummy_platfor_m]:+0.00000000000000e+00, platfor_m_width[dummy_platfor_m]:+0.00000000000000e+00, sto_ne_height[dummy_sto_ne]:+0.00000000000000e+00, sto_ne_width[dummy_sto_ne]:+0.00000000000000e+00, v_bird[redbird_0]:+2.70000000000000e+02, vy_bird[redbird_0]:+0.00000000000000e+00, wood_height[wood_2]:+1.30000000000000e+01, wood_height[wood_3]:+1.20000000000000e+01, wood_width[wood_2]:+2.40000000000000e+01, wood_width[wood_3]:+2.40000000000000e+01, x_bird[redbird_0]:+1.93000000000000e+02, x_ice[dummy_ice]:+0.00000000000000e+00, x_pig[pig_4]:+4.50000000000000e+02, x_platfor_m[dummy_platfor_m]:+0.00000000000000e+00, x_sto_ne[dummy_sto_ne]:+0.00000000000000e+00, x_wood[wood_2]:+4.47000000000000e+02, x_wood[wood_3]:+4.48000000000000e+02, y_bird[redbird_0]:+2.90000000000000e+01, y_ice[dummy_ice]:+0.00000000000000e+00, y_pig[pig_4]:+5.30000000000000e+01, y_platfor_m[dummy_platfor_m]:+0.00000000000000e+00, y_sto_ne[dummy_sto_ne]:+0.00000000000000e+00, y_wood[wood_2]:+2.50000000000000e+01, y_wood[wood_3]:+1.20000000000000e+01, bird_released[redbird_0]: false, bird_dead[redbird_0]: false, pig_dead[pig_4]: false, angle_adjusted: false, wood_destroyed[wood_2]: false, wood_destroyed[wood_3]: false, sto_ne_destroyed[dummy_sto_ne]: false, ice_destroyed[dummy_ice]: false, 
+; 0.500: Clock tick: ( time passing ) [0.100]; weight = 001
+; TIME:+6.00000000000e-01, active_bird:+0.00000000000000e+00, angle:+1.20000000000000e+01, bird_id[redbird_0]:+0.00000000000000e+00, ice_height[dummy_ice]:+0.00000000000000e+00, ice_width[dummy_ice]:+0.00000000000000e+00, margin__pig[pig_4]:+2.10000000000000e+01, platfor_m_height[dummy_platfor_m]:+0.00000000000000e+00, platfor_m_width[dummy_platfor_m]:+0.00000000000000e+00, sto_ne_height[dummy_sto_ne]:+0.00000000000000e+00, sto_ne_width[dummy_sto_ne]:+0.00000000000000e+00, v_bird[redbird_0]:+2.70000000000000e+02, vy_bird[redbird_0]:+0.00000000000000e+00, wood_height[wood_2]:+1.30000000000000e+01, wood_height[wood_3]:+1.20000000000000e+01, wood_width[wood_2]:+2.40000000000000e+01, wood_width[wood_3]:+2.40000000000000e+01, x_bird[redbird_0]:+1.93000000000000e+02, x_ice[dummy_ice]:+0.00000000000000e+00, x_pig[pig_4]:+4.50000000000000e+02, x_platfor_m[dummy_platfor_m]:+0.00000000000000e+00, x_sto_ne[dummy_sto_ne]:+0.00000000000000e+00, x_wood[wood_2]:+4.47000000000000e+02, x_wood[wood_3]:+4.48000000000000e+02, y_bird[redbird_0]:+2.90000000000000e+01, y_ice[dummy_ice]:+0.00000000000000e+00, y_pig[pig_4]:+5.30000000000000e+01, y_platfor_m[dummy_platfor_m]:+0.00000000000000e+00, y_sto_ne[dummy_sto_ne]:+0.00000000000000e+00, y_wood[wood_2]:+2.50000000000000e+01, y_wood[wood_3]:+1.20000000000000e+01, bird_released[redbird_0]: false, bird_dead[redbird_0]: false, pig_dead[pig_4]: false, angle_adjusted: false, wood_destroyed[wood_2]: false, wood_destroyed[wood_3]: false, sto_ne_destroyed[dummy_sto_ne]: false, ice_destroyed[dummy_ice]: false, 
+; 0.600: Clock tick: ( time passing ) [0.100]; weight = 001
+; TIME:+7.00000000000e-01, active_bird:+0.00000000000000e+00, angle:+1.40000000000000e+01, bird_id[redbird_0]:+0.00000000000000e+00, ice_height[dummy_ice]:+0.00000000000000e+00, ice_width[dummy_ice]:+0.00000000000000e+00, margin__pig[pig_4]:+2.10000000000000e+01, platfor_m_height[dummy_platfor_m]:+0.00000000000000e+00, platfor_m_width[dummy_platfor_m]:+0.00000000000000e+00, sto_ne_height[dummy_sto_ne]:+0.00000000000000e+00, sto_ne_width[dummy_sto_ne]:+0.00000000000000e+00, v_bird[redbird_0]:+2.70000000000000e+02, vy_bird[redbird_0]:+0.00000000000000e+00, wood_height[wood_2]:+1.30000000000000e+01, wood_height[wood_3]:+1.20000000000000e+01, wood_width[wood_2]:+2.40000000000000e+01, wood_width[wood_3]:+2.40000000000000e+01, x_bird[redbird_0]:+1.93000000000000e+02, x_ice[dummy_ice]:+0.00000000000000e+00, x_pig[pig_4]:+4.50000000000000e+02, x_platfor_m[dummy_platfor_m]:+0.00000000000000e+00, x_sto_ne[dummy_sto_ne]:+0.00000000000000e+00, x_wood[wood_2]:+4.47000000000000e+02, x_wood[wood_3]:+4.48000000000000e+02, y_bird[redbird_0]:+2.90000000000000e+01, y_ice[dummy_ice]:+0.00000000000000e+00, y_pig[pig_4]:+5.30000000000000e+01, y_platfor_m[dummy_platfor_m]:+0.00000000000000e+00, y_sto_ne[dummy_sto_ne]:+0.00000000000000e+00, y_wood[wood_2]:+2.50000000000000e+01, y_wood[wood_3]:+1.20000000000000e+01, bird_released[redbird_0]: false, bird_dead[redbird_0]: false, pig_dead[pig_4]: false, angle_adjusted: false, wood_destroyed[wood_2]: false, wood_destroyed[wood_3]: false, sto_ne_destroyed[dummy_sto_ne]: false, ice_destroyed[dummy_ice]: false, 
+0.700: ( pa-twang redbird_0) [0.000]; weight = 000
+; TIME:+7.00000000000e-01, active_bird:+0.00000000000000e+00, angle:+1.40000000000000e+01, bird_id[redbird_0]:+0.00000000000000e+00, ice_height[dummy_ice]:+0.00000000000000e+00, ice_width[dummy_ice]:+0.00000000000000e+00, margin__pig[pig_4]:+2.10000000000000e+01, platfor_m_height[dummy_platfor_m]:+0.00000000000000e+00, platfor_m_width[dummy_platfor_m]:+0.00000000000000e+00, sto_ne_height[dummy_sto_ne]:+0.00000000000000e+00, sto_ne_width[dummy_sto_ne]:+0.00000000000000e+00, v_bird[redbird_0]:+2.70000000000000e+02, vy_bird[redbird_0]:+6.57460184000000e+01, wood_height[wood_2]:+1.30000000000000e+01, wood_height[wood_3]:+1.20000000000000e+01, wood_width[wood_2]:+2.40000000000000e+01, wood_width[wood_3]:+2.40000000000000e+01, x_bird[redbird_0]:+1.93000000000000e+02, x_ice[dummy_ice]:+0.00000000000000e+00, x_pig[pig_4]:+4.50000000000000e+02, x_platfor_m[dummy_platfor_m]:+0.00000000000000e+00, x_sto_ne[dummy_sto_ne]:+0.00000000000000e+00, x_wood[wood_2]:+4.47000000000000e+02, x_wood[wood_3]:+4.48000000000000e+02, y_bird[redbird_0]:+2.90000000000000e+01, y_ice[dummy_ice]:+0.00000000000000e+00, y_pig[pig_4]:+5.30000000000000e+01, y_platfor_m[dummy_platfor_m]:+0.00000000000000e+00, y_sto_ne[dummy_sto_ne]:+0.00000000000000e+00, y_wood[wood_2]:+2.50000000000000e+01, y_wood[wood_3]:+1.20000000000000e+01, bird_released[redbird_0]: true, bird_dead[redbird_0]: false, pig_dead[pig_4]: false, angle_adjusted: true, wood_destroyed[wood_2]: false, wood_destroyed[wood_3]: false, sto_ne_destroyed[dummy_sto_ne]: false, ice_destroyed[dummy_ice]: false, 
+; 0.700: Clock tick: ( time passing ) [0.100]; weight = 001
+; TIME:+8.00000000000e-01, active_bird:+0.00000000000000e+00, angle:+1.40000000000000e+01, bird_id[redbird_0]:+0.00000000000000e+00, ice_height[dummy_ice]:+0.00000000000000e+00, ice_width[dummy_ice]:+0.00000000000000e+00, margin__pig[pig_4]:+2.10000000000000e+01, platfor_m_height[dummy_platfor_m]:+0.00000000000000e+00, platfor_m_width[dummy_platfor_m]:+0.00000000000000e+00, sto_ne_height[dummy_sto_ne]:+0.00000000000000e+00, sto_ne_width[dummy_sto_ne]:+0.00000000000000e+00, v_bird[redbird_0]:+2.70000000000000e+02, vy_bird[redbird_0]:+5.23260184000000e+01, wood_height[wood_2]:+1.30000000000000e+01, wood_height[wood_3]:+1.20000000000000e+01, wood_width[wood_2]:+2.40000000000000e+01, wood_width[wood_3]:+2.40000000000000e+01, x_bird[redbird_0]:+2.19193981600000e+02, x_ice[dummy_ice]:+0.00000000000000e+00, x_pig[pig_4]:+4.50000000000000e+02, x_platfor_m[dummy_platfor_m]:+0.00000000000000e+00, x_sto_ne[dummy_sto_ne]:+0.00000000000000e+00, x_wood[wood_2]:+4.47000000000000e+02, x_wood[wood_3]:+4.48000000000000e+02, y_bird[redbird_0]:+3.55746018000000e+01, y_ice[dummy_ice]:+0.00000000000000e+00, y_pig[pig_4]:+5.30000000000000e+01, y_platfor_m[dummy_platfor_m]:+0.00000000000000e+00, y_sto_ne[dummy_sto_ne]:+0.00000000000000e+00, y_wood[wood_2]:+2.50000000000000e+01, y_wood[wood_3]:+1.20000000000000e+01, bird_released[redbird_0]: true, bird_dead[redbird_0]: false, pig_dead[pig_4]: false, angle_adjusted: true, wood_destroyed[wood_2]: false, wood_destroyed[wood_3]: false, sto_ne_destroyed[dummy_sto_ne]: false, ice_destroyed[dummy_ice]: false, 
+; 0.800: Clock tick: ( time passing ) [0.100]; weight = 001
+; TIME:+9.00000000000e-01, active_bird:+0.00000000000000e+00, angle:+1.40000000000000e+01, bird_id[redbird_0]:+0.00000000000000e+00, ice_height[dummy_ice]:+0.00000000000000e+00, ice_width[dummy_ice]:+0.00000000000000e+00, margin__pig[pig_4]:+2.10000000000000e+01, platfor_m_height[dummy_platfor_m]:+0.00000000000000e+00, platfor_m_width[dummy_platfor_m]:+0.00000000000000e+00, sto_ne_height[dummy_sto_ne]:+0.00000000000000e+00, sto_ne_width[dummy_sto_ne]:+0.00000000000000e+00, v_bird[redbird_0]:+2.70000000000000e+02, vy_bird[redbird_0]:+3.89060184000000e+01, wood_height[wood_2]:+1.30000000000000e+01, wood_height[wood_3]:+1.20000000000000e+01, wood_width[wood_2]:+2.40000000000000e+01, wood_width[wood_3]:+2.40000000000000e+01, x_bird[redbird_0]:+2.45387963200000e+02, x_ice[dummy_ice]:+0.00000000000000e+00, x_pig[pig_4]:+4.50000000000000e+02, x_platfor_m[dummy_platfor_m]:+0.00000000000000e+00, x_sto_ne[dummy_sto_ne]:+0.00000000000000e+00, x_wood[wood_2]:+4.47000000000000e+02, x_wood[wood_3]:+4.48000000000000e+02, y_bird[redbird_0]:+4.08072036000000e+01, y_ice[dummy_ice]:+0.00000000000000e+00, y_pig[pig_4]:+5.30000000000000e+01, y_platfor_m[dummy_platfor_m]:+0.00000000000000e+00, y_sto_ne[dummy_sto_ne]:+0.00000000000000e+00, y_wood[wood_2]:+2.50000000000000e+01, y_wood[wood_3]:+1.20000000000000e+01, bird_released[redbird_0]: true, bird_dead[redbird_0]: false, pig_dead[pig_4]: false, angle_adjusted: true, wood_destroyed[wood_2]: false, wood_destroyed[wood_3]: false, sto_ne_destroyed[dummy_sto_ne]: false, ice_destroyed[dummy_ice]: false, 
+; 0.900: Clock tick: ( time passing ) [0.100]; weight = 001
+; TIME:+1.00000000000e+00, active_bird:+0.00000000000000e+00, angle:+1.40000000000000e+01, bird_id[redbird_0]:+0.00000000000000e+00, ice_height[dummy_ice]:+0.00000000000000e+00, ice_width[dummy_ice]:+0.00000000000000e+00, margin__pig[pig_4]:+2.10000000000000e+01, platfor_m_height[dummy_platfor_m]:+0.00000000000000e+00, platfor_m_width[dummy_platfor_m]:+0.00000000000000e+00, sto_ne_height[dummy_sto_ne]:+0.00000000000000e+00, sto_ne_width[dummy_sto_ne]:+0.00000000000000e+00, v_bird[redbird_0]:+2.70000000000000e+02, vy_bird[redbird_0]:+2.54860184000000e+01, wood_height[wood_2]:+1.30000000000000e+01, wood_height[wood_3]:+1.20000000000000e+01, wood_width[wood_2]:+2.40000000000000e+01, wood_width[wood_3]:+2.40000000000000e+01, x_bird[redbird_0]:+2.71581944800000e+02, x_ice[dummy_ice]:+0.00000000000000e+00, x_pig[pig_4]:+4.50000000000000e+02, x_platfor_m[dummy_platfor_m]:+0.00000000000000e+00, x_sto_ne[dummy_sto_ne]:+0.00000000000000e+00, x_wood[wood_2]:+4.47000000000000e+02, x_wood[wood_3]:+4.48000000000000e+02, y_bird[redbird_0]:+4.46978054000000e+01, y_ice[dummy_ice]:+0.00000000000000e+00, y_pig[pig_4]:+5.30000000000000e+01, y_platfor_m[dummy_platfor_m]:+0.00000000000000e+00, y_sto_ne[dummy_sto_ne]:+0.00000000000000e+00, y_wood[wood_2]:+2.50000000000000e+01, y_wood[wood_3]:+1.20000000000000e+01, bird_released[redbird_0]: true, bird_dead[redbird_0]: false, pig_dead[pig_4]: false, angle_adjusted: true, wood_destroyed[wood_2]: false, wood_destroyed[wood_3]: false, sto_ne_destroyed[dummy_sto_ne]: false, ice_destroyed[dummy_ice]: false, 
+; 1.000: Clock tick: ( time passing ) [0.100]; weight = 001
+; TIME:+1.10000000000e+00, active_bird:+0.00000000000000e+00, angle:+1.40000000000000e+01, bird_id[redbird_0]:+0.00000000000000e+00, ice_height[dummy_ice]:+0.00000000000000e+00, ice_width[dummy_ice]:+0.00000000000000e+00, margin__pig[pig_4]:+2.10000000000000e+01, platfor_m_height[dummy_platfor_m]:+0.00000000000000e+00, platfor_m_width[dummy_platfor_m]:+0.00000000000000e+00, sto_ne_height[dummy_sto_ne]:+0.00000000000000e+00, sto_ne_width[dummy_sto_ne]:+0.00000000000000e+00, v_bird[redbird_0]:+2.70000000000000e+02, vy_bird[redbird_0]:+1.20660184000000e+01, wood_height[wood_2]:+1.30000000000000e+01, wood_height[wood_3]:+1.20000000000000e+01, wood_width[wood_2]:+2.40000000000000e+01, wood_width[wood_3]:+2.40000000000000e+01, x_bird[redbird_0]:+2.97775926400000e+02, x_ice[dummy_ice]:+0.00000000000000e+00, x_pig[pig_4]:+4.50000000000000e+02, x_platfor_m[dummy_platfor_m]:+0.00000000000000e+00, x_sto_ne[dummy_sto_ne]:+0.00000000000000e+00, x_wood[wood_2]:+4.47000000000000e+02, x_wood[wood_3]:+4.48000000000000e+02, y_bird[redbird_0]:+4.72464072000000e+01, y_ice[dummy_ice]:+0.00000000000000e+00, y_pig[pig_4]:+5.30000000000000e+01, y_platfor_m[dummy_platfor_m]:+0.00000000000000e+00, y_sto_ne[dummy_sto_ne]:+0.00000000000000e+00, y_wood[wood_2]:+2.50000000000000e+01, y_wood[wood_3]:+1.20000000000000e+01, bird_released[redbird_0]: true, bird_dead[redbird_0]: false, pig_dead[pig_4]: false, angle_adjusted: true, wood_destroyed[wood_2]: false, wood_destroyed[wood_3]: false, sto_ne_destroyed[dummy_sto_ne]: false, ice_destroyed[dummy_ice]: false, 
+; 1.100: Clock tick: ( time passing ) [0.100]; weight = 001
+; TIME:+1.20000000000e+00, active_bird:+0.00000000000000e+00, angle:+1.40000000000000e+01, bird_id[redbird_0]:+0.00000000000000e+00, ice_height[dummy_ice]:+0.00000000000000e+00, ice_width[dummy_ice]:+0.00000000000000e+00, margin__pig[pig_4]:+2.10000000000000e+01, platfor_m_height[dummy_platfor_m]:+0.00000000000000e+00, platfor_m_width[dummy_platfor_m]:+0.00000000000000e+00, sto_ne_height[dummy_sto_ne]:+0.00000000000000e+00, sto_ne_width[dummy_sto_ne]:+0.00000000000000e+00, v_bird[redbird_0]:+2.70000000000000e+02, vy_bird[redbird_0]:-1.35398160000000e+00, wood_height[wood_2]:+1.30000000000000e+01, wood_height[wood_3]:+1.20000000000000e+01, wood_width[wood_2]:+2.40000000000000e+01, wood_width[wood_3]:+2.40000000000000e+01, x_bird[redbird_0]:+3.23969908000000e+02, x_ice[dummy_ice]:+0.00000000000000e+00, x_pig[pig_4]:+4.50000000000000e+02, x_platfor_m[dummy_platfor_m]:+0.00000000000000e+00, x_sto_ne[dummy_sto_ne]:+0.00000000000000e+00, x_wood[wood_2]:+4.47000000000000e+02, x_wood[wood_3]:+4.48000000000000e+02, y_bird[redbird_0]:+4.84530090000000e+01, y_ice[dummy_ice]:+0.00000000000000e+00, y_pig[pig_4]:+5.30000000000000e+01, y_platfor_m[dummy_platfor_m]:+0.00000000000000e+00, y_sto_ne[dummy_sto_ne]:+0.00000000000000e+00, y_wood[wood_2]:+2.50000000000000e+01, y_wood[wood_3]:+1.20000000000000e+01, bird_released[redbird_0]: true, bird_dead[redbird_0]: false, pig_dead[pig_4]: false, angle_adjusted: true, wood_destroyed[wood_2]: false, wood_destroyed[wood_3]: false, sto_ne_destroyed[dummy_sto_ne]: false, ice_destroyed[dummy_ice]: false, 
+; 1.200: Clock tick: ( time passing ) [0.100]; weight = 001
+; TIME:+1.30000000000e+00, active_bird:+0.00000000000000e+00, angle:+1.40000000000000e+01, bird_id[redbird_0]:+0.00000000000000e+00, ice_height[dummy_ice]:+0.00000000000000e+00, ice_width[dummy_ice]:+0.00000000000000e+00, margin__pig[pig_4]:+2.10000000000000e+01, platfor_m_height[dummy_platfor_m]:+0.00000000000000e+00, platfor_m_width[dummy_platfor_m]:+0.00000000000000e+00, sto_ne_height[dummy_sto_ne]:+0.00000000000000e+00, sto_ne_width[dummy_sto_ne]:+0.00000000000000e+00, v_bird[redbird_0]:+2.70000000000000e+02, vy_bird[redbird_0]:-1.47739816000000e+01, wood_height[wood_2]:+1.30000000000000e+01, wood_height[wood_3]:+1.20000000000000e+01, wood_width[wood_2]:+2.40000000000000e+01, wood_width[wood_3]:+2.40000000000000e+01, x_bird[redbird_0]:+3.50163889600000e+02, x_ice[dummy_ice]:+0.00000000000000e+00, x_pig[pig_4]:+4.50000000000000e+02, x_platfor_m[dummy_platfor_m]:+0.00000000000000e+00, x_sto_ne[dummy_sto_ne]:+0.00000000000000e+00, x_wood[wood_2]:+4.47000000000000e+02, x_wood[wood_3]:+4.48000000000000e+02, y_bird[redbird_0]:+4.83176108000000e+01, y_ice[dummy_ice]:+0.00000000000000e+00, y_pig[pig_4]:+5.30000000000000e+01, y_platfor_m[dummy_platfor_m]:+0.00000000000000e+00, y_sto_ne[dummy_sto_ne]:+0.00000000000000e+00, y_wood[wood_2]:+2.50000000000000e+01, y_wood[wood_3]:+1.20000000000000e+01, bird_released[redbird_0]: true, bird_dead[redbird_0]: false, pig_dead[pig_4]: false, angle_adjusted: true, wood_destroyed[wood_2]: false, wood_destroyed[wood_3]: false, sto_ne_destroyed[dummy_sto_ne]: false, ice_destroyed[dummy_ice]: false, 
+; 1.300: Clock tick: ( time passing ) [0.100]; weight = 001
+; TIME:+1.40000000000e+00, active_bird:+0.00000000000000e+00, angle:+1.40000000000000e+01, bird_id[redbird_0]:+0.00000000000000e+00, ice_height[dummy_ice]:+0.00000000000000e+00, ice_width[dummy_ice]:+0.00000000000000e+00, margin__pig[pig_4]:+2.10000000000000e+01, platfor_m_height[dummy_platfor_m]:+0.00000000000000e+00, platfor_m_width[dummy_platfor_m]:+0.00000000000000e+00, sto_ne_height[dummy_sto_ne]:+0.00000000000000e+00, sto_ne_width[dummy_sto_ne]:+0.00000000000000e+00, v_bird[redbird_0]:+2.70000000000000e+02, vy_bird[redbird_0]:-2.81939816000000e+01, wood_height[wood_2]:+1.30000000000000e+01, wood_height[wood_3]:+1.20000000000000e+01, wood_width[wood_2]:+2.40000000000000e+01, wood_width[wood_3]:+2.40000000000000e+01, x_bird[redbird_0]:+3.76357871200000e+02, x_ice[dummy_ice]:+0.00000000000000e+00, x_pig[pig_4]:+4.50000000000000e+02, x_platfor_m[dummy_platfor_m]:+0.00000000000000e+00, x_sto_ne[dummy_sto_ne]:+0.00000000000000e+00, x_wood[wood_2]:+4.47000000000000e+02, x_wood[wood_3]:+4.48000000000000e+02, y_bird[redbird_0]:+4.68402126000000e+01, y_ice[dummy_ice]:+0.00000000000000e+00, y_pig[pig_4]:+5.30000000000000e+01, y_platfor_m[dummy_platfor_m]:+0.00000000000000e+00, y_sto_ne[dummy_sto_ne]:+0.00000000000000e+00, y_wood[wood_2]:+2.50000000000000e+01, y_wood[wood_3]:+1.20000000000000e+01, bird_released[redbird_0]: true, bird_dead[redbird_0]: false, pig_dead[pig_4]: false, angle_adjusted: true, wood_destroyed[wood_2]: false, wood_destroyed[wood_3]: false, sto_ne_destroyed[dummy_sto_ne]: false, ice_destroyed[dummy_ice]: false, 
+; 1.400: Clock tick: ( time passing ) [0.100]; weight = 001
+; TIME:+1.50000000000e+00, active_bird:+0.00000000000000e+00, angle:+1.40000000000000e+01, bird_id[redbird_0]:+0.00000000000000e+00, ice_height[dummy_ice]:+0.00000000000000e+00, ice_width[dummy_ice]:+0.00000000000000e+00, margin__pig[pig_4]:+2.10000000000000e+01, platfor_m_height[dummy_platfor_m]:+0.00000000000000e+00, platfor_m_width[dummy_platfor_m]:+0.00000000000000e+00, sto_ne_height[dummy_sto_ne]:+0.00000000000000e+00, sto_ne_width[dummy_sto_ne]:+0.00000000000000e+00, v_bird[redbird_0]:+2.70000000000000e+02, vy_bird[redbird_0]:-4.16139816000000e+01, wood_height[wood_2]:+1.30000000000000e+01, wood_height[wood_3]:+1.20000000000000e+01, wood_width[wood_2]:+2.40000000000000e+01, wood_width[wood_3]:+2.40000000000000e+01, x_bird[redbird_0]:+4.02551852800000e+02, x_ice[dummy_ice]:+0.00000000000000e+00, x_pig[pig_4]:+4.50000000000000e+02, x_platfor_m[dummy_platfor_m]:+0.00000000000000e+00, x_sto_ne[dummy_sto_ne]:+0.00000000000000e+00, x_wood[wood_2]:+4.47000000000000e+02, x_wood[wood_3]:+4.48000000000000e+02, y_bird[redbird_0]:+4.40208144000000e+01, y_ice[dummy_ice]:+0.00000000000000e+00, y_pig[pig_4]:+5.30000000000000e+01, y_platfor_m[dummy_platfor_m]:+0.00000000000000e+00, y_sto_ne[dummy_sto_ne]:+0.00000000000000e+00, y_wood[wood_2]:+2.50000000000000e+01, y_wood[wood_3]:+1.20000000000000e+01, bird_released[redbird_0]: true, bird_dead[redbird_0]: false, pig_dead[pig_4]: false, angle_adjusted: true, wood_destroyed[wood_2]: false, wood_destroyed[wood_3]: false, sto_ne_destroyed[dummy_sto_ne]: false, ice_destroyed[dummy_ice]: false, 
+; 1.500: Clock tick: ( time passing ) [0.100]; weight = 001
+; TIME:+1.60000000000e+00, active_bird:+0.00000000000000e+00, angle:+1.40000000000000e+01, bird_id[redbird_0]:+0.00000000000000e+00, ice_height[dummy_ice]:+0.00000000000000e+00, ice_width[dummy_ice]:+0.00000000000000e+00, margin__pig[pig_4]:+2.10000000000000e+01, platfor_m_height[dummy_platfor_m]:+0.00000000000000e+00, platfor_m_width[dummy_platfor_m]:+0.00000000000000e+00, sto_ne_height[dummy_sto_ne]:+0.00000000000000e+00, sto_ne_width[dummy_sto_ne]:+0.00000000000000e+00, v_bird[redbird_0]:+2.70000000000000e+02, vy_bird[redbird_0]:-5.50339816000000e+01, wood_height[wood_2]:+1.30000000000000e+01, wood_height[wood_3]:+1.20000000000000e+01, wood_width[wood_2]:+2.40000000000000e+01, wood_width[wood_3]:+2.40000000000000e+01, x_bird[redbird_0]:+4.28745834400000e+02, x_ice[dummy_ice]:+0.00000000000000e+00, x_pig[pig_4]:+4.50000000000000e+02, x_platfor_m[dummy_platfor_m]:+0.00000000000000e+00, x_sto_ne[dummy_sto_ne]:+0.00000000000000e+00, x_wood[wood_2]:+4.47000000000000e+02, x_wood[wood_3]:+4.48000000000000e+02, y_bird[redbird_0]:+3.98594162000000e+01, y_ice[dummy_ice]:+0.00000000000000e+00, y_pig[pig_4]:+5.30000000000000e+01, y_platfor_m[dummy_platfor_m]:+0.00000000000000e+00, y_sto_ne[dummy_sto_ne]:+0.00000000000000e+00, y_wood[wood_2]:+2.50000000000000e+01, y_wood[wood_3]:+1.20000000000000e+01, bird_released[redbird_0]: true, bird_dead[redbird_0]: false, pig_dead[pig_4]: false, angle_adjusted: true, wood_destroyed[wood_2]: false, wood_destroyed[wood_3]: false, sto_ne_destroyed[dummy_sto_ne]: false, ice_destroyed[dummy_ice]: false, 
+; 1.600: Clock tick: ( time passing ) [0.100]; weight = 001
+; TIME:+1.70000000000e+00, active_bird:+0.00000000000000e+00, angle:+1.40000000000000e+01, bird_id[redbird_0]:+0.00000000000000e+00, ice_height[dummy_ice]:+0.00000000000000e+00, ice_width[dummy_ice]:+0.00000000000000e+00, margin__pig[pig_4]:+2.10000000000000e+01, platfor_m_height[dummy_platfor_m]:+0.00000000000000e+00, platfor_m_width[dummy_platfor_m]:+0.00000000000000e+00, sto_ne_height[dummy_sto_ne]:+0.00000000000000e+00, sto_ne_width[dummy_sto_ne]:+0.00000000000000e+00, v_bird[redbird_0]:+2.70000000000000e+02, vy_bird[redbird_0]:-6.84539816000000e+01, wood_height[wood_2]:+1.30000000000000e+01, wood_height[wood_3]:+1.20000000000000e+01, wood_width[wood_2]:+2.40000000000000e+01, wood_width[wood_3]:+2.40000000000000e+01, x_bird[redbird_0]:+4.54939816000000e+02, x_ice[dummy_ice]:+0.00000000000000e+00, x_pig[pig_4]:+4.50000000000000e+02, x_platfor_m[dummy_platfor_m]:+0.00000000000000e+00, x_sto_ne[dummy_sto_ne]:+0.00000000000000e+00, x_wood[wood_2]:+4.47000000000000e+02, x_wood[wood_3]:+4.48000000000000e+02, y_bird[redbird_0]:+3.43560180000000e+01, y_ice[dummy_ice]:+0.00000000000000e+00, y_pig[pig_4]:+5.30000000000000e+01, y_platfor_m[dummy_platfor_m]:+0.00000000000000e+00, y_sto_ne[dummy_sto_ne]:+0.00000000000000e+00, y_wood[wood_2]:+2.50000000000000e+01, y_wood[wood_3]:+1.20000000000000e+01, bird_released[redbird_0]: true, bird_dead[redbird_0]: false, pig_dead[pig_4]: false, angle_adjusted: true, wood_destroyed[wood_2]: false, wood_destroyed[wood_3]: false, sto_ne_destroyed[dummy_sto_ne]: false, ice_destroyed[dummy_ice]: false, 
+; 1.700: Clock tick: ( time passing ) [0.100]; weight = 001
+; TIME:+1.80000000000e+00, active_bird:+1.00000000000000e+00, angle:+0.00000000000000e+00, bird_id[redbird_0]:+0.00000000000000e+00, ice_height[dummy_ice]:+0.00000000000000e+00, ice_width[dummy_ice]:+0.00000000000000e+00, margin__pig[pig_4]:+2.10000000000000e+01, platfor_m_height[dummy_platfor_m]:+0.00000000000000e+00, platfor_m_width[dummy_platfor_m]:+0.00000000000000e+00, sto_ne_height[dummy_sto_ne]:+0.00000000000000e+00, sto_ne_width[dummy_sto_ne]:+0.00000000000000e+00, v_bird[redbird_0]:+0.00000000000000e+00, vy_bird[redbird_0]:-6.84539816000000e+01, wood_height[wood_2]:+1.30000000000000e+01, wood_height[wood_3]:+1.20000000000000e+01, wood_width[wood_2]:+2.40000000000000e+01, wood_width[wood_3]:+2.40000000000000e+01, x_bird[redbird_0]:+4.54939816000000e+02, x_ice[dummy_ice]:+0.00000000000000e+00, x_pig[pig_4]:+4.50000000000000e+02, x_platfor_m[dummy_platfor_m]:+0.00000000000000e+00, x_sto_ne[dummy_sto_ne]:+0.00000000000000e+00, x_wood[wood_2]:+4.47000000000000e+02, x_wood[wood_3]:+4.48000000000000e+02, y_bird[redbird_0]:+3.43560180000000e+01, y_ice[dummy_ice]:+0.00000000000000e+00, y_pig[pig_4]:+5.30000000000000e+01, y_platfor_m[dummy_platfor_m]:+0.00000000000000e+00, y_sto_ne[dummy_sto_ne]:+0.00000000000000e+00, y_wood[wood_2]:+2.50000000000000e+01, y_wood[wood_3]:+1.20000000000000e+01, bird_released[redbird_0]: true, bird_dead[redbird_0]: true, pig_dead[pig_4]: true, angle_adjusted: false, wood_destroyed[wood_2]: false, wood_destroyed[wood_3]: false, sto_ne_destroyed[dummy_sto_ne]: false, ice_destroyed[dummy_ice]: false, 
+; ---------------------------------------
+; --Plan duration: 1.800, weight: 0018----
+; ---------------------------------------
+
+
+======================================================
+
+Results Written (in 0.10 seconds).
+
+
