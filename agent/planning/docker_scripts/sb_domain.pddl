@@ -1,15 +1,19 @@
 ﻿(define (domain angry_birds_scaled)
     (:requirements :typing :durative-actions :duration-inequalities :fluents :time :negative-preconditions :timed-initial-literals)
-    (:types bird pig wood_block stone_block ice_block platform)
-    (:predicates (bird_released ?b - bird) (bird_dead ?b - bird) (pig_dead ?p - pig) (angle_adjusted)
-                 (wood_destroyed ?wbl - wood_block) (stone_destroyed ?sbl - stone_block) (ice_destroyed ?ibl - ice_block))
+    (:types bird pig block platform)
+    (:predicates (bird_released ?b - bird) (bird_dead ?b - bird) (pig_dead ?p - pig) (angle_adjusted))
     (:functions (x_bird ?b - bird) (y_bird ?b - bird) (v_bird ?b - bird) (vy_bird ?b - bird) (bird_id ?b - bird)
                 (gravity) (angle_rate) (angle) (active_bird)
                 (x_pig ?p - pig) (y_pig ?p - pig) (margin_pig ?p - pig)
-                (x_platform ?bl - platform) (y_platform ?bl - platform) (platform_width ?bl - platform) (platform_height ?bl - platform)
-                (x_wood ?wbl - wood_block) (y_wood ?wbl - wood_block) (wood_width ?wbl - wood_block) (wood_height ?wbl - wood_block)
-                (x_stone ?sbl - stone_block) (y_stone ?sbl - stone_block) (stone_width ?sbl - stone_block) (stone_height ?sbl - stone_block)
-                (x_ice ?ibl - ice_block) (y_ice ?ibl - ice_block) (ice_width ?ibl - ice_block) (ice_height ?ibl - ice_block)
+                (x_platform ?pl - platform) (y_platform ?pl - platform) (platform_width ?pl - platform) (platform_height ?pl - platform)
+                (x_block ?bl - block) (y_block ?bl - block) (block_width ?bl - block) (block_height ?bl - block) (block_life ?bl - block) (block_mass ?bl - block)
+                ;; WOOD LIFE = 0.75   WOOD MASS COEFFICIENT = 0.375 ;; ICE LIFE = 0.75   ICE MASS COEFFICIENT = 0.375 ;; STONE LIFE = 1.2   STONE MASS COEFFICIENT = 0.375
+                ;; WOOD LIFE MULTIPLIER = 1.0 ;; ICE LIFE MULTIPLIER = 0.5 ;; STONE LIFE MULTIPLIER = 2.0
+                ;; THESE VALUES NEED TO BE VERIFIED
+                ;; SEEMS LIKE THE SIZE AND SHAPE OF EACH BLOCK HAVE DIFFERENT LIFE VALUES WHICH ARE THEN MULTIPLIED BY THE MATERIAL LIFE MULTIPLIER
+                ;; FOR NOW I WILL ASSIGN BLOCK_LIFE == 1.0 * MATERIAL_MULTIPLIER WHICH WILL BE ASSIGNED AUTOMATICALLY IN THE PROBLEM FILE VIA HYDRA.
+                
+
     )
 
     (:process increasing_angle
@@ -32,13 +36,13 @@
             (bird_released ?b)
             (= (active_bird) (bird_id ?b))
             (> (y_bird ?b) 0)
-    	    (not (bird_dead ?b))
+            (not (bird_dead ?b))
         )
         :effect (and
-    		; (increase (y_bird ?b) (* #t (* 0.5 (vy_bird ?b))))
-    		(decrease (vy_bird ?b) (* #t (* 1.0 (gravity)) ))
-    		(increase (y_bird ?b) (* #t (* 1.0 (vy_bird ?b))))
-        	(increase (x_bird ?b) (* #t (* (v_bird ?b) (- 1 (/ (* (* (angle) 0.0174533) (* (angle) 0.0174533) ) 2) ) ) ))
+            ; (increase (y_bird ?b) (* #t (* 0.5 (vy_bird ?b))))
+            (decrease (vy_bird ?b) (* #t (* 1.0 (gravity)) ))
+            (increase (y_bird ?b) (* #t (* 1.0 (vy_bird ?b))))
+            (increase (x_bird ?b) (* #t (* (v_bird ?b) (- 1 (/ (* (* (angle) 0.0174533) (* (angle) 0.0174533) ) 2) ) ) ))
         )
     )
 
@@ -47,14 +51,14 @@
         :precondition (and
             (= (active_bird) (bird_id ?b))
             (not (bird_dead ?b))
-    		(not (angle_adjusted))
-    		(not (bird_released ?b))
+            (not (angle_adjusted))
+            (not (bird_released ?b))
 
         )
         :effect (and
-    	    (assign (vy_bird ?b) (* (v_bird ?b) (/ (* (* 4 (angle)) (- 180 (angle))) (- 40500 (* (angle) (- 180 (angle)))) )  ) )
+            (assign (vy_bird ?b) (* (v_bird ?b) (/ (* (* 4 (angle)) (- 180 (angle))) (- 40500 (* (angle) (- 180 (angle)))) )  ) )
             (bird_released ?b)
-    	    (angle_adjusted)
+            (angle_adjusted)
         )
     )
 
@@ -105,60 +109,22 @@
         )
     )
 
-    (:event collision_wood
-        :parameters (?b - bird ?wbl - wood_block)
+    (:event collision_block
+        :parameters (?b - bird ?bl - block)
         :precondition (and
             (= (active_bird) (bird_id ?b))
-            (not (wood_destroyed ?wbl))
+            (> (block_life ?bl) 0)
             (not (bird_dead ?b))
             (> (v_bird ?b) 0)
-            (<= (x_bird ?b) (+ (x_wood ?wbl) (wood_width ?wbl)) )
-            (>= (x_bird ?b) (x_wood ?wbl))
-            (>= (y_bird ?b) (- (y_wood ?wbl) (wood_height ?wbl)) )
-            (<= (y_bird ?b) (y_wood ?wbl))
+            (<= (x_bird ?b) (+ (x_block ?bl) (block_width ?bl)) )
+            (>= (x_bird ?b) (x_block ?bl))
+            (>= (y_bird ?b) (- (y_block ?bl) (block_height ?bl)) )
+            (<= (y_bird ?b) (y_block ?bl))
         )
         :effect (and
             (assign (v_bird ?b) 0)
             (bird_dead ?b)
-            (wood_destroyed ?wbl)
-        )
-    )
-
-    (:event collision_stone
-        :parameters (?b - bird ?sbl - stone_block)
-        :precondition (and
-            (= (active_bird) (bird_id ?b))
-            (not (stone_destroyed ?sbl))
-            (not (bird_dead ?b))
-            (> (v_bird ?b) 0)
-            (<= (x_bird ?b) (+ (x_stone ?sbl) (stone_width ?sbl)) )
-            (>= (x_bird ?b) (x_stone ?sbl))
-            (>= (y_bird ?b) (- (y_stone ?sbl) (stone_height ?sbl)) )
-            (<= (y_bird ?b) (y_stone ?sbl))
-        )
-        :effect (and
-            (assign (v_bird ?b) 0)
-            (bird_dead ?b)
-        )
-    )
-
-    (:event collision_ice
-        :parameters (?b - bird ?ibl - ice_block)
-        :precondition (and
-            (= (active_bird) (bird_id ?b))
-            (not (ice_destroyed ?ibl))
-            (not (bird_dead ?b))
-            (> (v_bird ?b) 0)
-            (<= (x_bird ?b) (+ (x_ice ?ibl) (ice_width ?ibl)) )
-            (>= (x_bird ?b) (x_ice ?ibl))
-            (>= (y_bird ?b) (- (y_ice ?ibl) (ice_height ?ibl)) )
-            (<= (y_bird ?b) (y_ice ?ibl))
-        )
-        :effect (and
-            (assign (v_bird ?b) (* 0.5 (v_bird ?b)) )
-            (assign (vy_bird ?b) (* 0.5 (vy_bird ?b)) )
-            ; (bird_dead ?b)
-            (ice_destroyed ?ibl)
+            (assign (block_life ?bl) (- (block_life ?bl) (v_bird ?b)) )
         )
     )
 
