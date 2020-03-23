@@ -32,10 +32,10 @@ def read_plan_trace(pathname=
 
 def test_consistency_checking():
     observations = []
-    for i in range(0,7):
+    for i in range(0,10):
         observations.append(sb.SBState.load_from_serialized_state(
             path.join(settings.ROOT_PATH, 'data', 'science_birds', 'serialized_levels', 'dx_test_{}.p'.format(i))))
-    assert len(observations) == 7
+    assert len(observations) == 10
     plan_trace = read_plan_trace() # list of dictionaries
     assert len(plan_trace) == 20
     print('observations)')
