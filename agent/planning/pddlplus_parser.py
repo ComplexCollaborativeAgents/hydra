@@ -5,6 +5,15 @@ Using code from https://norvig.com/lispy.html by Peter Norvig
 '''
 from enum import Enum
 
+class PddlPlusProblem():
+    def __init__(self):
+        self.name = None
+        self.domain = None
+        self.objects = list()
+        self.init = list()
+        self.goal = list()
+        self.metric = None
+
 class PddlPlusDomain():
     def __init__(self):
         self.name = None
@@ -31,97 +40,10 @@ class PddlPlusWorldChange():
         self.preconditions = list()
         self.effects = list()
 
-
 '''
-Accepts a PddlPlusDomain object and outputs a PDDL+ file for the planner
+A class with utility function to help parse PDDL files. 
 '''
-class PddlExporter():
-    ''' Outputs this object to a PDDL file in a valid PDDL+ format, that can be run by UPMurphi '''
-    def to_file(self, pddl_domain:PddlPlusDomain, output_file_name):
-
-        out_file = open(output_file_name, "w")
-        out_file.write("(define(domain %s)\n" % pddl_domain.name)
-        out_file.write(
-            "\t(:requirements :typing :durative-actions :duration-inequalities :fluents :time :negative-preconditions :timed-initial-literals)\n")
-        out_file.write("\t(:types %s)\n" % " ".join(pddl_domain.types))
-
-        # Print predicates
-        out_file.write("\t(:predicates\n")
-        for predicate in pddl_domain.predicates:
-            self.write_tokens(predicate, out_file, prefix_str = "\t\t")
-        out_file.write("\t)\n")
-
-        # Print functions
-        out_file.write("\t(:functions\n")
-        for pddl_function in pddl_domain.functions:
-            self.write_tokens(pddl_function, out_file, prefix_str = "\t\t")
-        out_file.write("\t)\n")
-
-        # Print processes
-        for process in pddl_domain.processes:
-            self.write_world_change(process, WorldChangeTypes.process, out_file)
-
-        # Print events
-        for event in pddl_domain.events:
-            self.write_world_change(event, WorldChangeTypes.event, out_file)
-
-        # Print actions
-        for action in pddl_domain.actions:
-            self.write_world_change(action, WorldChangeTypes.action, out_file)
-
-        out_file.write(")\n")
-        out_file.close()
-
-    ''' Write a process/event/action to the out file'''
-    def write_world_change(self, world_change:PddlPlusWorldChange, world_change_type, out_file):
-        out_file.write("\t(:%s %s\n" % (world_change_type.name, world_change.name))
-        if len(world_change.parameters)>0:
-            out_file.write("\t\t:parameters ")
-            for parameter in world_change.parameters:
-                self.write_tokens(parameter, out_file)
-
-        if len(world_change.preconditions)>0:
-            out_file.write("\t\t:precondition (and \n")
-            for precondition in world_change.preconditions:
-                out_file.write("\t\t")
-                self.write_tokens(precondition, out_file, prefix_str = " ")
-            out_file.write("\t\t) \n")
-
-        if len(world_change.effects)>0:
-            out_file.write("\t\t:effect (and \n")
-            for effect in world_change.effects:
-                out_file.write("\t\t")
-                self.write_tokens(effect, out_file, prefix_str = " ")
-            out_file.write("\t\t) \n")
-
-        out_file.write("\t)  \n")
-
-
-    ''' A recursive function to create nodes in the parse tree'''
-    def write_tokens(self, tokens: list, out_file, prefix_str = "", suffix_str="\n"):
-        out_file.write("%s(" % prefix_str)
-        first_token = True
-        for token in tokens:
-            if type(token) is list:
-                if len(token)<3:
-                    self.write_tokens(token, out_file, prefix_str=" ", suffix_str=" ")
-                else:
-                    self.write_tokens(token, out_file, prefix_str)
-            else:
-                if first_token == False:
-                    out_file.write(" %s" % token)
-                else:
-                    out_file.write("%s" % token)
-            first_token = False
-
-        out_file.write(")%s" % suffix_str)
-
-
-'''
-Accepts a PDDL+ file and outputs a PddlPlusDomain object
-'''
-class PddlParser():
-
+class PddlParserUtils:
     ''' Converts the file in a list of tokens, considering space and newline as a delimiter,
         and considers each parenthesis as a token'''
     def tokenize(self, file_name:str) -> list:
@@ -161,6 +83,137 @@ class PddlParser():
         tokens = self.tokenize(file_name)
         return self.read_from_tokens(tokens)
 
+    ''' A recursive function to create nodes in the parse tree'''
+    def write_tokens(self, tokens: list, out_file, prefix_str = "", suffix_str="\n"):
+        out_file.write("%s(" % prefix_str)
+        first_token = True
+        for token in tokens:
+            if type(token) is list:
+                if len(token)<3:
+                    self.write_tokens(token, out_file, prefix_str=" ", suffix_str=" ")
+                else:
+                    self.write_tokens(token, out_file, prefix_str)
+            else:
+                if first_token == False:
+                    out_file.write(" %s" % token)
+                else:
+                    out_file.write("%s" % token)
+            first_token = False
+
+        out_file.write(")%s" % suffix_str)
+
+
+'''
+Accepts a PddlPlusDomain object and outputs a PDDL+ file for the planner
+'''
+class PddlDomainExporter():
+
+    def __init__(self):
+        self.parse_utils = PddlParserUtils()
+
+
+    ''' Outputs this object to a PDDL file in a valid PDDL+ format, that can be run by UPMurphi '''
+    def to_file(self, pddl_domain:PddlPlusDomain, output_file_name):
+        out_file = open(output_file_name, "w")
+        out_file.write("(define(domain %s)\n" % pddl_domain.name)
+        out_file.write(
+            "\t(:requirements :typing :durative-actions :duration-inequalities :fluents :time :negative-preconditions :timed-initial-literals)\n")
+        out_file.write("\t(:types %s)\n" % " ".join(pddl_domain.types))
+
+        # Print predicates
+        out_file.write("\t(:predicates\n")
+        for predicate in pddl_domain.predicates:
+            self.parse_utils.write_tokens(predicate, out_file, prefix_str = "\t\t")
+        out_file.write("\t)\n")
+
+        # Print functions
+        out_file.write("\t(:functions\n")
+        for pddl_function in pddl_domain.functions:
+            self.parse_utils.write_tokens(pddl_function, out_file, prefix_str = "\t\t")
+        out_file.write("\t)\n")
+
+        # Print processes
+        for process in pddl_domain.processes:
+            self.write_world_change(process, WorldChangeTypes.process, out_file)
+
+        # Print events
+        for event in pddl_domain.events:
+            self.write_world_change(event, WorldChangeTypes.event, out_file)
+
+        # Print actions
+        for action in pddl_domain.actions:
+            self.write_world_change(action, WorldChangeTypes.action, out_file)
+
+        out_file.write(")\n")
+        out_file.close()
+
+    ''' Write a process/event/action to the out file'''
+    def write_world_change(self, world_change:PddlPlusWorldChange, world_change_type, out_file):
+        out_file.write("\t(:%s %s\n" % (world_change_type.name, world_change.name))
+        if len(world_change.parameters)>0:
+            out_file.write("\t\t:parameters ")
+            for parameter in world_change.parameters:
+                self.parse_utils.write_tokens(parameter, out_file)
+
+        if len(world_change.preconditions)>0:
+            out_file.write("\t\t:precondition (and \n")
+            for precondition in world_change.preconditions:
+                out_file.write("\t\t")
+                self.parse_utils.write_tokens(precondition, out_file, prefix_str = " ")
+            out_file.write("\t\t) \n")
+
+        if len(world_change.effects)>0:
+            out_file.write("\t\t:effect (and \n")
+            for effect in world_change.effects:
+                out_file.write("\t\t")
+                self.parse_utils.write_tokens(effect, out_file, prefix_str = " ")
+            out_file.write("\t\t) \n")
+
+        out_file.write("\t)  \n")
+
+
+
+
+
+'''
+Accepts a PddlPlusProblem object and outputs a PDDL+ problem file for the planner
+'''
+class PddlProblemExporter():
+    ''' Outputs this object to a PDDL file in a valid PDDL+ format, that can be run by UPMurphi '''
+    def to_file(self, pddl_problem:PddlPlusProblem, output_file_name):
+        parse_utils = PddlParserUtils()
+
+        out_file = open(output_file_name, "w")
+        out_file.write("(define(problem %s)\n" % pddl_problem.name)
+        out_file.write("(:domain %s)\n" % pddl_problem.domain)
+
+        # Print objects
+        out_file.write("(:objects ")
+        for object in pddl_problem.objects:
+            out_file.write("%s - %s " % (object[0], object[1]))
+        out_file.write(")\n")
+
+        # Print init facts
+        out_file.write("(:init ")
+        for init_fact in pddl_problem.init:
+            parse_utils.write_tokens(init_fact, out_file, prefix_str="\t", suffix_str="\n")
+        out_file.write(")\n")
+
+        out_file.write("(:goal (and ")
+        for goal_fact in pddl_problem.goal:
+            parse_utils.write_tokens(init_fact, out_file, prefix_str=" ", suffix_str=" ")
+        out_file.write("))\n")
+
+        out_file.write("(:metric %s)\n"  % pddl_problem.metric)
+
+        out_file.write(")\n")
+        out_file.close()
+
+
+'''
+Accepts a PDDL+ domain file and outputs a PddlPlusDomain object
+'''
+class PddlDomainParser():
 
     ''' Parses the types'''
     def parse_types(self, element: list) -> list:
@@ -172,33 +225,33 @@ class PddlParser():
 
 
     ''' Parses the functions'''
-    def parse_functions(self, predicates_element: list) -> list:
-        return predicates_element[1:]
+    def parse_functions(self, functions_element: list) -> list:
+        return functions_element[1:]
 
     ''' Parses the parameters of the process. The parameters start in index i. 
     Returns the list of parameters and the index to the next element to parse in the process element'''
-    def parse_world_change_parameters(self, i, process_element):
+    def parse_world_change_parameters(self, i, world_change_element):
         i = i+1 # To go after the :parameters string
         parameters = list()
-        while i < len(process_element) and process_element[i][0].startswith(":")==False:
-            parameters.append(process_element[i])
+        while i < len(world_change_element) and world_change_element[i][0].startswith(":")==False:
+            parameters.append(world_change_element[i])
             i=i+1
         return (i, parameters)
 
     ''' Parses the preconditions of the process. The preconditions start in index i. 
         Returns the list of preconditions and the index to the next element to parse in the process element'''
-    def parse_world_change_preconditions(self, i, process_element):
+    def parse_world_change_preconditions(self, i, world_change_element):
         i = i + 1  # To go after the :parameters string
-        preconditions_element = process_element[i]
+        preconditions_element = world_change_element[i]
         if preconditions_element[0]!="and":
             raise SyntaxError("Only supporting an (and) clause for preconditions")
         return (i+1, preconditions_element[1:])
 
     ''' Parses the effects of the process. The effects start in index i. 
         Returns the list of effects and the index to the next element to parse in the process element'''
-    def parse_world_change_effects(self, i, process_element):
+    def parse_world_change_effects(self, i, world_change_element):
         i = i + 1  # To go after the :parameters string
-        effects_element = process_element[i]
+        effects_element = world_change_element[i]
         if effects_element[0] != "and":
             raise SyntaxError("Only supporting an (and) clause for effects")
         return (i + 1, effects_element[1:])
@@ -226,7 +279,8 @@ class PddlParser():
     '''
     def parse_pddl_domain(self, pddl_file_name: str) -> PddlPlusDomain:
         domain = PddlPlusDomain()
-        syntax_tree = self.parse_syntax_tree(pddl_file_name)
+        parse_utils = PddlParserUtils()
+        syntax_tree = parse_utils.parse_syntax_tree(pddl_file_name)
 
         assert(syntax_tree[0]=="define") # Standard header of a PDDL domain file)
 
@@ -250,3 +304,66 @@ class PddlParser():
                     action = self.parse_world_change(element, WorldChangeTypes.action)
                     domain.actions.append(action)
         return domain
+
+
+
+'''
+Accepts a PDDL+ problem file and outputs a PddlPlusProblem object
+'''
+class PddlProblemParser():
+
+    ''' Parses the objects. Objects are in the format object_name - object_type'''
+    def parse_objects(self, element: list) -> list:
+        i = 1
+        objects = list()
+        while i+2<len(element):
+            objects.append((element[i], element[i+2]))
+            assert element[i+1].strip()=="-"
+            i = i+3
+        return objects
+
+    ''' Parses the initial state list of facts'''
+    def parse_init(self, element: list) -> list:
+        return element[1:]
+
+
+    ''' Parses the goal condition '''
+    def parse_goal(self, element):
+        # Asserting the current focus is on conjunctive goals, i.e., the goal is an AND over a set of facts
+        assert len(element) == 2
+        assert element[1][0] == "and"
+        return element[1][1:]
+
+
+    ''' Parses the metric function'''
+    def parse_metric(self, element: list) -> list:
+        # Asserting a single metric
+        assert len(element)==3
+
+        return "%s(%s)" % (element[1], element[2][0]) # Metric is f(x), which parsed to two tokens: f and x
+
+    '''
+        Reads a PDDL+ file from the problem file and outputs a PDDL plus proble object
+    '''
+    def parse_pddl_problem(self, pddl_file_name: str) -> PddlPlusDomain:
+        problem = PddlPlusProblem()
+        parse_utils = PddlParserUtils()
+        syntax_tree = parse_utils.parse_syntax_tree(pddl_file_name)
+
+        assert(syntax_tree[0]=="define") # Standard header of a PDDL domain file)
+
+        for element in syntax_tree[1:]:
+            if len(element)>0: # Element is a non-leaf
+                if element[0] == "problem":
+                    problem.name = element[1]
+                elif element[0] == ":domain":
+                    problem.domain = element[1]
+                elif element[0]==":objects":
+                    problem.objects.extend(self.parse_objects(element))
+                elif element[0] == ":init":
+                    problem.init = self.parse_init(element)
+                elif element[0] == ":goal":
+                    problem.goal = self.parse_goal(element)
+                elif element[0] == ":metric":
+                    problem.metric = self.parse_metric(element)
+        return problem
