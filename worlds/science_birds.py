@@ -39,6 +39,50 @@ class SBState(State):
     def load_from_serialized_state(level_filename):
         return pickle.load(open(level_filename, 'rb'))
 
+    def fluents_for_objects(self):
+        '''
+        This returns a dictionary of fluent and values of the form produced in plan_trace
+        This should be converted to the pypddl representation
+        Hopefully this intermediate step won't be double the work
+        '''
+        # There is an annoying disconnect in representations.
+        # 'x_pig[pig_4]:450' vs. (= (x_pig pig4) 450)
+        # 'pig_dead[pig_4]:False vs. (not (pig_dead pig_4))
+        # we need to compute an intermediate representation
+        # [pred, arg, value]
+        objects  = [] #name, type
+        facts = []
+        goals = []
+        groundOffset = self.sling.bounds[3]
+        bird_index = 0
+        for o in self.objects.items():
+            if o[1]['type'] == 'pig':
+                obj_name = '{}_{}'.format(o[1]['type'], o[0])
+                facts.append(['pig_dead',obj_name, False])
+                facts.append(['x_pig',obj_name,o[1]['bbox'].bounds[0]])
+                facts.append(['y_pig',obj_name,abs(o[1]['bbox'].bounds[1] - groundOffset)])
+                facts.append(['margin_pig', obj_name, round(abs(o[1]['bbox'].bounds[2] - o[1]['bbox'].bounds[0]) * 0.75)])
+                goals.append(['pig_dead', obj_name, True])
+                objects.append([obj_name,o[1]['type'], o[0]])
+            elif 'Bird' in o[1]['type']:
+                #looks like this assumes all birds are at the sling
+                obj_name = '{}_{}'.format(o[1]['type'], o[0])
+                objects.append([obj_name,o[1]['type']])
+                facts.append(['bird_dead',obj_name,False])
+                facts.append(['bird_released',obj_name,False])
+                facts.append(['x_bird',obj_name,round((slingshot[1]['bbox'].bounds[0] + self.sling['bbox'].bounds[2]) / 2) - 0])
+                facts.append(['y_bird',obj_name,round(abs(((self.sling['bbox'].bounds[1] + self.sling['bbox'].bounds[3]) / 2) - groundOffset) - 0)])
+                facts.append(['v_bird',obj_name, 270])
+                facts.append(['vy_bird',obj_name, 0])
+                facts.append(['bird_id',obj_name,bird_index])
+                bird_index += 1
+            elif o[1]['type'] == 'wood' or o[1]['type'] == 'ice' or o[1]['type'] == 'stone':
+                blocks.append(o)
+            elif o[1]['type'] == 'hill':
+                platforms.append(o)
+            elif o[1]['type'] == 'slingshot':
+                slingshot = o
+
     def translate_state_to_pddl(self):
 
         bird_params = ''
@@ -75,37 +119,6 @@ class SBState(State):
         print('PIGS: ' + str(pigs))
         print('BLOCKS: ' + str(blocks))
         print('PLATFORMS: ' + str(platforms) + '\n')
-
-
-        groundOffset = slingshot[1]['bbox'].bounds[3]
-
-        bird_index = 0
-        # bbox.bounds = (minX, minY, maxX, maxY);
-        for bo in birds:
-            prob_instance += '{}_{} '.format(bo[1]['type'], bo[0])
-            bird_params += '    (not (bird_dead {}_{}))\n'.format(bo[1]['type'], bo[0])
-            bird_params += '    (not (bird_released {}_{}))\n'.format(bo[1]['type'], bo[0])
-            bird_params += '    (= (x_bird {}_{}) {})\n'.format(bo[1]['type'], bo[0], round((slingshot[1]['bbox'].bounds[0] + slingshot[1]['bbox'].bounds[2]) / 2) - 0)
-            bird_params += '    (= (y_bird {}_{}) {})\n'.format(bo[1]['type'], bo[0], round(abs(((slingshot[1]['bbox'].bounds[1] + slingshot[1]['bbox'].bounds[3]) / 2) - groundOffset) - 0))
-            bird_params += '    (= (v_bird {}_{}) 270)\n'.format(bo[1]['type'], bo[0])
-            bird_params += '    (= (vy_bird {}_{}) 0)\n'.format(bo[1]['type'], bo[0])
-            bird_params += '    (= (bird_id {}_{}) {})\n'.format(bo[1]['type'], bo[0], bird_index)
-            # goal_conds += ' (not (bird_dead {}_{}))'.format(bo[1]['type'], bo[0])
-            bird_index += 1
-
-        prob_instance += '- bird '
-
-        for po in pigs:
-            prob_instance += '{}_{} '.format(po[1]['type'], po[0])
-            pig_params += '    (not (pig_dead {}_{}))\n'.format(po[1]['type'], po[0])
-            pig_params += '    (= (x_pig {}_{}) {})\n'.format(po[1]['type'], po[0], po[1]['bbox'].bounds[0])
-            pig_params += '    (= (y_pig {}_{}) {})\n'.format(po[1]['type'], po[0],
-                                                              abs(po[1]['bbox'].bounds[1] - groundOffset))
-            pig_params += '    (= (margin_pig {}_{}) {})\n'.format(po[1]['type'], po[0], round(
-                abs(po[1]['bbox'].bounds[2] - po[1]['bbox'].bounds[0]) * 0.75))
-            goal_conds += ' (pig_dead {}_{})'.format(po[1]['type'], po[0])
-
-        prob_instance += '- pig '
 
         if blocks != []:
             for bl in blocks:
