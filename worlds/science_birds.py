@@ -77,14 +77,14 @@ class SBState(State):
         # bbox.bounds = (minX, minY, maxX, maxY);
         for bo in birds:
             prob_instance += '{}_{} '.format(bo[1]['type'], bo[0])
-            bird_params += '    (not (bird_dead {}_{}))\n'.format(bo[1]['type'], bo[0])
+            # bird_params += '    (not (bird_dead {}_{}))\n'.format(bo[1]['type'], bo[0])
             bird_params += '    (not (bird_released {}_{}))\n'.format(bo[1]['type'], bo[0])
             bird_params += '    (= (x_bird {}_{}) {})\n'.format(bo[1]['type'], bo[0], round((slingshot[1]['bbox'].bounds[0] + slingshot[1]['bbox'].bounds[2]) / 2) - 0)
             bird_params += '    (= (y_bird {}_{}) {})\n'.format(bo[1]['type'], bo[0], round(abs(((slingshot[1]['bbox'].bounds[1] + slingshot[1]['bbox'].bounds[3]) / 2) - groundOffset) - 0))
             bird_params += '    (= (v_bird {}_{}) 270)\n'.format(bo[1]['type'], bo[0])
             bird_params += '    (= (vy_bird {}_{}) 0)\n'.format(bo[1]['type'], bo[0])
+            bird_params += '    (= (bounce_count {}_{}) 0)\n'.format(bo[1]['type'], bo[0])
             bird_params += '    (= (bird_id {}_{}) {})\n'.format(bo[1]['type'], bo[0], bird_index)
-            # goal_conds += ' (not (bird_dead {}_{}))'.format(bo[1]['type'], bo[0])
             bird_index += 1
 
         prob_instance += '- bird '
@@ -151,7 +151,7 @@ class SBState(State):
         prob_instance += ')\n'  # close objects
 
         init_params = '(:init '
-        init_params += '(= (gravity) 134.2)\n    (= (active_bird) 0)\n    (= (angle) 0)\n    (= (angle_rate) 20)\n    (not (angle_adjusted))\n'
+        init_params += '(= (gravity) 134.2)\n    (= (ground_damper) 0.4)\n    (= (active_bird) 0)\n    (= (angle) 0)\n    (= (angle_rate) 40)\n    (not (angle_adjusted))\n'
 
         init_params += bird_params
         init_params += pig_params
