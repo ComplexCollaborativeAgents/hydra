@@ -77,7 +77,7 @@ class SBState(State):
                 prob.objects.append((obj_name,o[1]['type']))
             elif 'Bird' in o[1]['type']:
                 obj_name = '{}_{}'.format(o[1]['type'], o[0])
-                prob.objects.append((obj_name,o[1]['type']))
+                prob.objects.append((obj_name,'Bird')) #This probably needs to change
                 prob.init.append(['not',['bird_dead',obj_name]])
                 prob.init.append(['not',['bird_released',obj_name]])
                 prob.init.append(['=',['x_bird',obj_name],round((slingshot[1]['bbox'].bounds[0] + slingshot[1]['bbox'].bounds[2]) / 2) - 0])
@@ -110,7 +110,7 @@ class SBState(State):
                     block_mass_coeff = 1.2
                 prob.init.append(['=',['block_life',obj_name],str(265 * block_life_multiplier)])
                 prob.init.append(['=',['block_mass',obj_name],str(block_mass_coeff)])
-                prob.objects.append((obj_name,o[1]['type']))
+                prob.objects.append((obj_name,'block'))
             elif o[1]['type'] == 'hill':
                 obj_name ='{}_{} - platform '.format(o[1]['type'], o[0])
                 prob.init.append(['=',['x_platform', obj_name], o[1]['bbox'].bounds[0]])
