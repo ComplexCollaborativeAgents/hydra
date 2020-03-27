@@ -79,8 +79,10 @@ class SBState(State):
             prob_instance += '{}_{} '.format(bo[1]['type'], bo[0])
             # bird_params += '    (not (bird_dead {}_{}))\n'.format(bo[1]['type'], bo[0])
             bird_params += '    (not (bird_released {}_{}))\n'.format(bo[1]['type'], bo[0])
-            bird_params += '    (= (x_bird {}_{}) {})\n'.format(bo[1]['type'], bo[0], round((slingshot[1]['bbox'].bounds[0] + slingshot[1]['bbox'].bounds[2]) / 2) - 0)
-            bird_params += '    (= (y_bird {}_{}) {})\n'.format(bo[1]['type'], bo[0], round(abs(((slingshot[1]['bbox'].bounds[1] + slingshot[1]['bbox'].bounds[3]) / 2) - groundOffset) - 0))
+            bird_params += '    (= (x_bird {}_{}) {})\n'.format(bo[1]['type'], bo[0],
+                                                                round((slingshot[1]['bbox'].bounds[0] + slingshot[1]['bbox'].bounds[2]) / 2) )
+            bird_params += '    (= (y_bird {}_{}) {})\n'.format(bo[1]['type'], bo[0],
+                                                                round(abs(((slingshot[1]['bbox'].bounds[1] + slingshot[1]['bbox'].bounds[3]) / 2) - groundOffset)) )
             bird_params += '    (= (v_bird {}_{}) 270)\n'.format(bo[1]['type'], bo[0])
             bird_params += '    (= (vy_bird {}_{}) 0)\n'.format(bo[1]['type'], bo[0])
             bird_params += '    (= (bounce_count {}_{}) 0)\n'.format(bo[1]['type'], bo[0])
@@ -92,11 +94,12 @@ class SBState(State):
         for po in pigs:
             prob_instance += '{}_{} '.format(po[1]['type'], po[0])
             pig_params += '    (not (pig_dead {}_{}))\n'.format(po[1]['type'], po[0])
-            pig_params += '    (= (x_pig {}_{}) {})\n'.format(po[1]['type'], po[0], po[1]['bbox'].bounds[0])
+            pig_params += '    (= (x_pig {}_{}) {})\n'.format(po[1]['type'], po[0], round(
+                (abs(po[1]['bbox'].bounds[2] + po[1]['bbox'].bounds[0])/2)) )
             pig_params += '    (= (y_pig {}_{}) {})\n'.format(po[1]['type'], po[0],
-                                                              abs(po[1]['bbox'].bounds[1] - groundOffset))
-            pig_params += '    (= (margin_pig {}_{}) {})\n'.format(po[1]['type'], po[0], round(
-                abs(po[1]['bbox'].bounds[2] - po[1]['bbox'].bounds[0]) * 0.75))
+                                                              abs(round(abs(po[1]['bbox'].bounds[1] + po[1]['bbox'].bounds[3])/2) - groundOffset) )
+            pig_params += '    (= (pig_radius {}_{}) {})\n'.format(po[1]['type'], po[0],
+                                                                   round((abs(po[1]['bbox'].bounds[2] - po[1]['bbox'].bounds[0])/2) * 0.75) )
             goal_conds += ' (pig_dead {}_{})'.format(po[1]['type'], po[0])
 
         prob_instance += '- pig '
@@ -104,9 +107,10 @@ class SBState(State):
         if blocks != []:
             for bl in blocks:
                 prob_instance += '{}_{} '.format(bl[1]['type'], bl[0])
-                block_params += '    (= (x_block {}_{}) {})\n'.format(bl[1]['type'], bl[0], bl[1]['bbox'].bounds[0])
+                block_params += '    (= (x_block {}_{}) {})\n'.format(bl[1]['type'], bl[0],
+                                                                      round((bl[1]['bbox'].bounds[2] + bl[1]['bbox'].bounds[0])/2) )
                 block_params += '    (= (y_block {}_{}) {})\n'.format(bl[1]['type'], bl[0],
-                                                                     abs(bl[1]['bbox'].bounds[1] - groundOffset))
+                                                                     abs(round(abs(bl[1]['bbox'].bounds[1] + bl[1]['bbox'].bounds[3])/2) - groundOffset) )
                 block_params += '    (= (block_height {}_{}) {})\n'.format(bl[1]['type'], bl[0], abs(
                     bl[1]['bbox'].bounds[3] - bl[1]['bbox'].bounds[1]))
                 block_params += '    (= (block_width {}_{}) {})\n'.format(bl[1]['type'], bl[0], abs(
@@ -138,9 +142,9 @@ class SBState(State):
             for pla in platforms:
                 prob_instance += '{}_{} - platform '.format(pla[1]['type'], pla[0])
                 block_params += '    (= (x_platform {}_{}) {})\n'.format(pla[1]['type'], pla[0],
-                                                                        pla[1]['bbox'].bounds[0])
+                                                                        round((pla[1]['bbox'].bounds[2] + pla[1]['bbox'].bounds[0])/2) )
                 block_params += '    (= (y_platform {}_{}) {})\n'.format(pla[1]['type'], pla[0],
-                                                                        abs(pla[1]['bbox'].bounds[1] - groundOffset))
+                                                                        abs(round(abs(pla[1]['bbox'].bounds[1] + pla[1]['bbox'].bounds[3])/2) - groundOffset) )
                 block_params += '    (= (platform_height {}_{}) {})\n'.format(pla[1]['type'], pla[0], abs(
                     pla[1]['bbox'].bounds[3] - pla[1]['bbox'].bounds[1]))
                 block_params += '    (= (platform_width {}_{}) {})\n'.format(pla[1]['type'], pla[0], abs(
