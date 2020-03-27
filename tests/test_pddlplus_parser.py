@@ -10,7 +10,7 @@ DATA_DIR = path.join(settings.ROOT_PATH, 'data')
 Parses a PDDL+ domain file to objects and serializes it back to a PDDL+ file, then parse it again, serialize again, and check it is OK.
 '''
 def test_domain_parsing():
-    pddl_file_name = "%s/sb_domain.pddl" % str(path.join(settings.ROOT_PATH, 'agent', 'planning', 'docker_scripts'))
+    pddl_file_name = path.join(DATA_DIR, "pddl_parser_test_domain.pddl")
 
     parser = PddlDomainParser()
     pddl_domain = parser.parse_pddl_domain(pddl_file_name)
