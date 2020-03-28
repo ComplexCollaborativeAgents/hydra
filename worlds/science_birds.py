@@ -66,6 +66,7 @@ class SBState(State):
         groundOffset = slingshot[1]['bbox'].bounds[3]
         bird_index = 0
 
+        platform = False
         for o in self.objects.items():
             if o[1]['type'] == 'pig':
                 obj_name = '{}_{}'.format(o[1]['type'], o[0])
@@ -112,19 +113,23 @@ class SBState(State):
                 prob.init.append(['=',['block_mass',obj_name],str(block_mass_coeff)])
                 prob.objects.append((obj_name,'block'))
             elif o[1]['type'] == 'hill':
+                platform = True
                 obj_name ='{}_{} - platform '.format(o[1]['type'], o[0])
                 prob.init.append(['=',['x_platform', obj_name], o[1]['bbox'].bounds[0]])
                 prob.init.append(['=', ['y_platform', obj_name], abs(o[1]['bbox'].bounds[1] - groundOffset)])
                 prob.init.append(['=', ['platform_height', obj_name], abs(o[1]['bbox'].bounds[3] - o[1]['bbox'].bounds[1])])
                 prob.init.append(['=', ['platform_width', obj_name], abs(o[1]['bbox'].bounds[2] - o[1]['bbox'].bounds[0])])
+                prob.objects.append([obj_name,'platform'])
             elif o[1]['type'] == 'slingshot':
                 slingshot = o
         for fact in [['=',['gravity'], 134.2],
                      ['=',['active_bird'], 0],
                      ['=', ['angle'], 0],
-                     ['=',['angle_rate'], 20],
-                     ['not', ['angle_adjusted']]]:
+                     ['not', ['angle_adjusted']],['=',['angle_rate'], 20]
+                     ]:
             prob.init.append(fact)
+        if not platform:
+            prob.objects.append(['dummy_platform','platform'])
         return prob
 
 

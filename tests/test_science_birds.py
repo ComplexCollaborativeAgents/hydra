@@ -38,7 +38,7 @@ def test_science_birds_agent(launch_science_birds):
     assert len([x for x in scores if x > 0]) == 2 # solved two problems
 
 
-@pytest.mark.skipif(settings.HEADLESS==True, reason="headless does not work in docker")
+@pytest.mark.skipif(True, reason="headless does not work in docker")
 def test_science_birds(launch_science_birds):
     env = launch_science_birds
     env.init_selected_level(1)
