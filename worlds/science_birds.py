@@ -84,7 +84,9 @@ class SBState(State):
             bird_params += '    (= (y_bird {}_{}) {})\n'.format(bo[1]['type'], bo[0],
                                                                 round(abs(((slingshot[1]['bbox'].bounds[1] + slingshot[1]['bbox'].bounds[3]) / 2) - groundOffset)) )
             bird_params += '    (= (v_bird {}_{}) 270)\n'.format(bo[1]['type'], bo[0])
+            bird_params += '    (= (vx_bird {}_{}) 0)\n'.format(bo[1]['type'], bo[0])
             bird_params += '    (= (vy_bird {}_{}) 0)\n'.format(bo[1]['type'], bo[0])
+            bird_params += '    (= (m_bird {}_{}) 1)\n'.format(bo[1]['type'], bo[0])
             bird_params += '    (= (bounce_count {}_{}) 0)\n'.format(bo[1]['type'], bo[0])
             bird_params += '    (= (bird_id {}_{}) {})\n'.format(bo[1]['type'], bo[0], bird_index)
             bird_index += 1
@@ -100,6 +102,7 @@ class SBState(State):
                                                               abs(round(abs(po[1]['bbox'].bounds[1] + po[1]['bbox'].bounds[3])/2) - groundOffset) )
             pig_params += '    (= (pig_radius {}_{}) {})\n'.format(po[1]['type'], po[0],
                                                                    round((abs(po[1]['bbox'].bounds[2] - po[1]['bbox'].bounds[0])/2) * 0.75) )
+            pig_params += '    (= (m_pig {}_{}) 1)\n'.format(po[1]['type'], po[0])
             goal_conds += ' (pig_dead {}_{})'.format(po[1]['type'], po[0])
 
         prob_instance += '- pig '
