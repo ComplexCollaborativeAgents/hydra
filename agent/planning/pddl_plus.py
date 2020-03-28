@@ -32,4 +32,11 @@ def fluents_names_equals(fluent_name1, fluent_name2):
             return False
     return True
 
-
+'''
+Returns true if fluent is a numeric value
+'''
+def is_numeric(fluent):
+    if is_numeric(fluent[-1]):
+        return True
+    else:
+        return False

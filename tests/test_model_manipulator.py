@@ -1,8 +1,9 @@
 from os import path
 import settings
 from agent.planning.pddlplus_parser import PddlProblemParser, PddlProblemExporter
-from agent.planning.model_manipulator import PddlProblemManipulator
+from agent.planning.model_manipulator import ManipulateInitNumericFluent
 import agent. planning.pddl_plus as pddl_plus
+
 DATA_DIR = path.join(settings.ROOT_PATH, 'data')
 
 '''
@@ -23,8 +24,8 @@ def test_problem_manipulation():
     gravity_fluent = pddl_plus.get_numeric_fluent(pddl_problem.init, GRAVITY)
     original_gravity_value = float(pddl_plus.get_numeric_fluent_value(gravity_fluent))
 
-    manipulator = PddlProblemManipulator()
-    manipulator.change_init_numeric_fluent(None, pddl_problem, GRAVITY, gravity_delta)
+    manipulator = ManipulateInitNumericFluent(GRAVITY, gravity_delta)
+    manipulator.apply_change(None, pddl_problem)
     gravity_fluent = pddl_plus.get_numeric_fluent(pddl_problem.init, GRAVITY)
     modified_gravity_value = float(pddl_plus.get_numeric_fluent_value(gravity_fluent))
 
