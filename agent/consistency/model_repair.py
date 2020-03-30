@@ -4,14 +4,13 @@ import agent.planning.model_manipulator as model_manipulator
 class ModelRepair():
 
     def repair(self, pddl_domain, pddl_problem):
-        expected_obs = get_expected_observations(pddl_domain, pddl_problem)
-        real_obs = collect_real_observations(pddl_domain, pddl_problem)
+        expected_obs = get_expected_observations(pddl_domain, pddl_problem) # From Val?
+        real_obs = collect_real_observations(pddl_domain, pddl_problem) # From SB?
         while is_consistent(expected_obs, real_obs)==False:
             manipulator = self.choose_manipulator()
             manipulator.apply_change(pddl_domain, pddl_problem)
 
             expected_obs = get_expected_observations(pddl_domain, pddl_problem)
-            real_obs = collect_real_observations(pddl_domain, pddl_problem)
 
         return (pddl_domain, pddl_problem)
 
