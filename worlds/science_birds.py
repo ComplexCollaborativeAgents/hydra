@@ -67,30 +67,36 @@ class SBState(State):
         bird_index = 0
 
         platform = False
+        block = False
         for o in self.objects.items():
             if o[1]['type'] == 'pig':
                 obj_name = '{}_{}'.format(o[1]['type'], o[0])
                 prob.init.append(['not', ['pig_dead',obj_name]])
-                prob.init.append(['=',['x_pig',obj_name],o[1]['bbox'].bounds[0]])
-                prob.init.append(['=',['y_pig',obj_name],abs(o[1]['bbox'].bounds[1] - groundOffset)])
-                prob.init.append(['=',['margin_pig', obj_name], round(abs(o[1]['bbox'].bounds[2] - o[1]['bbox'].bounds[0]) * 0.75)])
+                prob.init.append(['=',['x_pig',obj_name],round(abs(o[1]['bbox'].bounds[2] + o[1]['bbox'].bounds[0])/2)])
+                prob.init.append(['=',['y_pig',obj_name],abs(round(abs(o[1]['bbox'].bounds[1] + o[1]['bbox'].bounds[3])/2) - groundOffset)])
+                prob.init.append(['=',['pig_radius', obj_name], round((abs(o[1]['bbox'].bounds[2] - o[1]['bbox'].bounds[0])/2) * 0.7)])
+                prob.init.append(['=', ['m_pig', obj_name], 1])
                 prob.goal.append(['pig_dead', obj_name])
                 prob.objects.append((obj_name,o[1]['type']))
             elif 'Bird' in o[1]['type']:
                 obj_name = '{}_{}'.format(o[1]['type'], o[0])
                 prob.objects.append((obj_name,'Bird')) #This probably needs to change
-                prob.init.append(['not',['bird_dead',obj_name]])
+                # prob.init.append(['not',['bird_dead',obj_name]])
                 prob.init.append(['not',['bird_released',obj_name]])
                 prob.init.append(['=',['x_bird',obj_name],round((slingshot[1]['bbox'].bounds[0] + slingshot[1]['bbox'].bounds[2]) / 2) - 0])
                 prob.init.append(['=',['y_bird',obj_name],round(abs(((slingshot[1]['bbox'].bounds[1] + slingshot[1]['bbox'].bounds[3]) / 2) - groundOffset) - 0)])
                 prob.init.append(['=',['v_bird',obj_name], 270])
+                prob.init.append(['=',['vx_bird',obj_name], 0])
                 prob.init.append(['=',['vy_bird',obj_name], 0])
+                prob.init.append(['=',['m_bird',obj_name], 1])
+                prob.init.append(['=',['bounce_count',obj_name], 0])
                 prob.init.append(['=',['bird_id',obj_name],bird_index])
                 bird_index += 1
             elif o[1]['type'] == 'wood' or o[1]['type'] == 'ice' or o[1]['type'] == 'stone':
+                block = True
                 obj_name = '{}_{} '.format(o[1]['type'], o[0])
-                prob.init.append(['=',['x_block', obj_name], o[1]['bbox'].bounds[0]])
-                prob.init.append(['=',['y_block',obj_name],abs(o[1]['bbox'].bounds[1] - groundOffset)])
+                prob.init.append(['=',['x_block', obj_name], round((o[1]['bbox'].bounds[2] + o[1]['bbox'].bounds[0])/2)])
+                prob.init.append(['=',['y_block',obj_name], abs(round(abs(o[1]['bbox'].bounds[1] + o[1]['bbox'].bounds[3])/2) - groundOffset)])
                 prob.init.append(['=',['block_height',obj_name],abs(
                     o[1]['bbox'].bounds[3] - o[1]['bbox'].bounds[1])])
                 prob.init.append(['=',['block_width',obj_name],abs(
@@ -114,9 +120,9 @@ class SBState(State):
                 prob.objects.append((obj_name,'block'))
             elif o[1]['type'] == 'hill':
                 platform = True
-                obj_name ='{}_{} - platform '.format(o[1]['type'], o[0])
-                prob.init.append(['=',['x_platform', obj_name], o[1]['bbox'].bounds[0]])
-                prob.init.append(['=', ['y_platform', obj_name], abs(o[1]['bbox'].bounds[1] - groundOffset)])
+                obj_name ='{}_{}'.format(o[1]['type'], o[0])
+                prob.init.append(['=',['x_platform', obj_name], round((o[1]['bbox'].bounds[2] + o[1]['bbox'].bounds[0])/2)])
+                prob.init.append(['=', ['y_platform', obj_name], abs(round(abs(o[1]['bbox'].bounds[1] + o[1]['bbox'].bounds[3])/2) - groundOffset)])
                 prob.init.append(['=', ['platform_height', obj_name], abs(o[1]['bbox'].bounds[3] - o[1]['bbox'].bounds[1])])
                 prob.init.append(['=', ['platform_width', obj_name], abs(o[1]['bbox'].bounds[2] - o[1]['bbox'].bounds[0])])
                 prob.objects.append([obj_name,'platform'])
@@ -125,11 +131,15 @@ class SBState(State):
         for fact in [['=',['gravity'], 134.2],
                      ['=',['active_bird'], 0],
                      ['=', ['angle'], 0],
-                     ['not', ['angle_adjusted']],['=',['angle_rate'], 20]
+                     ['not', ['angle_adjusted']],
+                     ['=',['angle_rate'], 20],
+                     ['=', ['ground_damper'], 0.4]
                      ]:
             prob.init.append(fact)
         if not platform:
             prob.objects.append(['dummy_platform','platform'])
+        if not block:
+            prob.objects.append(['dummy_block','block'])
         return prob
 
 
