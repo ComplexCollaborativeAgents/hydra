@@ -57,6 +57,9 @@ def test_science_birds(launch_science_birds):
     assert (len(state.objects) == 5)
     assert ('type' in state.objects[0].keys() and
             'bbox' in state.objects[0].keys())
+    count = 0
+    state.serialize_current_state( # copy to the other data directory later
+        path.join(settings.ROOT_PATH, 'tmp',  'dx_test_{}.p'.format(count)))
 
     # print(str(env.cur_sling.bottom_right))
 
@@ -66,17 +69,26 @@ def test_science_birds(launch_science_birds):
     ref_point = env.tp.get_reference_point(state.sling)
     #release_point_from_plan = env.tp.find_release_point(state.sling, 0.174533) # 10 degree launch
     release_point_from_plan = env.tp.find_release_point(state.sling, math.radians(planner.get_plan_actions()[0][1]))
-    action = sb.SBAction(release_point_from_plan.X, release_point_from_plan.Y, 3000, ref_point.X, ref_point.Y)
+    action = sb.SBShoot(release_point_from_plan.X, release_point_from_plan.Y, 3000, ref_point.X, ref_point.Y)
 
-    state, reward, done = env.act(action)
+    state, reward = env.act(action)
     assert len(env.intermediate_states) > 1
     # some objects should be destroyed by the last state
     assert len(env.intermediate_states[0].objects) > len(env.intermediate_states[-1].objects)
+    for s in env.intermediate_states:
+        count+=1
+        s.serialize_current_state(  # copy to the other data directory later
+            path.join(settings.ROOT_PATH, 'tmp', 'dx_test_{}.p'.format(count)))
     assert isinstance(state, sb.SBState)
+
+    count += 1
+    state.serialize_current_state( # copy to the other data directory later
+        path.join(settings.ROOT_PATH, 'tmp',  'dx_test_{}.p'.format(count)))
+
     assert reward > 0
 
 
-@pytest.mark.skipif(True, reason="headless does not work in docker")
+@pytest.mark.skipif(True, reason="This functionality is captured in the science birds agent test")
 def test_multi_shot(launch_science_birds):
     print('\nAll Objects: ')
     env = launch_science_birds
@@ -122,7 +134,7 @@ def test_multi_shot(launch_science_birds):
     release_point_from_plan = env.tp.find_release_point(state.sling, math.radians(actions_from_plan[0][1] * 1.00))
     action = sb.SBAction(release_point_from_plan.X, release_point_from_plan.Y, 1000, ref_point.X, ref_point.Y)
     print("action executed: " + str(actions_from_plan[0]))
-    state, reward, done = env.act(action)
+    state, reward = env.act(action)
 
     game_state = GameState.PLAYING
 

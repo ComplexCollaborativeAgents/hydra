@@ -1,3 +1,4 @@
+from agent.planning.pddlplus_parser import PddlProblemExporter
 from utils.state import InvokeBasicRL
 # this will likely just be calling an executable
 import settings
@@ -18,7 +19,8 @@ class Planner():
         The plan should be a list of actions that are either executable in the environment
         or invoking the RL agent
         '''
-        self.write_problem_file(state.translate_state_to_pddl())
+        pddl = state.translate_state_to_pddl()
+        self.write_problem_file(pddl)
         return self.get_plan_actions()
 
     def execute(self,plan,policy_learner):
@@ -30,10 +32,10 @@ class Planner():
             return None
 
 
-    def write_problem_file(self, prob_string):
-        pddl_problem_file = open("%s/sb_prob.pddl" % str(settings.PLANNING_DOCKER_PATH), "w+")
-        pddl_problem_file.write(prob_string)
-        pddl_problem_file.close()
+    def write_problem_file(self, pddl_problem):
+        pddl_problem_file = "%s/sb_prob.pddl" % str(settings.PLANNING_DOCKER_PATH)
+        exporter = PddlProblemExporter()
+        exporter.to_file(pddl_problem, pddl_problem_file)
 
     def get_plan_actions(self,count=0):
         plan_actions = []
