@@ -45,7 +45,7 @@ class Planner():
         out_file = open("docker_build_trace.txt", "wb")
         out_file.write(completed_process.stdout);
         if len(completed_process.stderr)>0:
-            out_file.write("\n Stderr: \n")
+            out_file.write(str.encode("\n Stderr: \n"))
             out_file.write(completed_process.stderr);
         out_file.close()
 
@@ -53,7 +53,7 @@ class Planner():
         out_file = open("docker_plan_trace.txt", "wb")
         out_file.write(completed_process.stdout);
         if len(completed_process.stderr)>0:
-            out_file.write("\n Stderr: \n")
+            out_file.write(str.encode("\n Stderr: \n"))
             out_file.write(completed_process.stderr);
         out_file.close()
 
