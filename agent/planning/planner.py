@@ -2,7 +2,7 @@ from agent.planning.pddlplus_parser import PddlProblemExporter
 from utils.state import InvokeBasicRL
 # this will likely just be calling an executable
 import settings
-from os import path
+from os import path, chdir
 import subprocess
 
 class Planner():
@@ -39,9 +39,23 @@ class Planner():
 
     def get_plan_actions(self,count=0):
         plan_actions = []
-        subprocess.call(
-            "cd %s; docker build -t upm_from_dockerfile . > docker_build_trace.txt;docker run upm_from_dockerfile sb_domain.pddl sb_prob.pddl > docker_plan_trace.txt;" % (
-                settings.PLANNING_DOCKER_PATH), shell=True)
+
+        chdir("%s"  % settings.PLANNING_DOCKER_PATH)
+        completed_process = subprocess.run(('docker', 'build', '-t', 'upm_from_dockerfile', '.'), capture_output=True)
+        out_file = open("docker_build_trace.txt", "wb")
+        out_file.write(completed_process.stdout);
+        if len(completed_process.stderr)>0:
+            out_file.write("\n Stderr: \n")
+            out_file.write(completed_process.stderr);
+        out_file.close()
+
+        completed_process = subprocess.run(('docker', 'run', 'upm_from_dockerfile', 'sb_domain.pddl', 'sb_prob.pddl'), capture_output=True)
+        out_file = open("docker_plan_trace.txt", "wb")
+        out_file.write(completed_process.stdout);
+        if len(completed_process.stderr)>0:
+            out_file.write("\n Stderr: \n")
+            out_file.write(completed_process.stderr);
+        out_file.close()
 
         lines_list = open("%s/docker_plan_trace.txt" % str(path.join(settings.ROOT_PATH, 'agent', 'planning', 'docker_scripts'))).readlines()
 
