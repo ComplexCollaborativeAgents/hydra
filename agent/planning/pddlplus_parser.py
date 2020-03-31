@@ -201,7 +201,7 @@ class PddlProblemExporter():
 
         out_file.write("(:goal (and ")
         for goal_fact in pddl_problem.goal:
-            parse_utils.write_tokens(init_fact, out_file, prefix_str=" ", suffix_str=" ")
+            parse_utils.write_tokens(goal_fact, out_file, prefix_str=" ", suffix_str=" ")
         out_file.write("))\n")
 
         out_file.write("(:metric %s)\n"  % pddl_problem.metric)

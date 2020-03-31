@@ -10,8 +10,9 @@ from os import path
 import settings
 import worlds.science_birds_interface.client.agent_client as ac
 import worlds.science_birds_interface.trajectory_planner.trajectory_planner as tp
+from agent.planning.pddlplus_parser import PddlPlusProblem
 from utils.state import State, Action, World
-
+#import shapely.geometry as geo
 
 class SBState(State):
     """Current State of Science Birds"""
@@ -23,6 +24,12 @@ class SBState(State):
         self.game_state = game_state
         self.sling = None
 
+    def summary(self):
+        '''returns a summary of state'''
+        ret = {}
+        for key, obj in self.objects.items():
+            ret['{}_{}'.format(obj['type'],key)] = (obj['bbox'].centroid.x,obj['bbox'].centroid.y)
+        return ret
 
     def get_rl_id(self):
         return self.id
@@ -33,141 +40,107 @@ class SBState(State):
     def load_from_serialized_state(level_filename):
         return pickle.load(open(level_filename, 'rb'))
 
+
+
     def translate_state_to_pddl(self):
+        # There is an annoying disconnect in representations.
+        # 'x_pig[pig_4]:450' vs. (= (x_pig pig4) 450)
+        # 'pig_dead[pig_4]:False vs. (not (pig_dead pig_4))
+        # We will use the PddlPlusProblem class as a common representations
+        # init rep [['=', ['gravity'], '134.2'], ['=', ['active_bird'], '0'], ['=', ['angle'], '0'], ['=', ['angle_rate'], '20'], ['not', ['angle_adjusted']], ['not', ['bird_dead', 'redBird_0']], ['not', ['bird_released', 'redBird_0']], ['=', ['x_bird', 'redBird_0'], '192'], ['=', ['y_bird', 'redBird_0'], '29'], ['=', ['v_bird', 'redBird_0'], '270'], ['=', ['vy_bird', 'redBird_0'], '0'], ['=', ['bird_id', 'redBird_0'], '0'], ['not', ['wood_destroyed', 'wood_2']], ['=', ['x_wood', 'wood_2'], '445.0'], ['=', ['y_wood', 'wood_2'], '25.0'], ['=', ['wood_height', 'wood_2'], '12.0'], ['=', ['wood_width', 'wood_2'], '24.0'], ['not', ['wood_destroyed', 'wood_3']], ['=', ['x_wood', 'wood_3'], '447.0'], ['=', ['y_wood', 'wood_3'], '13.0'], ['=', ['wood_height', 'wood_3'], '13.0'], ['=', ['wood_width', 'wood_3'], '24.0'], ['not', ['pig_dead', 'pig_4']], ['=', ['x_pig', 'pig_4'], '449.0'], ['=', ['y_pig', 'pig_4'], '53.0'], ['=', ['margin_pig', 'pig_4'], '21']]
+        # objects rep [('redBird_0', 'bird'), ('pig_4', 'pig'), ('wood_2', 'wood_block'), ('wood_3', 'wood_block'), ('dummy_ice', 'ice_block'), ('dummy_stone', 'stone_block'), ('dummy_platform', 'platform')]
+        prob = PddlPlusProblem()
+        prob.domain = 'angry_birds_scaled'
+        prob.name = 'angry_birds_prob'
+        prob.metric = 'minimize(total-time)'
+        prob.objects = []
+        prob.init = []
+        prob.goal = []
 
-        bird_params = ''
-        pig_params = ''
-        block_params = ''
-        goal_conds = ''
-
-        # vision = self.sb_client._updateReader('groundTruth')
-
-        prob_instance = '(define (problem angry_birds_prob)\n'
-        prob_instance += '(:domain angry_birds_scaled)\n'
-        prob_instance += '(:objects '
-
-        birds = []
-        pigs = []
-        blocks = []
-        platforms = []
-        slingshot = {}
-
+        #we should probably use the self.sling on the object
+        slingshot = None
         for o in self.objects.items():
-            if o[1]['type'] == 'pig':
-                pigs.append(o)
-            elif 'Bird' in o[1]['type']:
-                birds.append(o)
-            elif o[1]['type'] == 'wood' or o[1]['type'] == 'ice' or o[1]['type'] == 'stone':
-                blocks.append(o)
-            elif o[1]['type'] == 'hill':
-                platforms.append(o)
-            elif o[1]['type'] == 'slingshot':
+            if o[1]['type'] == 'slingshot':
                 slingshot = o
 
-        print('\nSLINGSHOT: ' + str(slingshot))
-        print('BIRDS: ' + str(birds))
-        print('PIGS: ' + str(pigs))
-        print('BLOCKS: ' + str(blocks))
-        print('PLATFORMS: ' + str(platforms) + '\n')
-
-
         groundOffset = slingshot[1]['bbox'].bounds[3]
-
         bird_index = 0
-        # bbox.bounds = (minX, minY, maxX, maxY);
-        for bo in birds:
-            prob_instance += '{}_{} '.format(bo[1]['type'], bo[0])
-            bird_params += '    (not (bird_dead {}_{}))\n'.format(bo[1]['type'], bo[0])
-            bird_params += '    (not (bird_released {}_{}))\n'.format(bo[1]['type'], bo[0])
-            bird_params += '    (= (x_bird {}_{}) {})\n'.format(bo[1]['type'], bo[0], round((slingshot[1]['bbox'].bounds[0] + slingshot[1]['bbox'].bounds[2]) / 2) - 0)
-            bird_params += '    (= (y_bird {}_{}) {})\n'.format(bo[1]['type'], bo[0], round(abs(((slingshot[1]['bbox'].bounds[1] + slingshot[1]['bbox'].bounds[3]) / 2) - groundOffset) - 0))
-            bird_params += '    (= (v_bird {}_{}) 270)\n'.format(bo[1]['type'], bo[0])
-            bird_params += '    (= (vy_bird {}_{}) 0)\n'.format(bo[1]['type'], bo[0])
-            bird_params += '    (= (bird_id {}_{}) {})\n'.format(bo[1]['type'], bo[0], bird_index)
-            # goal_conds += ' (not (bird_dead {}_{}))'.format(bo[1]['type'], bo[0])
-            bird_index += 1
 
-        prob_instance += '- bird '
-
-        for po in pigs:
-            prob_instance += '{}_{} '.format(po[1]['type'], po[0])
-            pig_params += '    (not (pig_dead {}_{}))\n'.format(po[1]['type'], po[0])
-            pig_params += '    (= (x_pig {}_{}) {})\n'.format(po[1]['type'], po[0], po[1]['bbox'].bounds[0])
-            pig_params += '    (= (y_pig {}_{}) {})\n'.format(po[1]['type'], po[0],
-                                                              abs(po[1]['bbox'].bounds[1] - groundOffset))
-            pig_params += '    (= (margin_pig {}_{}) {})\n'.format(po[1]['type'], po[0], round(
-                abs(po[1]['bbox'].bounds[2] - po[1]['bbox'].bounds[0]) * 0.75))
-            goal_conds += ' (pig_dead {}_{})'.format(po[1]['type'], po[0])
-
-        prob_instance += '- pig '
-
-        if blocks != []:
-            for bl in blocks:
-                prob_instance += '{}_{} '.format(bl[1]['type'], bl[0])
-                block_params += '    (= (x_block {}_{}) {})\n'.format(bl[1]['type'], bl[0], bl[1]['bbox'].bounds[0])
-                block_params += '    (= (y_block {}_{}) {})\n'.format(bl[1]['type'], bl[0],
-                                                                     abs(bl[1]['bbox'].bounds[1] - groundOffset))
-                block_params += '    (= (block_height {}_{}) {})\n'.format(bl[1]['type'], bl[0], abs(
-                    bl[1]['bbox'].bounds[3] - bl[1]['bbox'].bounds[1]))
-                block_params += '    (= (block_width {}_{}) {})\n'.format(bl[1]['type'], bl[0], abs(
-                    bl[1]['bbox'].bounds[2] - bl[1]['bbox'].bounds[0]))
-
+        platform = False
+        block = False
+        for o in self.objects.items():
+            if o[1]['type'] == 'pig':
+                obj_name = '{}_{}'.format(o[1]['type'], o[0])
+                prob.init.append(['not', ['pig_dead',obj_name]])
+                prob.init.append(['=',['x_pig',obj_name],round(abs(o[1]['bbox'].bounds[2] + o[1]['bbox'].bounds[0])/2)])
+                prob.init.append(['=',['y_pig',obj_name],abs(round(abs(o[1]['bbox'].bounds[1] + o[1]['bbox'].bounds[3])/2) - groundOffset)])
+                prob.init.append(['=',['pig_radius', obj_name], round((abs(o[1]['bbox'].bounds[2] - o[1]['bbox'].bounds[0])/2) * 0.7)])
+                prob.init.append(['=', ['m_pig', obj_name], 1])
+                prob.goal.append(['pig_dead', obj_name])
+                prob.objects.append((obj_name,o[1]['type']))
+            elif 'Bird' in o[1]['type']:
+                obj_name = '{}_{}'.format(o[1]['type'], o[0])
+                prob.objects.append((obj_name,'Bird')) #This probably needs to change
+                # prob.init.append(['not',['bird_dead',obj_name]])
+                prob.init.append(['not',['bird_released',obj_name]])
+                prob.init.append(['=',['x_bird',obj_name],round((slingshot[1]['bbox'].bounds[0] + slingshot[1]['bbox'].bounds[2]) / 2) - 0])
+                prob.init.append(['=',['y_bird',obj_name],round(abs(((slingshot[1]['bbox'].bounds[1] + slingshot[1]['bbox'].bounds[3]) / 2) - groundOffset) - 0)])
+                prob.init.append(['=',['v_bird',obj_name], 270])
+                prob.init.append(['=',['vx_bird',obj_name], 0])
+                prob.init.append(['=',['vy_bird',obj_name], 0])
+                prob.init.append(['=',['m_bird',obj_name], 1])
+                prob.init.append(['=',['bounce_count',obj_name], 0])
+                prob.init.append(['=',['bird_id',obj_name],bird_index])
+                bird_index += 1
+            elif o[1]['type'] == 'wood' or o[1]['type'] == 'ice' or o[1]['type'] == 'stone':
+                block = True
+                obj_name = '{}_{} '.format(o[1]['type'], o[0])
+                prob.init.append(['=',['x_block', obj_name], round((o[1]['bbox'].bounds[2] + o[1]['bbox'].bounds[0])/2)])
+                prob.init.append(['=',['y_block',obj_name], abs(round(abs(o[1]['bbox'].bounds[1] + o[1]['bbox'].bounds[3])/2) - groundOffset)])
+                prob.init.append(['=',['block_height',obj_name],abs(
+                    o[1]['bbox'].bounds[3] - o[1]['bbox'].bounds[1])])
+                prob.init.append(['=',['block_width',obj_name],abs(
+                    o[1]['bbox'].bounds[2] - o[1]['bbox'].bounds[0])])
                 block_life_multiplier = 1.0
                 block_mass_coeff = 1.0
-                if bl[1]['type'] == 'wood':
+                if o[1]['type'] == 'wood':
                     block_life_multiplier = 1.0
                     block_mass_coeff = 0.375
-                elif bl[1]['type'] == 'ice':
+                elif o[1]['type'] == 'ice':
                     block_life_multiplier = 0.5
                     block_mass_coeff = 0.125
-                elif bl[1]['type'] == 'stone':
+                elif o[1]['type'] == 'stone':
                     block_life_multiplier = 2.0
                     block_mass_coeff = 1.2
-                else:
+                else: # not sure how this could ever happen
                     block_life_multiplier = 2.0
                     block_mass_coeff = 1.2
-
-                block_params += '    (= (block_life {}_{}) {})\n'.format(bl[1]['type'], bl[0], str(265 * block_life_multiplier))
-                block_params += '    (= (block_mass {}_{}) {})\n'.format(bl[1]['type'], bl[0], str(block_mass_coeff))
-
-                prob_instance += '- block '
-        else:
-            prob_instance += 'dummy_block - block '
-
-        if platforms != []:
-            for pla in platforms:
-                prob_instance += '{}_{} - platform '.format(pla[1]['type'], pla[0])
-                block_params += '    (= (x_platform {}_{}) {})\n'.format(pla[1]['type'], pla[0],
-                                                                        pla[1]['bbox'].bounds[0])
-                block_params += '    (= (y_platform {}_{}) {})\n'.format(pla[1]['type'], pla[0],
-                                                                        abs(pla[1]['bbox'].bounds[1] - groundOffset))
-                block_params += '    (= (platform_height {}_{}) {})\n'.format(pla[1]['type'], pla[0], abs(
-                    pla[1]['bbox'].bounds[3] - pla[1]['bbox'].bounds[1]))
-                block_params += '    (= (platform_width {}_{}) {})\n'.format(pla[1]['type'], pla[0], abs(
-                    pla[1]['bbox'].bounds[2] - pla[1]['bbox'].bounds[0]))
-        else:
-            prob_instance += 'dummy_platform - platform '
-
-        prob_instance += ')\n'  # close objects
-
-        init_params = '(:init '
-        init_params += '(= (gravity) 134.2)\n    (= (active_bird) 0)\n    (= (angle) 0)\n    (= (angle_rate) 20)\n    (not (angle_adjusted))\n'
-
-        init_params += bird_params
-        init_params += pig_params
-        init_params += block_params
-
-        init_params += ')\n' # close init
-
-        prob_instance += init_params
-
-        prob_instance += '(:goal (and {}))\n'.format(goal_conds)
-
-        prob_instance += '(:metric minimize(total-time))\n'
-        prob_instance += ')\n' # close define
-        # print(prob_instance)
-
-        return prob_instance
+                prob.init.append(['=',['block_life',obj_name],str(265 * block_life_multiplier)])
+                prob.init.append(['=',['block_mass',obj_name],str(block_mass_coeff)])
+                prob.objects.append((obj_name,'block'))
+            elif o[1]['type'] == 'hill':
+                platform = True
+                obj_name ='{}_{}'.format(o[1]['type'], o[0])
+                prob.init.append(['=',['x_platform', obj_name], round((o[1]['bbox'].bounds[2] + o[1]['bbox'].bounds[0])/2)])
+                prob.init.append(['=', ['y_platform', obj_name], abs(round(abs(o[1]['bbox'].bounds[1] + o[1]['bbox'].bounds[3])/2) - groundOffset)])
+                prob.init.append(['=', ['platform_height', obj_name], abs(o[1]['bbox'].bounds[3] - o[1]['bbox'].bounds[1])])
+                prob.init.append(['=', ['platform_width', obj_name], abs(o[1]['bbox'].bounds[2] - o[1]['bbox'].bounds[0])])
+                prob.objects.append([obj_name,'platform'])
+            elif o[1]['type'] == 'slingshot':
+                slingshot = o
+        for fact in [['=',['gravity'], 134.2],
+                     ['=',['active_bird'], 0],
+                     ['=', ['angle'], 0],
+                     ['not', ['angle_adjusted']],
+                     ['=',['angle_rate'], 20],
+                     ['=', ['ground_damper'], 0.4]
+                     ]:
+            prob.init.append(fact)
+        if not platform:
+            prob.objects.append(['dummy_platform','platform'])
+        if not block:
+            prob.objects.append(['dummy_block','block'])
+        return prob
 
 
 class SBAction(Action):
