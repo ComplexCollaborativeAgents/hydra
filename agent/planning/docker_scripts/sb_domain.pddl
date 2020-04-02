@@ -22,7 +22,7 @@
             (not (angle_adjusted))
             (= (active_bird) (bird_id ?b))
             (not (bird_released ?b))
-            (<= (angle) 20)
+            (<= (angle) 90)
         )
         :effect (and
             (increase (angle) (* #t (angle_rate)))
@@ -53,7 +53,7 @@
         )
         :effect (and
             (assign (vy_bird ?b) (* (v_bird ?b) (/ (* (* 4 (angle)) (- 180 (angle))) (- 40500 (* (angle) (- 180 (angle)))) )  ) )
-            (increase (vx_bird ?b) (* (v_bird ?b) (- 1 (/ (* (* (angle) 0.0174533) (* (angle) 0.0174533) ) 2) ) ) )
+            (assign (vx_bird ?b) (* (v_bird ?b) (- 1 (/ (* (* (angle) 0.0174533) (* (angle) 0.0174533) ) 2) ) ) )
             (bird_released ?b)
             (angle_adjusted)
         )
@@ -98,10 +98,10 @@
             (= (active_bird) (bird_id ?b))
             (not (pig_dead ?p))
             (> (v_bird ?b) 0)
-            (<= (x_bird ?b) (+ (x_pig ?p) (pig_radius ?p) ) )
-            (>= (x_bird ?b) (- (x_pig ?p) (pig_radius ?p) ) )
-            (>= (y_bird ?b) (- (y_pig ?p) (pig_radius ?p) ) )
-            (<= (y_bird ?b) (+ (y_pig ?p) (pig_radius ?p) ) )
+            (<= (x_bird ?b) (+ (x_pig ?p) (- (pig_radius ?p) (* (pig_radius ?p) 0.3)) ) )
+            (>= (x_bird ?b) (- (x_pig ?p) (- (pig_radius ?p) (* (pig_radius ?p) 0.3)) ) )
+            (>= (y_bird ?b) (- (y_pig ?p) (- (pig_radius ?p) (* (pig_radius ?p) 0.3)) ) )
+            (<= (y_bird ?b) (+ (y_pig ?p) (- (pig_radius ?p) (* (pig_radius ?p) 0.3)) ) )
         )
         :effect (and
             (pig_dead ?p)

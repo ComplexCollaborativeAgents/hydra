@@ -74,7 +74,7 @@ class SBState(State):
                 prob.init.append(['not', ['pig_dead',obj_name]])
                 prob.init.append(['=',['x_pig',obj_name],round(abs(o[1]['bbox'].bounds[2] + o[1]['bbox'].bounds[0])/2)])
                 prob.init.append(['=',['y_pig',obj_name],abs(round(abs(o[1]['bbox'].bounds[1] + o[1]['bbox'].bounds[3])/2) - groundOffset)])
-                prob.init.append(['=',['pig_radius', obj_name], round((abs(o[1]['bbox'].bounds[2] - o[1]['bbox'].bounds[0])/2) * 0.7)])
+                prob.init.append(['=',['pig_radius', obj_name], round((abs(o[1]['bbox'].bounds[2] - o[1]['bbox'].bounds[0])/2) * 0.75)])
                 prob.init.append(['=', ['m_pig', obj_name], 1])
                 prob.goal.append(['pig_dead', obj_name])
                 prob.objects.append((obj_name,o[1]['type']))
@@ -132,7 +132,7 @@ class SBState(State):
                      ['=',['active_bird'], 0],
                      ['=', ['angle'], 0],
                      ['not', ['angle_adjusted']],
-                     ['=',['angle_rate'], 20],
+                     ['=',['angle_rate'], 10],
                      ['=', ['ground_damper'], 0.4]
                      ]:
             prob.init.append(fact)

@@ -1,3 +1,5 @@
+from pip._internal.utils.misc import captured_output
+
 from agent.planning.pddlplus_parser import PddlProblemExporter
 from utils.state import InvokeBasicRL
 # this will likely just be calling an executable
@@ -49,7 +51,7 @@ class Planner():
             out_file.write(completed_process.stderr);
         out_file.close()
 
-        completed_process = subprocess.run(('docker', 'run', 'upm_from_dockerfile', 'sb_domain.pddl', 'sb_prob.pddl'), capture_output=True)
+        completed_process = subprocess.run(('docker', 'run', 'upm_from_dockerfile', 'sb_domain.pddl', 'sb_prob.pddl', '>', 'docker_plan_trace.txt'), capture_output=True)
         out_file = open("docker_plan_trace.txt", "wb")
         out_file.write(completed_process.stdout);
         if len(completed_process.stderr)>0:
@@ -57,9 +59,9 @@ class Planner():
             out_file.write(completed_process.stderr);
         out_file.close()
 
-        lines_list = open("%s/docker_plan_trace.txt" % str(path.join(settings.ROOT_PATH, 'agent', 'planning', 'docker_scripts'))).readlines()
+        lines_list = open("%s/docker_plan_trace.txt" % str(settings.PLANNING_DOCKER_PATH)).readlines()
 
-        with open("%s/docker_plan_trace.txt" % str(path.join(settings.ROOT_PATH, 'agent', 'planning', 'docker_scripts'))) as plan_trace_file:
+        with open("%s/docker_plan_trace.txt" % str(settings.PLANNING_DOCKER_PATH)) as plan_trace_file:
             for i, line in enumerate(plan_trace_file):
                 # print(str(i) + " =====> " + str(line))
                 if "Out of memory" in line:
