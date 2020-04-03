@@ -32,6 +32,6 @@ RUN tar -xvzf val-dev-linux.tar.gz
 COPY ./run_val.sh /home/VAL/
 COPY ./sb_domain.pddl /home/VAL/
 COPY ./sb_prob.pddl /home/VAL/
-COPY ./docker_plan_trace.txt /home/VAL/
+COPY ./sb_plan.pddl /home/VAL/
 
 ENTRYPOINT ["/bin/bash", "run_val.sh"]

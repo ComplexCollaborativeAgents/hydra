@@ -26,6 +26,9 @@ def launch_science_birds():
     subprocess.run(cmd, shell=True)
     cmd = 'cp {}/data/science_birds/level-15.xml {}/level-02.xml'.format(str(settings.ROOT_PATH), str(settings.SCIENCE_BIRDS_LEVELS_DIR))
     subprocess.run(cmd, shell=True)
+    # COPY DOMAIN FILE TO VAL DIRECTORY FOR VALIDATION.
+    cmd = 'cp {}/sb_domain.pddl {}/sb_domain.pddl'.format(str(settings.PLANNING_DOCKER_PATH), str(settings.VAL_DOCKER_PATH))
+    subprocess.run(cmd, shell=True)
     env = sb.ScienceBirds(None)
     yield env
     print("teardown tests")
