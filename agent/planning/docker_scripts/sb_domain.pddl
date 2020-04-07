@@ -12,8 +12,6 @@
                 ;; THESE VALUES NEED TO BE VERIFIED
                 ;; SEEMS LIKE THE SIZE AND SHAPE OF EACH BLOCK HAVE DIFFERENT LIFE VALUES WHICH ARE THEN MULTIPLIED BY THE MATERIAL LIFE MULTIPLIER
                 ;; FOR NOW I WILL ASSIGN BLOCK_LIFE == 1.0 * MATERIAL_MULTIPLIER WHICH WILL BE ASSIGNED AUTOMATICALLY IN THE PROBLEM FILE VIA HYDRA.
-
-
     )
 
     (:process increasing_angle
@@ -98,10 +96,10 @@
             (= (active_bird) (bird_id ?b))
             (not (pig_dead ?p))
             (> (v_bird ?b) 0)
-            (<= (x_bird ?b) (+ (x_pig ?p) (- (pig_radius ?p) (* (pig_radius ?p) 0.4)) ) )
-            (>= (x_bird ?b) (- (x_pig ?p) (- (pig_radius ?p) (* (pig_radius ?p) 0.4)) ) )
-            (>= (y_bird ?b) (- (y_pig ?p) (- (pig_radius ?p) (* (pig_radius ?p) 0.4)) ) )
-            (<= (y_bird ?b) (+ (y_pig ?p) (- (pig_radius ?p) (* (pig_radius ?p) 0.4)) ) )
+            (<= (x_bird ?b) (+ (x_pig ?p) (- (pig_radius ?p) (* (pig_radius ?p) 0.2)) ) )
+            (>= (x_bird ?b) (- (x_pig ?p) (- (pig_radius ?p) (* (pig_radius ?p) 0.2)) ) )
+            (>= (y_bird ?b) (- (y_pig ?p) (- (pig_radius ?p) (* (pig_radius ?p) 0.2)) ) )
+            (<= (y_bird ?b) (+ (y_pig ?p) (- (pig_radius ?p) (* (pig_radius ?p) 0.2)) ) )
         )
         :effect (and
             (pig_dead ?p)

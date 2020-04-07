@@ -20,11 +20,11 @@ from agent.hydra_agent import HydraAgent
 @pytest.fixture(scope="module")
 def launch_science_birds():
     print("starting")
-    cmd = 'cp {}/data/science_birds/level-00.xml {}/level-00.xml'.format(str(settings.ROOT_PATH), str(settings.SCIENCE_BIRDS_LEVELS_DIR))
+    cmd = 'cp {}/data/science_birds/level-14.xml {}/level-00.xml'.format(str(settings.ROOT_PATH), str(settings.SCIENCE_BIRDS_LEVELS_DIR))
     subprocess.run(cmd, shell=True)
-    cmd = 'cp {}/data/science_birds/level-13.xml {}/level-01.xml'.format(str(settings.ROOT_PATH), str(settings.SCIENCE_BIRDS_LEVELS_DIR))
+    cmd = 'cp {}/data/science_birds/level-15.xml {}/level-01.xml'.format(str(settings.ROOT_PATH), str(settings.SCIENCE_BIRDS_LEVELS_DIR))
     subprocess.run(cmd, shell=True)
-    cmd = 'cp {}/data/science_birds/level-15.xml {}/level-02.xml'.format(str(settings.ROOT_PATH), str(settings.SCIENCE_BIRDS_LEVELS_DIR))
+    cmd = 'cp {}/data/science_birds/level-16.xml {}/level-02.xml'.format(str(settings.ROOT_PATH), str(settings.SCIENCE_BIRDS_LEVELS_DIR))
     subprocess.run(cmd, shell=True)
     env = sb.ScienceBirds(None)
     yield env
