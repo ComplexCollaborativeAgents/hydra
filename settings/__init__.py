@@ -4,7 +4,7 @@ from os import path
 
 # Create your own local_settings.py file in this directory if you want
 # to override this variable and not run headless
-HEADLESS = True
+HEADLESS = False
 SCREENSHOT = False
 
 OS_ROOT_PATH = path.abspath(os.sep)
@@ -17,6 +17,7 @@ SB_INIT_COLOR_MAP = path.join(ROOT_PATH,'worlds','science_birds_interface','demo
 SCIENCE_BIRDS_SERVER_CMD = 'java -jar {}'.format(path.join(SCIENCE_BIRDS_BIN_DIR,'game_playing_interface.jar'))
 
 PLANNING_DOCKER_PATH = path.join(ROOT_PATH, 'agent', 'planning', 'docker_scripts')
+VAL_DOCKER_PATH = path.join(ROOT_PATH, 'agent', 'planning', 'val_scripts')
 
 sc_json_config =  [{
     "host": "127.0.0.1",
