@@ -20,4 +20,8 @@ def test_planner():
 
     assert os.stat("%s/docker_plan_trace.txt" % settings.PLANNING_DOCKER_PATH).st_size > 0
 
+    assert os.stat("%s/docker_build_trace.txt" % settings.VAL_DOCKER_PATH).st_size > 0
+
+    assert os.stat("%s/docker_validation_trace.txt" % settings.VAL_DOCKER_PATH).st_size > 0
+
     assert len(actions) > 0
