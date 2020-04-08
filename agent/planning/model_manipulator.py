@@ -1,7 +1,7 @@
 '''
 This model manipulates a PDDL+ problem and domain files
 '''
-from agent.planning.pddlplus_parser import PddlPlusDomain, PddlPlusProblem
+from agent.planning.pddl_plus import PddlPlusProblem, PddlPlusDomain
 import agent.planning.pddl_plus as pddl_plus
 
 ''' General interface'''

@@ -10,7 +10,7 @@ from os import path
 import settings
 import worlds.science_birds_interface.client.agent_client as ac
 import worlds.science_birds_interface.trajectory_planner.trajectory_planner as tp
-from agent.planning.pddlplus_parser import PddlPlusProblem
+from agent.planning.pddl_plus import PddlPlusProblem
 from utils.state import State, Action, World
 #import shapely.geometry as geo
 

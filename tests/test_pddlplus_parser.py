@@ -1,8 +1,8 @@
 import os.path as path
 import settings
 import filecmp
-from agent.planning.pddlplus_parser import PddlPlusDomain, PddlDomainParser, PddlDomainExporter, WorldChangeTypes, PddlProblemParser, PddlPlusProblem, PddlProblemExporter
-
+from agent.planning.pddlplus_parser import PddlDomainParser, PddlDomainExporter, PddlProblemParser, \
+    PddlProblemExporter
 
 DATA_DIR = path.join(settings.ROOT_PATH, 'data')
 

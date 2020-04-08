@@ -5,6 +5,7 @@ Using code from https://norvig.com/lispy.html by Peter Norvig
 '''
 from enum import Enum
 
+
 class PddlPlusProblem():
     def __init__(self):
         self.name = None
@@ -26,6 +27,7 @@ class PddlPlusDomain():
         self.events = list()
 
 
+
 class WorldChangeTypes(Enum):
     process = 1
     event = 2
@@ -39,6 +41,8 @@ class PddlPlusWorldChange():
         self.parameters = list()
         self.preconditions = list()
         self.effects = list()
+
+
 
 '''
 A class with utility function to help parse PDDL files. 
@@ -299,7 +303,7 @@ class PddlDomainParser():
                     domain.processes.append(process)
                 elif element[0] == ":event":
                     event = self.parse_world_change(element, WorldChangeTypes.event)
-                    domain.events.append(process)
+                    domain.events.append(event)
                 elif element[0] == ":action":
                     action = self.parse_world_change(element, WorldChangeTypes.action)
                     domain.actions.append(action)
