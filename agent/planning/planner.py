@@ -1,6 +1,7 @@
 from pip._internal.utils.misc import captured_output
 
-from agent.planning.pddlplus_parser import PddlProblemExporter
+from agent.planning.pddlplus_parser import PddlProblemExporter, PddlDomainExporter
+from agent.planning.pddl_plus import PddlPlusProblem, PddlPlusDomain
 from utils.state import InvokeBasicRL
 # this will likely just be calling an executable
 import settings
@@ -33,11 +34,22 @@ class Planner():
         if isinstance(plan[0],SBShoot):
             return None
 
+    ''' Runs the planner on the given problem and domain, return the plan '''
+    def plan(self, pddl_problem : PddlPlusProblem, pddl_domain : PddlPlusDomain):
+        self.write_problem_file(pddl_problem)
+        self.write_domain_file(pddl_domain)
+        return self.get_plan_actions()
 
-    def write_problem_file(self, pddl_problem):
+
+    def write_problem_file(self, pddl_problem : PddlPlusProblem):
         pddl_problem_file = "%s/sb_prob.pddl" % str(settings.PLANNING_DOCKER_PATH)
         exporter = PddlProblemExporter()
         exporter.to_file(pddl_problem, pddl_problem_file)
+
+    def write_domain_file(self, pddl_domain : PddlPlusDomain):
+        pddl_domain_file = "%s/sb_domain.pddl" % str(settings.PLANNING_DOCKER_PATH)
+        exporter = PddlDomainExporter()
+        exporter.to_file(pddl_domain, pddl_domain_file)
 
     def get_plan_actions(self,count=0):
         plan_actions = []

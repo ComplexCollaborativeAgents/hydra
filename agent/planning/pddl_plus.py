@@ -118,6 +118,8 @@ class PddlPlusState():
 
     # Deep compare
     def __eq__(self, other):
+        if isinstance(other, PddlPlusState)==False:
+            return False
         if self.numeric_fluents!=other.numeric_fluents:
             return False
         if self.boolean_fluents!=other.boolean_fluents:
@@ -142,6 +144,8 @@ class PddlPlusState():
         return new_state
 
 
+
+
 ''' Class responsible for all groundings'''
 class PddlPlusGrounder():
     ''' Recursively ground the given element with the given binding '''
@@ -161,9 +165,12 @@ class PddlPlusGrounder():
 
     def ground_world_change(self, world_change: PddlPlusWorldChange, binding: dict):
         grounded_world_change = PddlPlusWorldChange(world_change.type)
+        new_name = world_change.name
         for parameter in world_change.parameters:
             assert parameter[0] in binding  # Asserts all the parameters are bound
-            # TODO: Chechk that binding respects types.
+            new_name = "%s %s" % (new_name, binding[parameter[0]])
+            # TODO: Chech that binding respects types.
+        grounded_world_change.name = new_name
 
         for precondition in world_change.preconditions:
             grounded_world_change.preconditions.append(self.ground_element(precondition, binding))
@@ -241,4 +248,17 @@ class PddlPlusGrounder():
     def __can_bind(self, parameter, object):
         return object[-1]==parameter[-1]
 
+''' An action with a time stamp saying when it should start'''
+class TimedAction():
+    def __init__(self, action: PddlPlusWorldChange, start_at : float):
+        self.action = action
+        self.start_at = start_at
+
+''' Just a list of timed actions '''
+class PddlPlusPlan(list):
+    def __init__(self, actions: list):
+        for action in actions:
+            if isinstance(action, TimedAction)==False:
+                raise ValueError("Action %s is not a TimedAction" % action) # This check should probably be removed at some stage
+            self.append(action)
 
