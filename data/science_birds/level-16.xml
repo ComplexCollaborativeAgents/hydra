@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-16"?>
-<!-- Three red birds, three pigs each on two stacked rectangular blocks - wood ice and stone, close and medium distance to the slingshot -->
+<!-- Two red birds, three pigs each on two stacked rectangular blocks - wood ice and stone, close and medium distance to the slingshot; a bounce shot is required to kill two pigs in one go in order to solve the level -->
 <Level width ="2">
 <Camera x="0" y="2" minWidth="20" maxWidth="30">
 <Score highScore ="40000">

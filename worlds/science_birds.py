@@ -97,6 +97,7 @@ class SBState(State):
                 obj_name = '{}_{} '.format(o[1]['type'], o[0])
                 prob.init.append(['=',['x_block', obj_name], round((o[1]['bbox'].bounds[2] + o[1]['bbox'].bounds[0])/2)])
                 prob.init.append(['=',['y_block',obj_name], abs(round(abs(o[1]['bbox'].bounds[1] + o[1]['bbox'].bounds[3])/2) - groundOffset)])
+                prob.init.append(['block_supporting',obj_name])
                 prob.init.append(['=',['block_height',obj_name],abs(
                     o[1]['bbox'].bounds[3] - o[1]['bbox'].bounds[1])])
                 prob.init.append(['=',['block_width',obj_name],abs(

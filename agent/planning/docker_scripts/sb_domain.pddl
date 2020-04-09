@@ -1,7 +1,7 @@
 ﻿(define (domain angry_birds_scaled)
     (:requirements :typing :durative-actions :duration-inequalities :fluents :time :negative-preconditions :timed-initial-literals)
     (:types bird pig block platform)
-    (:predicates (bird_released ?b - bird) (pig_dead ?p - pig) (angle_adjusted))
+    (:predicates (bird_released ?b - bird) (pig_dead ?p - pig) (angle_adjusted) (block_supporting ?bl - block))
     (:functions (x_bird ?b - bird) (y_bird ?b - bird) (v_bird ?b - bird) (vx_bird ?b - bird) (vy_bird ?b - bird) (m_bird ?b - bird) (bird_id ?b - bird) (bounce_count ?b - bird)
                 (gravity) (angle_rate) (angle) (active_bird) (ground_damper)
                 (x_pig ?p - pig) (y_pig ?p - pig) (pig_radius ?p - pig) (m_pig ?p - pig)
@@ -138,6 +138,36 @@
             (assign (v_bird ?b) 0)
             (assign (block_life ?bl) (- (block_life ?bl) (v_bird ?b)) )
             (assign (bounce_count ?b) 3)
+            (not (block_supporting ?bl))
+        )
+    )
+
+    (:event remove_supported_block
+        :parameters (?bl_bottom - block ?bl_top - block)
+        :precondition (and
+            ; (< (block_life ?bl_bottom) 0)
+            (not (block_supporting ?bl_bottom))
+            (<= (x_block ?bl_bottom) (+ (x_block ?bl_top) (/ (block_width ?bl_top) 2) ) )
+            (>= (x_block ?bl_bottom) (- (x_block ?bl_top) (/ (block_width ?bl_top) 2) ) )
+            (<= (y_block ?bl_bottom) (- (y_block ?bl_top) (/ (block_height ?bl_top) 2) ) )
+        )
+        :effect (and
+            ; (assign (block_life ?bl) (- (block_life ?bl) (v_bird ?b)) )
+            (not (block_supporting ?bl_top))
+        )
+    )
+
+    (:event remove_supported_pig
+        :parameters (?bl_bottom - block ?p - pig)
+        :precondition (and
+            ; (< (block_life ?bl_bottom) 0)
+            (not (block_supporting ?bl_bottom))
+            (<= (x_pig ?p) (+ (x_block ?bl_bottom) (/ (block_width ?bl_bottom) 2) ) )
+            (>= (x_pig ?p) (- (x_block ?bl_bottom) (/ (block_width ?bl_bottom) 2) ) )
+            (>= (y_pig ?p) (+ (y_block ?bl_bottom) (/ (block_height ?bl_bottom) 2) ) )
+        )
+        :effect (and
+            (pig_dead ?p)
         )
     )
 

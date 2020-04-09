@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-16"?>
+<!-- Single red bird, one pig on a stack of ice blocks medium distance from the slingshot, the pig is shielded from a direct hit with a vertical platform; destroying the stack of ice is required to solve this level -->
+<Level width ="2">
+<Camera x="0" y="2" minWidth="20" maxWidth="30">
+<Score highScore ="40000">
+<Birds>
+<Bird type="BirdRed"/>
+</Birds>
+<Slingshot x="-8" y="-2.5">
+<GameObjects>
+
+
+<Platform type="Platform" material="" x="3.8" y="0.0" />
+<Platform type="Platform" material="" x="3.8" y="0.5" />
+<Platform type="Platform" material="" x="3.8" y="1.0" />
+<Platform type="Platform" material="" x="3.8" y="1.5" />
+<Platform type="Platform" material="" x="3.8" y="2.0" />
+<Platform type="Platform" material="" x="3.8" y="2.5" />
+<Platform type="Platform" material="" x="3.8" y="3.0" />
+<Platform type="Platform" material="" x="3.8" y="3.5" />
+<Platform type="Platform" material="" x="3.8" y="4.0" />
+
+
+<Platform type="Platform" material="" x="4.3" y="0.0" />
+<Platform type="Platform" material="" x="4.3" y="0.5" />
+<Platform type="Platform" material="" x="4.3" y="1.0" />
+<Platform type="Platform" material="" x="4.3" y="1.5" />
+<Platform type="Platform" material="" x="4.3" y="2.0" />
+<Platform type="Platform" material="" x="4.3" y="2.5" />
+<Platform type="Platform" material="" x="4.3" y="3.0" />
+<Platform type="Platform" material="" x="4.3" y="3.5" />
+<Platform type="Platform" material="" x="4.3" y="4.0" />
+
+
+<Block type="RectFat" material="ice" x="6.5" y="-2.0" rotation="0" />
+<Block type="RectFat" material="ice" x="6.5" y="-2.2" rotation="0" />
+<Block type="RectFat" material="ice" x="6.5" y="-2.4" rotation="0" />
+<Block type="RectFat" material="ice" x="6.5" y="-2.6" rotation="0" />
+<Block type="RectFat" material="ice" x="6.5" y="-2.8" rotation="0" />
+<Block type="RectFat" material="ice" x="6.5" y="-3.0" rotation="0" />
+
+<Pig type="BasicBig" material="" x="6.5" y="-1.8" rotation="0" />
+</GameObjects>
+</Level>
