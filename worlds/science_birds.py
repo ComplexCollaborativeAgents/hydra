@@ -6,6 +6,7 @@ import sys
 import threading
 import time
 from os import path
+import copy
 
 import settings
 import worlds.science_birds_interface.client.agent_client as ac
@@ -133,6 +134,7 @@ class SBState(State):
                      ['=',['active_bird'], 0],
                      ['=', ['angle'], 0],
                      ['not', ['angle_adjusted']],
+                     ['not', ['pig_killed']],
                      ['=',['angle_rate'], 10],
                      ['=', ['ground_damper'], 0.4]
                      ]:
@@ -141,7 +143,20 @@ class SBState(State):
             prob.objects.append(['dummy_platform','platform'])
         if not block:
             prob.objects.append(['dummy_block','block'])
-        return prob
+
+        prob_simplified = PddlPlusProblem()
+        prob_simplified.name = copy.copy(prob.name)
+        prob_simplified.domain = copy.copy(prob.domain)
+        prob_simplified.objects = copy.copy(prob.objects)
+        prob_simplified.init = copy.copy(prob.init)
+        prob_simplified.metric = copy.copy(prob.metric)
+        prob_simplified.goal = list()
+        prob_simplified.goal.append(['pig_killed'])
+
+        # print("\n\nPROB: " + str(prob.goal))
+        # print("\nPROB SIMPLIFIED: " + str(prob_simplified.goal))
+
+        return prob, prob_simplified
 
 
 class SBAction(Action):

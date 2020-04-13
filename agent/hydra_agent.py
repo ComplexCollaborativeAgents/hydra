@@ -36,11 +36,19 @@ class HydraAgent():
         action = SB.SBLoadLevel(level)
         state, reward = self.env.act(action)
         while t < max_actions:
+            tried_simplified_problem = False
             state = self.perception.process_state(state)
             if self.consistency_checker.is_consistent(state):
                 if state.game_state.value == GameState.PLAYING.value:
                     logger.info("[hydra_agent_server] :: Invoking Planner".format())
                     plan = self.planner.make_plan(state)
+
+                    if len(plan) == 0 or plan[0][0] == "out of memory":
+                        logger.info("[hydra_agent_server] :: Invoking Planner on a Simplified Problem".format())
+                        plan = self.planner.make_plan(state,True)
+                        if len(plan) == 0:
+                            plan.append(("dummy-action", 20.0))
+
                     logger.info("[hydra_agent_server] :: Taking action: {}".format(str(plan[0])))
                     ref_point = self.env.tp.get_reference_point(state.sling)
                     release_point_from_plan = \
@@ -55,7 +63,11 @@ class HydraAgent():
                     action = SB.SBLoadLevel(level)
                     state, reward = self.env.act(action)
                 else: # move on to the next level
-                    assert False
+                    # assert False
+                    logger.info("[hydra_agent_server] :: Level {} incomplete, moving on".format(level))
+                    level += 1
+                    action = SB.SBLoadLevel(level)
+                    state, reward = self.env.act(action)
             else:
                 assert False
             t+=1
