@@ -195,36 +195,40 @@ class PddlPlusGrounder():
                 for binding in all_bindings:
                     grounded_domain.predicates.append(self.ground_element(predicate, binding))
 
-        for process in domain.processes:
-            all_bindings = self.__get_possible_bindings(process.parameters, problem)
-            for binding in all_bindings:
-                grounded_domain.processes.append(self.ground_world_change(process,binding))
-
-        for event in domain.events:
-            all_bindings = self.__get_possible_bindings(event.parameters, problem)
-            for binding in all_bindings:
-                grounded_domain.events.append(self.ground_world_change(event,binding))
-
-        for action in domain.actions:
-            all_bindings = self.__get_possible_bindings(action.parameters, problem)
-            for binding in all_bindings:
-                grounded_domain.actions.append(self.ground_world_change(action,binding))
+        grounded_domain.events.extend(self.__ground_world_change_lists(domain.events, problem))
+        grounded_domain.processes.extend(self.__ground_world_change_lists(domain.processes, problem))
+        grounded_domain.actions.extend(self.__ground_world_change_lists(domain.actions, problem))
 
         return grounded_domain
 
-    ''' Extract the list of typed parameters of the given predict'''
-    def __get_predicate_parameters(self, predicate):
+    ''' Ground a list of world_change objects to the given problem '''
+    def __ground_world_change_lists(self, world_change_list, problem):
+        grounded_world_change_list = list()
+        for world_change in world_change_list:
+            assert len(world_change.parameters)==1
+            world_change_parameters = world_change.parameters[0]
+            process_parameters = self.__get_typed_parameter_list(world_change_parameters)
+            all_bindings = self.__get_possible_bindings(process_parameters, problem)
+            for binding in all_bindings:
+                grounded_world_change_list.append(self.ground_world_change(world_change, binding))
+        return grounded_world_change_list
+
+    ''' Extracts from a raw list of the form [?x - typex y? - type?] a list of the form [(?x typex)(?y typey)] 
+    TODO: Think about where this really should go '''
+    def __get_typed_parameter_list(self, element: list):
         i = 0
-        typed_parameters=list()
-        while i<len(predicate):
-            if predicate[i].startswith("?"): # A parameter
-                assert predicate[i+1]=="-"
-                typed_parameters.append((predicate[i], predicate[i+2])) # lifted object name and type
-                i = i+3
-            else:
-                i = i+1
+        typed_parameters = list()
+        while i < len(element):
+            assert element[i].startswith("?")  # A parameter
+            assert element[i + 1] == "-"
+            typed_parameters.append((element[i], element[i + 2]))  # lifted object name and type
+            i = i + 3
         return typed_parameters
 
+    ''' Extract the list of typed parameters of the given predict'''
+    def __get_predicate_parameters(self, predicate):
+        parameter_list = predicate[1:]
+        return self.__get_typed_parameter_list(parameter_list)
 
     ''' Enumerate all possible bindings of the given parameters to the given problem '''
     def __get_possible_bindings(self, parameters, problem : PddlPlusProblem):

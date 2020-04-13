@@ -38,16 +38,16 @@ class PddlPlusSimulator():
         print("t\t%s" % ("\t".join([str(f) for f in fluent_names]))) # Headers
         print("----------------")
         for (values, t) in fluent_trace:
-            line = "\t"
+            line = "%.2f \t" % t
             for fluent_name in fluent_names:
                 value = values[fluent_name]
                 if is_float(value):
-                    value = "%.1f" % float(value) # Making floating point numbers nicer
+                    value = "%.2f" % float(value) # Making floating point numbers nicer
                 line = "%s\t%s" % (line, value)
             print(line)
 
     ''' Simulate the given plan, which is a sequence of timed actions. '''
-    def simulate(self, state, plan: list, problem: PddlPlusProblem, domain: PddlPlusDomain, delta_t:int, max_t:int = -1):
+    def simulate(self, state, plan: list, problem: PddlPlusProblem, domain: PddlPlusDomain, delta_t:float, max_t:float = float('inf')):
         t = 0.0
         trace = [(state, t)]
         current_state = state
@@ -57,14 +57,16 @@ class PddlPlusSimulator():
         grounder = PddlPlusGrounder()
         domain = grounder.ground_domain(domain, problem)
 
-
         still_active = True
-        while still_active:
-            still_active = False  # Checks if there are any point in continuing to run the simulation
+        while still_active and t<max_t:
+            effects_list = list()
+
             # If we reached the time in which the next action should be applied, apply it
             if next_timed_action is not None and next_timed_action.start_at<=t:
-                still_active = True
-                self.apply_action(current_state,next_timed_action.action)
+                new_effect = self.compute_apply_action(current_state,next_timed_action.action)
+                if new_effect is not None and len(new_effect)>0:
+                    effects_list.extend(new_effect)
+
                 # Next action
                 if len(plan)>0:
                     next_timed_action = plan.pop(0)
@@ -74,8 +76,7 @@ class PddlPlusSimulator():
             # Trigger events
             for event in domain.events:
                 if self.preconditions_hold(current_state, event.preconditions):
-                    still_active=True
-                    self.fire_event(current_state, event)
+                    effects_list.extend(self.compute_fire_event(current_state, event))
 
             # Compute delta t
             if next_timed_action is None or next_timed_action.start_at > t+delta_t: # Next action should not start before t+delta_t
@@ -86,14 +87,23 @@ class PddlPlusSimulator():
             # Advance processes
             for process in domain.processes:
                 if self.preconditions_hold(current_state, process.preconditions):
-                    still_active = True
-                    self.advance_process(current_state,process, current_delta_t)
+                    effects_list.extend(self.compute_advance_process(current_state,process, current_delta_t))
+
+            # Apply all impacts
+            self.apply_effects(current_state, effects_list)
 
             # Advance time
             t = t+current_delta_t
 
             # Store current state to get trajectory
             trace.append((current_state.clone(), t))
+
+            # Stopping condition
+            if len(effects_list)>0:
+                still_active = True
+            else:
+                if len(plan)==0:
+                    still_active= False
 
         return current_state, t, trace
 
@@ -122,7 +132,33 @@ class PddlPlusSimulator():
         if self.preconditions_hold(state, process.preconditions)==False:
             raise ValueError("Process preconditions are not satisfied") # No effects if preconditions do not hold
 
-        self.apply_effects(state, process.effects, delta_t)
+    ''' Compute the impact of applying an action on the given state. If binding is not None, we first ground the action with the binding'''
+    def compute_apply_action(self, state: PddlPlusState, action: PddlPlusWorldChange, binding: dict = None):
+        if binding is not None:
+            action = action.ground(binding)
+
+        if self.preconditions_hold(state, action.preconditions) == False:
+            raise ValueError("Action preconditions are not satisfied")  # No effects if preconditions do not hold
+        return self.compute_effect(state, action.effects)
+
+    ''' Compute the impact of firing a given event at the given state. If binding is not None, we first ground the action with the binding'''
+    def compute_fire_event(self, state: PddlPlusState, event: PddlPlusWorldChange, binding: dict = None):
+        if binding is not None:
+            event = event.ground(binding)
+
+        if self.preconditions_hold(state, event.preconditions) == False:
+            raise ValueError("Event preconditions are not satisfied")  # No effects if preconditions do not hold
+        return self.compute_effect(state, event.effects)
+
+    ''' Compute the impact of advancing the process by the given delta_t time step. If binding is not None, we first ground the action with the binding'''
+    def compute_advance_process(self, state: PddlPlusState, process: PddlPlusWorldChange, delta_t: int,
+                        binding: dict = None):
+        if binding is not None:
+            process = process.ground(binding)
+        if self.preconditions_hold(state, process.preconditions) == False:
+            raise ValueError("Process preconditions are not satisfied")  # No effects if preconditions do not hold
+
+        return self.compute_effect(state, process.effects, delta_t)
 
     ''' Checks if a set of preconditions hold in the given state'''
     def preconditions_hold(self, state, preconditions):
@@ -137,6 +173,7 @@ class PddlPlusSimulator():
             return not self.__precondition_hold(state, single_precondition[1])
         return self.__eval(single_precondition, state)
 
+    ''' Apply the specified effect ont he given state '''
     def apply_effects(self, state, effects, delta_t=-1):
         for effect in effects:
             effect_type = effect[0] # increase or decrease
@@ -163,9 +200,9 @@ class PddlPlusSimulator():
                     fluent_name = tuple(effect)
                     state.boolean_fluents.add(fluent_name)
 
-    ''' Outputs a dictionary mapping a fluent name to a list of effects that should be applied to it '''
+    ''' Outputs a list of computed effects that should be applied. All effects are already computed. '''
     def compute_effect(self, state, effects, delta_t=-1):
-        impact_list = list()
+        effect_list = list()
 
         for effect in effects:
             effect_type = effect[0] # increase or decrease
@@ -173,10 +210,11 @@ class PddlPlusSimulator():
                 # Numeric fluent
                 fluent_name = tuple(effect[1])
                 delta = self.__eval(effect[2], state, delta_t)
-                impact_list.append((effect_type, delta))
+                effect_list.append([effect_type, fluent_name, delta])
             else: # Boolean effects
-                impact_list.append(effect)
+                effect_list.append(effect)
 
+        return effect_list
 
     ''' Evaluates a given expression using the fluents in the given state, and delta f, if needed'''
     def __eval(self, element, state: PddlPlusState, delta_t: float = -1):
@@ -202,7 +240,6 @@ class PddlPlusSimulator():
                 else:
                     return fluent_name in state.boolean_fluents
         else:
-            assert isinstance(element, str)
             if is_float(element):
                 return float(element) # A constant
             elif element=="#t":
@@ -210,7 +247,7 @@ class PddlPlusSimulator():
                     raise ValueError("Delta t not set, but needed for evaluation")
                 return delta_t
             else:
-                raise ValueError("Unexpected element type %s" % element)
+                return element
                 # return float(state.numeric_fluents[element])  # A fluent
 
     ''' Check if the given string is one of the supported mathematical operations '''

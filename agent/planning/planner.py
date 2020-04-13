@@ -71,28 +71,53 @@ class Planner():
             out_file.write(completed_process.stderr);
         out_file.close()
 
-        lines_list = open("%s/docker_plan_trace.txt" % str(settings.PLANNING_DOCKER_PATH)).readlines()
+        plan_trace_file = "%s/docker_plan_trace.txt" % str(settings.PLANNING_DOCKER_PATH)
+        return self.extract_actions_from_plan_trace(plan_trace_file, count)
 
-        with open("%s/docker_plan_trace.txt" % str(settings.PLANNING_DOCKER_PATH)) as plan_trace_file:
+
+    ''' Parses the given plan trace file and outputs the plan '''
+    def extract_actions_from_plan_trace(self, plane_trace_file : str, count=0):
+        plan_actions = []
+        lines_list = open(plane_trace_file).readlines()
+        with open(plane_trace_file) as plan_trace_file:
             for i, line in enumerate(plan_trace_file):
                 # print(str(i) + " =====> " + str(line))
                 if "Out of memory" in line:
                     plan_actions.append(("out of memory", -999))
                     return plan_actions
                 if " pa-twang " in line:
-                    # print(str(lines_list[i]))
-                    # print(float(str(lines_list[i+1].split('angle:')[1].split(',')[0])))
-                    plan_actions.append((line.split(':')[1].split('[')[0].replace('(','').replace(')','').strip(), float(str(lines_list[i+1].split('angle:')[1].split(',')[0]))))
-
+                    plan_actions.append((line.split(':')[1].split('[')[0].replace('(', '').replace(')', '').strip(),
+                                         float(str(lines_list[i + 1].split('angle:')[1].split(',')[0])))) # TODO: Maybe a bug? why angle and not time
         self.run_val()
-
         print("\nACTIONS: " + str(plan_actions))
         if len(plan_actions) > 0:
             return plan_actions
-        elif (count <10):
-            return self.get_plan_actions(count+1)
+        elif (count < 10):
+            return self.get_plan_actions(count + 1)
         else:
             return []
+
+    ''' Parses the expected trace of the given plan trace '''
+    def extract_trace_from_plan_trace(self, plane_trace_file : str, count=0):
+        trace = []
+        lines_list = open(plane_trace_file).readlines()
+        with open(plane_trace_file) as plan_trace_file:
+            for i, line in enumerate(plan_trace_file):
+                if line.startswith("; TIME"):
+                    parts = line.split(",")
+                    key_value = parts[0].split(":")
+                    assert key_value[0]=="; TIME"
+                    trace_line = dict()
+                    trace_line["t"]=float(key_value[1])
+
+                    parts = parts[1:]
+                    for part in parts:
+                        if len(part.strip())>0:
+                            key_value = part.split(":")
+
+                            trace_line[key_value[0].strip()]=key_value[1].strip()
+                    trace.append(trace_line)
+        return trace
 
 
     def run_val(self):

@@ -1,15 +1,13 @@
-
 import pytest
-
 from os import path
 import settings
 from agent.planning.pddlplus_parser import PddlProblemParser, PddlDomainParser
 from agent.planning.pddl_plus import PddlPlusState, PddlPlusGrounder, TimedAction, PddlPlusPlan
 from agent.consistency.pddl_plus_simulator import PddlPlusSimulator
 from agent.planning.planner import Planner
+
+
 DATA_DIR = path.join(settings.ROOT_PATH, 'data')
-
-
 
 ''' Return domain, problem '''
 @pytest.fixture(scope="module")
@@ -30,17 +28,27 @@ def get_problem_and_domain():
 ''' Return domain, problem, for experiment with planner '''
 @pytest.fixture(scope="module")
 def get_problem_and_domain_for_planner():
-    pddl_file_name = path.join(DATA_DIR, "simulator_test_domain.pddl")
+    pddl_file_name = path.join(DATA_DIR, "sb_domain_l1.pddl")
     parser = PddlDomainParser()
     pddl_domain = parser.parse_pddl_domain(pddl_file_name)
     assert pddl_domain is not None, "PDDL+ domain object not parsed"
 
-    pddl_file_name = path.join(DATA_DIR, "simulator_test_problem.pddl")
+    pddl_file_name = path.join(DATA_DIR, "sb_prob_l1.pddl")
     parser = PddlProblemParser()
     pddl_problem = parser.parse_pddl_problem(pddl_file_name)
     assert pddl_problem is not None, "PDDL+ problem object not parsed"
 
     return (pddl_problem, pddl_domain)
+
+''' Returns a sequence of timed actions that is the plan from a given file '''
+@pytest.fixture(scope="module")
+def get_plan_from_trace():
+    trace_file_name = path.join(DATA_DIR, "docker_plan_trace_l1.txt")
+    planner = Planner()
+    plan = planner.extract_actions_from_plan_trace(trace_file_name)
+    trace = planner.extract_trace_from_plan_trace(trace_file_name)
+    return (plan, trace)
+
 
 
 
@@ -182,10 +190,9 @@ def test_simulate(get_problem_and_domain, get_action):
         state.to_print()
 
 ''' Test the simulator by actually running a planner and simulating the trace of the plan it generates'''
-def test_simulate_real_plan(get_problem_and_domain_for_planner):
+def test_simulate_real_plan(get_problem_and_domain_for_planner, get_plan_from_trace):
     (pddl_problem, pddl_domain) = get_problem_and_domain_for_planner
-    planner = Planner()
-    action_list = planner.plan(pddl_problem, pddl_domain)
+    (action_list, expected_trace) = get_plan_from_trace
 
     assert action_list is not None
     assert len(action_list)>0
@@ -195,42 +202,21 @@ def test_simulate_real_plan(get_problem_and_domain_for_planner):
     grounded_domain = PddlPlusGrounder().ground_domain(pddl_domain, pddl_problem) # Needed to identify plan action
     for (action_name, t) in action_list:
         # Get action
+        action_found = False
         for action in grounded_domain.actions:
             if action.name==action_name:
+                t = t/10 # TODO: FIX THIS!!!!
                 plan.append(TimedAction(action, t))
-                continue
+                action_found = True
+                break
+        if action_found==False:
             raise ValueError("Action %s not found in domain" % action_name)
 
     # Get the current state
     init_state = PddlPlusState(pddl_problem.init)
 
     simulator = PddlPlusSimulator()
-    (current_state, t, trace) = simulator.simulate(init_state, plan, pddl_problem, pddl_domain, delta_t=0.1)
-    assert trace[0][0]==current_state
-    assert t == trace[-1][1]
+    (current_state, t, trace) = simulator.simulate(init_state, plan, pddl_problem, pddl_domain, delta_t=0.05)
 
-    fluents_to_trace = [('x_bird', 'redbird_0'),('y_bird', 'redbird_0'),('x_pig', 'pig_10'),('y_pig', 'pig_10')]
-    fluents_trace = simulator.trace_fluents(trace, fluents_to_trace)
-    simulator.print_fluent_trace(fluents_to_trace, fluents_trace)
-
-    #
-    # prob_test = open("%s/sb_test_prob.pddl" % settings.PLANNING_DOCKER_PATH).read()
-    #
-    # pddl_problem_file = open("%s/sb_prob.pddl" % str(settings.PLANNING_DOCKER_PATH), "w+")
-    # pddl_problem_file.write(prob_test)
-    # pddl_problem_file.close()
-    #
-    # assert os.stat("%s/sb_prob.pddl" % settings.PLANNING_DOCKER_PATH).st_size > 0
-    #
-    # planner = pl.Planner()
-    # actions = planner.get_plan_actions()
-    #
-    # assert os.stat("%s/docker_build_trace.txt" % settings.PLANNING_DOCKER_PATH).st_size > 0
-    #
-    # assert os.stat("%s/docker_plan_trace.txt" % settings.PLANNING_DOCKER_PATH).st_size > 0
-    #
-    # assert os.stat("%s/docker_build_trace.txt" % settings.VAL_DOCKER_PATH).st_size > 0
-    #
-    # assert os.stat("%s/docker_validation_trace.txt" % settings.VAL_DOCKER_PATH).st_size > 0
-    #
-    # assert len(actions) > 0
+    for goal_fluent in pddl_problem.goal: #(pig_dead pig_28)
+         assert tuple(goal_fluent) in current_state.boolean_fluents
