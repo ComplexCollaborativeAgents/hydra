@@ -260,7 +260,7 @@ class TimedAction():
 
 ''' Just a list of timed actions '''
 class PddlPlusPlan(list):
-    def __init__(self, actions: list):
+    def __init__(self, actions: list = list()):
         for action in actions:
             if isinstance(action, TimedAction)==False:
                 raise ValueError("Action %s is not a TimedAction" % action) # This check should probably be removed at some stage

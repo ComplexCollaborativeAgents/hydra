@@ -2,62 +2,53 @@ import pytest
 from os import path
 import settings
 from agent.planning.pddlplus_parser import PddlProblemParser, PddlDomainParser
-from agent.planning.pddl_plus import PddlPlusState, PddlPlusGrounder, TimedAction, PddlPlusPlan
+from agent.planning.pddl_plus import PddlPlusState, PddlPlusGrounder, TimedAction, PddlPlusPlan, PddlPlusDomain, PddlPlusProblem
 from agent.consistency.pddl_plus_simulator import PddlPlusSimulator
 from agent.planning.planner import Planner
 
 
 DATA_DIR = path.join(settings.ROOT_PATH, 'data')
 
-''' Return domain, problem '''
-@pytest.fixture(scope="module")
-def get_problem_and_domain():
-    pddl_file_name = path.join(DATA_DIR, "pddl_parser_test_domain.pddl")
+
+def __get_problem_and_domain(problem_file_name :str, domain_file_name: str):
+    pddl_file_name = path.join(DATA_DIR, domain_file_name)
     parser = PddlDomainParser()
     pddl_domain = parser.parse_pddl_domain(pddl_file_name)
     assert pddl_domain is not None, "PDDL+ domain object not parsed"
 
-    pddl_file_name = path.join(DATA_DIR, "pddl_parser_test_problem.pddl")
+    pddl_file_name = path.join(DATA_DIR, problem_file_name)
     parser = PddlProblemParser()
     pddl_problem = parser.parse_pddl_problem(pddl_file_name)
     assert pddl_problem is not None, "PDDL+ problem object not parsed"
 
     return (pddl_problem, pddl_domain)
 
-
-''' Return domain, problem, for experiment with planner '''
-@pytest.fixture(scope="module")
-def get_problem_and_domain_for_planner():
-    pddl_file_name = path.join(DATA_DIR, "sb_domain_l1.pddl")
-    parser = PddlDomainParser()
-    pddl_domain = parser.parse_pddl_domain(pddl_file_name)
-    assert pddl_domain is not None, "PDDL+ domain object not parsed"
-
-    pddl_file_name = path.join(DATA_DIR, "sb_prob_l1.pddl")
-    parser = PddlProblemParser()
-    pddl_problem = parser.parse_pddl_problem(pddl_file_name)
-    assert pddl_problem is not None, "PDDL+ problem object not parsed"
-
-    return (pddl_problem, pddl_domain)
-
-''' Returns a sequence of timed actions that is the plan from a given file '''
-@pytest.fixture(scope="module")
-def get_plan_from_trace():
-    trace_file_name = path.join(DATA_DIR, "docker_plan_trace_l1.txt")
+''' Helper funciton for tests. It simulates the execution of a plan on the given problem, 
+and asserts that the goal has been achieved in the simulation'''
+def __validate_working_plan(problem: PddlPlusProblem, domain: PddlPlusDomain, plan_trace_file: str, delta_t : float=0.05):
     planner = Planner()
-    plan = planner.extract_actions_from_plan_trace(trace_file_name)
-    trace = planner.extract_trace_from_plan_trace(trace_file_name)
-    return (plan, trace)
+    grounded_domain = PddlPlusGrounder().ground_domain(domain, problem)  # Needed to identify plan action
+    plan = planner.extract_plan_from_plan_trace(plan_trace_file, grounded_domain)
 
+    assert plan is not None
+    assert len(plan)>0
+
+    # Get the current state
+    init_state = PddlPlusState(problem.init)
+
+    simulator = PddlPlusSimulator()
+    (current_state, t, trace) = simulator.simulate(init_state, plan, problem, domain, delta_t)
+
+    for goal_fluent in problem.goal:  # (pig_dead pig_28)
+        assert tuple(goal_fluent) in current_state.boolean_fluents
 
 
 
 ''' Return domain, problem, and flying process'''
 @pytest.fixture(scope="module")
-def get_process(get_problem_and_domain):
-
+def get_process():
     # Get the flying process
-    (pddl_problem, pddl_domain) = get_problem_and_domain
+    (pddl_problem, pddl_domain) = __get_problem_and_domain("pddl_parser_test_problem.pddl","pddl_parser_test_domain.pddl")
     flying_process = None
     for process in pddl_domain.processes:
         if process.name=="flying":
@@ -74,8 +65,8 @@ def get_process(get_problem_and_domain):
 
 ''' Return domain, problem, and action'''
 @pytest.fixture(scope="module")
-def get_action(get_problem_and_domain):
-    (pddl_problem, pddl_domain) = get_problem_and_domain
+def get_action():
+    (pddl_problem, pddl_domain) = __get_problem_and_domain("pddl_parser_test_problem.pddl","pddl_parser_test_domain.pddl")
 
     # Get the flying process
     twang_action = None
@@ -96,8 +87,9 @@ def get_action(get_problem_and_domain):
 '''
     Check if apply effects works
 '''
-def test_simulator_apply_effect(get_problem_and_domain, get_process):
-    (pddl_problem, pddl_domain) = get_problem_and_domain
+def test_simulator_apply_effect(get_process):
+    (pddl_problem, pddl_domain) = __get_problem_and_domain("pddl_parser_test_problem.pddl",
+                                                           "pddl_parser_test_domain.pddl")
     grounded_flying_process = get_process
 
     simulator = PddlPlusSimulator()
@@ -122,9 +114,9 @@ def test_simulator_apply_effect(get_problem_and_domain, get_process):
 
 
 ''' Checks if check preconditions hold '''
-def test_check_preconditions(get_problem_and_domain, get_process):
+def test_check_preconditions(get_process):
 
-    (pddl_problem, pddl_domain) = get_problem_and_domain
+    (pddl_problem, pddl_domain) = __get_problem_and_domain("pddl_parser_test_problem.pddl","pddl_parser_test_domain.pddl")
     grounded_flying_process = get_process
 
     simulator = PddlPlusSimulator()
@@ -167,8 +159,9 @@ def test_check_preconditions(get_problem_and_domain, get_process):
 
 
 ''' Tests the apply process functionality '''
-def test_simulate(get_problem_and_domain, get_action):
-    (pddl_problem, pddl_domain) = get_problem_and_domain
+def test_simulate(get_action):
+    (pddl_problem, pddl_domain) = __get_problem_and_domain("pddl_parser_test_problem.pddl",
+                                                           "pddl_parser_test_domain.pddl")
     twang_action = get_action
 
     simulator = PddlPlusSimulator()
@@ -189,34 +182,11 @@ def test_simulate(get_problem_and_domain, get_action):
         print("\n ---- Time is %s ---- \n" % t)
         state.to_print()
 
+
+
 ''' Test the simulator by actually running a planner and simulating the trace of the plan it generates'''
-def test_simulate_real_plan(get_problem_and_domain_for_planner, get_plan_from_trace):
-    (pddl_problem, pddl_domain) = get_problem_and_domain_for_planner
-    (action_list, expected_trace) = get_plan_from_trace
+def test_simulate_real_plan():
+    (problem, domain) = __get_problem_and_domain("sb_prob_l1.pddl","sb_domain_l1.pddl")
 
-    assert action_list is not None
-    assert len(action_list)>0
-
-    ''' Conversion to PddlPlusPlan object '''
-    plan = PddlPlusPlan(list())
-    grounded_domain = PddlPlusGrounder().ground_domain(pddl_domain, pddl_problem) # Needed to identify plan action
-    for (action_name, t) in action_list:
-        # Get action
-        action_found = False
-        for action in grounded_domain.actions:
-            if action.name==action_name:
-                t = t/10 # TODO: FIX THIS!!!!
-                plan.append(TimedAction(action, t))
-                action_found = True
-                break
-        if action_found==False:
-            raise ValueError("Action %s not found in domain" % action_name)
-
-    # Get the current state
-    init_state = PddlPlusState(pddl_problem.init)
-
-    simulator = PddlPlusSimulator()
-    (current_state, t, trace) = simulator.simulate(init_state, plan, pddl_problem, pddl_domain, delta_t=0.05)
-
-    for goal_fluent in pddl_problem.goal: #(pig_dead pig_28)
-         assert tuple(goal_fluent) in current_state.boolean_fluents
+    trace_file_name = path.join(DATA_DIR, "docker_plan_trace_l1.txt")
+    __validate_working_plan(problem, domain, trace_file_name)

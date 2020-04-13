@@ -1,12 +1,13 @@
 from pip._internal.utils.misc import captured_output
 
 from agent.planning.pddlplus_parser import PddlProblemExporter, PddlDomainExporter
-from agent.planning.pddl_plus import PddlPlusProblem, PddlPlusDomain
+from agent.planning.pddl_plus import PddlPlusProblem, PddlPlusDomain, PddlPlusPlan, TimedAction
 from utils.state import InvokeBasicRL
 # this will likely just be calling an executable
 import settings
 from os import path, chdir
 import subprocess
+import re
 
 class Planner():
     domain_file = None
@@ -75,6 +76,32 @@ class Planner():
         return self.extract_actions_from_plan_trace(plan_trace_file, count)
 
 
+    ''' Extracts a PddlPlusPlan object from a plan trace. TODO: Currently assumes domain is grounded'''
+    def extract_plan_from_plan_trace(self, plan_trace_file_name :str, grounded_domain: PddlPlusDomain) -> PddlPlusPlan:
+        ACTION_REGEX = re.compile(r"^(\S*):.*\((.*)\).*$")
+        plan = PddlPlusPlan()
+        plan_trace_file = open(plan_trace_file_name,"r")
+        for i, line in enumerate(plan_trace_file):
+            if "Out of memory" in line:
+                return None
+            elif ACTION_REGEX.match(line):
+                groups = ACTION_REGEX.search(line)
+                time = float(groups[1].strip())
+                action_str = groups[2].strip() # Removing white spaces in the brackets
+                assert action_str.startswith("pa-twang") # Assert AB action is a twang TODO: Remove this when things get messier
+                action_obj = None
+                for action in grounded_domain.actions:
+                    if action.name==action_str:
+                        action_obj = action
+                        break
+
+                if action_obj is None:
+                    raise ValueError("Action name %s is not in the grounded domain" % action_str)
+
+                timed_action = TimedAction(action_obj, time)
+                plan.append(timed_action)
+        return plan
+
     ''' Parses the given plan trace file and outputs the plan '''
     def extract_actions_from_plan_trace(self, plane_trace_file : str, count=0):
         plan_actions = []
@@ -87,7 +114,7 @@ class Planner():
                     return plan_actions
                 if " pa-twang " in line:
                     plan_actions.append((line.split(':')[1].split('[')[0].replace('(', '').replace(')', '').strip(),
-                                         float(str(lines_list[i + 1].split('angle:')[1].split(',')[0])))) # TODO: Maybe a bug? why angle and not time
+                                         float(str(lines_list[i + 1].split('angle:')[1].split(',')[0]))))
         self.run_val()
         print("\nACTIONS: " + str(plan_actions))
         if len(plan_actions) > 0:
