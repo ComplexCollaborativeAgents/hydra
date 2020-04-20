@@ -2,18 +2,11 @@
     This module provides very basic capabilities for simulating PDDL+ domain behavior, 
     including actions, events, and processes.
 '''
-from agent.planning.pddl_plus import PddlPlusState, PddlPlusProblem, PddlPlusDomain, PddlPlusWorldChange, PddlPlusGrounder
+from agent.planning.pddl_plus import *
+from agent.planning.pddl_plus import is_float
 
-# I can't believe Python does not have this, but I currently didn't find it
-def is_float( text :str ):
-    try:
-        float(text)
-        return True
-    except:
-        return False
-
-
-''' A simplistic, probabl not complete and sound, simulator for PDDL+ processes '''
+''' A simplistic, probably not complete and sound, simulator for PDDL+ processes
+ TODO: Replace this with a call to VAL. '''
 class PddlPlusSimulator():
 
     ''' Return a list of (values_dict,t) pairs, where value_dict is a dictionary
@@ -33,24 +26,13 @@ class PddlPlusSimulator():
             output.append((values,t))
         return output
 
-    ''' Prinst the list of fluents to the stdout. For debug purposes'''
-    def print_fluent_trace(self, fluent_names: list, fluent_trace :list):
-        print("t\t%s" % ("\t".join([str(f) for f in fluent_names]))) # Headers
-        print("----------------")
-        for (values, t) in fluent_trace:
-            line = "%.2f \t" % t
-            for fluent_name in fluent_names:
-                value = values[fluent_name]
-                if is_float(value):
-                    value = "%.2f" % float(value) # Making floating point numbers nicer
-                line = "%s\t%s" % (line, value)
-            print(line)
-
-    ''' Simulate the given plan, which is a sequence of timed actions. '''
-    def simulate(self, state, plan: list, problem: PddlPlusProblem, domain: PddlPlusDomain, delta_t:float, max_t:float = float('inf')):
+    ''' Simulate running the given plan from the start state '''
+    def simulate(self, plan_to_simulate: PddlPlusPlan, problem: PddlPlusProblem, domain: PddlPlusDomain, delta_t:float, max_t:float = float('inf')):
+        state = PddlPlusState(problem.init)
         t = 0.0
         trace = [(state, t)]
-        current_state = state
+        current_state = state.clone()
+        plan = PddlPlusPlan(plan_to_simulate) # Clone the given plan
         next_timed_action  = plan.pop(0)
 
         # Ground the domain

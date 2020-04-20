@@ -6,7 +6,6 @@ Using code from https://norvig.com/lispy.html by Peter Norvig
 from enum import Enum
 
 
-
 '''
 Return a numeric fluent from the list of fluents
 '''
@@ -92,12 +91,22 @@ class PddlPlusState():
         self.numeric_fluents = dict()
         self.boolean_fluents = set()
         if fluent_list is not None:
-            self.load(fluent_list)
+            self.load_from_fluent_list(fluent_list)
+
+    def __getitem__(self, fluent_name):
+        if fluent_name in self.numeric_fluents:
+            return self.get_value(fluent_name)
+        elif fluent_name in self.boolean_fluents:
+            return self.is_true(fluent_name)
+        else:
+            return False # For the case of Boolean fluents, this makes sense
+
+
 
     ''' Loads the PddlPlusState object with a list of tuples as imported from PDDL file. 
         A tuple representing a numeric variable is of the form (=, object_list, value). 
         A tuple representing a boolean variable is of the form (object_list) or (not object_list)'''
-    def load(self, fluent_list:list):
+    def load_from_fluent_list(self, fluent_list:list):
         for fluent in fluent_list:
             if fluent[0]=="=": # This is a numeric fluent
                 fluent_name = tuple(fluent[1])
@@ -107,6 +116,18 @@ class PddlPlusState():
                     fluent_name = tuple(fluent)
                     self.boolean_fluents.add(fluent_name) # Wrapping in tuple to be hashable
 
+    ''' Returns this state as a list of fluents, compatible with PddlProblem'''
+    def save_as_fluent_list(self):
+        fluent_list = []
+        for fluent_name in self.numeric_fluents:
+            fluent_value = self.get_value(fluent_name)
+            fluent_name_as_str = "(%s)" % (",".join(fluent_name))
+            fluent_list.append(["=", fluent_name_as_str, fluent_value])
+        for fluent_name in self.boolean_fluents:
+            fluent_name_as_str = "(%s)" % (",".join(fluent_name))
+            fluent_list.append(fluent_name_as_str)
+        return fluent_list
+
     def is_true(self, boolean_fluent_name):
         if boolean_fluent_name in self.boolean_fluents:
             return True
@@ -114,6 +135,8 @@ class PddlPlusState():
             return False
 
     def get_value(self, numeric_fluent_name):
+        if numeric_fluent_name not in self.numeric_fluents:
+            assert False
         return self.numeric_fluents[numeric_fluent_name]
 
     # Deep compare
@@ -126,12 +149,22 @@ class PddlPlusState():
             return False
         return True
 
+    # String representation
+    def __str__(self):
+        string_buffer = ""
+        for fluent_name in self.numeric_fluents:
+            string_buffer = "%s%s=%s\n" %  (string_buffer, str(fluent_name), self.numeric_fluents[fluent_name])
+        for fluent_name in self.boolean_fluents:
+            string_buffer = "%s%s\n" % (string_buffer, str(fluent_name))
+        return string_buffer
+
     # Printing capabilities for debug purposes
     def to_print(self):
         for fluent_name in self.numeric_fluents:
             print("%s=%s" % (str(fluent_name), self.numeric_fluents[fluent_name]))
         for fluent_name in self.boolean_fluents:
             print("%s" % str(fluent_name))
+
 
 
     # Deep clone
@@ -266,3 +299,14 @@ class PddlPlusPlan(list):
                 raise ValueError("Action %s is not a TimedAction" % action) # This check should probably be removed at some stage
             self.append(action)
 
+
+''' Check if a given string is a float. TODO: Replace this with a more elegant python way of doing this.'''
+def is_float( text :str ):
+    try:
+        float(text)
+        return True
+    except:
+        return False
+
+''' Computes the diff between two given lists of timed states (i.e., state,t pairs). 
+Only considers Numeric fluents because the other fluents are not observables.'''

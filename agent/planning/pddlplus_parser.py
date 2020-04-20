@@ -4,29 +4,7 @@ Parses a PDDL+ file to objects and serializes it back to a PDDL+ file
 Using code from https://norvig.com/lispy.html by Peter Norvig
 '''
 from enum import Enum
-
-
-class PddlPlusProblem():
-    def __init__(self):
-        self.name = None
-        self.domain = None
-        self.objects = list()
-        self.init = list()
-        self.goal = list()
-        self.metric = None
-
-class PddlPlusDomain():
-    def __init__(self):
-        self.name = None
-        self.types = list()
-        self.predicates = list()
-        self.functions = list()
-        self.constants = list()
-        self.processes = list()
-        self.actions = list()
-        self.events = list()
-
-
+from agent.planning.pddl_plus import *
 
 class WorldChangeTypes(Enum):
     process = 1
@@ -371,3 +349,5 @@ class PddlProblemParser():
                 elif element[0] == ":metric":
                     problem.metric = self.parse_metric(element)
         return problem
+
+
