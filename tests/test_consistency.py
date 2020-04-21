@@ -1,6 +1,6 @@
 import pytest
 import worlds.science_birds as sb
-
+from agent.perception.perception import Perception
 from agent.consistency.consistency_checker import *
 from agent.consistency.consistency_checker import diff_traces
 from agent.consistency.pddl_plus_simulator import *
@@ -16,7 +16,7 @@ logger = logging.getLogger("test_consistency")
 logger.setLevel(logging.INFO)
 logger.addHandler(fh)
 
-PRECISION = 0.0001
+PRECISION = 5
 DATA_DIR = path.join(settings.ROOT_PATH, 'data')
 TRACE_DIR = path.join(DATA_DIR, 'science_birds', 'serialized_levels', 'level-01')
 
@@ -164,6 +164,59 @@ def test_single_numeric_fluent_inconsistent(get_plan_problem_domain):
     consistent_score = consistency_checker.estimate_consistency(timed_state_seq, modified_state_seq)
     assert consistent_score > PRECISION
 
+
+''' Returns a sequence of PDDL+ states outputted from SB '''
+@pytest.fixture(scope="module")
+def get_observed_state_seq():
+    observations = []
+    for i in range(0, 10):
+        observations.append(sb.SBState.load_from_serialized_state(
+            path.join(settings.ROOT_PATH, 'data', 'science_birds', 'serialized_levels', 'level-01', 'dx_test_{}.p'.format(i))))
+    assert len(observations) == 10
+    perception = Perception()
+    state_seq = []
+    for observation in observations:
+        if isinstance(observation.objects, list):
+            perception.process_sb_state(observation)
+        state_seq.append(observation.translate_intermediate_state_to_pddl_state())
+
+    return state_seq
+
+''' Tests consistency check with real observations '''
+def test_real_observations(get_plan_problem_domain, get_observed_state_seq):
+    DELTA_T = 0.05
+    X_REDBIRD = ('y_bird', 'redbird_0')
+    GRAVITY_CHANGE = -100
+    GRAVITY = "gravity"
+
+    (pddl_plan, pddl_problem, pddl_domain) = get_plan_problem_domain
+    timed_state_seq = get_timed_state_seq(pddl_domain, pddl_problem, pddl_plan, DELTA_T)
+    state_seq = get_observed_state_seq
+
+    consistency_checker = SingleNumericFluentConsistencyChecker(X_REDBIRD)
+    consistent_score = consistency_checker.estimate_consistency(timed_state_seq, state_seq)
+    logger.info("Consistency score=%.2f" % consistent_score)
+    assert consistent_score < PRECISION # The model is correct
+
+    # Modify the model so it is incorrect
+    manipulator = ManipulateInitNumericFluent([GRAVITY],GRAVITY_CHANGE)
+    manipulator.apply_change(pddl_domain, pddl_problem)
+
+    # Get the new expected timed state sequence, according to the modified model
+    modified_timed_state_seq = get_timed_state_seq(pddl_domain, pddl_problem, pddl_plan, DELTA_T)
+    # Assert new timed state sequence is different from the original timed state sequence
+    diff_list = diff_traces(timed_state_seq, modified_timed_state_seq)
+    logger.info("\n".join(diff_list))
+    assert len(diff_list)>0
+
+    # Assert the un-timed sequence created by the modified model is inconsistent with the timed sequence created by the original model
+    consistency_checker = SingleNumericFluentConsistencyChecker(X_REDBIRD)
+    consistent_score = consistency_checker.estimate_consistency(timed_state_seq, state_seq)
+    logger.info("Consistency score=%.2f" % consistent_score)
+    assert consistent_score > PRECISION
+
+
+
 ''' TODO: HERE ONWARDS ARE TEST MODULE PARTS RELATED TO COMPARING REAL SB OBSERVATIONS 
 Need to discuss these next methods. '''
 
@@ -201,12 +254,17 @@ def test_consistency_checking():
     observations = []
     for i in range(0, 10):
         observations.append(sb.SBState.load_from_serialized_state(
-            path.join(settings.ROOT_PATH, 'data', 'science_birds', 'serialized_levels', 'dx_test_{}.p'.format(i))))
+            path.join(settings.ROOT_PATH, 'data', 'science_birds', 'consistency', 'dx_test_{}.p'.format(i))))
     assert len(observations) == 10
+    perception = Perception()
+    for observation in observations:
+        if isinstance(observation.objects, list):
+            perception.process_sb_state(observation)
     plan_trace = read_plan_trace()  # list of dictionaries
     assert len(plan_trace) == 20
     print('observations)')
-    print(observations[0].summary())
-    print('plan_trace')
-    print(plan_trace[0])
+
+    for i in range(len(observations)):
+        print(observations[i].summary())
+
 

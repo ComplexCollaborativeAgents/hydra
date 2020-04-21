@@ -38,7 +38,7 @@ class GroundTruthReader:
                 'bird_blue':'blueBird',
                 'bird_yellow':'yellowBird',
                 'bird_black':'blackBird',
-                'bird_red':'redBird',
+                'bird_red':'redbird',
                 'bird_white':'whiteBird',
                 'Platform':'hill',
                 'pig_basic_big' : 'pig',

@@ -37,14 +37,63 @@ class SingleNumericFluentConsistencyChecker(ConsistencyChecker):
 
         assert len(consistent_fluent_values==len(all_t_values))
 
-        mse = 0
+        max_error = 0
         for state in state_seq:
             fluent_value = float(state[self.fluent_name])
             error = min([(fluent_value-consistent_fluent_values[i])**2
                           for i in range(len(all_t_values))])
-            mse = mse+error
-        rmse = math.sqrt(mse)
-        return rmse
+            if max_error<error:
+                max_error = error
+
+        return math.sqrt(max_error)
+
+
+''' Checks consistency by considering the value of a single numeric fluent '''
+class NumericFluentsConsistencyChecker(ConsistencyChecker):
+    ''' The first parameter is a list of (state,time) pairs, the second is just a list of states '''
+    ''' Current implementation ignores order, and just looks for the best time for each state in the state_seq, 
+    and ignore cases where the fluent is not in the un-timed state seqqaiming to minimize its distance from the fitted piecewise-linear interpolation. 
+    Returns a value representing how cons
+    '''
+    def estimate_consistency(self, timed_state_seq: list, state_seq: list):
+        # Get values over time for each fluent
+        fluent_values = list()
+        fluent_to_times = dict()
+        fluent_to_values = dict()
+        for (state, t) in timed_state_seq:
+            for fluent_name in state.numeric_fluents:
+                if fluent_name not in fluent_to_times: # A new fluent
+                    fluent_to_times[fluent_name]=[]
+                    fluent_to_values[fluent_name] = []
+                fluent_to_times[fluent_name].append(t)
+                fluent_to_values[fluent_name].append(t)
+
+            # TODO: Handle numeric fluents that disappear over time
+
+        # Fit a piecewise linear function to each fluent
+        delta_t = 0.01
+        fluent_to_consistent_values = dict()
+        for fluent_name in fluent_to_times:
+            t_values = fluent_to_times[fluent_name]
+            fluent_values = float(fluent_values[fluent_name])
+            all_t_values = np.arange(0,t_values[-1],delta_t)
+            consistent_fluent_values = np.interp(all_t_values, t_values, fluent_values)
+            fluent_to_consistent_values[fluent_name] = consistent_fluent_values
+
+        max_error = 0
+        for state in state_seq:
+            for fluent_name in fluent_to_times:
+                consistent_fluent_values = fluent_to_consistent_values[fluent_name]
+                if state[fluent_name]==False:
+                    continue  # Assumption: if the fluent is missing then it may be consistent
+
+                fluent_value = float(state[fluent_name])
+                error = min([(fluent_value - consistent_fluent_values[i]) ** 2
+                         for i in range(len(all_t_values))])
+                if max_error<error:
+                    max_error = error
+        return math.sqrt(max_error)
+
 
 ''' A utility function for comparing (state, time) sequences. 
 It outputs a list of differences between the sequences. '''

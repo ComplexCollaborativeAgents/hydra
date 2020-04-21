@@ -6,7 +6,7 @@ class GameObjectType(Enum):
     GROUND = 'ground'
     HILL = 'hill'
     SLING = 'slingshot'
-    REDBIRD = 'redBird'
+    REDBIRD = 'redbird'
     YELLOWBIRD = 'yellowBird'
     BLUEBIRD = 'blueBird'
     BLACKBIRD = 'blackBird'

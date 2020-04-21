@@ -23,7 +23,7 @@ class Planner():
         The plan should be a list of actions that are either executable in the environment
         or invoking the RL agent
         '''
-        pddl = state.translate_state_to_pddl()
+        pddl = state.translate_initial_state_to_pddl_problem()
         self.write_problem_file(pddl)
         return self.get_plan_actions()
 

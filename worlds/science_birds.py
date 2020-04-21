@@ -10,7 +10,7 @@ from os import path
 import settings
 import worlds.science_birds_interface.client.agent_client as ac
 import worlds.science_birds_interface.trajectory_planner.trajectory_planner as tp
-from agent.planning.pddl_plus import PddlPlusProblem
+from agent.planning.pddl_plus import PddlPlusProblem, PddlPlusState
 from utils.state import State, Action, World
 #import shapely.geometry as geo
 
@@ -41,8 +41,9 @@ class SBState(State):
         return pickle.load(open(level_filename, 'rb'))
 
 
-
-    def translate_state_to_pddl(self):
+    ''' Translate the initial state, as observed, to a PddlPlusProblem object. 
+    Note that in the initial state, we ignore the location of the bird and assume it is on the slingshot. '''
+    def translate_initial_state_to_pddl_problem(self):
         # There is an annoying disconnect in representations.
         # 'x_pig[pig_4]:450' vs. (= (x_pig pig4) 450)
         # 'pig_dead[pig_4]:False vs. (not (pig_dead pig_4))
@@ -72,13 +73,13 @@ class SBState(State):
             if o[1]['type'] == 'pig':
                 obj_name = '{}_{}'.format(o[1]['type'], o[0])
                 prob.init.append(['not', ['pig_dead',obj_name]])
-                prob.init.append(['=',['x_pig',obj_name],round(abs(o[1]['bbox'].bounds[2] + o[1]['bbox'].bounds[0])/2)])
-                prob.init.append(['=',['y_pig',obj_name],abs(round(abs(o[1]['bbox'].bounds[1] + o[1]['bbox'].bounds[3])/2) - groundOffset)])
-                prob.init.append(['=',['pig_radius', obj_name], round((abs(o[1]['bbox'].bounds[2] - o[1]['bbox'].bounds[0])/2) * 0.75)])
+                prob.init.append(['=', ['x_pig',obj_name], self.compute_x_coordinate(o)])
+                prob.init.append(['=', ['y_pig',obj_name], self.compute_y_coordinate(groundOffset, o)])
+                prob.init.append(['=', ['pig_radius', obj_name], self.compute_radius(o)])
                 prob.init.append(['=', ['m_pig', obj_name], 1])
                 prob.goal.append(['pig_dead', obj_name])
                 prob.objects.append((obj_name,o[1]['type']))
-            elif 'Bird' in o[1]['type']:
+            elif 'bird' in o[1]['type'].lower():
                 obj_name = '{}_{}'.format(o[1]['type'], o[0])
                 prob.objects.append((obj_name,'Bird')) #This probably needs to change
                 # prob.init.append(['not',['bird_dead',obj_name]])
@@ -96,7 +97,7 @@ class SBState(State):
                 block = True
                 obj_name = '{}_{} '.format(o[1]['type'], o[0])
                 prob.init.append(['=',['x_block', obj_name], round((o[1]['bbox'].bounds[2] + o[1]['bbox'].bounds[0])/2)])
-                prob.init.append(['=',['y_block',obj_name], abs(round(abs(o[1]['bbox'].bounds[1] + o[1]['bbox'].bounds[3])/2) - groundOffset)])
+                prob.init.append(['=', ['y_block',obj_name], self.compute_y_coordinate(groundOffset, o)])
                 prob.init.append(['=',['block_height',obj_name],abs(
                     o[1]['bbox'].bounds[3] - o[1]['bbox'].bounds[1])])
                 prob.init.append(['=',['block_width',obj_name],abs(
@@ -122,7 +123,7 @@ class SBState(State):
                 platform = True
                 obj_name ='{}_{}'.format(o[1]['type'], o[0])
                 prob.init.append(['=',['x_platform', obj_name], round((o[1]['bbox'].bounds[2] + o[1]['bbox'].bounds[0])/2)])
-                prob.init.append(['=', ['y_platform', obj_name], abs(round(abs(o[1]['bbox'].bounds[1] + o[1]['bbox'].bounds[3])/2) - groundOffset)])
+                prob.init.append(['=', ['y_platform', obj_name], self.compute_y_coordinate(groundOffset, o)])
                 prob.init.append(['=', ['platform_height', obj_name], abs(o[1]['bbox'].bounds[3] - o[1]['bbox'].bounds[1])])
                 prob.init.append(['=', ['platform_width', obj_name], abs(o[1]['bbox'].bounds[2] - o[1]['bbox'].bounds[0])])
                 prob.objects.append([obj_name,'platform'])
@@ -141,6 +142,114 @@ class SBState(State):
         if not block:
             prob.objects.append(['dummy_block','block'])
         return prob
+
+    ''' Translate an intermediate state to PddlPlusState. 
+    Key difference between this method and translate_init_state... method is that here we consider the location of the birds'''
+    def translate_intermediate_state_to_pddl_state(self):
+        state_as_list = list()
+
+        #we should probably use the self.sling on the object
+        slingshot = None
+        for o in self.objects.items():
+            if o[1]['type'] == 'slingshot':
+                slingshot = o
+        groundOffset = slingshot[1]['bbox'].bounds[3]
+
+        slingshot_x = round((slingshot[1]['bbox'].bounds[0] + slingshot[1]['bbox'].bounds[2]) / 2)
+        slingshot_y = round(abs(((slingshot[1]['bbox'].bounds[1] + slingshot[1]['bbox'].bounds[3]) / 2) - groundOffset) - 0)
+        bird_index = 0
+        platform = False
+        block = False
+
+        for o in self.objects.items():
+            if o[1]['type'] == 'pig':
+                obj_name = '{}_{}'.format(o[1]['type'], o[0])
+                state_as_list.append(['not', ['pig_dead',obj_name]])
+                state_as_list.append(['=', ['x_pig',obj_name], self.compute_x_coordinate(o)])
+                state_as_list.append(['=', ['y_pig',obj_name], self.compute_y_coordinate(groundOffset, o)])
+                state_as_list.append(['=', ['pig_radius', obj_name], self.compute_radius(o)])
+                state_as_list.append(['=', ['m_pig', obj_name], 1])
+            elif 'bird' in o[1]['type'].lower():
+                obj_name = '{}_{}'.format(o[1]['type'], o[0])
+                # prob.init.append(['not',['bird_dead',obj_name]])
+                # prob.init.append(['not',['bird_released',obj_name]])
+                self.compute_x_coordinate(o)
+
+                # Need to separate the case where we're before shooting the bird and after.
+                # Before: the bird location is considered as the location of the slingshot,
+                # afterwards, it's the location of the birds bounding box
+                x_bird = self.compute_x_coordinate(o)
+                if x_bird>slingshot_x:
+                    state_as_list.append(['=',['x_bird',obj_name], self.compute_x_coordinate(o)])
+                    state_as_list.append(['=',['y_bird',obj_name], self.compute_y_coordinate(groundOffset,o)])
+                else:
+                    state_as_list.append(['=', ['x_bird', obj_name], slingshot_x])
+                    state_as_list.append(['=', ['y_bird', obj_name], slingshot_y])
+
+
+                # prob.init.append(['=',['v_bird',obj_name], 270])  Computing velocity is more difficult
+                # prob.init.append(['=',['vx_bird',obj_name], 0])
+                # prob.init.append(['=',['vy_bird',obj_name], 0])
+                state_as_list.append(['=',['m_bird',obj_name], 1])
+                #prob.init.append(['=',['bounce_count',obj_name], 0])
+                state_as_list.append(['=',['bird_id',obj_name],bird_index])
+                bird_index += 1
+            elif o[1]['type'] == 'wood' or o[1]['type'] == 'ice' or o[1]['type'] == 'stone':
+                block = True
+                obj_name = '{}_{} '.format(o[1]['type'], o[0])
+                state_as_list.append(['=',['x_block', obj_name], round((o[1]['bbox'].bounds[2] + o[1]['bbox'].bounds[0])/2)])
+                state_as_list.append(['=', ['y_block',obj_name], self.compute_y_coordinate(groundOffset, o)])
+                state_as_list.append(['=',['block_height',obj_name],abs(
+                    o[1]['bbox'].bounds[3] - o[1]['bbox'].bounds[1])])
+                state_as_list.append(['=',['block_width',obj_name],abs(
+                    o[1]['bbox'].bounds[2] - o[1]['bbox'].bounds[0])])
+                block_life_multiplier = 1.0
+                block_mass_coeff = 1.0
+                if o[1]['type'] == 'wood':
+                    block_life_multiplier = 1.0
+                    block_mass_coeff = 0.375
+                elif o[1]['type'] == 'ice':
+                    block_life_multiplier = 0.5
+                    block_mass_coeff = 0.125
+                elif o[1]['type'] == 'stone':
+                    block_life_multiplier = 2.0
+                    block_mass_coeff = 1.2
+                else: # not sure how this could ever happen
+                    block_life_multiplier = 2.0
+                    block_mass_coeff = 1.2
+                state_as_list.append(['=',['block_life',obj_name],str(265 * block_life_multiplier)])
+                state_as_list.append(['=',['block_mass',obj_name],str(block_mass_coeff)])
+            elif o[1]['type'] == 'hill':
+                platform = True
+                obj_name ='{}_{}'.format(o[1]['type'], o[0])
+                state_as_list.append(['=',['x_platform', obj_name], round((o[1]['bbox'].bounds[2] + o[1]['bbox'].bounds[0])/2)])
+                state_as_list.append(['=', ['y_platform', obj_name], self.compute_y_coordinate(groundOffset, o)])
+                state_as_list.append(['=', ['platform_height', obj_name], abs(o[1]['bbox'].bounds[3] - o[1]['bbox'].bounds[1])])
+                state_as_list.append(['=', ['platform_width', obj_name], abs(o[1]['bbox'].bounds[2] - o[1]['bbox'].bounds[0])])
+            elif o[1]['type'] == 'slingshot':
+                slingshot = o
+        for fact in [['=',['gravity'], 134.2],
+                     ['=',['active_bird'], 0],
+                     ['=', ['angle'], 0],
+                     ['not', ['angle_adjusted']],
+                     ['=',['angle_rate'], 10],
+                     ['=', ['ground_damper'], 0.4]
+                     ]:
+            state_as_list.append(fact)
+        return PddlPlusState(state_as_list)
+
+    ''' Computes the y coordinate of the given object as the center of its bounding box, 
+    corrected for the given groundOffset '''
+    def compute_y_coordinate(self, groundOffset, o):
+        return abs(round(abs(o[1]['bbox'].bounds[1] + o[1]['bbox'].bounds[3]) / 2) - groundOffset)
+
+    ''' Computes the x coordinate of the given object as the center of its boundingbox.'''
+    def compute_x_coordinate(self, o):
+        return round(abs(o[1]['bbox'].bounds[2] + o[1]['bbox'].bounds[0]) / 2)
+
+    ''' Computes the radius of the given object '''
+    def compute_radius(self, o):
+        return round((abs(o[1]['bbox'].bounds[2] - o[1]['bbox'].bounds[0]) / 2) * 0.75)
 
 
 class SBAction(Action):
