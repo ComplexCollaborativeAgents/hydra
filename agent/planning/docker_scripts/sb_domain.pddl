@@ -136,13 +136,14 @@
             (<= (y_bird ?b) (+ (y_block ?bl) (/ (block_height ?bl) 2) ) )
         )
         :effect (and
+        	(assign (block_stability ?bl) (- (block_stability ?bl) (v_bird ?b))        )
             (assign (v_bird ?b) (* (v_bird ?b) 0.5))
             (assign (vy_bird ?b) (* (vy_bird ?b) 0.5))
             (assign (vx_bird ?b) (* (vx_bird ?b) 0.5))
             (assign (block_life ?bl) (- (block_life ?bl) (v_bird ?b)) )
             (assign (bounce_count ?b) (+ (bounce_count ?b) 1))
-            (assign (block_stability ?bl) (- (block_stability ?bl) (v_bird ?b)) )
-        )
+            )
+            
     )
 
     (:event remove_unsupported_block
