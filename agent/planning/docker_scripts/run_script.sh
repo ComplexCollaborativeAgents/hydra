@@ -2,6 +2,7 @@
 
 domain=$1
 problem=$2
+memory=$3
 
 echo $domain
 
@@ -11,5 +12,5 @@ echo $domain
 
 #./"${domain%%.*}"_planner -print
 
-./"${domain%%.*}"_planner -m10 -pi10000 -print -format:pddlvv
+./"${domain%%.*}"_planner -m$memory -pi10000 -print -format:pddlvv
 

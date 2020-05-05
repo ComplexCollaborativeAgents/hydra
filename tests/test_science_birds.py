@@ -35,6 +35,7 @@ def launch_science_birds():
 @pytest.mark.skipif(settings.HEADLESS==True, reason="headless does not work in docker")
 def test_science_birds_agent(launch_science_birds):
     env = launch_science_birds
+    env.sb_client.set_game_simulation_speed(settings.SB_SIM_SPEED)
     hydra = HydraAgent(env)
     hydra.main_loop() # enough actions to play the first two levels
     scores = env.get_all_scores()
