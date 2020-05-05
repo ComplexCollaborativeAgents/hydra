@@ -245,9 +245,8 @@ class ScienceBirds(World):
             cmd='open {}/ScienceBirds_MacOS.app --args --configpath {}/data/science_birds/config/test_config.xml'.format(
                 settings.SCIENCE_BIRDS_BIN_DIR,settings.ROOT_PATH)
         else:
-            cmd='{}/sciencebirds_linux/sciencebirds_linux.x86_64 {}'. \
-                format(settings.SCIENCE_BIRDS_BIN_DIR,
-                       '-batchmode -nographics' if settings.HEADLESS else '')
+            cmd='{}/sciencebirds_linux/sciencebirds_linux.x86_64 --configpath {}/data/science_birds/config/test_config.xml'. \
+                format(settings.SCIENCE_BIRDS_BIN_DIR, settings.ROOT_PATH)
         # Not sure if run will work this way on ubuntu...
         self.SB_process = subprocess.Popen(cmd,stdout=subprocess.PIPE,
                                            stderr=subprocess.STDOUT,

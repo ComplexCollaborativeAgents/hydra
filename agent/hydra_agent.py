@@ -39,6 +39,11 @@ class HydraAgent():
                 if state.game_state.value == GameState.PLAYING.value:
                     logger.info("[hydra_agent_server] :: Invoking Planner".format())
                     plan = self.planner.make_plan(state)
+                    if len(plan) == 0 or plan[0][0] == "out of memory":
+                        logger.info("[hydra_agent_server] :: Invoking Planner on a Simplified Problem".format())
+                        plan = self.planner.make_plan(state, True)
+                        if len(plan) == 0 or plan[0][0] == "out of memory":
+                            plan.append(("dummy-action", 20.0))
                     logger.info("[hydra_agent_server] :: Taking action: {}".format(str(plan[0])))
                     ref_point = self.env.tp.get_reference_point(state.sling)
                     release_point_from_plan = \
@@ -78,7 +83,7 @@ class HydraAgent():
                     novelty_likelihood = 0.1
                     non_novelty_likelihood = 0.9
                     self.ar.report_novelty_likelihood(novelty_likelihood, non_novelty_likelihood)
-                else: # move on to the next level
+                else:
                     assert False
             else:
                 assert False
