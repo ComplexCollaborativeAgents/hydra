@@ -210,7 +210,7 @@ class ScienceBirds(World):
     intermediate_states = []
     lock = threading.Lock()
 
-    def __init__(self,sel_level=0,launch=True):
+    def __init__(self,sel_level=0,launch=False):
         self.id = 2228
         self.tp = tp.SimpleTrajectoryPlanner()
         if launch:
@@ -242,7 +242,8 @@ class ScienceBirds(World):
         cmd = ''
 
         if sys.platform=='darwin':
-            cmd='open {}/ScienceBirds_MacOS.app'.format(settings.SCIENCE_BIRDS_BIN_DIR)
+            cmd='open {}/ScienceBirds_MacOS.app --args --configpath {}/data/science_birds/config/test_config.xml'.format(
+                settings.SCIENCE_BIRDS_BIN_DIR,settings.ROOT_PATH)
         else:
             cmd='{}/sciencebirds_linux/sciencebirds_linux.x86_64 {}'. \
                 format(settings.SCIENCE_BIRDS_BIN_DIR,
