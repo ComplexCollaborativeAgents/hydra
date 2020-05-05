@@ -7,6 +7,7 @@ import threading
 import time
 from os import path
 import copy
+import math
 
 import settings
 import worlds.science_birds_interface.client.agent_client as ac
@@ -65,6 +66,7 @@ class SBState(State):
                 slingshot = o
 
         groundOffset = slingshot[1]['bbox'].bounds[3]
+        # print("\n\n Ground Offset: " + str(groundOffset))
         bird_index = 0
 
         platform = False
@@ -93,32 +95,47 @@ class SBState(State):
                 prob.init.append(['=',['bounce_count',obj_name], 0])
                 prob.init.append(['=',['bird_id',obj_name],bird_index])
                 bird_index += 1
-            elif o[1]['type'] == 'wood' or o[1]['type'] == 'ice' or o[1]['type'] == 'stone':
+            elif o[1]['type'] == 'wood' or o[1]['type'] == 'ice' or o[1]['type'] == 'stone' or o[1]['type'] == 'unknown' or o[1]['type'] == 'TNT':
                 block = True
                 obj_name = '{}_{} '.format(o[1]['type'], o[0])
-                prob.init.append(['=',['x_block', obj_name], round((o[1]['bbox'].bounds[2] + o[1]['bbox'].bounds[0])/2)])
-                prob.init.append(['=',['y_block',obj_name], abs(round(abs(o[1]['bbox'].bounds[1] + o[1]['bbox'].bounds[3])/2) - groundOffset)])
-                prob.init.append(['block_supporting',obj_name])
-                prob.init.append(['=',['block_height',obj_name],abs(
-                    o[1]['bbox'].bounds[3] - o[1]['bbox'].bounds[1])])
-                prob.init.append(['=',['block_width',obj_name],abs(
-                    o[1]['bbox'].bounds[2] - o[1]['bbox'].bounds[0])])
+
+                bl_x = round((o[1]['bbox'].bounds[2] + o[1]['bbox'].bounds[0])/2)
+                bl_y = abs(round(abs(o[1]['bbox'].bounds[1] + o[1]['bbox'].bounds[3])/2) - groundOffset)
+
+                prob.init.append(['=',['x_block', obj_name], bl_x ])
+                prob.init.append(['=',['y_block',obj_name], bl_y ])
+                # prob.init.append(['block_supporting',obj_name])
+
+                bl_height = abs(o[1]['bbox'].bounds[3] - o[1]['bbox'].bounds[1])
+                bl_width = abs(o[1]['bbox'].bounds[2] - o[1]['bbox'].bounds[0])
+
+                prob.init.append(['=',['block_height',obj_name], bl_height])
+                prob.init.append(['=',['block_width',obj_name], bl_width])
                 block_life_multiplier = 1.0
                 block_mass_coeff = 1.0
                 if o[1]['type'] == 'wood':
                     block_life_multiplier = 1.0
-                    block_mass_coeff = 0.375
+                    block_mass_coeff = 0.375*1.3
                 elif o[1]['type'] == 'ice':
                     block_life_multiplier = 0.5
-                    block_mass_coeff = 0.125
+                    block_mass_coeff = 0.125*2
                 elif o[1]['type'] == 'stone':
                     block_life_multiplier = 2.0
                     block_mass_coeff = 1.2
+                elif o[1]['type'] == 'TNT':
+                    block_life_multiplier = 0.001
+                    block_mass_coeff = 1.2
+                    prob.init.append(['block_explosive', obj_name])
                 else: # not sure how this could ever happen
                     block_life_multiplier = 2.0
                     block_mass_coeff = 1.2
-                prob.init.append(['=',['block_life',obj_name],str(265 * block_life_multiplier)])
+                prob.init.append(['=',['block_life',obj_name],str(math.ceil(265 * block_life_multiplier))])
                 prob.init.append(['=',['block_mass',obj_name],str(block_mass_coeff)])
+
+                bl_stability = 265*(bl_width/bl_height)*(1-(bl_y/groundOffset))*block_mass_coeff
+
+                prob.init.append(['=',['block_stability',obj_name], bl_stability])
+
                 prob.objects.append((obj_name,'block'))
             elif o[1]['type'] == 'hill':
                 platform = True
@@ -136,7 +153,7 @@ class SBState(State):
                      ['not', ['angle_adjusted']],
                      ['not', ['pig_killed']],
                      ['=',['angle_rate'], 10],
-                     ['=', ['ground_damper'], 0.4]
+                     ['=', ['ground_damper'], 0.3]
                      ]:
             prob.init.append(fact)
         if not platform:

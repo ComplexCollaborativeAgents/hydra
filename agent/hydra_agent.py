@@ -5,6 +5,8 @@ from agent.planning.planner import Planner
 import worlds.science_birds as SB
 import logging
 import math
+import time
+import random
 
 from worlds.science_birds_interface.client.agent_client import GameState
 
@@ -33,6 +35,7 @@ class HydraAgent():
         logger.info("[hydra_agent_server] :: Entering main loop")
         t = 0
         level = init_level
+        # level = random.randint(11, 100)
         action = SB.SBLoadLevel(level)
         state, reward = self.env.act(action)
         while t < max_actions:
@@ -41,13 +44,18 @@ class HydraAgent():
             if self.consistency_checker.is_consistent(state):
                 if state.game_state.value == GameState.PLAYING.value:
                     logger.info("[hydra_agent_server] :: Invoking Planner".format())
+                    init = time.perf_counter()
                     plan = self.planner.make_plan(state)
+                    logger.info("planning time: " + str(time.perf_counter() - init))
 
                     if len(plan) == 0 or plan[0][0] == "out of memory":
                         logger.info("[hydra_agent_server] :: Invoking Planner on a Simplified Problem".format())
+                        simplified_init = time.perf_counter()
                         plan = self.planner.make_plan(state,True)
+                        logger.info("simplified planning time: " + str(time.perf_counter() -simplified_init))
                         if len(plan) == 0:
-                            plan.append(("dummy-action", 20.0))
+                            plan.append(("dummy-action: stab in the dark", 20.0))
+                            logger.info("action: stab in the dark...")
 
                     logger.info("[hydra_agent_server] :: Taking action: {}".format(str(plan[0])))
                     ref_point = self.env.tp.get_reference_point(state.sling)

@@ -6,6 +6,7 @@ from utils.state import InvokeBasicRL
 import settings
 from os import path, chdir
 import subprocess
+import re
 
 class Planner():
     domain_file = None
@@ -21,9 +22,21 @@ class Planner():
         The plan should be a list of actions that are either executable in the environment
         or invoking the RL agent
         '''
+
+        # CHANGE THE PLANNER MEMORY LIMIT
+        f = open(path.join(settings.PLANNING_DOCKER_PATH, "run_script.sh"), 'r')
+        filedata = f.read()
+        f.close()
+        newdata = re.sub(r'\bm\d*\b', 'm'+str(settings.PLANNER_MEMORY_LIMIT), str(filedata))
+        f = open(path.join(settings.PLANNING_DOCKER_PATH, "run_script.sh"), 'w')
+        f.write(newdata)
+        f.close()
+
+
         pddl, pddl_simplified = state.translate_state_to_pddl()
         if simplified_problem:
             self.write_problem_file(pddl_simplified)
+
         else:
             self.write_problem_file(pddl)
         return self.get_plan_actions()
