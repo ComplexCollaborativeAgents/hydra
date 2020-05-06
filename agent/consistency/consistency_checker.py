@@ -103,21 +103,31 @@ def diff_traces(trace1, trace2: list):
     diff_list= []
     for i in range(len(trace1)):
         (state1, t1) = trace1[i]
-        (state2, t2)=trace2[i]
+        (state2, t2) = trace2[i]
         if t1!=t2:
             diff_list.append("t=%s, other_t=%d" % (t1, t2))
         else:
-            for fluent_name in state1.numeric_fluents:
-                if state2[fluent_name]==False:
-                    diff_list.append("t=%s, %s exists in self but not in other" % (t1, str(fluent_name)))
-                else:
-                    state_value = state1[fluent_name]
-                    other_value = state2[fluent_name]
-                    if state_value!=other_value:
-                        diff_list.append("t=%s, %s values are different (%s!=%s)" % (t1, str(fluent_name), str(state_value), str(other_value)))
+            state_diff = diff_pddl_states(state1, state2)
+            for diff in state_diff:
+                diff_list.append("t=%s, %s" % (t1, diff))
+    return diff_list
 
-            for fluent_name in state2.numeric_fluents:
-                if state1[fluent_name] == False: # I.e., it is not a numeric fluent
-                    diff_list.append("t=%s, %s exists in self but not in other" % (t1, str(fluent_name)))
 
+'''
+Computes a diff of two states, and append the list of diffs to the given diff_list. 
+'''
+def diff_pddl_states(state1, state2):
+    diff_list = list()
+    for fluent_name in state1.numeric_fluents:
+        if fluent_name not in state2.numeric_fluents:
+            diff_list.append("%s exists in state1 but not in state2" % str(fluent_name))
+        else:
+            state_value = state1[fluent_name]
+            other_value = state2[fluent_name]
+            if state_value != other_value:
+                diff_list.append("%s values are different (%s!=%s)" % (
+                    str(fluent_name), str(state_value), str(other_value)))
+    for fluent_name in state2.numeric_fluents:
+        if fluent_name not in state1.numeric_fluents:
+            diff_list.append("%s exists in state2 but not in state1" % str(fluent_name))
     return diff_list

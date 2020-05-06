@@ -2,9 +2,10 @@ import pytest
 from os import path
 import settings
 from agent.planning.pddlplus_parser import PddlProblemParser, PddlDomainParser
-from agent.planning.pddl_plus import PddlPlusState, PddlPlusGrounder, TimedAction, PddlPlusPlan, PddlPlusDomain, PddlPlusProblem
+from agent.planning.pddl_plus import *
 from agent.consistency.pddl_plus_simulator import PddlPlusSimulator
 from agent.planning.planner import Planner
+from agent.consistency.consistency_checker import *
 
 
 DATA_DIR = path.join(settings.ROOT_PATH, 'data')
@@ -34,10 +35,8 @@ def __validate_working_plan(problem: PddlPlusProblem, domain: PddlPlusDomain, pl
     assert len(plan)>0
 
     # Get the current state
-    init_state = PddlPlusState(problem.init)
-
     simulator = PddlPlusSimulator()
-    (current_state, t, trace) = simulator.simulate(init_state, plan, problem, domain, delta_t)
+    (current_state, t, trace) = simulator.simulate(plan, problem, domain, delta_t)
 
     for goal_fluent in problem.goal:  # (pig_dead pig_28)
         assert tuple(goal_fluent) in current_state.boolean_fluents
@@ -167,15 +166,13 @@ def test_simulate(get_action):
     simulator = PddlPlusSimulator()
 
     # Get the current state
-    init_state = PddlPlusState(pddl_problem.init)
     delta_t = 0.05
-
     timed_action = TimedAction(twang_action, 20)
     plan = [timed_action]
 
-    (current_state, t, trace) = simulator.simulate(init_state, plan, pddl_problem, pddl_domain, delta_t)
+    (current_state, t, trace) = simulator.simulate(plan, pddl_problem, pddl_domain, delta_t)
     assert t>4
-    assert trace[0][0]==current_state
+    assert trace[-1][0]==current_state
     assert t == trace[-1][1]
 
     for (state, t) in trace:

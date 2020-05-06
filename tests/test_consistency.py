@@ -2,7 +2,6 @@ import pytest
 import worlds.science_birds as sb
 from agent.perception.perception import Perception
 from agent.consistency.consistency_checker import *
-from agent.consistency.consistency_checker import diff_traces
 from agent.consistency.pddl_plus_simulator import *
 from agent.planning.planner import *
 from agent.planning.pddlplus_parser import *
@@ -16,7 +15,7 @@ logger = logging.getLogger("test_consistency")
 logger.setLevel(logging.INFO)
 logger.addHandler(fh)
 
-PRECISION = 5
+PRECISION = 1
 DATA_DIR = path.join(settings.ROOT_PATH, 'data')
 TRACE_DIR = path.join(DATA_DIR, 'science_birds', 'serialized_levels', 'level-01')
 
@@ -169,32 +168,44 @@ def test_single_numeric_fluent_inconsistent(get_plan_problem_domain):
 @pytest.fixture(scope="module")
 def get_observed_state_seq():
     observations = []
-    for i in range(0, 10):
+    for i in range(0, 17):
         observations.append(sb.SBState.load_from_serialized_state(
             path.join(settings.ROOT_PATH, 'data', 'science_birds', 'serialized_levels', 'level-01', 'dx_test_{}.p'.format(i))))
-    assert len(observations) == 10
+    assert len(observations) == 17
     perception = Perception()
     state_seq = []
+    bird_count = 100 # I'm assuming this is the maximum number of birds we will get.
     for observation in observations:
         if isinstance(observation.objects, list):
             perception.process_sb_state(observation)
-        state_seq.append(observation.translate_intermediate_state_to_pddl_state())
 
+        new_state = observation.translate_intermediate_state_to_pddl_state()
+        state_seq.append(new_state)
+
+        # This is a hack to identify when the observed state is from a new level
+        birds  = new_state.get_birds()
+        if len(birds)<bird_count:
+            bird_count = len(birds)
+        assert not(len(birds)>bird_count) # A new level has started TODO: Find a better way to identify that a new level has started
     return state_seq
 
 ''' Tests consistency check with real observations '''
 def test_real_observations(get_plan_problem_domain, get_observed_state_seq):
     DELTA_T = 0.05
-    X_REDBIRD = ('y_bird', 'redbird_0')
+    Y_REDBIRD = ('y_bird', 'redbird_0')
     GRAVITY_CHANGE = -100
     GRAVITY = "gravity"
 
+    observed_state_seq = get_observed_state_seq # Get the states observed from SB 
+
+    # Get the states we expect to encounter while executing the plan according to our model
     (pddl_plan, pddl_problem, pddl_domain) = get_plan_problem_domain
     timed_state_seq = get_timed_state_seq(pddl_domain, pddl_problem, pddl_plan, DELTA_T)
-    state_seq = get_observed_state_seq
+    expected_state_seq = [timed_state[0] for timed_state in timed_state_seq]
 
-    consistency_checker = SingleNumericFluentConsistencyChecker(X_REDBIRD)
-    consistent_score = consistency_checker.estimate_consistency(timed_state_seq, state_seq)
+
+    consistency_checker = SingleNumericFluentConsistencyChecker(Y_REDBIRD)
+    consistent_score = consistency_checker.estimate_consistency(timed_state_seq, observed_state_seq)
     logger.info("Consistency score=%.2f" % consistent_score)
     assert consistent_score < PRECISION # The model is correct
 
@@ -210,61 +221,9 @@ def test_real_observations(get_plan_problem_domain, get_observed_state_seq):
     assert len(diff_list)>0
 
     # Assert the un-timed sequence created by the modified model is inconsistent with the timed sequence created by the original model
-    consistency_checker = SingleNumericFluentConsistencyChecker(X_REDBIRD)
-    consistent_score = consistency_checker.estimate_consistency(timed_state_seq, state_seq)
+    diff = diff_pddl_states(timed_state_seq[0][0], observed_state_seq[0])
+
+    consistency_checker = SingleNumericFluentConsistencyChecker(Y_REDBIRD)
+    consistent_score = consistency_checker.estimate_consistency(timed_state_seq, observed_state_seq)
     logger.info("Consistency score=%.2f" % consistent_score)
     assert consistent_score > PRECISION
-
-
-
-''' TODO: HERE ONWARDS ARE TEST MODULE PARTS RELATED TO COMPARING REAL SB OBSERVATIONS 
-Need to discuss these next methods. '''
-
-''' TODO:  replace this with planner.extract_plan_from_plan_trace(plan_trace_file, grounded_domain) '''
-def read_plan_trace(pathname=
-                    path.join(settings.ROOT_PATH, 'data',
-                              'science_birds', 'consistency', 'docker_plan_trace.txt')):
-    ret = []
-    with open(pathname, 'r') as f:
-        line = f.readline()
-        while line:
-            if line.startswith("; TIME:"):
-                state = {}
-                line = line.lstrip('; ').strip()
-                for pair in line.split(', '):
-                    value = []
-                    try:
-                        value = float(pair.split(':')[1])
-                    except ValueError:
-                        if pair.split(':')[1].strip() == 'false':
-                            value = False
-                        elif pair.split(':')[1].strip() == 'true':
-                            value = True
-                        else:
-                            assert True
-                    except:
-                        assert False
-                    state[pair.split(':')[0]] = value
-                ret.append(state)
-            line = f.readline()
-    return ret
-
-''' TODO: Discuss this test and current ability to get observations from SB '''
-def test_consistency_checking():
-    observations = []
-    for i in range(0, 10):
-        observations.append(sb.SBState.load_from_serialized_state(
-            path.join(settings.ROOT_PATH, 'data', 'science_birds', 'consistency', 'dx_test_{}.p'.format(i))))
-    assert len(observations) == 10
-    perception = Perception()
-    for observation in observations:
-        if isinstance(observation.objects, list):
-            perception.process_sb_state(observation)
-    plan_trace = read_plan_trace()  # list of dictionaries
-    assert len(plan_trace) == 20
-    print('observations)')
-
-    for i in range(len(observations)):
-        print(observations[i].summary())
-
-

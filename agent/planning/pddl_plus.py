@@ -110,7 +110,7 @@ class PddlPlusState():
         for fluent in fluent_list:
             if fluent[0]=="=": # This is a numeric fluent
                 fluent_name = tuple(fluent[1])
-                self.numeric_fluents[fluent_name]=fluent[2] # Wrapping in tuple to be hashable
+                self.numeric_fluents[fluent_name]=float(fluent[2]) # Wrapping in tuple to be hashable, converting to float (not string)
             else: # This is a boolean fluent
                 if fluent[0]!="not":
                     fluent_name = tuple(fluent)
@@ -139,6 +139,16 @@ class PddlPlusState():
             assert False
         return self.numeric_fluents[numeric_fluent_name]
 
+    ''' Returns the set of bird objects alive in this state. 
+     Bird is identified by the x_bird fluent. Returns a set of bird names. '''
+    def get_birds(self):
+        birds = set()
+        for fluent_name in self.numeric_fluents:
+            # We expect every bird has an x coordinate in a fluent of the form (x_bird, birdname)
+            if len(fluent_name)==2 and fluent_name[0]=="x_bird":
+                birds.add(fluent_name[1])
+        return birds
+
     # Deep compare
     def __eq__(self, other):
         if isinstance(other, PddlPlusState)==False:
@@ -153,9 +163,18 @@ class PddlPlusState():
     def __str__(self):
         string_buffer = ""
         for fluent_name in self.numeric_fluents:
-            string_buffer = "%s%s=%s\n" %  (string_buffer, str(fluent_name), self.numeric_fluents[fluent_name])
+            string_buffer = "%s %s=%s\n" %  (string_buffer, str(fluent_name), self.numeric_fluents[fluent_name])
         for fluent_name in self.boolean_fluents:
-            string_buffer = "%s%s\n" % (string_buffer, str(fluent_name))
+            string_buffer = "%s %s\n" % (string_buffer, str(fluent_name))
+        return string_buffer
+
+    ''' Export as a string in PDDL (lisp) format '''
+    def to_pddl(self):
+        string_buffer = ""
+        for fluent_name in self.numeric_fluents:
+            string_buffer = "%s (=%s %s)\n" %  (string_buffer, str(fluent_name), self.numeric_fluents[fluent_name])
+        for fluent_name in self.boolean_fluents:
+            string_buffer = "%s %s\n" % (string_buffer, str(fluent_name))
         return string_buffer
 
     # Printing capabilities for debug purposes
@@ -308,5 +327,3 @@ def is_float( text :str ):
     except:
         return False
 
-''' Computes the diff between two given lists of timed states (i.e., state,t pairs). 
-Only considers Numeric fluents because the other fluents are not observables.'''
