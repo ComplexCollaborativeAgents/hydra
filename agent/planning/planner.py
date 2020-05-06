@@ -34,7 +34,7 @@ class Planner():
         f.close()
 
 
-        pddl, pddl_simplified = state.translate_state_to_pddl()
+        pddl, pddl_simplified = state.translate_initial_state_to_pddl_problem()
         if simplified_problem:
             self.write_problem_file(pddl_simplified)
 
