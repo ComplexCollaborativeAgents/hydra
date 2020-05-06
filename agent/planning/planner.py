@@ -18,13 +18,28 @@ class Planner():
     def __init__(self):
         pass
 
-    def make_plan(self,state):
+    def make_plan(self,state,simplified_problem=False):
         '''
         The plan should be a list of actions that are either executable in the environment
         or invoking the RL agent
         '''
-        pddl = state.translate_initial_state_to_pddl_problem()
-        self.write_problem_file(pddl)
+
+        # CHANGE THE PLANNER MEMORY LIMIT
+        f = open(path.join(settings.PLANNING_DOCKER_PATH, "run_script.sh"), 'r')
+        filedata = f.read()
+        f.close()
+        newdata = re.sub(r'\bm\d*\b', 'm'+str(settings.PLANNER_MEMORY_LIMIT), str(filedata))
+        f = open(path.join(settings.PLANNING_DOCKER_PATH, "run_script.sh"), 'w')
+        f.write(newdata)
+        f.close()
+
+
+        pddl, pddl_simplified = state.translate_state_to_pddl()
+        if simplified_problem:
+            self.write_problem_file(pddl_simplified)
+
+        else:
+            self.write_problem_file(pddl)
         return self.get_plan_actions()
 
     def execute(self,plan,policy_learner):
@@ -110,17 +125,27 @@ class Planner():
             for i, line in enumerate(plan_trace_file):
                 # print(str(i) + " =====> " + str(line))
                 if "Out of memory" in line:
-                    plan_actions.append(("out of memory", -999))
+                    plan_actions.append(("out of memory", 20.0))
+                    # if the planner ran out of memory:
+                    # change the goal to killing a single pig to make the problem easier and try again with one fewer pig
                     return plan_actions
+
                 if " pa-twang " in line:
-                    plan_actions.append((line.split(':')[1].split('[')[0].replace('(', '').replace(')', '').strip(),
-                                         float(str(lines_list[i + 1].split('angle:')[1].split(',')[0]))))
+                    # print(str(lines_list[i]))
+                    # print(float(str(lines_list[i+1].split('angle:')[1].split(',')[0])))
+                    plan_actions.append((line.split(':')[1].split('[')[0].replace('(','').replace(')','').strip(), float(str(lines_list[i+1].split('angle:')[1].split(',')[0]))))
+
+                if "syntax error" in line:
+                    break
+
         self.run_val()
+
         print("\nACTIONS: " + str(plan_actions))
         if len(plan_actions) > 0:
             return plan_actions
-        elif (count < 10):
-            return self.get_plan_actions(count + 1)
+        elif (count <1):
+            print("\nno actions, replanning...")
+            return self.get_plan_actions(count+1)
         else:
             return []
 

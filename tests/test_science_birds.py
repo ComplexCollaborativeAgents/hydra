@@ -20,13 +20,14 @@ from agent.hydra_agent import HydraAgent
 @pytest.fixture(scope="module")
 def launch_science_birds():
     print("starting")
-    cmd = 'cp {}/data/science_birds/level-14.xml {}/level-00.xml'.format(str(settings.ROOT_PATH), str(settings.SCIENCE_BIRDS_LEVELS_DIR))
+    #remove config files
+    cmd = 'cp {}/data/science_birds/level-14.xml {}/00001.xml'.format(str(settings.ROOT_PATH), str(settings.SCIENCE_BIRDS_LEVELS_DIR))
     subprocess.run(cmd, shell=True)
-    cmd = 'cp {}/data/science_birds/level-15.xml {}/level-01.xml'.format(str(settings.ROOT_PATH), str(settings.SCIENCE_BIRDS_LEVELS_DIR))
+    cmd = 'cp {}/data/science_birds/level-15.xml {}/00002.xml'.format(str(settings.ROOT_PATH), str(settings.SCIENCE_BIRDS_LEVELS_DIR))
     subprocess.run(cmd, shell=True)
-    cmd = 'cp {}/data/science_birds/level-16.xml {}/level-02.xml'.format(str(settings.ROOT_PATH), str(settings.SCIENCE_BIRDS_LEVELS_DIR))
+    cmd = 'cp {}/data/science_birds/level-16.xml {}/00003.xml'.format(str(settings.ROOT_PATH), str(settings.SCIENCE_BIRDS_LEVELS_DIR))
     subprocess.run(cmd, shell=True)
-    env = sb.ScienceBirds(None)
+    env = sb.ScienceBirds(None,launch=True)
     yield env
     print("teardown tests")
     env.kill()
@@ -35,7 +36,7 @@ def launch_science_birds():
 def test_science_birds_agent(launch_science_birds):
     env = launch_science_birds
     hydra = HydraAgent(env)
-    hydra.main_loop(8) # enough actions to play the first two levels
+    hydra.main_loop() # enough actions to play the first two levels
     scores = env.get_all_scores()
     assert len([x for x in scores if x > 0]) == 3 # solved two problems
 

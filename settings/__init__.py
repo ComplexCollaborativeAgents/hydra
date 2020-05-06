@@ -7,6 +7,8 @@ from os import path
 HEADLESS = False
 SCREENSHOT = False
 
+PLANNER_MEMORY_LIMIT = 10 # memory limit for UPMurphi (in MB)
+
 OS_ROOT_PATH = path.abspath(os.sep)
 ROOT_PATH = path.join(path.dirname(path.dirname(path.abspath(__file__))))
 SCIENCE_BIRDS_BIN_DIR = path.join(ROOT_PATH,'bin')
