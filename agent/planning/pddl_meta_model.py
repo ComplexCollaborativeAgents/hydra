@@ -1,6 +1,13 @@
+'''
+This module contains the meta-model according to which we generate PDDL+ problems for a given state observed in ScienceBirds.
+It is designed so that it is mutable, i.e., one can modify the way the meta model generates PDDL+ problems.
+'''
+
+
 from agent.planning.pddl_plus import *
 import copy
 import math
+from worlds.science_birds import SBState
 
 
 import logging
@@ -23,133 +30,171 @@ def get_radius(obj):
 def get_height(obj):
     return abs(obj[1]['bbox'].bounds[3] - obj[1]['bbox'].bounds[1])
 def get_width(obj):
-    return abs(obj[1]['bbox'].bounds[2] - obj[1]['bbox'].bounds[0])]
+    return abs(obj[1]['bbox'].bounds[2] - obj[1]['bbox'].bounds[0])
 
-''' Objects for the meta model '''
-class PddlObject():
+''' A generator for Pddl Objects '''
+class PddlObjectType():
     ''' Accepts an object from SBState.objects '''
-    def __init__(self, obj):
-        self.attributes = dict()
-        self.type = obj[1]['type']
-        self.name = '{}_{}'.format(self.obj_type, obj[0])
+    def __init__(self):
+        self.hyper_parameters = dict()
+        self.pddl_type="object" # This the PDDL+ type of this object.
 
-
-    def __getitem__(self, attribute_name):
-        return self.attributes[attribute_name]
+    ''' Subclasses should override this '''
+    def _compute_obj_attributes(self, obj, problem_params:dict):
+        return dict()
 
     ''' Populate a PDDL+ problem with details about this object '''
-    def add_to_problem(self, prob: PddlPlusProblem):
-        prob.objects.append((self.name, self.type))
-        for attribute in self.attributes:
-            value = self.attributes[attribute]
+    def add_object_to_problem(self, prob: PddlPlusProblem, obj, problem_params:dict):
+        name = self._get_name(obj)
+        prob.objects.append([name, self.pddl_type])
+        attributes = self._compute_obj_attributes(obj, problem_params)
+        for attribute in attributes:
+            value = attributes[attribute]
             # If attribute is Boolean no need for an "=" sign
             if isinstance(value,  bool):
                 if value==True:
-                    prob.init.append([attribute, self.name])
+                    prob.init.append([attribute, name])
                 else: # value == False
-                    prob.init.append(['not', [attribute, self.name]])
+                    prob.init.append(['not', [attribute, name]])
             else: # Attribute is a number
-                prob.init.append(['=', [attribute, self.name], value])
+                prob.init.append(['=', [attribute, name], value])
+
+    def _get_name(self, obj):
+        type = obj[1]['type']
+        return '{}_{}'.format(type, obj[0])
 
 
-class Pig(PddlObject):
-    def __init__(self, obj, groundOffset):
-        super(Pig, self).__init__(obj)
-        self.groundOffset = groundOffset
-        self.attributes["x_pig"] = get_x_coordinate(obj)
-        self.attributes["y_pig"] = get_y_coordinate(obj, self.groundOffset)
-        self.attributes["pig_radius"] = get_radius(obj)
-        self.attributes["m_pig"] = 1
-        self.attributes["pig_dead"] = False
 
-    ''' Append relevant facts about this object to the PddlPlusProblem init state '''
-    def add_to_problem(self, prob: PddlPlusProblem):
-        super(Pig, self)
+class PigType(PddlObjectType):
+    def __init__(self):
+        super(PigType,self).__init__()
+        self.pddl_type = "pig"
+        self.hyper_parameters["m_pig"]=1
+        self.hyper_parameters["pddl_type"]="pig"
 
-        # Pig specific code: goal is to kill pigs
-        prob.goal.append(['pig_dead', self.name])
+    def _compute_obj_attributes(self, obj, problem_params:dict):
+        obj_attributes = dict()
+        obj_attributes["x_pig"] = get_x_coordinate(obj)
+        obj_attributes["y_pig"] = get_y_coordinate(obj, problem_params["groundOffset"])
+        obj_attributes["pig_radius"] = get_radius(obj)
+        obj_attributes["m_pig"] = 1
+        obj_attributes["pig_dead"] = False
 
-class Bird(PddlObject):
-    def __init__(self, obj, slingshot, groundOffset, bird_index):
-        super(Bird, self).__init__(obj)
-        self.groundOffset = groundOffset
-        self.attributes["x_bird"] = get_x_coordinate(slingshot)
-        self.attributes["y_bird"] = get_y_coordinate(slingshot, self.groundOffset)
-        self.attributes["bird_id"] = bird_index
+        problem_params["pigs"].append(self._get_name(obj))
 
-        self.attributes["v_bird"] = 270
-        self.attributes["vx_bird"] = 0
-        self.attributes["vy_bird"] = 0
-        self.attributes["m_bird"] = 1
-        self.attributes["bound_count"] = -1
-        self.attributes["bird_released"] = False
+        return obj_attributes
+
+class BirdType(PddlObjectType):
+    def __init__(self):
+        super(BirdType, self).__init__()
+        self.pddl_type = "bird"
+        self.hyper_parameters["v_bird"] = 270
+        self.hyper_parameters["vx_bird"] = 0
+        self.hyper_parameters["vy_bird"] = 0
+        self.hyper_parameters["m_bird"] = 1
+        self.hyper_parameters["bounce_count"] = 0
+        self.hyper_parameters["bird_released"] = False
+
+    def _compute_obj_attributes(self, obj, problem_params: dict):
+        obj_attributes = dict()
+
+        slingshot = problem_params["slingshot"]
+        groundOffset = problem_params["groundOffset"]
+        obj_attributes["x_bird"] = round((slingshot[1]['bbox'].bounds[0] + slingshot[1]['bbox'].bounds[2]) / 2) - 0 # TODO: Why this minos zero?
+        obj_attributes["y_bird"] = round(abs(((slingshot[1]['bbox'].bounds[1] + slingshot[1]['bbox'].bounds[3]) / 2) - groundOffset) - 0) # TODO: Why this minos zero?
+
+        yyy = get_y_coordinate(slingshot,groundOffset)
+        if yyy!=obj_attributes["y_bird"]:
+            print("wtf")
+
+        obj_attributes["bird_id"] = problem_params["bird_index"]
+        problem_params["bird_index"] = problem_params["bird_index"] + 1
+
+        obj_attributes["v_bird"] = self.hyper_parameters["v_bird"]
+        obj_attributes["vx_bird"] = self.hyper_parameters["vx_bird"]
+        obj_attributes["vy_bird"] = self.hyper_parameters["vy_bird"]
+        obj_attributes["m_bird"] = self.hyper_parameters["m_bird"]
+        obj_attributes["bounce_count"] = self.hyper_parameters["bounce_count"]
+        obj_attributes["bird_released"] = self.hyper_parameters["bird_released"]
+
+        problem_params["birds"].append(self._get_name(obj))
+
+        return obj_attributes
 
 
-class Platform(PddlObject):
-    def __init__(self, obj, groundOffset):
-        super(Platform, self).__init__(obj)
-        self.groundOffset = groundOffset
-        self.attributes["x_platform"] = get_x_coordinate(obj)
-        self.attributes["y_platform"] = get_y_coordinate(obj, self.groundOffset)
 
-        self.attributes["platform_height"] = get_height(obj)
-        self.attributes["platform_width"] = get_width(obj)
+class PlatformType(PddlObjectType):
+    def __init__(self):
+        super(PlatformType, self).__init__()
+        self.pddl_type ="platform"
 
-class Block(PddlObject):
-    def __init__(self, obj, groundOffset, block_life_multiplier=1.0, block_mass_coeff = 1.0):
-        super(Block, self).__init__(obj)
-        raise ValueError("Object types mess!!! block is not a super type")
+    def _compute_obj_attributes(self, obj, problem_params: dict):
+        problem_params["has_platform"] = True
 
-        self.groundOffset = groundOffset
-        self.block_life_multiplier = block_life_multiplier
-        self.block_mass_coeff = block_mass_coeff
+        obj_attributes = dict()
 
-        self.attributes["x_block"] = get_x_coordinate(obj)
-        self.attributes["y_block"] = get_y_coordinate(obj, self.groundOffset)
-        self.attributes["block_height"] = get_height(obj)
-        self.attributes["block_width"] = get_width(obj)
-        self.attributes["block_life"] = self.__compute_block_life()
-        self.attributes["block_mass"] = self.__compute_block_mass()
-        self.attributes["block_stability"] = self.__compute_stability()
+        obj_attributes["x_platform"] = get_x_coordinate(obj)
+        obj_attributes["y_platform"] = get_y_coordinate(obj, problem_params["groundOffset"])
+
+        obj_attributes["platform_height"] = get_height(obj)
+        obj_attributes["platform_width"] = get_width(obj)
+        return obj_attributes
+
+class BlockType(PddlObjectType):
+    def __init__(self,block_life_multiplier = 1.0, block_mass_coeff=1.0):
+        super(BlockType, self).__init__()
+        self.pddl_type = "block"
+
+        self.hyper_parameters["block_life_multiplier"] = block_life_multiplier
+        self.hyper_parameters["block_mass_coeff"] = block_mass_coeff
+
+    def _compute_obj_attributes(self, obj, problem_params: dict):
+        problem_params["has_block"] = True
+
+        obj_attributes = dict()
+
+        groundOffset = problem_params["groundOffset"]
+        obj_attributes["x_block"] = get_x_coordinate(obj)
+        obj_attributes["y_block"] = get_y_coordinate(obj, groundOffset)
+        obj_attributes["block_height"] = get_height(obj)
+        obj_attributes["block_width"] = get_width(obj)
+        obj_attributes["block_life"] = self.__compute_block_life()
+        obj_attributes["block_mass"] = self.__compute_block_mass()
+        obj_attributes["block_stability"] = self.__compute_stability(obj_attributes["block_width"],
+                                                                     obj_attributes["block_height"],
+                                                                     obj_attributes["y_block"],
+                                                                     groundOffset)
+        return obj_attributes
 
     def __compute_block_life(self):
-        return str(math.ceil(265 * self.block_life_multiplier))
+        return str(math.ceil(265 * self.hyper_parameters["block_life_multiplier"]))
     def __compute_block_mass(self):
-        return str(self.block_mass_coeff)
-    def __compute_stability(self):
-        return 265 * (self.attributes["block_width"] / self.attributes["block_height"]) \
-               * (1 - (self.attributes["y_block"] / self.groundOffset)) \
-               * self.block_mass_coeff
+        return str(self.hyper_parameters["block_mass_coeff"])
+    def __compute_stability(self, bl_width, bl_height, bl_y, groundOffset):
+        return 265 * (bl_width / bl_height) \
+               * (1 - (bl_y / groundOffset)) \
+               * self.hyper_parameters["block_mass_coeff"]
 
-    ''' Populate a PDDL+ problem with details about this object
-     HACk to change the type of the object in PDDL to block, overriding to some extent the super.add_to_problem.
-      This is because UPMurphey currently does not support type heirarchy. '''
-    def add_to_problem(self, prob: PddlPlusProblem):
-        super(Block,self).add_to_problem(prob)
-        prob.objects.remove((self.name, self.type))
-        prob.objects.append((self.name, "block"))
+class WoodType(BlockType):
+    def __init__(self):
+        super(WoodType, self).__init__(1.0, 0.375 * 1.3)
 
+class IceType(BlockType):
+    def __init__(self):
+        super(IceType, self).__init__(0.5, 0.125*2)
 
-class Wood(Block):
-    def __init__(self, obj, groundOffset):
-        super(Wood, self).__init__(obj, groundOffset, 1.0, 0.375 * 1.3)
+class StoneType(BlockType):
+    def __init__(self):
+        super(StoneType, self).__init__(2.0, 1.2)
 
-class Ice(Block):
-    def __init__(self, obj, groundOffset):
-        super(Ice, self).__init__(obj, groundOffset, 0.5, 0.125*2)
+class TNTType(BlockType):
+    def __init__(self):
+        super(TNTType, self).__init__(0.001, 1.2)
 
-class Stone(Block):
-    def __init__(self, obj, groundOffset):
-        super(Ice, self).__init__(obj, groundOffset, 2.0, 1.2)
-
-
-class TNT(Block):
-    def __init__(self, obj, groundOffset):
-        super(Ice, self).__init__(obj, groundOffset, 0.001, 1.2)
-
-        self.attributes["block_explosive"] = True
-
-
+    def _compute_obj_attributes(self, obj, problem_params: dict):
+        obj_attributes = super(TNTType, self)._compute_obj_attributes(obj, problem_params)
+        obj_attributes["block_explosive"] = True
+        return obj_attributes
 
 
 
@@ -157,42 +202,43 @@ class MetaModel():
     ''' Sets the default meta-model'''
     def __init__(self):
         # TODO: Read this from file instead of hard coding
+        self.constant_numeric_fluents = dict()
+        self.constant_boolean_fluents = dict()
 
-        self.constant_numeric_facts = dict()
-        self.constant_boolean_facts = dict()
-        self.constant_numeric_facts['gravity']=134.2
-        self.constant_numeric_facts['active_bird']=0
-        self.constant_numeric_facts['angle']=0
-        self.constant_boolean_facts['angle_adjusted']=False
-        self.constant_boolean_facts['pig_killed']=False
-        self.constant_numeric_facts['angle_rate'] = 10
-        self.constant_numeric_facts['ground_damper'] = 0.4
+        self.constant_numeric_fluents['gravity']=134.2
+        self.constant_numeric_fluents['active_bird']=0
+        self.constant_numeric_fluents['angle']=0
+        self.constant_numeric_fluents['angle_rate'] = 10
+        self.constant_numeric_fluents['ground_damper'] = 0.4
+
+        self.constant_boolean_fluents['angle_adjusted']=False
+        self.constant_boolean_fluents['pig_killed']=False
 
         self.metric = 'minimize(total-time)'
 
         # Mapping of type to Pddl object. All objects of this type will be clones of this pddl object
-        self.object_template = dict()
-        self.object_template["pig"]=Pig()
-        self.object_template["bird"]=Bird()
-        self.object_template["block"]=Block()
-        self.object_template["wood"]=Wood()
-        self.object_template["ice"] = Ice()
-        self.object_template["stone"] = Stone()
-        self.object_template["TNT"] = TNT()
-        self.object_template["platform"] = Platform()
+        self.object_types = dict()
+        self.object_types["pig"]=PigType()
+        self.object_types["bird"]=BirdType()
+        self.object_types["block"]=BlockType()
+        self.object_types["wood"]=WoodType()
+        self.object_types["ice"] = IceType()
+        self.object_types["stone"] = StoneType()
+        self.object_types["TNT"] = TNTType()
+        self.object_types["hill"] = PlatformType()
 
 
     ''' Get the sling object '''
-    def get_sling(self):
+    def get_sling(self, sb_state :SBState):
         sling = None
-        for o in self.objects.items():
+        for o in sb_state.objects.items():
             if o[1]['type'] == 'slingshot':
                 sling = o
         return sling
 
     ''' Translate the initial SBState, as observed, to a PddlPlusProblem object. 
     Note that in the initial state, we ignore the location of the bird and assume it is on the slingshot. '''
-    def translate_sb_state_to_pddl_problem(self):
+    def translate_sb_state_to_pddl_problem(self, sb_state : SBState):
         # There is an annoying disconnect in representations.
         # 'x_pig[pig_4]:450' vs. (= (x_pig pig4) 450)
         # 'pig_dead[pig_4]:False vs. (not (pig_dead pig_4))
@@ -209,60 +255,56 @@ class MetaModel():
         prob.goal = []
 
         #we should probably use the self.sling on the object
-        slingshot = self.get_sling()
+        slingshot = self.get_sling(sb_state)
 
-        groundOffset = slingshot[1]['bbox'].bounds[3]
-        bird_index = 0
+        # A dictionary with global problem parameters
+        problem_params = dict()
+        problem_params["has_platform"]=False
+        problem_params["has_block"]=False
+        problem_params["bird_index"]=0
+        problem_params["slingshot"]=slingshot
+        problem_params["groundOffset"] = slingshot[1]['bbox'].bounds[3]
+        # Above line redundant since we're storing the slingshot also, but it seems easier to store it also to save computations of the offset everytime we use it.
+        problem_params["pigs"] = []
+        problem_params["birds"] = []
 
-        platform = False
-        block = False
-        state_objects = list()
-        for obj in self.objects.items():
-            if obj[1]['type'] == 'pig':
-                state_objects.append(Pig(obj, groundOffset))
-            elif 'Bird' in obj[1]['type']:
-                state_objects.append(Bird(obj, groundOffset,bird_index))
-                bird_index += 1
-            elif obj[1]['type'] == 'wood':
-                state_objects.append(Wood(obj, groundOffset))
-            elif obj[1]['type'] == 'ice':
-                state_objects.append(Ice(obj, groundOffset))
-            elif obj[1]['type'] == 'stone':
-                state_objects.append(Stone(obj, groundOffset))
-            elif obj[1]['type'] == 'TNT':
-                state_objects.append(TNT(obj, groundOffset))
-            elif obj[1]['type'] == 'unknown':
-                state_objects.append(Block(obj,groundOffset))
-            elif obj[1]['type'] == 'hill':
-                state_objects.append(Platform(obj,groundOffset))
-                platform = True
-            elif obj[1]['type'] == 'slingshot':
-                slingshot = obj
+        # Add objects to problem
+        for obj in sb_state.objects.items():
+            # Get type
+            type_str = obj[1]['type']
+            if 'bird' in type_str.lower():
+                type = self.object_types["bird"]
             else:
-                logger.info("Unknown object type: %s" % obj[1]['type'])
-            # TODO Handle unknown objects in some way (Error? default object? log?)
+                if type_str in self.object_types:
+                    type = self.object_types[type_str]
+                else:
+                    logger.info("Unknown object type: %s" % type_str)
+                    # TODO Handle unknown objects in some way (Error? default object?)
+                    continue
 
-        # Add objects and their properties to the PDDL+ problem
-        for obj in state_objects:
-            obj.add_to_problem(prob)
-            if isinstance(obj,Block):
-                block=True
-            if isinstance(obj, Platform):
-                platfor=True
-        if not platform:
+            # Add object of this type to the problem
+            type.add_object_to_problem(prob, obj, problem_params)
+
+        # Add dummy platform and block if none exists TODO: Why do we need this?
+        if problem_params["has_platform"]==False:
             prob.objects.append(['dummy_platform','platform'])
-        if not block:
+        if problem_params["has_block"]==False:
             prob.objects.append(['dummy_block','block'])
 
-        # Add constants
-        for numeric_constant in self.constant_numeric_facts:
-            prob.init.append(['=',[numeric_constant], self.constant_numeric_facts[numeric_constant]])
-        for boolean_constant in self.constant_boolean_facts:
-            if self.constant_boolean_facts[boolean_constant]:
-                prob.init.append([boolean_constant])
+        # Add constants fluents
+        for numeric_fluent in self.constant_numeric_fluents:
+            prob.init.append(['=', [numeric_fluent], self.constant_numeric_fluents[numeric_fluent]])
+        for boolean_fluent in self.constant_boolean_fluents:
+            if self.constant_boolean_fluents[boolean_fluent]:
+                prob.init.append([boolean_fluent])
             else:
-                prob.init.append(['not',[boolean_constant]])
+                prob.init.append(['not',[boolean_fluent]])
 
+        # Add goal
+        pigs = problem_params["pigs"]
+        assert len(pigs)>0
+        for pig in pigs:
+            prob.goal.append(['pig_dead', pig])
 
         prob_simplified = self.create_simplified_problem(prob)
         return prob, prob_simplified

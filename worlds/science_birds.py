@@ -15,6 +15,15 @@ import worlds.science_birds_interface.trajectory_planner.trajectory_planner as t
 from agent.planning.pddl_plus import PddlPlusProblem, PddlPlusState
 from utils.state import State, Action, World
 
+import logging
+
+fh = logging.FileHandler("hydra.log",mode='w')
+formatter = logging.Formatter('%(asctime)-15s %(name)s - %(levelname)s - %(message)s')
+fh.setFormatter(formatter)
+logger = logging.getLogger("science_birds")
+logger.setLevel(logging.INFO)
+logger.addHandler(fh)
+
 class SBState(State):
     """Current State of Science Birds"""
     id = 0
@@ -79,10 +88,10 @@ class SBState(State):
                 prob.init.append(['=',['pig_radius', obj_name], round((abs(o[1]['bbox'].bounds[2] - o[1]['bbox'].bounds[0])/2) * 0.75)])
                 prob.init.append(['=', ['m_pig', obj_name], 1])
                 prob.goal.append(['pig_dead', obj_name])
-                prob.objects.append((obj_name,o[1]['type']))
-            elif 'Bird' in o[1]['type']:
+                prob.objects.append([obj_name,o[1]['type']])
+            elif 'bird' in o[1]['type']:
                 obj_name = '{}_{}'.format(o[1]['type'], o[0])
-                prob.objects.append((obj_name,'Bird')) #This probably needs to change
+                prob.objects.append([obj_name,'bird']) #This probably needs to change
                 # prob.init.append(['not',['bird_dead',obj_name]])
                 prob.init.append(['not',['bird_released',obj_name]])
                 prob.init.append(['=',['x_bird',obj_name],round((slingshot[1]['bbox'].bounds[0] + slingshot[1]['bbox'].bounds[2]) / 2) - 0])
@@ -321,7 +330,9 @@ class ScienceBirds(World):
         self.id = 2228
         self.tp = tp.SimpleTrajectoryPlanner()
         if launch:
+            logger.info("Launching SB...")
             self.launch_SB()
+            logger.info("SB launched!")
             time.sleep(1)
         self.create_interface(sel_level)
 

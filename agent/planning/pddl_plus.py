@@ -70,6 +70,35 @@ class PddlPlusProblem():
         self.goal = list()
         self.metric = None
 
+    def __eq__(self, other):
+        if isinstance(other, PddlPlusProblem) == False:
+            return False
+        if self.name!=other.name:
+            return False
+        if self.domain!=other.domain:
+            return False
+        for object in self.objects:
+            if object not in other.objects:
+                return False
+        for object in other.objects:
+            if object not in self.objects:
+                return False
+        for init_item in self.init:
+            if init_item not in other.init:
+                return False
+        for init_item in other.init:
+            if init_item not in self.init:
+                return False
+        for goal_item in self.goal:
+            if goal_item not in other.goal:
+                return False
+        for goal_item in other.goal:
+            if goal_item not in self.goal:
+                return False
+        if self.metric!=other.metric:
+            return False
+        return True
+
 
 class PddlPlusDomain():
     def __init__(self):
