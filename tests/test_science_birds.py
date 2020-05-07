@@ -27,7 +27,7 @@ def launch_science_birds():
     subprocess.run(cmd, shell=True)
     cmd = 'cp {}/data/science_birds/level-16.xml {}/00003.xml'.format(str(settings.ROOT_PATH), str(settings.SCIENCE_BIRDS_LEVELS_DIR))
     subprocess.run(cmd, shell=True)
-    env = sb.ScienceBirds(None,launch=True)
+    env = sb.ScienceBirds(None,launch=True,config='test_config.xml')
     yield env
     print("teardown tests")
     env.kill()

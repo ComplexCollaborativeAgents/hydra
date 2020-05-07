@@ -15,6 +15,14 @@ import worlds.science_birds_interface.trajectory_planner.trajectory_planner as t
 from agent.planning.pddlplus_parser import PddlPlusProblem
 from utils.state import State, Action, World
 #import shapely.geometry as geo
+import logging
+
+fh = logging.FileHandler("hydra.log",mode='w')
+formatter = logging.Formatter('%(name)s - %(levelname)s - %(message)s')
+fh.setFormatter(formatter)
+logger = logging.getLogger("Science Birds")
+logger.setLevel(logging.INFO)
+logger.addHandler(fh)
 
 class SBState(State):
     """Current State of Science Birds"""
@@ -210,11 +218,11 @@ class ScienceBirds(World):
     intermediate_states = []
     lock = threading.Lock()
 
-    def __init__(self,sel_level=0,launch=False):
+    def __init__(self,sel_level=0,launch=False,config=True):
         self.id = 2228
         self.tp = tp.SimpleTrajectoryPlanner()
         if launch:
-            self.launch_SB()
+            self.launch_SB(config)
             time.sleep(1)
         self.create_interface(sel_level)
 
@@ -223,18 +231,45 @@ class ScienceBirds(World):
     def kill(self):
         print("Killing process groups: {}, {}".format(self.SB_server_process.pid,
                                                      self.SB_process.pid))
-        try:
-            os.killpg(self.SB_process.pid,9)
-            os.killpg(self.SB_server_process.pid,9)
-            self.gt_thread.kill()
-
-        except:
-            pass
+        if sys.platform == 'darwin':
+            try:
+                os.kill(self.SB_process.pid,9)
+            except:
+                logger.info("Error during process termination 1")
+                pass
+            try:
+                os.kill(self.SB_process.pid+1,9)
+            except:
+                logger.info("Error during process termination 2")
+                pass
+            try:
+                os.kill(self.SB_server_process.pid,9)
+            except:
+                logger.info("Error during process termination 3")
+                pass
+            try:
+                os.kill(self.SB_server_process.pid+1,9)
+            except:
+                logger.info("Error during process termination 4")
+                pass
+            try:
+                self.gt_thread.kill()
+            except:
+                logger.info("Error during process termination 5")
+                pass
+        else:
+            try:
+                os.killpg(self.SB_process.pid,9)
+                os.killpg(self.SB_server_process.pid,9)
+                self.gt_thread.kill()
+            except:
+                logger.info("Error during process terminatio6n")
+                pass
 
             
 
             
-    def launch_SB(self):
+    def launch_SB(self,config='test_config.xml'):
         """
         Maybe this would be better in a shell script than in python
         """
@@ -242,8 +277,11 @@ class ScienceBirds(World):
         cmd = ''
 
         if sys.platform=='darwin':
-            cmd='open {}/ScienceBirds_MacOS.app --args --configpath {}/data/science_birds/config/test_config.xml'.format(
-                settings.SCIENCE_BIRDS_BIN_DIR,settings.ROOT_PATH)
+            if config:
+                cmd='open {}/ScienceBirds_MacOS.app --args --configpath {}/data/science_birds/config/{}'.format(
+                    settings.SCIENCE_BIRDS_BIN_DIR,settings.ROOT_PATH,config)
+            else:
+                cmd = 'open {}/ScienceBirds_MacOS.app'.format(settings.SCIENCE_BIRDS_BIN_DIR)
         else:
             cmd='{}/sciencebirds_linux/sciencebirds_linux.x86_64 --configpath {}/data/science_birds/config/test_config.xml'. \
                 format(settings.SCIENCE_BIRDS_BIN_DIR, settings.ROOT_PATH)
