@@ -198,8 +198,6 @@ class SBState(State):
         slingshot_x = round((slingshot[1]['bbox'].bounds[0] + slingshot[1]['bbox'].bounds[2]) / 2)
         slingshot_y = round(abs(((slingshot[1]['bbox'].bounds[1] + slingshot[1]['bbox'].bounds[3]) / 2) - groundOffset) - 0)
         bird_index = 0
-        platform = False
-        block = False
 
         for o in self.objects.items():
             if o[1]['type'] == 'pig':
@@ -208,11 +206,9 @@ class SBState(State):
                 state_as_list.append(['=', ['x_pig',obj_name], self.compute_x_coordinate(o)])
                 state_as_list.append(['=', ['y_pig',obj_name], self.compute_y_coordinate(groundOffset, o)])
                 state_as_list.append(['=', ['pig_radius', obj_name], self.compute_radius(o)])
-                state_as_list.append(['=', ['m_pig', obj_name], 1])
+                # state_as_list.append(['=', ['m_pig', obj_name], 1])
             elif 'bird' in o[1]['type'].lower():
                 obj_name = '{}_{}'.format(o[1]['type'], o[0])
-                # prob.init.append(['not',['bird_dead',obj_name]])
-                # prob.init.append(['not',['bird_released',obj_name]])
                 self.compute_x_coordinate(o)
 
                 # Need to separate the case where we're before shooting the bird and after.
@@ -225,13 +221,6 @@ class SBState(State):
                 else:
                     state_as_list.append(['=', ['x_bird', obj_name], slingshot_x])
                     state_as_list.append(['=', ['y_bird', obj_name], slingshot_y])
-
-
-                # prob.init.append(['=',['v_bird',obj_name], 270])  Computing velocity is more difficult
-                # prob.init.append(['=',['vx_bird',obj_name], 0])
-                # prob.init.append(['=',['vy_bird',obj_name], 0])
-                state_as_list.append(['=',['m_bird',obj_name], 1])
-                #prob.init.append(['=',['bounce_count',obj_name], 0])
                 state_as_list.append(['=',['bird_id',obj_name],bird_index])
                 bird_index += 1
             elif o[1]['type'] == 'wood' or o[1]['type'] == 'ice' or o[1]['type'] == 'stone':
@@ -243,22 +232,6 @@ class SBState(State):
                     o[1]['bbox'].bounds[3] - o[1]['bbox'].bounds[1])])
                 state_as_list.append(['=',['block_width',obj_name],abs(
                     o[1]['bbox'].bounds[2] - o[1]['bbox'].bounds[0])])
-                block_life_multiplier = 1.0
-                block_mass_coeff = 1.0
-                if o[1]['type'] == 'wood':
-                    block_life_multiplier = 1.0
-                    block_mass_coeff = 0.375
-                elif o[1]['type'] == 'ice':
-                    block_life_multiplier = 0.5
-                    block_mass_coeff = 0.125
-                elif o[1]['type'] == 'stone':
-                    block_life_multiplier = 2.0
-                    block_mass_coeff = 1.2
-                else: # not sure how this could ever happen
-                    block_life_multiplier = 2.0
-                    block_mass_coeff = 1.2
-                state_as_list.append(['=',['block_life',obj_name],str(265 * block_life_multiplier)])
-                state_as_list.append(['=',['block_mass',obj_name],str(block_mass_coeff)])
             elif o[1]['type'] == 'hill':
                 platform = True
                 obj_name ='{}_{}'.format(o[1]['type'], o[0])
@@ -268,14 +241,6 @@ class SBState(State):
                 state_as_list.append(['=', ['platform_width', obj_name], abs(o[1]['bbox'].bounds[2] - o[1]['bbox'].bounds[0])])
             elif o[1]['type'] == 'slingshot':
                 slingshot = o
-        for fact in [['=',['gravity'], 134.2],
-                     ['=',['active_bird'], 0],
-                     ['=', ['angle'], 0],
-                     ['not', ['angle_adjusted']],
-                     ['=',['angle_rate'], 10],
-                     ['=', ['ground_damper'], 0.4]
-                     ]:
-            state_as_list.append(fact)
         return PddlPlusState(state_as_list)
 
     ''' Computes the y coordinate of the given object as the center of its bounding box, 
@@ -326,10 +291,10 @@ class SBState(State):
                 prob.init.append(['=',['pig_radius', obj_name], round((abs(o[1]['bbox'].bounds[2] - o[1]['bbox'].bounds[0])/2) * 0.75)])
                 prob.init.append(['=', ['m_pig', obj_name], 1])
                 prob.goal.append(['pig_dead', obj_name])
-                prob.objects.append((obj_name,o[1]['type']))
+                prob.objects.append([obj_name,o[1]['type']])
             elif 'bird' in o[1]['type']:
                 obj_name = '{}_{}'.format(o[1]['type'], o[0])
-                prob.objects.append((obj_name,'bird')) #This probably needs to change
+                prob.objects.append([obj_name,'bird']) #This probably needs to change
                 # prob.init.append(['not',['bird_dead',obj_name]])
                 prob.init.append(['not',['bird_released',obj_name]])
                 prob.init.append(['=',['x_bird',obj_name],round((slingshot[1]['bbox'].bounds[0] + slingshot[1]['bbox'].bounds[2]) / 2) - 0])

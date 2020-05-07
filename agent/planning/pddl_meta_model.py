@@ -25,6 +25,13 @@ def get_x_coordinate(obj):
     return round(abs(obj[1]['bbox'].bounds[2] + obj[1]['bbox'].bounds[0]) / 2)
 def get_y_coordinate(obj, groundOffset):
     return abs(round(abs(obj[1]['bbox'].bounds[1] + obj[1]['bbox'].bounds[3]) / 2) - groundOffset)
+
+# TODO: See how to merge the two functions below with the two above
+def get_slingshot_x(slingshot):
+    return round((slingshot[1]['bbox'].bounds[0] + slingshot[1]['bbox'].bounds[2]) / 2) - 0 # TODO: Why this minus zero
+def get_slingshot_y(groundOffset, slingshot):
+    return round(abs(((slingshot[1]['bbox'].bounds[1] + slingshot[1]['bbox'].bounds[3]) / 2) - groundOffset) - 0)
+
 def get_radius(obj):
     return round((abs(obj[1]['bbox'].bounds[2] - obj[1]['bbox'].bounds[0]) / 2) * 0.75)
 def get_height(obj):
@@ -39,8 +46,12 @@ class PddlObjectType():
         self.hyper_parameters = dict()
         self.pddl_type="object" # This the PDDL+ type of this object.
 
-    ''' Subclasses should override this '''
+    ''' Subclasses should override this setting all attributes of that object '''
     def _compute_obj_attributes(self, obj, problem_params:dict):
+        return dict()
+
+    ''' Subclasses should override this settign all attributes of that object that can be observed'''
+    def _compute_observable_obj_attributes(self, obj, problem_params:dict):
         return dict()
 
     ''' Populate a PDDL+ problem with details about this object '''
@@ -59,6 +70,20 @@ class PddlObjectType():
             else: # Attribute is a number
                 prob.init.append(['=', [attribute, name], value])
 
+    ''' Populate a PDDL+ state with details about this object '''
+    def add_object_to_state(self, pddl_state: PddlPlusState, obj, state_params:dict):
+        name = self._get_name(obj)
+        attributes = self._compute_observable_obj_attributes(obj, state_params)
+        for attribute in attributes:
+            value = attributes[attribute]
+            fluent_name = (attribute, name)
+            # If attribute is Boolean no need for an "=" sign
+            if isinstance(value,  bool):
+                assert value == True # We currently can't observe a false boolean fluent
+                pddl_state.boolean_fluents.add(fluent_name)
+            else: # Attribute is a number
+                pddl_state.numeric_fluents[fluent_name]=value
+
     def _get_name(self, obj):
         type = obj[1]['type']
         return '{}_{}'.format(type, obj[0])
@@ -73,14 +98,19 @@ class PigType(PddlObjectType):
         self.hyper_parameters["pddl_type"]="pig"
 
     def _compute_obj_attributes(self, obj, problem_params:dict):
+        obj_attributes = self._compute_observable_obj_attributes(obj, problem_params)
+        obj_attributes["m_pig"] = self.hyper_parameters["m_pig"]
+
+        return obj_attributes
+
+    def _compute_observable_obj_attributes(self, obj, problem_params:dict):
         obj_attributes = dict()
         obj_attributes["x_pig"] = get_x_coordinate(obj)
         obj_attributes["y_pig"] = get_y_coordinate(obj, problem_params["groundOffset"])
         obj_attributes["pig_radius"] = get_radius(obj)
-        obj_attributes["m_pig"] = 1
         obj_attributes["pig_dead"] = False
 
-        problem_params["pigs"].append(self._get_name(obj))
+        problem_params["pigs"].add(self._get_name(obj))
 
         return obj_attributes
 
@@ -96,19 +126,7 @@ class BirdType(PddlObjectType):
         self.hyper_parameters["bird_released"] = False
 
     def _compute_obj_attributes(self, obj, problem_params: dict):
-        obj_attributes = dict()
-
-        slingshot = problem_params["slingshot"]
-        groundOffset = problem_params["groundOffset"]
-        obj_attributes["x_bird"] = round((slingshot[1]['bbox'].bounds[0] + slingshot[1]['bbox'].bounds[2]) / 2) - 0 # TODO: Why this minos zero?
-        obj_attributes["y_bird"] = round(abs(((slingshot[1]['bbox'].bounds[1] + slingshot[1]['bbox'].bounds[3]) / 2) - groundOffset) - 0) # TODO: Why this minos zero?
-
-        yyy = get_y_coordinate(slingshot,groundOffset)
-        if yyy!=obj_attributes["y_bird"]:
-            print("wtf")
-
-        obj_attributes["bird_id"] = problem_params["bird_index"]
-        problem_params["bird_index"] = problem_params["bird_index"] + 1
+        obj_attributes = self._compute_observable_obj_attributes(obj, problem_params)
 
         obj_attributes["v_bird"] = self.hyper_parameters["v_bird"]
         obj_attributes["vx_bird"] = self.hyper_parameters["vx_bird"]
@@ -117,18 +135,45 @@ class BirdType(PddlObjectType):
         obj_attributes["bounce_count"] = self.hyper_parameters["bounce_count"]
         obj_attributes["bird_released"] = self.hyper_parameters["bird_released"]
 
-        problem_params["birds"].append(self._get_name(obj))
-
         return obj_attributes
 
+    def _compute_observable_obj_attributes(self, obj, problem_params:dict):
+        obj_attributes = dict()
 
+        slingshot = problem_params["slingshot"]
+        groundOffset = problem_params["groundOffset"]
+
+        # In the initial state, the planner assumes the birds are on the sling
+        slingshot_x = get_slingshot_x(slingshot)
+        slingshot_y = get_slingshot_y(groundOffset, slingshot)
+
+        if "initial_state" in problem_params and problem_params["initial_state"] == True:
+            obj_attributes["x_bird"] = slingshot_x
+            obj_attributes["y_bird"] = slingshot_y
+        else:
+            obj_attributes["x_bird"] = get_x_coordinate(obj)  # TODO: Why this minos zero?
+            obj_attributes["y_bird"] = get_y_coordinate(obj, groundOffset)  # TODO: Why this minos zero?
+
+            # Need to separate the case where we're before shooting the bird and after.
+            # Before: the bird location is considered as the location of the slingshot,
+            # afterwards, it's the location of the birds bounding box TODO: Replace this hack
+            if obj_attributes["x_bird"] <= slingshot_x:
+                obj_attributes["x_bird"] = slingshot_x
+                obj_attributes["y_bird"] = slingshot_y
+
+        obj_attributes["bird_id"] = problem_params["bird_index"]
+        problem_params["bird_index"] = problem_params["bird_index"] + 1
+
+        problem_params["birds"].add(self._get_name(obj))
+
+        return obj_attributes
 
 class PlatformType(PddlObjectType):
     def __init__(self):
         super(PlatformType, self).__init__()
         self.pddl_type ="platform"
 
-    def _compute_obj_attributes(self, obj, problem_params: dict):
+    def _compute_observable_obj_attributes(self, obj, problem_params:dict):
         problem_params["has_platform"] = True
 
         obj_attributes = dict()
@@ -140,6 +185,9 @@ class PlatformType(PddlObjectType):
         obj_attributes["platform_width"] = get_width(obj)
         return obj_attributes
 
+    def _compute_obj_attributes(self, obj, problem_params: dict):
+        return self._compute_observable_obj_attributes(obj, problem_params)
+
 class BlockType(PddlObjectType):
     def __init__(self,block_life_multiplier = 1.0, block_mass_coeff=1.0):
         super(BlockType, self).__init__()
@@ -148,7 +196,7 @@ class BlockType(PddlObjectType):
         self.hyper_parameters["block_life_multiplier"] = block_life_multiplier
         self.hyper_parameters["block_mass_coeff"] = block_mass_coeff
 
-    def _compute_obj_attributes(self, obj, problem_params: dict):
+    def _compute_observable_obj_attributes(self, obj, problem_params:dict):
         problem_params["has_block"] = True
 
         obj_attributes = dict()
@@ -158,6 +206,12 @@ class BlockType(PddlObjectType):
         obj_attributes["y_block"] = get_y_coordinate(obj, groundOffset)
         obj_attributes["block_height"] = get_height(obj)
         obj_attributes["block_width"] = get_width(obj)
+        return obj_attributes
+
+    def _compute_obj_attributes(self, obj, problem_params: dict):
+        obj_attributes = self._compute_observable_obj_attributes(obj, problem_params)
+
+        groundOffset = problem_params["groundOffset"]
         obj_attributes["block_life"] = self.__compute_block_life()
         obj_attributes["block_mass"] = self.__compute_block_mass()
         obj_attributes["block_stability"] = self.__compute_stability(obj_attributes["block_width"],
@@ -265,8 +319,9 @@ class MetaModel():
         problem_params["slingshot"]=slingshot
         problem_params["groundOffset"] = slingshot[1]['bbox'].bounds[3]
         # Above line redundant since we're storing the slingshot also, but it seems easier to store it also to save computations of the offset everytime we use it.
-        problem_params["pigs"] = []
-        problem_params["birds"] = []
+        problem_params["pigs"] = set()
+        problem_params["birds"] = set()
+        problem_params["initial_state"]=True # This marks that SBState describes the initial state. Used for setting the bird's location in the slingshot's location. TODO: Reconsider this design choice
 
         # Add objects to problem
         for obj in sb_state.objects.items():
@@ -308,6 +363,45 @@ class MetaModel():
 
         prob_simplified = self.create_simplified_problem(prob)
         return prob, prob_simplified
+
+    ''' Translate the given observed SBState to a PddlPlusState object. 
+    This is designed to handle intermediate state observed during execution '''
+    def translate_sb_state_to_pddl_state(self, sb_state:SBState):
+        pddl_state = PddlPlusState()
+
+        # we should probably use the self.sling on the object
+        slingshot = self.get_sling(sb_state)
+
+        # A dictionary with global problem parameters
+        state_params = dict()
+        state_params["has_platform"] = False
+        state_params["has_block"] = False
+        state_params["bird_index"] = 0
+        state_params["slingshot"] = slingshot
+        state_params["groundOffset"] = slingshot[1]['bbox'].bounds[3]
+        # Above line redundant since we're storing the slingshot also, but it seems easier to store it also to save computations of the offset everytime we use it.
+        state_params["pigs"] = set()
+        state_params["birds"] = set()
+        state_params["initial_state"] = False  # This marks that SBState describes the initial state. Used for setting the bird's location in the slingshot's location. TODO: Reconsider this design choice
+
+        # Add objects to problem
+        for obj in sb_state.objects.items():
+            # Get type
+            type_str = obj[1]['type']
+            if 'bird' in type_str.lower():
+                type = self.object_types["bird"]
+            else:
+                if type_str in self.object_types:
+                    type = self.object_types[type_str]
+                else:
+                    logger.info("Unknown object type: %s" % type_str)
+                    # TODO Handle unknown objects in some way (Error? default object?)
+                    continue
+
+            # Add object of this type to the problem
+            type.add_object_to_state(pddl_state, obj, state_params)
+
+        return pddl_state
 
     ''' Create a simplified version of the given problem, to help the planner plan '''
     def create_simplified_problem(self, prob : PddlPlusProblem):
