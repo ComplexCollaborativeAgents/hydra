@@ -2,6 +2,17 @@ from agent.planning.pddl_plus import *
 import copy
 import math
 
+
+import logging
+
+fh = logging.FileHandler("hydra.log",mode='w')
+formatter = logging.Formatter('%(asctime)-15s %(name)s - %(levelname)s - %(message)s')
+fh.setFormatter(formatter)
+logger = logging.getLogger("pddl_meta_model")
+logger.setLevel(logging.INFO)
+logger.addHandler(fh)
+
+
 ''' Utility functions '''
 def get_x_coordinate(obj):
     return round(abs(obj[1]['bbox'].bounds[2] + obj[1]['bbox'].bounds[0]) / 2)
@@ -90,9 +101,11 @@ class Block(PddlObject):
         raise ValueError("Object types mess!!! block is not a super type")
 
         self.groundOffset = groundOffset
+        self.block_life_multiplier = block_life_multiplier
+        self.block_mass_coeff = block_mass_coeff
+
         self.attributes["x_block"] = get_x_coordinate(obj)
         self.attributes["y_block"] = get_y_coordinate(obj, self.groundOffset)
-
         self.attributes["block_height"] = get_height(obj)
         self.attributes["block_width"] = get_width(obj)
         self.attributes["block_life"] = self.__compute_block_life()
@@ -107,6 +120,14 @@ class Block(PddlObject):
         return 265 * (self.attributes["block_width"] / self.attributes["block_height"]) \
                * (1 - (self.attributes["y_block"] / self.groundOffset)) \
                * self.block_mass_coeff
+
+    ''' Populate a PDDL+ problem with details about this object
+     HACk to change the type of the object in PDDL to block, overriding to some extent the super.add_to_problem.
+      This is because UPMurphey currently does not support type heirarchy. '''
+    def add_to_problem(self, prob: PddlPlusProblem):
+        super(Block,self).add_to_problem(prob)
+        prob.objects.remove((self.name, self.type))
+        prob.objects.append((self.name, "block"))
 
 
 class Wood(Block):
@@ -136,8 +157,30 @@ class MetaModel():
     ''' Sets the default meta-model'''
     def __init__(self):
         # TODO: Read this from file instead of hard coding
-        self.defaults = dict()
-        self.defaults["metric"] = 'minimize(total-time)'
+
+        self.constant_numeric_facts = dict()
+        self.constant_boolean_facts = dict()
+        self.constant_numeric_facts['gravity']=134.2
+        self.constant_numeric_facts['active_bird']=0
+        self.constant_numeric_facts['angle']=0
+        self.constant_boolean_facts['angle_adjusted']=False
+        self.constant_boolean_facts['pig_killed']=False
+        self.constant_numeric_facts['angle_rate'] = 10
+        self.constant_numeric_facts['ground_damper'] = 0.4
+
+        self.metric = 'minimize(total-time)'
+
+        # Mapping of type to Pddl object. All objects of this type will be clones of this pddl object
+        self.object_template = dict()
+        self.object_template["pig"]=Pig()
+        self.object_template["bird"]=Bird()
+        self.object_template["block"]=Block()
+        self.object_template["wood"]=Wood()
+        self.object_template["ice"] = Ice()
+        self.object_template["stone"] = Stone()
+        self.object_template["TNT"] = TNT()
+        self.object_template["platform"] = Platform()
+
 
     ''' Get the sling object '''
     def get_sling(self):
@@ -160,7 +203,7 @@ class MetaModel():
         prob = PddlPlusProblem()
         prob.domain = 'angry_birds_scaled'
         prob.name = 'angry_birds_prob'
-        prob.metric = self.default["metric"]
+        prob.metric = self.metric
         prob.objects = []
         prob.init = []
         prob.goal = []
@@ -173,46 +216,56 @@ class MetaModel():
 
         platform = False
         block = False
+        state_objects = list()
         for obj in self.objects.items():
             if obj[1]['type'] == 'pig':
-                self.add_pig(obj, prob, groundOffset)
+                state_objects.append(Pig(obj, groundOffset))
             elif 'Bird' in obj[1]['type']:
-                self.add_bird(obj, prob, bird_index, groundOffset, slingshot)
+                state_objects.append(Bird(obj, groundOffset,bird_index))
                 bird_index += 1
-            elif obj[1]['type'] == 'wood' or obj[1]['type'] == 'ice' or obj[1]['type'] == 'stone':
-                self.add_block(obj, prob, block, groundOffset)
-                block = True
+            elif obj[1]['type'] == 'wood':
+                state_objects.append(Wood(obj, groundOffset))
+            elif obj[1]['type'] == 'ice':
+                state_objects.append(Ice(obj, groundOffset))
+            elif obj[1]['type'] == 'stone':
+                state_objects.append(Stone(obj, groundOffset))
+            elif obj[1]['type'] == 'TNT':
+                state_objects.append(TNT(obj, groundOffset))
+            elif obj[1]['type'] == 'unknown':
+                state_objects.append(Block(obj,groundOffset))
             elif obj[1]['type'] == 'hill':
-                self.add_platform(obj, prob, groundOffset)
+                state_objects.append(Platform(obj,groundOffset))
                 platform = True
             elif obj[1]['type'] == 'slingshot':
                 slingshot = obj
+            else:
+                logger.info("Unknown object type: %s" % obj[1]['type'])
+            # TODO Handle unknown objects in some way (Error? default object? log?)
 
-        self.add_constants(prob)
-
+        # Add objects and their properties to the PDDL+ problem
+        for obj in state_objects:
+            obj.add_to_problem(prob)
+            if isinstance(obj,Block):
+                block=True
+            if isinstance(obj, Platform):
+                platfor=True
         if not platform:
             prob.objects.append(['dummy_platform','platform'])
         if not block:
             prob.objects.append(['dummy_block','block'])
 
+        # Add constants
+        for numeric_constant in self.constant_numeric_facts:
+            prob.init.append(['=',[numeric_constant], self.constant_numeric_facts[numeric_constant]])
+        for boolean_constant in self.constant_boolean_facts:
+            if self.constant_boolean_facts[boolean_constant]:
+                prob.init.append([boolean_constant])
+            else:
+                prob.init.append(['not',[boolean_constant]])
+
+
         prob_simplified = self.create_simplified_problem(prob)
-
-        # print("\n\nPROB: " + str(prob.goal))
-        # print("\nPROB SIMPLIFIED: " + str(prob_simplified.goal))
-
         return prob, prob_simplified
-
-    ''' Add constants to the created PDDL+ problem '''
-    def add_constants(self, prob : PddlPlusProblem):
-        for fact in [['=', ['gravity'], 134.2],
-                     ['=', ['active_bird'], 0],
-                     ['=', ['angle'], 0],
-                     ['not', ['angle_adjusted']],
-                     ['not', ['pig_killed']],
-                     ['=', ['angle_rate'], 10],
-                     ['=', ['ground_damper'], 0.4]
-                     ]:
-            prob.init.append(fact)
 
     ''' Create a simplified version of the given problem, to help the planner plan '''
     def create_simplified_problem(self, prob : PddlPlusProblem):
@@ -225,182 +278,4 @@ class MetaModel():
         prob_simplified.goal = list()
         prob_simplified.goal.append(['pig_killed'])
         return prob_simplified
-
-    def add_platform(self, obj, prob, groundOffset):
-        obj_name = '{}_{}'.format(obj[1]['type'], obj[0])
-        prob.init.append(
-            ['=', ['x_platform', obj_name], round((obj[1]['bbox'].bounds[2] + obj[1]['bbox'].bounds[0]) / 2)])
-        prob.init.append(['=', ['y_platform', obj_name],
-                          abs(round(abs(obj[1]['bbox'].bounds[1] + obj[1]['bbox'].bounds[3]) / 2) - groundOffset)])
-        prob.init.append(['=', ['platform_height', obj_name], abs(obj[1]['bbox'].bounds[3] - obj[1]['bbox'].bounds[1])])
-        prob.init.append(['=', ['platform_width', obj_name], abs(obj[1]['bbox'].bounds[2] - obj[1]['bbox'].bounds[0])])
-        prob.objects.append([obj_name, 'platform'])
-
-
-    def add_block(self, obj, prob, groundOffset):
-        obj_name = '{}_{} '.format(obj[1]['type'], obj[0])
-        bl_x = round((obj[1]['bbox'].bounds[2] + obj[1]['bbox'].bounds[0]) / 2)
-        bl_y = abs(round(abs(obj[1]['bbox'].bounds[1] + obj[1]['bbox'].bounds[3]) / 2) - groundOffset)
-        prob.init.append(['=', ['x_block', obj_name], bl_x])
-        prob.init.append(['=', ['y_block', obj_name], bl_y])
-        # prob.init.append(['block_supporting',obj_name])
-        bl_height = abs(obj[1]['bbox'].bounds[3] - obj[1]['bbox'].bounds[1])
-        bl_width = abs(obj[1]['bbox'].bounds[2] - obj[1]['bbox'].bounds[0])
-        prob.init.append(['=', ['block_height', obj_name], bl_height])
-        prob.init.append(['=', ['block_width', obj_name], bl_width])
-        block_life_multiplier = 1.0
-        block_mass_coeff = 1.0
-        if obj[1]['type'] == 'wood':
-            block_life_multiplier = 1.0
-            block_mass_coeff = 0.375 * 1.3
-        elif obj[1]['type'] == 'ice':
-            block_life_multiplier = 0.5
-            block_mass_coeff = 0.125 * 2
-        elif obj[1]['type'] == 'stone':
-            block_life_multiplier = 2.0
-            block_mass_coeff = 1.2
-        elif obj[1]['type'] == 'TNT':
-            block_life_multiplier = 0.001
-            block_mass_coeff = 1.2
-            prob.init.append(['block_explosive', obj_name])
-        else:  # not sure how this could ever happen
-            block_life_multiplier = 2.0
-            block_mass_coeff = 1.2
-        prob.init.append(['=', ['block_life', obj_name], str(math.ceil(265 * block_life_multiplier))])
-        prob.init.append(['=', ['block_mass', obj_name], str(block_mass_coeff)])
-        bl_stability = 265 * (bl_width / bl_height) * (1 - (bl_y / groundOffset)) * block_mass_coeff
-        prob.init.append(['=', ['block_stability', obj_name], bl_stability])
-        prob.objects.append((obj_name, 'block'))
-
-    ''' Add a Bird to the PDDL+ problem '''
-    def add_bird(self,obj, prob : PddlPlusProblem, bird_index, groundOffset, slingshot):
-        obj_name = '{}_{}'.format(obj[1]['type'], obj[0])
-        prob.objects.append((obj_name, 'Bird'))  # This probably needs to change
-        # prob.init.append(['not',['bird_dead',obj_name]])
-        prob.init.append(['not', ['bird_released', obj_name]])
-        prob.init.append(['=', ['x_bird', obj_name],
-                          round((slingshot[1]['bbox'].bounds[0] + slingshot[1]['bbox'].bounds[2]) / 2) - 0])
-        prob.init.append(['=', ['y_bird', obj_name], round(
-            abs(((slingshot[1]['bbox'].bounds[1] + slingshot[1]['bbox'].bounds[3]) / 2) - groundOffset) - 0)])
-        prob.init.append(['=', ['v_bird', obj_name], 270])
-        prob.init.append(['=', ['vx_bird', obj_name], 0])
-        prob.init.append(['=', ['vy_bird', obj_name], 0])
-        prob.init.append(['=', ['m_bird', obj_name], 1])
-        prob.init.append(['=', ['bounce_count', obj_name], 0])
-        prob.init.append(['=', ['bird_id', obj_name], bird_index])
-
-    ''' Add a pig object to the problem '''
-    def add_pig(self, obj, prob, groundOffset):
-        obj_name = '{}_{}'.format(obj[1]['type'], obj[0])
-        prob.init.append(['not', ['pig_dead', obj_name]])
-        prob.init.append(['=', ['x_pig', obj_name], round(abs(obj[1]['bbox'].bounds[2] + obj[1]['bbox'].bounds[0]) / 2)])
-        prob.init.append(['=', ['y_pig', obj_name],
-                          abs(round(abs(obj[1]['bbox'].bounds[1] + obj[1]['bbox'].bounds[3]) / 2) - groundOffset)])
-        prob.init.append(['=', ['pig_radius', obj_name], self.compute_radius(obj)])
-        prob.init.append(['=', ['m_pig', obj_name], self.defaults['m_pig']])
-        prob.goal.append(['pig_dead', obj_name])
-        prob.objects.append((obj_name, obj[1]['type']))
-
-    ''' Translate an intermediate state to PddlPlusState. 
-    Key difference between this method and translate_init_state... method is that here we consider the location of the birds'''
-    def translate_intermediate_state_to_pddl_state(self):
-        state_as_list = list()
-
-        #we should probably use the self.sling on the object
-        slingshot = self.get_sling()
-        groundOffset = slingshot[1]['bbox'].bounds[3]
-
-        slingshot_x = round((slingshot[1]['bbox'].bounds[0] + slingshot[1]['bbox'].bounds[2]) / 2)
-        slingshot_y = round(abs(((slingshot[1]['bbox'].bounds[1] + slingshot[1]['bbox'].bounds[3]) / 2) - groundOffset) - 0)
-        bird_index = 0
-        platform = False
-        block = False
-
-        for o in self.objects.items():
-            if o[1]['type'] == 'pig':
-                obj_name = '{}_{}'.format(o[1]['type'], o[0])
-                state_as_list.append(['not', ['pig_dead',obj_name]])
-                state_as_list.append(['=', ['x_pig',obj_name], self.compute_x_coordinate(o)])
-                state_as_list.append(['=', ['y_pig',obj_name], self.compute_y_coordinate(groundOffset, o)])
-                state_as_list.append(['=', ['pig_radius', obj_name], self.compute_radius(o)])
-                state_as_list.append(['=', ['m_pig', obj_name], 1])
-            elif 'bird' in o[1]['type'].lower():
-                obj_name = '{}_{}'.format(o[1]['type'], o[0])
-                # prob.init.append(['not',['bird_dead',obj_name]])
-                # prob.init.append(['not',['bird_released',obj_name]])
-                self.compute_x_coordinate(o)
-
-                # Need to separate the case where we're before shooting the bird and after.
-                # Before: the bird location is considered as the location of the slingshot,
-                # afterwards, it's the location of the birds bounding box
-                x_bird = self.compute_x_coordinate(o)
-                if x_bird>slingshot_x:
-                    state_as_list.append(['=',['x_bird',obj_name], self.compute_x_coordinate(o)])
-                    state_as_list.append(['=',['y_bird',obj_name], self.compute_y_coordinate(groundOffset,o)])
-                else:
-                    state_as_list.append(['=', ['x_bird', obj_name], slingshot_x])
-                    state_as_list.append(['=', ['y_bird', obj_name], slingshot_y])
-
-
-                # prob.init.append(['=',['v_bird',obj_name], 270])  Computing velocity is more difficult
-                # prob.init.append(['=',['vx_bird',obj_name], 0])
-                # prob.init.append(['=',['vy_bird',obj_name], 0])
-                state_as_list.append(['=',['m_bird',obj_name], 1])
-                #prob.init.append(['=',['bounce_count',obj_name], 0])
-                state_as_list.append(['=',['bird_id',obj_name],bird_index])
-                bird_index += 1
-            elif o[1]['type'] == 'wood' or o[1]['type'] == 'ice' or o[1]['type'] == 'stone':
-                block = True
-                obj_name = '{}_{} '.format(o[1]['type'], o[0])
-                state_as_list.append(['=',['x_block', obj_name], round((o[1]['bbox'].bounds[2] + o[1]['bbox'].bounds[0])/2)])
-                state_as_list.append(['=', ['y_block',obj_name], self.compute_y_coordinate(groundOffset, o)])
-                state_as_list.append(['=',['block_height',obj_name],abs(
-                    o[1]['bbox'].bounds[3] - o[1]['bbox'].bounds[1])])
-                state_as_list.append(['=',['block_width',obj_name],abs(
-                    o[1]['bbox'].bounds[2] - o[1]['bbox'].bounds[0])])
-                block_life_multiplier = 1.0
-                block_mass_coeff = 1.0
-                if o[1]['type'] == 'wood':
-                    block_life_multiplier = 1.0
-                    block_mass_coeff = 0.375
-                elif o[1]['type'] == 'ice':
-                    block_life_multiplier = 0.5
-                    block_mass_coeff = 0.125
-                elif o[1]['type'] == 'stone':
-                    block_life_multiplier = 2.0
-                    block_mass_coeff = 1.2
-                else: # not sure how this could ever happen
-                    block_life_multiplier = 2.0
-                    block_mass_coeff = 1.2
-                state_as_list.append(['=',['block_life',obj_name],str(265 * block_life_multiplier)])
-                state_as_list.append(['=',['block_mass',obj_name],str(block_mass_coeff)])
-            elif o[1]['type'] == 'hill':
-                platform = True
-                obj_name ='{}_{}'.format(o[1]['type'], o[0])
-                state_as_list.append(['=',['x_platform', obj_name], round((o[1]['bbox'].bounds[2] + o[1]['bbox'].bounds[0])/2)])
-                state_as_list.append(['=', ['y_platform', obj_name], self.compute_y_coordinate(groundOffset, o)])
-                state_as_list.append(['=', ['platform_height', obj_name], abs(o[1]['bbox'].bounds[3] - o[1]['bbox'].bounds[1])])
-                state_as_list.append(['=', ['platform_width', obj_name], abs(o[1]['bbox'].bounds[2] - o[1]['bbox'].bounds[0])])
-            elif o[1]['type'] == 'slingshot':
-                slingshot = o
-        for fact in [['=',['gravity'], 134.2],
-                     ['=',['active_bird'], 0],
-                     ['=', ['angle'], 0],
-                     ['not', ['angle_adjusted']],
-                     ['=',['angle_rate'], 10],
-                     ['=', ['ground_damper'], 0.4]
-                     ]:
-            state_as_list.append(fact)
-        return PddlPlusState(state_as_list)
-
-    ''' Computes the y coordinate of the given object as the center of its bounding box, 
-    corrected for the given groundOffset '''
-    def compute_y_coordinate(self, groundOffset, o):
-        return abs(round(abs(o[1]['bbox'].bounds[1] + o[1]['bbox'].bounds[3]) / 2) - groundOffset)
-
-    ''' Computes the x coordinate of the given object as the center of its boundingbox.'''
-    def compute_x_coordinate(self, o):
-        return round(abs(o[1]['bbox'].bounds[2] + o[1]['bbox'].bounds[0]) / 2)
-
-    ''' Computes the radius of the given object '''
 
