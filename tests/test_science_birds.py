@@ -51,6 +51,39 @@ def test_science_birds_agent(launch_science_birds):
     scores = env.get_all_scores()
     assert len([x for x in scores if x > 0]) == 3 # solved two problems
 
+@pytest.mark.skipif(settings.HEADLESS==True, reason="headless does not work in docker")
+def test_science_birds_repairing_agent(launch_science_birds):
+    env = launch_science_birds
+    hydra = HydraAgent(env)
+
+    # Inject fault
+    original_gravity = hydra.meta_model.constant_numeric_fluents['gravity']
+    hydra.meta_model.constant_numeric_fluents['gravity'] = 250.0
+    bad_meta_model = hydra.meta_model
+    hydra.main_loop(max_actions=2) # enough actions to play the first level
+    scores = env.get_all_scores()
+    assert sum(scores)==0 # Should fail if gravity is wrong
+
+    i=0
+    for state in env.intermediate_states:
+        state = hydra.perception.process_state(state)
+        state.serialize_current_state("repair-%d.p" % i)
+        i = i+1
+
+    # Redu first level
+    cmd = 'cp {}/data/science_birds/level-14.xml {}/00001.xml'.format(str(settings.ROOT_PATH), str(settings.SCIENCE_BIRDS_LEVELS_DIR))
+    subprocess.run(cmd, shell=True)
+
+    hydra = HydraAgent(env)
+    hydra.meta_model = bad_meta_model
+    hydra.main_loop(max_actions=2) # enough actions to play the first level
+
+    # # Run repaired
+    # hydra.meta_model.constant_numeric_fluents['gravity'] = original_gravity
+    # hydra.main_loop(max_actions=2) # enough actions to play the first level
+    # scores = env.get_all_scores()
+    # assert len([x for x in scores if x > 0]) == 1 # solved two problems
+
 @pytest.mark.skipif(False, reason="headless does not work in docker")
 def test_generate_intermediate_states(launch_science_birds):
     env = launch_science_birds
@@ -124,9 +157,10 @@ def test_science_birds(launch_science_birds):
     # print(str(env.cur_sling.bottom_right))
     meta_model =MetaModel()
     planner = pl.Planner()
-    pddl_problem = state.translate_state_to_pddl()
+    (pddl_problem, pddl_problem_simplified) = state.translate_state_to_pddl()
     planner.write_problem_file(pddl_problem)
-    pddl_problem2 = meta_model.translate_sb_state_to_pddl_problem(state)
+    pddl_problem2 = meta_model.create_pddl_problem(state)
+    pddl_problem2_simplified = meta_model.create_simplified_problem(pddl_problem2)
 
     ref_point = env.tp.get_reference_point(state.sling)
     #release_point_from_plan = env.tp.find_release_point(state.sling, 0.174533) # 10 degree launch

@@ -36,7 +36,8 @@ class Planner():
 
 
         # pddl, pddl_simplified = meta_model.translate_sb_state_to_pddl_problem(state)
-        pddl, pddl_simplified  = meta_model.translate_sb_state_to_pddl_problem(state)
+        pddl = meta_model.create_pddl_problem(state)
+        pddl_simplified = meta_model.create_simplified_problem(pddl)
         if simplified_problem:
             self.write_problem_file(pddl_simplified)
 

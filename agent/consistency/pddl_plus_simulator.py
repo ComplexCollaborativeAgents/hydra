@@ -153,6 +153,11 @@ class PddlPlusSimulator():
     def __precondition_hold(self, state : PddlPlusState, single_precondition):
         if single_precondition[0]=="not":
             return not self.__precondition_hold(state, single_precondition[1])
+        if single_precondition[0]=="or":
+            for precondition in single_precondition[1:]:
+                if self.__precondition_hold(precondition, state)==True:
+                    return True
+            return False
         return self.__eval(single_precondition, state)
 
     ''' Apply the specified effect ont he given state '''
@@ -216,7 +221,6 @@ class PddlPlusSimulator():
                     fluent_name = (element[0],) # Todo: understand why this hack is needed
                 else:
                     fluent_name = tuple(element)
-
                 if fluent_name in state.numeric_fluents:
                     return float(state.numeric_fluents[fluent_name])
                 else:

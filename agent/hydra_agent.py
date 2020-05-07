@@ -7,7 +7,7 @@ import logging
 import math
 
 from worlds.science_birds_interface.client.agent_client import GameState
-
+from agent.planning.pddl_meta_model import *
 
 fh = logging.FileHandler("hydra.log",mode='w')
 formatter = logging.Formatter('%(name)s - %(levelname)s - %(message)s')
@@ -27,9 +27,10 @@ class HydraAgent():
         self.perception = Perception()
         self.consistency_checker = ConsistencyChecker()
         self.planner = Planner()
+        self.meta_model = MetaModel()
 
 
-    def main_loop(self,max_actions=1000):
+    def main_loop(self,max_actions=1000, restart_if_lose = False):
         logger.info("[hydra_agent_server] :: Entering main loop")
         t = 0
         state = self.env.get_current_state()
@@ -38,10 +39,10 @@ class HydraAgent():
             if self.consistency_checker.is_consistent(state):
                 if state.game_state.value == GameState.PLAYING.value:
                     logger.info("[hydra_agent_server] :: Invoking Planner".format())
-                    plan = self.planner.make_plan(state)
+                    plan = self.planner.make_plan(state, meta_model=self.meta_model)
                     if len(plan) == 0 or plan[0][0] == "out of memory":
                         logger.info("[hydra_agent_server] :: Invoking Planner on a Simplified Problem".format())
-                        plan = self.planner.make_plan(state, True)
+                        plan = self.planner.make_plan(state, meta_model=self.meta_model, simplified_problem=True)
                         if len(plan) == 0 or plan[0][0] == "out of memory":
                             plan.append(("dummy-action", 20.0))
                     logger.info("[hydra_agent_server] :: Taking action: {}".format(str(plan[0])))

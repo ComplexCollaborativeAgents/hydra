@@ -8,8 +8,8 @@ from agent.planning.pddl_plus import *
 import copy
 import math
 from worlds.science_birds import SBState
-
-
+from agent.planning.pddlplus_parser import *
+import settings
 import logging
 
 fh = logging.FileHandler("hydra.log",mode='w')
@@ -79,8 +79,9 @@ class PddlObjectType():
             fluent_name = (attribute, name)
             # If attribute is Boolean no need for an "=" sign
             if isinstance(value,  bool):
-                assert value == True # We currently can't observe a false boolean fluent
-                pddl_state.boolean_fluents.add(fluent_name)
+                if value==True:
+                    pddl_state.boolean_fluents.add(fluent_name)
+                # TODO: Think how to handle booean fluents with False value. Not as trivial as it sounds
             else: # Attribute is a number
                 pddl_state.numeric_fluents[fluent_name]=value
 
@@ -281,9 +282,8 @@ class MetaModel():
         self.object_types["TNT"] = TNTType()
         self.object_types["hill"] = PlatformType()
 
-
     ''' Get the sling object '''
-    def get_sling(self, sb_state :SBState):
+    def __get_sling_obj(self, sb_state :SBState):
         sling = None
         for o in sb_state.objects.items():
             if o[1]['type'] == 'slingshot':
@@ -292,7 +292,7 @@ class MetaModel():
 
     ''' Translate the initial SBState, as observed, to a PddlPlusProblem object. 
     Note that in the initial state, we ignore the location of the bird and assume it is on the slingshot. '''
-    def translate_sb_state_to_pddl_problem(self, sb_state : SBState):
+    def create_pddl_problem(self, sb_state : SBState):
         # There is an annoying disconnect in representations.
         # 'x_pig[pig_4]:450' vs. (= (x_pig pig4) 450)
         # 'pig_dead[pig_4]:False vs. (not (pig_dead pig_4))
@@ -309,7 +309,7 @@ class MetaModel():
         prob.goal = []
 
         #we should probably use the self.sling on the object
-        slingshot = self.get_sling(sb_state)
+        slingshot = self.__get_sling_obj(sb_state)
 
         # A dictionary with global problem parameters
         problem_params = dict()
@@ -361,16 +361,15 @@ class MetaModel():
         for pig in pigs:
             prob.goal.append(['pig_dead', pig])
 
-        prob_simplified = self.create_simplified_problem(prob)
-        return prob, prob_simplified
+        return prob
 
     ''' Translate the given observed SBState to a PddlPlusState object. 
     This is designed to handle intermediate state observed during execution '''
-    def translate_sb_state_to_pddl_state(self, sb_state:SBState):
+    def create_pddl_state(self, sb_state:SBState):
         pddl_state = PddlPlusState()
 
         # we should probably use the self.sling on the object
-        slingshot = self.get_sling(sb_state)
+        slingshot = self.__get_sling_obj(sb_state)
 
         # A dictionary with global problem parameters
         state_params = dict()
@@ -403,7 +402,15 @@ class MetaModel():
 
         return pddl_state
 
-    ''' Create a simplified version of the given problem, to help the planner plan '''
+    ''' Creates a PDDL+ domain object for the given SB state 
+    Current implementation simply copies an existing domain file '''
+    def create_pddl_domain(self, sb_State: SBState):
+        domain_file = "%s/sb_domain.pddl" % str(settings.PLANNING_DOCKER_PATH)
+        domain_parser = PddlDomainParser()
+        return domain_parser.parse_pddl_domain(domain_file)
+
+    ''' Create a simplified version of the given problem, to help the planner plan 
+    TODO: Move this to planner'''
     def create_simplified_problem(self, prob : PddlPlusProblem):
         prob_simplified = PddlPlusProblem()
         prob_simplified.name = copy.copy(prob.name)

@@ -48,8 +48,12 @@ class SingleNumericFluentConsistencyChecker(ConsistencyChecker):
         return math.sqrt(max_error)
 
 
-''' Checks consistency by considering the value of a single numeric fluent '''
+''' Checks consistency by considering the value of a set of numeric fluents '''
 class NumericFluentsConsistencyChecker(ConsistencyChecker):
+
+    def __init__(self, fluent_names):
+        self.fluent_names = fluent_names
+
     ''' The first parameter is a list of (state,time) pairs, the second is just a list of states '''
     ''' Current implementation ignores order, and just looks for the best time for each state in the state_seq, 
     and ignore cases where the fluent is not in the un-timed state seqqaiming to minimize its distance from the fitted piecewise-linear interpolation. 
@@ -58,15 +62,15 @@ class NumericFluentsConsistencyChecker(ConsistencyChecker):
     def estimate_consistency(self, timed_state_seq: list, state_seq: list):
         # Get values over time for each fluent
         fluent_values = list()
-        fluent_to_times = dict()
-        fluent_to_values = dict()
+        fluent_to_data_points = dict()
         for (state, t) in timed_state_seq:
-            for fluent_name in state.numeric_fluents:
-                if fluent_name not in fluent_to_times: # A new fluent
-                    fluent_to_times[fluent_name]=[]
-                    fluent_to_values[fluent_name] = []
-                fluent_to_times[fluent_name].append(t)
-                fluent_to_values[fluent_name].append(t)
+            for fluent_name in self.fluent_names:
+                if fluent_name in state.numeric_fluents:
+                    if fluent_name not in fluent_to_data_points: # A new fluent
+                        fluent_to_data_points[fluent_name]=[]
+
+                    fluent_to_data_points[fluent_name].append((t,state[consistency_fluent]))
+
 
             # TODO: Handle numeric fluents that disappear over time
 
