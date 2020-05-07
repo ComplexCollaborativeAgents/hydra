@@ -39,6 +39,7 @@ class HydraAgent():
                 if state and self.consistency_checker.is_consistent(state):
                     logger.info("[hydra_agent_server] :: Invoking Planner".format())
                     plan = self.planner.make_plan(state)
+                    plan = []
                     if len(plan) == 0 or plan[0][0] == "out of memory":
                         logger.info("[hydra_agent_server] :: Invoking Planner on a Simplified Problem".format())
                         plan = self.planner.make_plan(state, True)
@@ -66,12 +67,12 @@ class HydraAgent():
             elif state.game_state.value == GameState.WON.value:
                 logger.info("[hydra_agent_server] :: Level {} complete".format(self.current_level))
                 self.current_level = self.env.sb_client.load_next_available_level()
-                self.novelty_existence = self.env.sb_client.get_novelty_info()
+                #self.novelty_existence = self.env.sb_client.get_novelty_info()
                 state = self.env.get_current_state()
             elif state.game_state.value == GameState.LOST.value:
                 logger.info("[hydra_agent_server] :: Level {} complete Lost".format(self.current_level))
                 self.current_level = self.env.sb_client.load_next_available_level()
-                self.novelty_existence = self.env.sb_client.get_novelty_info()
+                #self.novelty_existence = self.env.sb_client.get_novelty_info()
                 state = self.env.get_current_state()
             elif state.game_state.value == GameState.NEWTRAININGSET.value:
                 # DO something to start a fresh agent for a new training set
@@ -81,7 +82,7 @@ class HydraAgent():
                 self.training_level_backup = 0
                 change_from_training = True
                 self.current_level = self.env.sb_client.load_next_available_level()
-                self.novelty_existence = self.env.sb_client.get_novelty_info()
+                #self.novelty_existence = self.env.sb_client.get_novelty_info()
                 state = self.env.get_current_state()
             elif state.game_state.value == GameState.EVALUATION_TERMINATED.value:
                 # store info and disconnect the agent as the evaluation is finished
@@ -94,6 +95,17 @@ class HydraAgent():
                 novelty_likelihood = 0.1
                 non_novelty_likelihood = 0.9
                 self.env.sb_client.report_novelty_likelihood(novelty_likelihood, non_novelty_likelihood)
+                state = self.env.get_current_state()
+            elif state.game_state.value == GameState.NEWTRIAL.value:
+                # DO something to start a fresh agent for a new training set
+                (time_limit, interaction_limit, n_levels, attempts_per_level, mode, seq_or_set,
+                 allowNoveltyInfo) = self.env.sb_client.ready_for_new_set()
+                logger.info("New Trial Request Received. Refresh agent.")
+                self.current_level = 0
+                self.training_level_backup = 0
+                change_from_training = True
+                self.current_level = self.env.sb_client.load_next_available_level()
+                #self.novelty_existence = self.env.sb_client.get_novelty_info()
                 state = self.env.get_current_state()
             else:
                 logger.info("[hydra_agent_server] :: Unexpected state.game_state.value {}".format(state.game_state.value))

@@ -17,7 +17,7 @@ from utils.state import State, Action, World
 #import shapely.geometry as geo
 import logging
 
-fh = logging.FileHandler("hydra.log",mode='w')
+fh = logging.FileHandler("hydra.log",mode='a')
 formatter = logging.Formatter('%(name)s - %(levelname)s - %(message)s')
 fh.setFormatter(formatter)
 logger = logging.getLogger("Science Birds")
