@@ -7,6 +7,7 @@ import settings
 import math
 import time
 import agent.planning.planner as pl
+from agent.planning.pddl_meta_model import *
 from worlds.science_birds_interface.client.agent_client import GameState
 
 from pprint import pprint
@@ -121,9 +122,11 @@ def test_science_birds(launch_science_birds):
         path.join(settings.ROOT_PATH, 'tmp',  'dx_test_{}.p'.format(count)))
 
     # print(str(env.cur_sling.bottom_right))
-
+    meta_model =MetaModel()
     planner = pl.Planner()
-    planner.write_problem_file(state.translate_initial_state_to_pddl_problem())
+    pddl_problem = state.translate_state_to_pddl()
+    planner.write_problem_file(pddl_problem)
+    pddl_problem2 = meta_model.translate_sb_state_to_pddl_problem(state)
 
     ref_point = env.tp.get_reference_point(state.sling)
     #release_point_from_plan = env.tp.find_release_point(state.sling, 0.174533) # 10 degree launch

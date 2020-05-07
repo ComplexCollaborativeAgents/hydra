@@ -9,6 +9,7 @@ from os import path, chdir
 import subprocess
 import re
 from agent.planning.pddl_meta_model import MetaModel
+from worlds.science_birds import SBState
 class Planner():
     domain_file = None
     problem = None # current state of the world
@@ -18,7 +19,7 @@ class Planner():
     def __init__(self):
         pass
 
-    def make_plan(self,state,meta_model: MetaModel, simplified_problem=False):
+    def make_plan(self,state : SBState, meta_model: MetaModel =MetaModel(), simplified_problem=False):
         '''
         The plan should be a list of actions that are either executable in the environment
         or invoking the RL agent
@@ -34,7 +35,8 @@ class Planner():
         f.close()
 
 
-        pddl, pddl_simplified = meta_model.translate_sb_state_to_pddl_problem(state)
+        # pddl, pddl_simplified = meta_model.translate_sb_state_to_pddl_problem(state)
+        pddl, pddl_simplified  = meta_model.translate_sb_state_to_pddl_problem(state)
         if simplified_problem:
             self.write_problem_file(pddl_simplified)
 

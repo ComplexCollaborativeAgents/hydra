@@ -89,9 +89,9 @@ class SBState(State):
                 prob.init.append(['=', ['m_pig', obj_name], 1])
                 prob.goal.append(['pig_dead', obj_name])
                 prob.objects.append([obj_name,o[1]['type']])
-            elif 'bird' in o[1]['type']:
+            elif 'Bird' in o[1]['type']:
                 obj_name = '{}_{}'.format(o[1]['type'], o[0])
-                prob.objects.append([obj_name,'bird']) #This probably needs to change
+                prob.objects.append([obj_name,'Bird']) #This probably needs to change
                 # prob.init.append(['not',['bird_dead',obj_name]])
                 prob.init.append(['not',['bird_released',obj_name]])
                 prob.init.append(['=',['x_bird',obj_name],round((slingshot[1]['bbox'].bounds[0] + slingshot[1]['bbox'].bounds[2]) / 2) - 0])
@@ -103,7 +103,7 @@ class SBState(State):
                 prob.init.append(['=',['bounce_count',obj_name], 0])
                 prob.init.append(['=',['bird_id',obj_name],bird_index])
                 bird_index += 1
-            elif o[1]['type'] == 'wood' or o[1]['type'] == 'ice' or o[1]['type'] == 'stone':
+            elif o[1]['type'] == 'wood' or o[1]['type'] == 'ice' or o[1]['type'] == 'stone' or o[1]['type'] == 'unknown' or o[1]['type'] == 'TNT':
                 block = True
                 obj_name = '{}_{} '.format(o[1]['type'], o[0])
 
@@ -161,7 +161,7 @@ class SBState(State):
                      ['not', ['angle_adjusted']],
                      ['not', ['pig_killed']],
                      ['=',['angle_rate'], 10],
-                     ['=', ['ground_damper'], 0.4]
+                     ['=', ['ground_damper'], 0.3]
                      ]:
             prob.init.append(fact)
         if not platform:
@@ -290,6 +290,136 @@ class SBState(State):
     ''' Computes the radius of the given object '''
     def compute_radius(self, o):
         return round((abs(o[1]['bbox'].bounds[2] - o[1]['bbox'].bounds[0]) / 2) * 0.75)
+
+
+    def translate_state_to_pddl(self):
+        # There is an annoying disconnect in representations.
+        # 'x_pig[pig_4]:450' vs. (= (x_pig pig4) 450)
+        # 'pig_dead[pig_4]:False vs. (not (pig_dead pig_4))
+        # We will use the PddlPlusProblem class as a common representations
+        prob = PddlPlusProblem()
+        prob.domain = 'angry_birds_scaled'
+        prob.name = 'angry_birds_prob'
+        prob.metric = 'minimize(total-time)'
+        prob.objects = []
+        prob.init = []
+        prob.goal = []
+
+        #we should probably use the self.sling on the object
+        slingshot = None
+        for o in self.objects.items():
+            if o[1]['type'] == 'slingshot':
+                slingshot = o
+
+        groundOffset = slingshot[1]['bbox'].bounds[3]
+        # print("\n\n Ground Offset: " + str(groundOffset))
+        bird_index = 0
+
+        platform = False
+        block = False
+        for o in self.objects.items():
+            if o[1]['type'] == 'pig':
+                obj_name = '{}_{}'.format(o[1]['type'], o[0])
+                prob.init.append(['not', ['pig_dead',obj_name]])
+                prob.init.append(['=',['x_pig',obj_name],round(abs(o[1]['bbox'].bounds[2] + o[1]['bbox'].bounds[0])/2)])
+                prob.init.append(['=',['y_pig',obj_name],abs(round(abs(o[1]['bbox'].bounds[1] + o[1]['bbox'].bounds[3])/2) - groundOffset)])
+                prob.init.append(['=',['pig_radius', obj_name], round((abs(o[1]['bbox'].bounds[2] - o[1]['bbox'].bounds[0])/2) * 0.75)])
+                prob.init.append(['=', ['m_pig', obj_name], 1])
+                prob.goal.append(['pig_dead', obj_name])
+                prob.objects.append((obj_name,o[1]['type']))
+            elif 'bird' in o[1]['type']:
+                obj_name = '{}_{}'.format(o[1]['type'], o[0])
+                prob.objects.append((obj_name,'bird')) #This probably needs to change
+                # prob.init.append(['not',['bird_dead',obj_name]])
+                prob.init.append(['not',['bird_released',obj_name]])
+                prob.init.append(['=',['x_bird',obj_name],round((slingshot[1]['bbox'].bounds[0] + slingshot[1]['bbox'].bounds[2]) / 2) - 0])
+                prob.init.append(['=',['y_bird',obj_name],round(abs(((slingshot[1]['bbox'].bounds[1] + slingshot[1]['bbox'].bounds[3]) / 2) - groundOffset) - 0)])
+                prob.init.append(['=',['v_bird',obj_name], 270])
+                prob.init.append(['=',['vx_bird',obj_name], 0])
+                prob.init.append(['=',['vy_bird',obj_name], 0])
+                prob.init.append(['=',['m_bird',obj_name], 1])
+                prob.init.append(['=',['bounce_count',obj_name], 0])
+                prob.init.append(['=',['bird_id',obj_name],bird_index])
+                bird_index += 1
+            elif o[1]['type'] == 'wood' or o[1]['type'] == 'ice' or o[1]['type'] == 'stone' or o[1]['type'] == 'unknown' or o[1]['type'] == 'TNT':
+                block = True
+                obj_name = '{}_{} '.format(o[1]['type'], o[0])
+
+                bl_x = round((o[1]['bbox'].bounds[2] + o[1]['bbox'].bounds[0])/2)
+                bl_y = abs(round(abs(o[1]['bbox'].bounds[1] + o[1]['bbox'].bounds[3])/2) - groundOffset)
+
+                prob.init.append(['=',['x_block', obj_name], bl_x ])
+                prob.init.append(['=',['y_block',obj_name], bl_y ])
+                # prob.init.append(['block_supporting',obj_name])
+
+                bl_height = abs(o[1]['bbox'].bounds[3] - o[1]['bbox'].bounds[1])
+                bl_width = abs(o[1]['bbox'].bounds[2] - o[1]['bbox'].bounds[0])
+
+                prob.init.append(['=',['block_height',obj_name], bl_height])
+                prob.init.append(['=',['block_width',obj_name], bl_width])
+                block_life_multiplier = 1.0
+                block_mass_coeff = 1.0
+                if o[1]['type'] == 'wood':
+                    block_life_multiplier = 1.0
+                    block_mass_coeff = 0.375*1.3
+                elif o[1]['type'] == 'ice':
+                    block_life_multiplier = 0.5
+                    block_mass_coeff = 0.125*2
+                elif o[1]['type'] == 'stone':
+                    block_life_multiplier = 2.0
+                    block_mass_coeff = 1.2
+                elif o[1]['type'] == 'TNT':
+                    block_life_multiplier = 0.001
+                    block_mass_coeff = 1.2
+                    prob.init.append(['block_explosive', obj_name])
+                else: # not sure how this could ever happen
+                    block_life_multiplier = 2.0
+                    block_mass_coeff = 1.2
+                prob.init.append(['=',['block_life',obj_name],str(math.ceil(265 * block_life_multiplier))])
+                prob.init.append(['=',['block_mass',obj_name],str(block_mass_coeff)])
+
+                bl_stability = 265*(bl_width/bl_height)*(1-(bl_y/groundOffset))*block_mass_coeff
+
+                prob.init.append(['=',['block_stability',obj_name], bl_stability])
+
+                prob.objects.append((obj_name,'block'))
+            elif o[1]['type'] == 'hill':
+                platform = True
+                obj_name ='{}_{}'.format(o[1]['type'], o[0])
+                prob.init.append(['=',['x_platform', obj_name], round((o[1]['bbox'].bounds[2] + o[1]['bbox'].bounds[0])/2)])
+                prob.init.append(['=', ['y_platform', obj_name], abs(round(abs(o[1]['bbox'].bounds[1] + o[1]['bbox'].bounds[3])/2) - groundOffset)])
+                prob.init.append(['=', ['platform_height', obj_name], abs(o[1]['bbox'].bounds[3] - o[1]['bbox'].bounds[1])])
+                prob.init.append(['=', ['platform_width', obj_name], abs(o[1]['bbox'].bounds[2] - o[1]['bbox'].bounds[0])])
+                prob.objects.append([obj_name,'platform'])
+            elif o[1]['type'] == 'slingshot':
+                slingshot = o
+        for fact in [['=',['gravity'], 134.2],
+                     ['=',['active_bird'], 0],
+                     ['=', ['angle'], 0],
+                     ['not', ['angle_adjusted']],
+                     ['not', ['pig_killed']],
+                     ['=',['angle_rate'], 10],
+                     ['=', ['ground_damper'], 0.3]
+                     ]:
+            prob.init.append(fact)
+        if not platform:
+            prob.objects.append(['dummy_platform','platform'])
+        if not block:
+            prob.objects.append(['dummy_block','block'])
+
+        prob_simplified = PddlPlusProblem()
+        prob_simplified.name = copy.copy(prob.name)
+        prob_simplified.domain = copy.copy(prob.domain)
+        prob_simplified.objects = copy.copy(prob.objects)
+        prob_simplified.init = copy.copy(prob.init)
+        prob_simplified.metric = copy.copy(prob.metric)
+        prob_simplified.goal = list()
+        prob_simplified.goal.append(['pig_killed'])
+
+        # print("\n\nPROB: " + str(prob.goal))
+        # print("\nPROB SIMPLIFIED: " + str(prob_simplified.goal))
+
+        return prob, prob_simplified
 
 
 class SBAction(Action):
