@@ -2,14 +2,12 @@ FROM continuumio/miniconda3:4.8.2
 
 WORKDIR /hydra
 
-SHELL ["/bin/bash", "-c"]
-
 COPY environment.yml environment.yml
 
 RUN conda env create --file environment.yml
-RUN source activate hydra
+SHELL ["conda", "run", "-n", "hydra", "/bin/bash", "-c"]
 
 COPY . .
-RUN pip install .
+RUN pip install -e .
 
-CMD ["python", ""]
+CMD ["conda", "run", "-n", "hydra", "python", "runners/simple.py"]

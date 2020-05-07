@@ -271,14 +271,14 @@ class ScienceBirds(World):
     def create_interface(self,first_level=None):
         with open(str(path.join(settings.ROOT_PATH, 'worlds', 'science_birds_interface', 'client', 'server_client_config.json')), 'r') as config:
             sc_json_config = json.load(config)
-        self.sb_client = ac.AgentClient(sc_json_config[0]['host'], sc_json_config[0]['port'])
+        self.sb_client = ac.AgentClient('docker-host' if 'DOCKER' in os.environ else sc_json_config[0]['host'], sc_json_config[0]['port'])
         self.sb_client.connect_to_server()
         self.sb_client.configure(self.id)
         if first_level:
             self.init_selected_level(first_level)
         with open(str(path.join(settings.ROOT_PATH, 'worlds', 'science_birds_interface', 'client', 'server_observer_client_config.json')), 'r') as observer_config:
             observer_sc_json_config = json.load(observer_config)
-        self.sb_observer = ac.AgentClient(observer_sc_json_config[0]['host'],observer_sc_json_config[0]['port'])
+        self.sb_observer = ac.AgentClient('docker-host' if 'DOCKER' in os.environ else observer_sc_json_config[0]['host'],observer_sc_json_config[0]['port'])
         self.sb_observer.connect_to_server()
         self.sb_observer.configure(self.id)
 
