@@ -160,7 +160,7 @@ class SBState(State):
                      ['=', ['angle'], 0],
                      ['not', ['angle_adjusted']],
                      ['not', ['pig_killed']],
-                     ['=',['angle_rate'], 10],
+                     ['=',['angle_rate'], 20],
                      ['=', ['ground_damper'], 0.2]
                      ]:
             prob.init.append(fact)

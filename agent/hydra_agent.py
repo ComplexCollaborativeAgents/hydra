@@ -37,6 +37,7 @@ class HydraAgent():
         state = self.env.get_current_state()
 
         overall_plan_time = time.perf_counter()
+        cumulative_plan_time = 0
 
         while t < max_actions:
             if state.game_state.value == GameState.PLAYING.value:
@@ -47,6 +48,7 @@ class HydraAgent():
                     orig_plan_time = time.perf_counter()
                     plan = []
                     plan = self.planner.make_plan(state, 1)
+                    cumulative_plan_time += (time.perf_counter() - orig_plan_time)
                     logger.info("[hydra_agent_server] :: Original problem planning time: " + str((time.perf_counter() - orig_plan_time)))
                     # plan = []
                     if len(plan) == 0 or plan[0][0] == "out of memory":
@@ -54,6 +56,7 @@ class HydraAgent():
                         settings.DELTA_T = 0.05
                         simple_plan_time = time.perf_counter()
                         plan = self.planner.make_plan(state, 2)
+                        cumulative_plan_time += (time.perf_counter() - simple_plan_time)
                         logger.info("[hydra_agent_server] :: Simplified problem planning time: " + str((time.perf_counter() - simple_plan_time)))
                         if len(plan) == 0 or plan[0][0] == "out of memory":
                             plan.append(("dummy-action", 20.0))
@@ -78,7 +81,10 @@ class HydraAgent():
                     logger.info("[hydra_agent_server] :: Reward {} Game State {}".format(reward, state.game_state))
             elif state.game_state.value == GameState.WON.value:
                 logger.info("[hydra_agent_server] :: Level {} Complete - WIN".format(self.current_level))
+                logger.info("[hydra_agent_server] :: Cumulative planning time only = {}".format(str(cumulative_plan_time)))
+                logger.info("[hydra_agent_server] :: Planning effort percentage = {}\n".format(str( (cumulative_plan_time/(time.perf_counter() - overall_plan_time)) )))
                 logger.info("[hydra_agent_server] :: Overall time to attempt level {} = {}\n\n".format(self.current_level, str((time.perf_counter() - overall_plan_time))))
+                cumulative_plan_time = 0
                 overall_plan_time = time.perf_counter()
                 self.current_level = self.env.sb_client.load_next_available_level()
                 #self.novelty_existence = self.env.sb_client.get_novelty_info()
@@ -86,7 +92,10 @@ class HydraAgent():
                 state = self.env.get_current_state()
             elif state.game_state.value == GameState.LOST.value:
                 logger.info("[hydra_agent_server] :: Level {} complete - LOSS".format(self.current_level))
+                logger.info("[hydra_agent_server] :: Cumulative planning time only = {}".format(str(cumulative_plan_time)))
+                logger.info("[hydra_agent_server] :: Planning effort percentage = {}\n".format(str((cumulative_plan_time/(time.perf_counter() - overall_plan_time)))))
                 logger.info("[hydra_agent_server] :: Overall time to attempt level {} = {}\n\n".format(self.current_level, str((time.perf_counter() - overall_plan_time))))
+                cumulative_plan_time = 0
                 overall_plan_time = time.perf_counter()
                 self.current_level = self.env.sb_client.load_next_available_level()
                 #self.novelty_existence = self.env.sb_client.get_novelty_info()
