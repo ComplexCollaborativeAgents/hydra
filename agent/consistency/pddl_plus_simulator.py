@@ -28,26 +28,27 @@ class PddlPlusSimulator():
 
     ''' Simulate running the given plan from the start state '''
     def simulate(self, plan_to_simulate: PddlPlusPlan, problem: PddlPlusProblem, domain: PddlPlusDomain, delta_t:float, max_t:float = float('inf')):
+        self.problem = problem
+        # Ground the domain
+        grounder = PddlPlusGrounder()
+        self.domain = grounder.ground_domain(domain, problem)
+
         state = PddlPlusState(problem.init)
         t = 0.0
-        trace = [(state, t)]
+        trace = []
         current_state = state.clone()
         plan = PddlPlusPlan(plan_to_simulate) # Clone the given plan
         next_timed_action  = plan.pop(0)
 
-        # Ground the domain
-        grounder = PddlPlusGrounder()
-        domain = grounder.ground_domain(domain, problem)
-
         still_active = True
         while still_active and t<max_t:
-            effects_list = list()
+            trace.append((current_state.clone(), t))
 
             # If we reached the time in which the next action should be applied, apply it
             if next_timed_action is not None and next_timed_action.start_at<=t:
-                new_effect = self.compute_apply_action(current_state,next_timed_action.action)
-                if new_effect is not None and len(new_effect)>0:
-                    effects_list.extend(new_effect)
+                new_effects = self.compute_apply_action(current_state,next_timed_action.action)
+                if new_effects is not None and len(new_effects)>0:
+                    self.apply_effects(current_state, new_effects)
 
                 # Next action
                 if len(plan)>0:
@@ -55,10 +56,8 @@ class PddlPlusSimulator():
                 else:
                     next_timed_action = None
 
-            # Trigger events
-            for event in domain.events:
-                if self.preconditions_hold(current_state, event.preconditions):
-                    effects_list.extend(self.compute_fire_event(current_state, event))
+                # Trigger events after action is performed
+                self.handle_events(current_state)
 
             # Compute delta t
             if next_timed_action is None or next_timed_action.start_at > t+delta_t: # Next action should not start before t+delta_t
@@ -66,28 +65,58 @@ class PddlPlusSimulator():
             else: # Next action should start before t+delta_t, we don't want to miss it
                 current_delta_t = next_timed_action.start_at - t
 
-            # Advance processes
-            for process in domain.processes:
-                if self.preconditions_hold(current_state, process.preconditions):
-                    effects_list.extend(self.compute_advance_process(current_state,process, current_delta_t))
-
-            # Apply all impacts
-            self.apply_effects(current_state, effects_list)
-
-            # Advance time
-            t = t+current_delta_t
-
-            # Store current state to get trajectory
-            trace.append((current_state.clone(), t))
+            # Advance process and apply events
+            active_processes = self.handle_processes(current_state, current_delta_t) # Advance processes
+            fired_events = self.handle_events(current_state) # Apply events to the resulting state
+            t = t+current_delta_t # Advance time
+            trace.append((current_state.clone(), t)) # Store current state to get trajectory
 
             # Stopping condition
-            if len(effects_list)>0:
+            if len(plan)>0:
                 still_active = True
+            elif len(active_processes)>0:
+                still_active = True
+            elif len(fired_events)>0:
+                still_active = True # This one is debatable TODO: Consult Wiktor and Matt
             else:
-                if len(plan)==0:
-                    still_active= False
+                still_active = False
 
         return current_state, t, trace
+
+    ''' Advanced all process in the givne state by the given delta t'''
+    def handle_processes(self, state, delta_t):
+        effects_list = list()
+        active_processes = list()
+        for process in self.domain.processes:
+            if self.preconditions_hold(state, process.preconditions):
+                active_processes.append(process)
+        for process in active_processes:
+            effects_list.extend(self.compute_advance_process(state, process, delta_t))
+        # Apply all impacts
+        self.apply_effects(state, effects_list)
+        return active_processes
+
+    ''' Processes the events and modify the current state accordinly'''
+    def handle_events(self, state: PddlPlusState):
+        events_to_fire = []
+        effects_list = []
+        available_events = list(self.domain.events)
+        fired_events = []
+        while True:
+            events_to_fire.clear()
+            for event in available_events:
+                if self.preconditions_hold(state, event.preconditions):
+                    events_to_fire.append(event)
+            if len(events_to_fire)==0:
+                return fired_events
+
+            for event in events_to_fire:
+                effects_list.extend(self.compute_fire_event(state, event))
+                available_events.remove(event)
+                fired_events.append(event)
+            self.apply_effects(state, effects_list)
+            if len(available_events)==0:
+                return fired_events
 
     ''' Apply an action on the given state. If binding is not None, we first ground the action with the binding'''
     def apply_action(self, state: PddlPlusState, action : PddlPlusWorldChange, binding: dict = None):
@@ -121,7 +150,7 @@ class PddlPlusSimulator():
 
         if self.preconditions_hold(state, action.preconditions) == False:
             raise ValueError("Action preconditions are not satisfied")  # No effects if preconditions do not hold
-        return self.compute_effect(state, action.effects)
+        return self.compute_effects(state, action.effects)
 
     ''' Compute the impact of firing a given event at the given state. If binding is not None, we first ground the action with the binding'''
     def compute_fire_event(self, state: PddlPlusState, event: PddlPlusWorldChange, binding: dict = None):
@@ -130,7 +159,7 @@ class PddlPlusSimulator():
 
         if self.preconditions_hold(state, event.preconditions) == False:
             raise ValueError("Event preconditions are not satisfied")  # No effects if preconditions do not hold
-        return self.compute_effect(state, event.effects)
+        return self.compute_effects(state, event.effects)
 
     ''' Compute the impact of advancing the process by the given delta_t time step. If binding is not None, we first ground the action with the binding'''
     def compute_advance_process(self, state: PddlPlusState, process: PddlPlusWorldChange, delta_t: int,
@@ -140,7 +169,7 @@ class PddlPlusSimulator():
         if self.preconditions_hold(state, process.preconditions) == False:
             raise ValueError("Process preconditions are not satisfied")  # No effects if preconditions do not hold
 
-        return self.compute_effect(state, process.effects, delta_t)
+        return self.compute_effects(state, process.effects, delta_t)
 
     ''' Checks if a set of preconditions hold in the given state'''
     def preconditions_hold(self, state, preconditions):
@@ -188,7 +217,7 @@ class PddlPlusSimulator():
                     state.boolean_fluents.add(fluent_name)
 
     ''' Outputs a list of computed effects that should be applied. All effects are already computed. '''
-    def compute_effect(self, state, effects, delta_t=-1):
+    def compute_effects(self, state, effects, delta_t=-1):
         effect_list = list()
 
         for effect in effects:

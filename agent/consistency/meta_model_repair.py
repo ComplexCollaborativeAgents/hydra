@@ -40,7 +40,7 @@ A basic model repair instance that changes a single fluent with fixed delta jump
 '''
 class MetaModelSingleNumericFluentRepair(MetaModelRepair):
 
-    def __init__(self, fluent_to_repair, fluents_for_consistency_check, delta):
+    def __init__(self, fluent_to_repair, fluent_for_consistency_check, delta):
         self.fluent_to_change = fluent_to_repair
         self.delta = delta
         self.manipulator = model_manipulator.ManipulateNumericConstant(fluent_to_repair, delta)

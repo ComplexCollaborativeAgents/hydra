@@ -59,6 +59,8 @@ class PddlPlusWorldChange():
         self.parameters = list()
         self.preconditions = list()
         self.effects = list()
+    def __str__(self):
+        return str(self.name)
 
 
 class PddlPlusProblem():

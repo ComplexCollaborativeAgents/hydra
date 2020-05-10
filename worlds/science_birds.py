@@ -421,12 +421,15 @@ class ScienceBirds(World):
     intermediate_states = []
     lock = threading.Lock()
 
-    def __init__(self,sel_level=0,launch=False):
+    def __init__(self,sel_level=0,launch=False, config_file = None):
         self.id = 2228
         self.tp = tp.SimpleTrajectoryPlanner()
         if launch:
             logger.info("Launching SB...")
-            self.launch_SB()
+            if config_file is not None:
+                self.launch_SB(config_file)
+            else:
+                self.launch_SB()
             logger.info("SB launched!")
             time.sleep(1)
         self.create_interface(sel_level)
@@ -447,7 +450,7 @@ class ScienceBirds(World):
             
 
             
-    def launch_SB(self):
+    def launch_SB(self, config_path = '{}/data/science_birds/config/test_config.xml'.format(settings.ROOT_PATH)):
         """
         Maybe this would be better in a shell script than in python
         """
@@ -455,11 +458,11 @@ class ScienceBirds(World):
         cmd = ''
 
         if sys.platform=='darwin':
-            cmd='open {}/ScienceBirds_MacOS.app --args --configpath {}/data/science_birds/config/test_config.xml'.format(
-                settings.SCIENCE_BIRDS_BIN_DIR,settings.ROOT_PATH)
+            cmd='open {}/ScienceBirds_MacOS.app --args --configpath {}'.format(
+                settings.SCIENCE_BIRDS_BIN_DIR,config_path)
         else:
-            cmd='{}/sciencebirds_linux/sciencebirds_linux.x86_64 --configpath {}/data/science_birds/config/test_config.xml'. \
-                format(settings.SCIENCE_BIRDS_BIN_DIR, settings.ROOT_PATH)
+            cmd='{}/sciencebirds_linux/sciencebirds_linux.x86_64 --configpath {}'. \
+                format(settings.SCIENCE_BIRDS_BIN_DIR, config_path)
         # Not sure if run will work this way on ubuntu...
         self.SB_process = subprocess.Popen(cmd,stdout=subprocess.PIPE,
                                            stderr=subprocess.STDOUT,
