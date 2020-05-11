@@ -89,10 +89,10 @@ class SBState(State):
                 prob.init.append(['=',['pig_radius', obj_name], round((abs(o[1]['bbox'].bounds[2] - o[1]['bbox'].bounds[0])/2) * 0.75)])
                 prob.init.append(['=', ['m_pig', obj_name], 1])
                 prob.goal.append(['pig_dead', obj_name])
-                prob.objects.append((obj_name,o[1]['type']))
-            elif 'Bird' in o[1]['type']:
+                prob.objects.append([obj_name,o[1]['type']])
+            elif 'bird' in o[1]['type'].lower():
                 obj_name = '{}_{}'.format(o[1]['type'], o[0])
-                prob.objects.append((obj_name,'Bird')) #This probably needs to change
+                prob.objects.append([obj_name,'bird']) #This probably needs to change
                 # prob.init.append(['not',['bird_dead',obj_name]])
                 prob.init.append(['not',['bird_released',obj_name]])
                 prob.init.append(['=',['x_bird',obj_name],round((slingshot[1]['bbox'].bounds[0] + slingshot[1]['bbox'].bounds[2]) / 2) - 0])

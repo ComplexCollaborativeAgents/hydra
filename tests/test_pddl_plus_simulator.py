@@ -5,7 +5,6 @@ from agent.planning.pddlplus_parser import PddlProblemParser, PddlDomainParser
 from agent.planning.pddl_plus import *
 from agent.consistency.pddl_plus_simulator import PddlPlusSimulator
 from agent.planning.planner import Planner
-from agent.consistency.consistency_estimator import *
 
 
 DATA_DIR = path.join(settings.ROOT_PATH, 'data')

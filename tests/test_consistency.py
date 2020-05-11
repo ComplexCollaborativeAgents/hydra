@@ -224,7 +224,7 @@ def test_all_bird_numeric_fluent_inconsistent():
     assert consistent_score > PRECISION
 
 ''' Loads a sequence of observed states of the given formal and desired quantity '''
-def __load_observed_states(file_format, num_of_observations):
+def __load_observed_states(file_format, num_of_observations, meta_model = MetaModel()):
     observations = []
     for i in range(0, num_of_observations):
         observations.append(sb.SBState.load_from_serialized_state(file_format.format(i)))
@@ -235,8 +235,7 @@ def __load_observed_states(file_format, num_of_observations):
     for observation in observations:
         if isinstance(observation.objects, list):
             perception.process_sb_state(observation)
-
-        new_state = observation.translate_intermediate_state_to_pddl_state()
+        new_state = meta_model.create_pddl_state(observation)
         state_seq.append(new_state)
 
         # This is a hack to identify when the observed state is from a new level
@@ -292,7 +291,7 @@ def test_real_observations():
     # Assert the un-timed sequence created by the modified model is inconsistent with the timed sequence created by the original model
     diff = diff_pddl_states(timed_state_seq[0][0], observed_state_seq[0])
 
-    __print_fluents_values([state for (state,t) in modified_timed_state_seq], [X_BIRD_FLUENT,Y_BIRD_FLUENT])
+    # __print_fluents_values([state for (state,t) in modified_timed_state_seq], [X_BIRD_FLUENT,Y_BIRD_FLUENT])
 
 
     consistency_checker = SingleNumericFluentConsistencyEstimator(Y_BIRD_FLUENT)
