@@ -30,14 +30,14 @@ class HydraAgent():
         self.meta_model = MetaModel()
 
 
-    def main_loop(self,max_actions=1000, restart_if_lose = False):
+    def main_loop(self,max_actions=1000):
         logger.info("[hydra_agent_server] :: Entering main loop")
         t = 0
         state = self.env.get_current_state()
         while t < max_actions:
-            state = self.perception.process_state(state)
-            if self.consistency_checker.is_consistent(state):
-                if state.game_state.value == GameState.PLAYING.value:
+            if state.game_state.value == GameState.PLAYING.value:
+                state = self.perception.process_state(state)
+                if state and self.consistency_checker.is_consistent(state):
                     logger.info("[hydra_agent_server] :: Invoking Planner".format())
                     plan = self.planner.make_plan(state, meta_model=self.meta_model)
                     if len(plan) == 0 or plan[0][0] == "out of memory":
@@ -53,40 +53,62 @@ class HydraAgent():
                                          ref_point.Y)
                     state, reward = self.env.act(action)
                     logger.info("[hydra_agent_server] :: Reward {} Game State {}".format(reward, state.game_state))
-                elif state.game_state.value == GameState.WON.value:
-                    logger.info("[hydra_agent_server] :: Level {} complete".format(self.current_level))
-                    self.current_level = self.env.sb_client.load_next_available_level()
-                    self.novelty_existence = self.env.sb_client.get_novelty_info()
-                    state = self.env.get_current_state()
-                elif state.game_state.value == GameState.LOST.value:
-                    logger.info("[hydra_agent_server] :: Level {} complete Lost".format(self.current_level))
-                    self.current_level = self.env.sb_client.load_next_available_level()
-                    self.novelty_existence = self.env.sb_client.get_novelty_info()
-                    state = self.env.get_current_state()
-                elif state.game_state.value == GameState.NEWTRAININGSET.value:
-                    # DO something to start a fresh agent for a new training set
-                    (time_limit, interaction_limit, n_levels, attempts_per_level, mode, seq_or_set,
-                     allowNoveltyInfo) = self.env.sb_client.ready_for_new_set()
-                    self.current_level = 0
-                    self.training_level_backup = 0
-                    change_from_training = True
-                    self.current_level = self.env.sb_client.load_next_available_level()
-                    self.novelty_existence = self.env.sb_client.get_novelty_info()
-                    state = self.env.get_current_state()
-                elif state.game_state.value == GameState.EVALUATION_TERMINATED.value:
-                    # store info and disconnect the agent as the evaluation is finished
-                    logger.info("Evaluation complete.")
-                    return None
-                elif state.game_state.value == GameState.REQUESTNOVELTYLIKELIHOOD.value:
-                    logger.info("[hydra_agent_server] :: Requesting Novelty Likelihood {}".format(0.1))
-                    # Require report novelty likelihood and then playing can be resumed
-                    # dummy likelihoods:
-                    novelty_likelihood = 0.1
-                    non_novelty_likelihood = 0.9
-                    self.ar.report_novelty_likelihood(novelty_likelihood, non_novelty_likelihood)
                 else:
-                    assert False
+                    logger.info("Perception Failure performing default shot")
+                    plan = []
+                    plan.append(("dummy-action", 20.0))
+                    ref_point = self.env.tp.get_reference_point(state.sling)
+                    release_point_from_plan = \
+                        self.env.tp.find_release_point(state.sling, math.radians(plan[0][1]))
+                    action = SB.SBShoot(release_point_from_plan.X, release_point_from_plan.Y, 3000, ref_point.X,
+                                         ref_point.Y)
+                    state, reward = self.env.act(action)
+                    logger.info("[hydra_agent_server] :: Reward {} Game State {}".format(reward, state.game_state))
+            elif state.game_state.value == GameState.WON.value:
+                logger.info("[hydra_agent_server] :: Level {} complete".format(self.current_level))
+                self.current_level = self.env.sb_client.load_next_available_level()
+                #self.novelty_existence = self.env.sb_client.get_novelty_info()
+                state = self.env.get_current_state()
+            elif state.game_state.value == GameState.LOST.value:
+                logger.info("[hydra_agent_server] :: Level {} complete Lost".format(self.current_level))
+                self.current_level = self.env.sb_client.load_next_available_level()
+                #self.novelty_existence = self.env.sb_client.get_novelty_info()
+                state = self.env.get_current_state()
+            elif state.game_state.value == GameState.NEWTRAININGSET.value:
+                # DO something to start a fresh agent for a new training set
+                (time_limit, interaction_limit, n_levels, attempts_per_level, mode, seq_or_set,
+                 allowNoveltyInfo) = self.env.sb_client.ready_for_new_set()
+                self.current_level = 0
+                self.training_level_backup = 0
+                change_from_training = True
+                self.current_level = self.env.sb_client.load_next_available_level()
+                #self.novelty_existence = self.env.sb_client.get_novelty_info()
+                state = self.env.get_current_state()
+            elif state.game_state.value == GameState.EVALUATION_TERMINATED.value:
+                # store info and disconnect the agent as the evaluation is finished
+                logger.info("Evaluation complete.")
+                return None
+            elif state.game_state.value == GameState.REQUESTNOVELTYLIKELIHOOD.value:
+                logger.info("[hydra_agent_server] :: Requesting Novelty Likelihood {}".format(0.1))
+                # Require report novelty likelihood and then playing can be resumed
+                # dummy likelihoods:
+                novelty_likelihood = 0.1
+                non_novelty_likelihood = 0.9
+                self.env.sb_client.report_novelty_likelihood(novelty_likelihood, non_novelty_likelihood)
+                state = self.env.get_current_state()
+            elif state.game_state.value == GameState.NEWTRIAL.value:
+                # DO something to start a fresh agent for a new training set
+                (time_limit, interaction_limit, n_levels, attempts_per_level, mode, seq_or_set,
+                 allowNoveltyInfo) = self.env.sb_client.ready_for_new_set()
+                logger.info("New Trial Request Received. Refresh agent.")
+                self.current_level = 0
+                self.training_level_backup = 0
+                change_from_training = True
+                self.current_level = self.env.sb_client.load_next_available_level()
+                #self.novelty_existence = self.env.sb_client.get_novelty_info()
+                state = self.env.get_current_state()
             else:
+                logger.info("[hydra_agent_server] :: Unexpected state.game_state.value {}".format(state.game_state.value))
                 assert False
             t+=1
 

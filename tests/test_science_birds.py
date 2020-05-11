@@ -7,28 +7,19 @@ import settings
 import math
 import time
 import agent.planning.planner as pl
-from agent.planning.pddl_meta_model import *
 from worlds.science_birds_interface.client.agent_client import GameState
 
 from pprint import pprint
 from utils.point2D import Point2D
-import logging
+
 
 import subprocess
 import agent.perception.perception as perception
 from agent.hydra_agent import HydraAgent
 
-fh = logging.FileHandler("test-hydra.log",mode='w')
-formatter = logging.Formatter('%(asctime)-15s %(name)s - %(levelname)s - %(message)s')
-fh.setFormatter(formatter)
-logger = logging.getLogger("test_science_birds")
-logger.setLevel(logging.INFO)
-logger.addHandler(fh)
-
-
 @pytest.fixture(scope="module")
 def launch_science_birds():
-    logger.info("starting")
+    print("starting")
     #remove config files
     cmd = 'cp {}/data/science_birds/level-14.xml {}/00001.xml'.format(str(settings.ROOT_PATH), str(settings.SCIENCE_BIRDS_LEVELS_DIR))
     subprocess.run(cmd, shell=True)
@@ -36,28 +27,38 @@ def launch_science_birds():
     subprocess.run(cmd, shell=True)
     cmd = 'cp {}/data/science_birds/level-16.xml {}/00003.xml'.format(str(settings.ROOT_PATH), str(settings.SCIENCE_BIRDS_LEVELS_DIR))
     subprocess.run(cmd, shell=True)
-    logger.info("Launching ScienceBirds...")
-    env = sb.ScienceBirds(None,launch=True)
-    logger.info("ScienceBirds launched!")
+    env = sb.ScienceBirds(None,launch=True,config='test_config.xml')
     yield env
-    logger.info("teardown tests")
+    print("teardown tests")
     env.kill()
 
 @pytest.mark.skipif(settings.HEADLESS==True, reason="headless does not work in docker")
 def test_science_birds_agent(launch_science_birds):
     env = launch_science_birds
+    env.sb_client.set_game_simulation_speed(settings.SB_SIM_SPEED)
     hydra = HydraAgent(env)
     hydra.main_loop() # enough actions to play the first two levels
     scores = env.get_all_scores()
     assert len([x for x in scores if x > 0]) == 3 # solved two problems
 
-@pytest.mark.skipif(False, reason="headless does not work in docker")
-def test_generate_intermediate_states(launch_science_birds):
+
+@pytest.mark.skipif(True, reason="headless does not work in docker")
+def test_science_birds(launch_science_birds):
     env = launch_science_birds
     env.init_selected_level(1)
     state = env.get_current_state()
-    perception_obs = perception.Perception()
-    perception_obs.process_state(state)
+    print(state.objects)
+    assert (len(state.objects) == 7)
+    assert ('id' in state.objects[0].keys() and
+            'type' in state.objects[0].keys() and
+            'yindex' in state.objects[0].keys() and
+            'colormap' in state.objects[0].keys())
+
+    p = perception.Perception()
+    p.process_state(state)
+    assert (len(state.objects) == 5)
+    assert ('type' in state.objects[0].keys() and
+            'bbox' in state.objects[0].keys())
     count = 0
     state.serialize_current_state( # copy to the other data directory later
         path.join(settings.ROOT_PATH, 'tmp',  'dx_test_{}.p'.format(count)))
@@ -65,77 +66,11 @@ def test_generate_intermediate_states(launch_science_birds):
     # print(str(env.cur_sling.bottom_right))
 
     planner = pl.Planner()
-    pddl_problem = state.translate_initial_state_to_pddl_problem()
-    planner.write_problem_file(pddl_problem)
+    planner.write_problem_file(state.translate_state_to_pddl())
 
     ref_point = env.tp.get_reference_point(state.sling)
     #release_point_from_plan = env.tp.find_release_point(state.sling, 0.174533) # 10 degree launch
     release_point_from_plan = env.tp.find_release_point(state.sling, math.radians(planner.get_plan_actions()[0][1]))
-    action = sb.SBShoot(release_point_from_plan.X, release_point_from_plan.Y, 3000, ref_point.X, ref_point.Y)
-
-    state, reward = env.act(action)
-    assert len(env.intermediate_states) > 1
-    # some objects should be destroyed by the last state
-    assert len(env.intermediate_states[0].objects) > len(env.intermediate_states[-1].objects)
-    for s in env.intermediate_states:
-        perception_obs.process_state(s)
-        count+=1
-        s.serialize_current_state(  # copy to the other data directory later
-            path.join(settings.ROOT_PATH, 'tmp', 'dx_test_{}.p'.format(count)))
-    assert isinstance(state, sb.SBState)
-
-    count += 1
-    state.serialize_current_state( # copy to the other data directory later
-        path.join(settings.ROOT_PATH, 'tmp',  'dx_test_{}.p'.format(count)))
-
-    assert reward > 0
-
-
-# ''' Test that the intermediate states have been sampled correctly '''
-# def test_sample_intermediate_states(launch_science_birds):
-#     env = launch_science_birds
-#     hydra = HydraAgent(env)
-#     hydra.main_loop(8, output_intermediate = True) # enough actions to play the first two levels
-
-
-@pytest.mark.skipif(False, reason="headless does not work in docker")
-def test_science_birds(launch_science_birds):
-    env = launch_science_birds
-
-    logger.info("Set selected level")
-    env.init_selected_level(1)
-    state = env.get_current_state()
-    print(state.objects)
-    # assert (len(state.objects) == 7)
-    # assert ('id' in state.objects[0].keys() and
-    #         'type' in state.objects[0].keys() and
-    #         'yindex' in state.objects[0].keys() and
-    #         'colormap' in state.objects[0].keys())
-
-    p = perception.Perception()
-    p.process_state(state)
-    # assert (len(state.objects) == 5)
-    # assert ('type' in state.objects[0].keys() and
-    #         'bbox' in state.objects[0].keys())
-    count = 0
-    state.serialize_current_state( # copy to the other data directory later
-        path.join(settings.ROOT_PATH, 'tmp',  'dx_test_{}.p'.format(count)))
-
-    # print(str(env.cur_sling.bottom_right))
-    meta_model =MetaModel()
-    planner = pl.Planner()
-    (pddl_problem, pddl_problem_simplified) = state.translate_state_to_pddl()
-    planner.write_problem_file(pddl_problem)
-    pddl_problem2 = meta_model.create_pddl_problem(state)
-    pddl_problem2_simplified = meta_model.create_simplified_problem(pddl_problem2)
-
-    ref_point = env.tp.get_reference_point(state.sling)
-    #release_point_from_plan = env.tp.find_release_point(state.sling, 0.174533) # 10 degree launch
-
-    logger.info("Running planner...")
-    plan = planner.get_plan_actions()
-    logger.info("Planner done.")
-    release_point_from_plan = env.tp.find_release_point(state.sling, math.radians(plan[0][1]))
     action = sb.SBShoot(release_point_from_plan.X, release_point_from_plan.Y, 3000, ref_point.X, ref_point.Y)
 
     state, reward = env.act(action)
@@ -167,7 +102,7 @@ def test_multi_shot(launch_science_birds):
     p.process_state(state)
 
     planner = pl.Planner()
-    planner.write_problem_file(state.translate_initial_state_to_pddl_problem())
+    planner.write_problem_file(state.translate_state_to_pddl())
 
 
     # env.sb_client.tp.estimate_launch_point(env.cur_sling, Point2D(540,355))

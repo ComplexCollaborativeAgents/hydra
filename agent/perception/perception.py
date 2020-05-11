@@ -5,7 +5,14 @@ from worlds.science_birds_interface.computer_vision.GroundTruthReader import Gro
 import settings
 import json
 import numpy as np
+import logging
 
+fh = logging.FileHandler("hydra.log",mode='w')
+formatter = logging.Formatter('%(name)s - %(levelname)s - %(message)s')
+fh.setFormatter(formatter)
+logger = logging.getLogger("perception")
+logger.setLevel(logging.INFO)
+logger.addHandler(fh)
 
 class Perception():
 
@@ -45,7 +52,11 @@ class Perception():
 
 # Output: {0: {'type': 'redBird', 'bbox': <shapely.geometry.polygon.Polygon object at 0x112145b10>}, 1: {'type': 'slingshot', 'bbox': <shapely.geometry.polygon.Polygon object at 0x112145590>}, 2: {'type': 'wood', 'bbox': <shapely.geometry.polygon.Polygon object at 0x1120f4690>}, 3: {'type': 'wood', 'bbox': <shapely.geometry.polygon.Polygon object at 0x1120f4510>}, 4: {'type': 'pig', 'bbox': <shapely.geometry.polygon.Polygon object at 0x1120f4450>}}
     def process_sb_state(self,state):
-        vision = GroundTruthReader(state.objects,self.look_up_matrix,self.look_up_obj_type)
+        try:
+            vision = GroundTruthReader(state.objects,self.look_up_matrix,self.look_up_obj_type)
+        except:
+            logger.info("perception failed on state: {}".format(state))
+            return None
         state.sling = vision.find_slingshot_mbr()[0]
         state.sling.width, state.sling.height = state.sling.height, state.sling.width
         new_objs = {}

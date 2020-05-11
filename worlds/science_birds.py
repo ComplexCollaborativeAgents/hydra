@@ -12,15 +12,15 @@ import math
 import settings
 import worlds.science_birds_interface.client.agent_client as ac
 import worlds.science_birds_interface.trajectory_planner.trajectory_planner as tp
-from agent.planning.pddl_plus import PddlPlusProblem, PddlPlusState
+from agent.planning.pddlplus_parser import PddlPlusProblem
 from utils.state import State, Action, World
-
+#import shapely.geometry as geo
 import logging
 
-fh = logging.FileHandler("hydra.log",mode='w')
-formatter = logging.Formatter('%(asctime)-15s %(name)s - %(levelname)s - %(message)s')
+fh = logging.FileHandler("hydra.log",mode='a')
+formatter = logging.Formatter('%(name)s - %(levelname)s - %(message)s')
 fh.setFormatter(formatter)
-logger = logging.getLogger("science_birds")
+logger = logging.getLogger("Science Birds")
 logger.setLevel(logging.INFO)
 logger.addHandler(fh)
 
@@ -75,208 +75,6 @@ class SBState(State):
                 slingshot = o
 
         groundOffset = slingshot[1]['bbox'].bounds[3]
-        bird_index = 0
-
-        platform = False
-        block = False
-        for o in self.objects.items():
-            if o[1]['type'] == 'pig':
-                obj_name = '{}_{}'.format(o[1]['type'], o[0])
-                prob.init.append(['not', ['pig_dead',obj_name]])
-                prob.init.append(['=',['x_pig',obj_name],round(abs(o[1]['bbox'].bounds[2] + o[1]['bbox'].bounds[0])/2)])
-                prob.init.append(['=',['y_pig',obj_name],abs(round(abs(o[1]['bbox'].bounds[1] + o[1]['bbox'].bounds[3])/2) - groundOffset)])
-                prob.init.append(['=',['pig_radius', obj_name], round((abs(o[1]['bbox'].bounds[2] - o[1]['bbox'].bounds[0])/2) * 0.75)])
-                prob.init.append(['=', ['m_pig', obj_name], 1])
-                prob.goal.append(['pig_dead', obj_name])
-                prob.objects.append([obj_name,o[1]['type']])
-            elif 'Bird' in o[1]['type']:
-                obj_name = '{}_{}'.format(o[1]['type'], o[0])
-                prob.objects.append([obj_name,'Bird']) #This probably needs to change
-                # prob.init.append(['not',['bird_dead',obj_name]])
-                prob.init.append(['not',['bird_released',obj_name]])
-                prob.init.append(['=',['x_bird',obj_name],round((slingshot[1]['bbox'].bounds[0] + slingshot[1]['bbox'].bounds[2]) / 2) - 0])
-                prob.init.append(['=',['y_bird',obj_name],round(abs(((slingshot[1]['bbox'].bounds[1] + slingshot[1]['bbox'].bounds[3]) / 2) - groundOffset) - 0)])
-                prob.init.append(['=',['v_bird',obj_name], 270])
-                prob.init.append(['=',['vx_bird',obj_name], 0])
-                prob.init.append(['=',['vy_bird',obj_name], 0])
-                prob.init.append(['=',['m_bird',obj_name], 1])
-                prob.init.append(['=',['bounce_count',obj_name], 0])
-                prob.init.append(['=',['bird_id',obj_name],bird_index])
-                bird_index += 1
-            elif o[1]['type'] == 'wood' or o[1]['type'] == 'ice' or o[1]['type'] == 'stone' or o[1]['type'] == 'unknown' or o[1]['type'] == 'TNT':
-                block = True
-                obj_name = '{}_{} '.format(o[1]['type'], o[0])
-
-                bl_x = round((o[1]['bbox'].bounds[2] + o[1]['bbox'].bounds[0])/2)
-                bl_y = abs(round(abs(o[1]['bbox'].bounds[1] + o[1]['bbox'].bounds[3])/2) - groundOffset)
-
-                prob.init.append(['=',['x_block', obj_name], bl_x ])
-                prob.init.append(['=',['y_block',obj_name], bl_y ])
-                # prob.init.append(['block_supporting',obj_name])
-
-                bl_height = abs(o[1]['bbox'].bounds[3] - o[1]['bbox'].bounds[1])
-                bl_width = abs(o[1]['bbox'].bounds[2] - o[1]['bbox'].bounds[0])
-
-                prob.init.append(['=',['block_height',obj_name], bl_height])
-                prob.init.append(['=',['block_width',obj_name], bl_width])
-                block_life_multiplier = 1.0
-                block_mass_coeff = 1.0
-                if o[1]['type'] == 'wood':
-                    block_life_multiplier = 1.0
-                    block_mass_coeff = 0.375*1.3
-                elif o[1]['type'] == 'ice':
-                    block_life_multiplier = 0.5
-                    block_mass_coeff = 0.125*2
-                elif o[1]['type'] == 'stone':
-                    block_life_multiplier = 2.0
-                    block_mass_coeff = 1.2
-                elif o[1]['type'] == 'TNT':
-                    block_life_multiplier = 0.001
-                    block_mass_coeff = 1.2
-                    prob.init.append(['block_explosive', obj_name])
-                else: # not sure how this could ever happen
-                    block_life_multiplier = 2.0
-                    block_mass_coeff = 1.2
-                prob.init.append(['=',['block_life',obj_name],str(math.ceil(265 * block_life_multiplier))])
-                prob.init.append(['=',['block_mass',obj_name],str(block_mass_coeff)])
-
-                bl_stability = 265*(bl_width/bl_height)*(1-(bl_y/groundOffset))*block_mass_coeff
-
-                prob.init.append(['=',['block_stability',obj_name], bl_stability])
-
-                prob.objects.append((obj_name,'block'))
-            elif o[1]['type'] == 'hill':
-                platform = True
-                obj_name ='{}_{}'.format(o[1]['type'], o[0])
-                prob.init.append(['=',['x_platform', obj_name], round((o[1]['bbox'].bounds[2] + o[1]['bbox'].bounds[0])/2)])
-                prob.init.append(['=', ['y_platform', obj_name], abs(round(abs(o[1]['bbox'].bounds[1] + o[1]['bbox'].bounds[3])/2) - groundOffset)])
-                prob.init.append(['=', ['platform_height', obj_name], abs(o[1]['bbox'].bounds[3] - o[1]['bbox'].bounds[1])])
-                prob.init.append(['=', ['platform_width', obj_name], abs(o[1]['bbox'].bounds[2] - o[1]['bbox'].bounds[0])])
-                prob.objects.append([obj_name,'platform'])
-            elif o[1]['type'] == 'slingshot':
-                slingshot = o
-        for fact in [['=',['gravity'], 134.2],
-                     ['=',['active_bird'], 0],
-                     ['=', ['angle'], 0],
-                     ['not', ['angle_adjusted']],
-                     ['not', ['pig_killed']],
-                     ['=',['angle_rate'], 10],
-                     ['=', ['ground_damper'], 0.3]
-                     ]:
-            prob.init.append(fact)
-        if not platform:
-            prob.objects.append(['dummy_platform','platform'])
-        if not block:
-            prob.objects.append(['dummy_block','block'])
-
-        prob_simplified = PddlPlusProblem()
-        prob_simplified.name = copy.copy(prob.name)
-        prob_simplified.domain = copy.copy(prob.domain)
-        prob_simplified.objects = copy.copy(prob.objects)
-        prob_simplified.init = copy.copy(prob.init)
-        prob_simplified.metric = copy.copy(prob.metric)
-        prob_simplified.goal = list()
-        prob_simplified.goal.append(['pig_killed'])
-
-        # print("\n\nPROB: " + str(prob.goal))
-        # print("\nPROB SIMPLIFIED: " + str(prob_simplified.goal))
-
-        return prob, prob_simplified
-
-    ''' Translate an intermediate state to PddlPlusState. 
-    Key difference between this method and translate_init_state... method is that here we consider the location of the birds'''
-    def translate_intermediate_state_to_pddl_state(self):
-        state_as_list = list()
-
-        #we should probably use the self.sling on the object
-        slingshot = None
-        for o in self.objects.items():
-            if o[1]['type'] == 'slingshot':
-                slingshot = o
-        groundOffset = slingshot[1]['bbox'].bounds[3]
-
-        slingshot_x = round((slingshot[1]['bbox'].bounds[0] + slingshot[1]['bbox'].bounds[2]) / 2)
-        slingshot_y = round(abs(((slingshot[1]['bbox'].bounds[1] + slingshot[1]['bbox'].bounds[3]) / 2) - groundOffset) - 0)
-        bird_index = 0
-
-        for o in self.objects.items():
-            if o[1]['type'] == 'pig':
-                obj_name = '{}_{}'.format(o[1]['type'], o[0])
-                state_as_list.append(['not', ['pig_dead',obj_name]])
-                state_as_list.append(['=', ['x_pig',obj_name], self.compute_x_coordinate(o)])
-                state_as_list.append(['=', ['y_pig',obj_name], self.compute_y_coordinate(groundOffset, o)])
-                state_as_list.append(['=', ['pig_radius', obj_name], self.compute_radius(o)])
-                # state_as_list.append(['=', ['m_pig', obj_name], 1])
-            elif 'bird' in o[1]['type'].lower():
-                obj_name = '{}_{}'.format(o[1]['type'], o[0])
-                self.compute_x_coordinate(o)
-
-                # Need to separate the case where we're before shooting the bird and after.
-                # Before: the bird location is considered as the location of the slingshot,
-                # afterwards, it's the location of the birds bounding box
-                x_bird = self.compute_x_coordinate(o)
-                if x_bird>slingshot_x:
-                    state_as_list.append(['=',['x_bird',obj_name], self.compute_x_coordinate(o)])
-                    state_as_list.append(['=',['y_bird',obj_name], self.compute_y_coordinate(groundOffset,o)])
-                else:
-                    state_as_list.append(['=', ['x_bird', obj_name], slingshot_x])
-                    state_as_list.append(['=', ['y_bird', obj_name], slingshot_y])
-                state_as_list.append(['=',['bird_id',obj_name],bird_index])
-                bird_index += 1
-            elif o[1]['type'] == 'wood' or o[1]['type'] == 'ice' or o[1]['type'] == 'stone':
-                block = True
-                obj_name = '{}_{} '.format(o[1]['type'], o[0])
-                state_as_list.append(['=',['x_block', obj_name], round((o[1]['bbox'].bounds[2] + o[1]['bbox'].bounds[0])/2)])
-                state_as_list.append(['=', ['y_block',obj_name], self.compute_y_coordinate(groundOffset, o)])
-                state_as_list.append(['=',['block_height',obj_name],abs(
-                    o[1]['bbox'].bounds[3] - o[1]['bbox'].bounds[1])])
-                state_as_list.append(['=',['block_width',obj_name],abs(
-                    o[1]['bbox'].bounds[2] - o[1]['bbox'].bounds[0])])
-            elif o[1]['type'] == 'hill':
-                platform = True
-                obj_name ='{}_{}'.format(o[1]['type'], o[0])
-                state_as_list.append(['=',['x_platform', obj_name], round((o[1]['bbox'].bounds[2] + o[1]['bbox'].bounds[0])/2)])
-                state_as_list.append(['=', ['y_platform', obj_name], self.compute_y_coordinate(groundOffset, o)])
-                state_as_list.append(['=', ['platform_height', obj_name], abs(o[1]['bbox'].bounds[3] - o[1]['bbox'].bounds[1])])
-                state_as_list.append(['=', ['platform_width', obj_name], abs(o[1]['bbox'].bounds[2] - o[1]['bbox'].bounds[0])])
-            elif o[1]['type'] == 'slingshot':
-                slingshot = o
-        return PddlPlusState(state_as_list)
-
-    ''' Computes the y coordinate of the given object as the center of its bounding box, 
-    corrected for the given groundOffset '''
-    def compute_y_coordinate(self, groundOffset, o):
-        return abs(round(abs(o[1]['bbox'].bounds[1] + o[1]['bbox'].bounds[3]) / 2) - groundOffset)
-
-    ''' Computes the x coordinate of the given object as the center of its boundingbox.'''
-    def compute_x_coordinate(self, o):
-        return round(abs(o[1]['bbox'].bounds[2] + o[1]['bbox'].bounds[0]) / 2)
-
-    ''' Computes the radius of the given object '''
-    def compute_radius(self, o):
-        return round((abs(o[1]['bbox'].bounds[2] - o[1]['bbox'].bounds[0]) / 2) * 0.75)
-
-
-    def translate_state_to_pddl(self):
-        # There is an annoying disconnect in representations.
-        # 'x_pig[pig_4]:450' vs. (= (x_pig pig4) 450)
-        # 'pig_dead[pig_4]:False vs. (not (pig_dead pig_4))
-        # We will use the PddlPlusProblem class as a common representations
-        prob = PddlPlusProblem()
-        prob.domain = 'angry_birds_scaled'
-        prob.name = 'angry_birds_prob'
-        prob.metric = 'minimize(total-time)'
-        prob.objects = []
-        prob.init = []
-        prob.goal = []
-
-        #we should probably use the self.sling on the object
-        slingshot = None
-        for o in self.objects.items():
-            if o[1]['type'] == 'slingshot':
-                slingshot = o
-
-        groundOffset = slingshot[1]['bbox'].bounds[3]
         # print("\n\n Ground Offset: " + str(groundOffset))
         bird_index = 0
 
@@ -291,10 +89,10 @@ class SBState(State):
                 prob.init.append(['=',['pig_radius', obj_name], round((abs(o[1]['bbox'].bounds[2] - o[1]['bbox'].bounds[0])/2) * 0.75)])
                 prob.init.append(['=', ['m_pig', obj_name], 1])
                 prob.goal.append(['pig_dead', obj_name])
-                prob.objects.append([obj_name,o[1]['type']])
-            elif 'bird' in o[1]['type']:
+                prob.objects.append((obj_name,o[1]['type']))
+            elif 'Bird' in o[1]['type']:
                 obj_name = '{}_{}'.format(o[1]['type'], o[0])
-                prob.objects.append([obj_name,'bird']) #This probably needs to change
+                prob.objects.append((obj_name,'Bird')) #This probably needs to change
                 # prob.init.append(['not',['bird_dead',obj_name]])
                 prob.init.append(['not',['bird_released',obj_name]])
                 prob.init.append(['=',['x_bird',obj_name],round((slingshot[1]['bbox'].bounds[0] + slingshot[1]['bbox'].bounds[2]) / 2) - 0])
@@ -421,16 +219,11 @@ class ScienceBirds(World):
     intermediate_states = []
     lock = threading.Lock()
 
-    def __init__(self,sel_level=0,launch=False, config_file = None):
+    def __init__(self,sel_level=0,launch=False,config=True):
         self.id = 2228
         self.tp = tp.SimpleTrajectoryPlanner()
         if launch:
-            logger.info("Launching SB...")
-            if config_file is not None:
-                self.launch_SB(config_file)
-            else:
-                self.launch_SB()
-            logger.info("SB launched!")
+            self.launch_SB(config)
             time.sleep(1)
         self.create_interface(sel_level)
 
@@ -439,18 +232,45 @@ class ScienceBirds(World):
     def kill(self):
         print("Killing process groups: {}, {}".format(self.SB_server_process.pid,
                                                      self.SB_process.pid))
-        try:
-            os.killpg(self.SB_process.pid,9)
-            os.killpg(self.SB_server_process.pid,9)
-            self.gt_thread.kill()
-
-        except:
-            pass
+        if sys.platform == 'darwin':
+            try:
+                os.kill(self.SB_process.pid,9)
+            except:
+                logger.info("Error during process termination 1")
+                pass
+            try:
+                os.kill(self.SB_process.pid+1,9)
+            except:
+                logger.info("Error during process termination 2")
+                pass
+            try:
+                os.kill(self.SB_server_process.pid,9)
+            except:
+                logger.info("Error during process termination 3")
+                pass
+            try:
+                os.kill(self.SB_server_process.pid+1,9)
+            except:
+                logger.info("Error during process termination 4")
+                pass
+            try:
+                self.gt_thread.kill()
+            except:
+                logger.info("Error during process termination 5")
+                pass
+        else:
+            try:
+                os.killpg(self.SB_process.pid,9)
+                os.killpg(self.SB_server_process.pid,9)
+                self.gt_thread.kill()
+            except:
+                logger.info("Error during process terminatio6n")
+                pass
 
             
 
             
-    def launch_SB(self, config_path = '{}/data/science_birds/config/test_config.xml'.format(settings.ROOT_PATH)):
+    def launch_SB(self,config='test_config.xml'):
         """
         Maybe this would be better in a shell script than in python
         """
@@ -458,11 +278,17 @@ class ScienceBirds(World):
         cmd = ''
 
         if sys.platform=='darwin':
-            cmd='open {}/ScienceBirds_MacOS.app --args --configpath {}'.format(
-                settings.SCIENCE_BIRDS_BIN_DIR,config_path)
+            if config:
+                cmd='open {}/ScienceBirds_MacOS.app --args --configpath {}/data/science_birds/config/{}'.format(
+                    settings.SCIENCE_BIRDS_BIN_DIR,settings.ROOT_PATH,config)
+            else:
+                cmd = 'open {}/ScienceBirds_MacOS.app'.format(settings.SCIENCE_BIRDS_BIN_DIR)
         else:
-            cmd='{}/sciencebirds_linux/sciencebirds_linux.x86_64 --configpath {}'. \
-                format(settings.SCIENCE_BIRDS_BIN_DIR, config_path)
+            if config:
+                cmd='{}/sciencebirds_linux/sciencebirds_linux.x86_64 --configpath {}/data/science_birds/config/test_config.xml'. \
+                    format(settings.SCIENCE_BIRDS_BIN_DIR, settings.ROOT_PATH)
+            else:
+                cmd='{}/sciencebirds_linux/sciencebirds_linux.x86_64'.format(settings.SCIENCE_BIRDS_BIN_DIR)
         # Not sure if run will work this way on ubuntu...
         self.SB_process = subprocess.Popen(cmd,stdout=subprocess.PIPE,
                                            stderr=subprocess.STDOUT,

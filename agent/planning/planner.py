@@ -25,14 +25,14 @@ class Planner():
         or invoking the RL agent
         '''
 
-        # CHANGE THE PLANNER MEMORY LIMIT
-        f = open(path.join(settings.PLANNING_DOCKER_PATH, "run_script.sh"), 'r')
-        filedata = f.read()
-        f.close()
-        newdata = re.sub(r'\bm\d*\b', 'm'+str(settings.PLANNER_MEMORY_LIMIT), str(filedata))
-        f = open(path.join(settings.PLANNING_DOCKER_PATH, "run_script.sh"), 'w')
-        f.write(newdata)
-        f.close()
+        # # CHANGE THE PLANNER MEMORY LIMIT
+        # f = open(path.join(settings.PLANNING_DOCKER_PATH, "run_script.sh"), 'r')
+        # filedata = f.read()
+        # f.close()
+        # newdata = re.sub(r'\bm\d*\b', 'm'+str(settings.PLANNER_MEMORY_LIMIT), str(filedata))
+        # f = open(path.join(settings.PLANNING_DOCKER_PATH, "run_script.sh"), 'w')
+        # f.write(newdata)
+        # f.close()
 
 
         # pddl, pddl_simplified = meta_model.translate_sb_state_to_pddl_problem(state)
@@ -82,7 +82,7 @@ class Planner():
             out_file.write(completed_process.stderr);
         out_file.close()
 
-        completed_process = subprocess.run(('docker', 'run', 'upm_from_dockerfile', 'sb_domain.pddl', 'sb_prob.pddl', '>', 'docker_plan_trace.txt'), capture_output=True)
+        completed_process = subprocess.run(('docker', 'run', 'upm_from_dockerfile', 'sb_domain.pddl', 'sb_prob.pddl', str(settings.PLANNER_MEMORY_LIMIT) ,'>', 'docker_plan_trace.txt'), capture_output=True)
         out_file = open("docker_plan_trace.txt", "wb")
         out_file.write(completed_process.stdout);
         if len(completed_process.stderr)>0:
