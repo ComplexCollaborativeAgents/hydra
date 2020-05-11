@@ -66,6 +66,11 @@ class Perception():
                 new_objs[id] = {'type':type,
                                 'bbox':box(obj.top_left[0],obj.top_left[1],
                                             obj.bottom_right[0],obj.bottom_right[1])}
+                if type == 'unknown':
+                    for state_obj in state.objects:
+                        if 'vertices' in state_obj and obj.vertices == state_obj['vertices']:
+                            new_objs[id]['colormap'] = state_obj['colormap']
+                    assert 'colormap' in new_objs[id].keys()
                 id+=1
         state.objects = new_objs
         return state
