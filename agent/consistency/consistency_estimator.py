@@ -1,10 +1,18 @@
-from agent.planning.pddl_plus import *
 import numpy as np
-import math
+
+''' A small object that represents an observation of the SB game, containing the values
+(state, action, intermedidate_states, reward)'''
+class ScienceBirdsObservation:
+    def __init__(self):
+        self.state = None # An SBState
+        self.action = None # An action performed at that state
+        self.intermediate_states = None # The  sequence of intermediates states observed after doing the action
+        self.reward = 0 # The reward obtained from performing an action
+
 '''
 An abstract class for checking if a given sequence of (state, time) pairs can be consistent with a given sequence of states.  
 '''
-class ConsistencyChecker:
+class ConsistencyEstimator:
     ''' The first parameter is a list of (state,time) pairs, the second is just a list of states.
      Returns a positive number  that represents the possible consistency between the sequences,
      where zero means fully consistent. '''
@@ -12,7 +20,7 @@ class ConsistencyChecker:
         raise NotImplementedError()
 
 ''' Checks consistency by considering the value of a single numeric fluent '''
-class SingleNumericFluentConsistencyChecker(ConsistencyChecker):
+class SingleNumericFluentConsistencyEstimator(ConsistencyEstimator):
     def __init__(self, fluent_name):
         if isinstance(fluent_name,list):
             self.fluent_name = tuple(fluent_name)
@@ -52,7 +60,7 @@ class SingleNumericFluentConsistencyChecker(ConsistencyChecker):
 
 
 ''' Checks consistency by considering the value of a set of numeric fluents '''
-class NumericFluentsConsistencyChecker(ConsistencyChecker):
+class NumericFluentsConsistencyEstimator(ConsistencyEstimator):
 
     def __init__(self, fluent_names):
         self.fluent_names = []

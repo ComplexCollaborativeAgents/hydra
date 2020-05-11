@@ -1,6 +1,6 @@
 import agent.planning.model_manipulator as model_manipulator
 from agent.consistency.pddl_plus_simulator import PddlPlusSimulator
-from agent.consistency.consistency_checker import *
+from agent.consistency.consistency_estimator import *
 
 ''' An abstract class intended to repair a given PDDL+ domain and problem until it matches the observed behavior '''
 class ModelRepair():
@@ -37,7 +37,7 @@ class SingleNumericFluentRepair(ModelRepair):
         self.fluent_to_change = fluent_to_repair
         self.delta = delta
         self.manipulator = model_manipulator.ManipulateInitNumericFluent(fluent_to_repair, delta)
-        self.consistency_checker = SingleNumericFluentConsistencyChecker(fluent_for_consistency_check)
+        self.consistency_checker = SingleNumericFluentConsistencyEstimator(fluent_for_consistency_check)
 
     '''
     Simple brute force in the space of delta factors. It goes like this: +delta, -delta, +2delta, -2delta

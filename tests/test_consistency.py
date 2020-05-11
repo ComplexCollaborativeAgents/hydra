@@ -1,11 +1,15 @@
+import pytest
 import worlds.science_birds as sb
 from agent.perception.perception import Perception
-from agent.consistency.consistency_checker import *
+from agent.consistency.consistency_estimator import *
 from agent.consistency.pddl_plus_simulator import *
 from agent.planning.planner import *
 from agent.planning.pddlplus_parser import *
 from agent.planning.model_manipulator import ManipulateInitNumericFluent
 import logging
+import worlds.science_birds as sb
+from agent.hydra_agent import *
+import matplotlib.pyplot as plt
 
 fh = logging.FileHandler("hydra.log",mode='w')
 formatter = logging.Formatter('%(name)s - %(levelname)s - %(message)s')
@@ -60,7 +64,7 @@ def test_single_constant_numeric_fluent_consistent():
     state_seq = [state for (state, t) in timed_state_seq]
 
     # Check that the un-timed state sequence is consistent with itself
-    consistency_checker = SingleNumericFluentConsistencyChecker((GRAVITY))
+    consistency_checker = SingleNumericFluentConsistencyEstimator((GRAVITY))
     assert consistency_checker.estimate_consistency(timed_state_seq, state_seq)==0
 
     # Check that the un-timed state sequence is consistent with a subset of itself
@@ -98,7 +102,7 @@ def test_single_constant_numeric_fluent_inconsistent():
     modified_state_seq = [state for (state, t) in modified_timed_state_seq]
 
     # Assert the un-timed sequence created by the modified model is inconsistent with the timed sequence created by the original model
-    consistency_checker = SingleNumericFluentConsistencyChecker(X_BIRD_FLUENT)
+    consistency_checker = SingleNumericFluentConsistencyEstimator(X_BIRD_FLUENT)
     consistent_score = consistency_checker.estimate_consistency(timed_state_seq, modified_state_seq)
     assert consistent_score > 0.0
 
@@ -112,7 +116,7 @@ def test_single_constant_numeric_fluent_consistent():
     state_seq = [state for (state, t) in timed_state_seq]
 
     # Check that the un-timed sequence is consistent with the timed sequence, w.r.t. the X_REDBIRD fluent
-    consistency_checker = SingleNumericFluentConsistencyChecker(Y_BIRD_FLUENT)
+    consistency_checker = SingleNumericFluentConsistencyEstimator(Y_BIRD_FLUENT)
     assert consistency_checker.estimate_consistency(timed_state_seq, state_seq)<PRECISION
 
     # Check that subsets of the un-timed sequence are consistent with the timed sequence, w.r.t. the X_REDBIRD fluent
@@ -148,7 +152,7 @@ def test_single_numeric_fluent_inconsistent():
     modified_state_seq = [state for (state, t) in modified_timed_state_seq]
 
     # Assert the un-timed sequence created by the modified model is inconsistent with the timed sequence created by the original model
-    consistency_checker = SingleNumericFluentConsistencyChecker(Y_BIRD_FLUENT)
+    consistency_checker = SingleNumericFluentConsistencyEstimator(Y_BIRD_FLUENT)
     consistent_score = consistency_checker.estimate_consistency(timed_state_seq, modified_state_seq)
     assert consistent_score > PRECISION
 
@@ -175,7 +179,7 @@ def test_multiple_numeric_fluent_inconsistent():
     modified_state_seq = [state for (state, t) in modified_timed_state_seq]
 
     # Assert the un-timed sequence created by the modified model is inconsistent with the timed sequence created by the original model
-    consistency_checker = NumericFluentsConsistencyChecker([X_BIRD_FLUENT,Y_BIRD_FLUENT])
+    consistency_checker = NumericFluentsConsistencyEstimator([X_BIRD_FLUENT, Y_BIRD_FLUENT])
     consistent_score = consistency_checker.estimate_consistency(timed_state_seq, modified_state_seq)
     assert consistent_score > PRECISION
 
@@ -191,7 +195,7 @@ def test_all_bird_numeric_fluent_inconsistent():
     fluents_to_check = [fluent_name for fluent_name in PddlPlusState(pddl_problem.init).numeric_fluents.keys()
                         if "bird" in fluent_name[0].lower()]
 
-    consistency_checker = NumericFluentsConsistencyChecker(fluents_to_check)
+    consistency_checker = NumericFluentsConsistencyEstimator(fluents_to_check)
     # Assert the un-timed sequence created by the original model is consistent with the timed sequence created by the original model
     original_state_seq = [state for (state,t) in timed_state_seq]
     consistency_score = consistency_checker.estimate_consistency(timed_state_seq, original_state_seq)
@@ -250,6 +254,10 @@ def __print_fluents_values(state_seq:list, fluent_names:list):
         line = ",".join(["%.2f" % state[fluent_name] for fluent_name in fluent_names])
         print("%s" % line)
 
+
+
+
+
 ''' Tests consistency check with real observations '''
 def test_real_observations():
     # Get the states observed from SB
@@ -266,7 +274,7 @@ def test_real_observations():
     # print("\n-----------------------------\n")
     # __print_fluents_values(expected_state_seq, [Y_BIRD_FLUENT,X_BIRD_FLUENT])
 
-    consistency_checker = NumericFluentsConsistencyChecker([Y_BIRD_FLUENT, X_BIRD_FLUENT])
+    consistency_checker = NumericFluentsConsistencyEstimator([Y_BIRD_FLUENT, X_BIRD_FLUENT])
     inconsistency_score_good_model = consistency_checker.estimate_consistency(timed_state_seq, observed_state_seq[1:])
     logger.info("Consistency score good=%.2f" % inconsistency_score_good_model)
 
@@ -287,9 +295,95 @@ def test_real_observations():
     __print_fluents_values([state for (state,t) in modified_timed_state_seq], [X_BIRD_FLUENT,Y_BIRD_FLUENT])
 
 
-    consistency_checker = SingleNumericFluentConsistencyChecker(Y_BIRD_FLUENT)
+    consistency_checker = SingleNumericFluentConsistencyEstimator(Y_BIRD_FLUENT)
     inconsistency_score_bad_model = consistency_checker.estimate_consistency(modified_timed_state_seq, observed_state_seq[1:])
     logger.info("Consistency score bad=%.2f" % inconsistency_score_bad_model)
     assert inconsistency_score_bad_model > inconsistency_score_good_model
 
 
+#################### System Test ###############################
+@pytest.fixture(scope="module")
+def launch_science_birds():
+    logger.info("starting")
+    #remove config files
+    cmd = 'cp {}/data/science_birds/level-14.xml {}/00001.xml'.format(str(settings.ROOT_PATH), str(settings.SCIENCE_BIRDS_LEVELS_DIR))
+    subprocess.run(cmd, shell=True)
+    cmd = 'cp {}/data/science_birds/level-15.xml {}/00002.xml'.format(str(settings.ROOT_PATH), str(settings.SCIENCE_BIRDS_LEVELS_DIR))
+    subprocess.run(cmd, shell=True)
+    cmd = 'cp {}/data/science_birds/level-16.xml {}/00003.xml'.format(str(settings.ROOT_PATH), str(settings.SCIENCE_BIRDS_LEVELS_DIR))
+    subprocess.run(cmd, shell=True)
+    logger.info("Launching ScienceBirds...")
+    env = sb.ScienceBirds(None,launch=True)
+    logger.info("ScienceBirds launched!")
+    yield env
+    logger.info("teardown tests")
+    env.kill()
+
+
+
+''' Run Hydra, collect observations, check for consistency '''
+@pytest.mark.skipif(settings.HEADLESS == True, reason="headless does not work in docker")
+def test_consistency_in_agent(launch_science_birds):
+    env = launch_science_birds
+    hydra = HydraAgent(env)
+
+    # Inject fault and play
+    original_gravity = hydra.meta_model.constant_numeric_fluents['gravity']
+    hydra.meta_model.constant_numeric_fluents['gravity'] = 250.0
+    hydra.main_loop(max_actions=3)  # enough actions to play the first level
+
+    game_state = env.sb_client.get_game_state()
+    assert game_state.value != GameState.WON.value
+
+    # Get the state and the action, simulate expected observations
+    # Extract intermediate states, compate with simulated expected observations
+
+    our_observation =  hydra.observations[1]
+    (expected_timed_seq, observed_seq) = _extract_expected_and_observed(hydra, our_observation)
+    _plot_bird_xy_series([state[0] for state in expected_timed_seq], observed_seq)
+
+    hydra.meta_model.constant_numeric_fluents['gravity'] = original_gravity
+    (expected_timed_seq, observed_seq) = _extract_expected_and_observed(hydra, our_observation)
+    _plot_bird_xy_series([state[0] for state in expected_timed_seq], observed_seq)
+
+
+def _plot_bird_xy_series(serie1, serie2):
+    # Plot each
+    fluent_names = [X_BIRD_FLUENT,Y_BIRD_FLUENT]
+    expected_x_values = []
+    expected_y_values = []
+    for state in serie1:
+        if state[X_BIRD_FLUENT] and state[Y_BIRD_FLUENT]:
+            expected_x_values.append(state[X_BIRD_FLUENT])
+            expected_y_values.append(state[Y_BIRD_FLUENT])
+    observed_x_values = []
+    observed_y_values = []
+    for state in serie2:
+        if state[X_BIRD_FLUENT] and state[Y_BIRD_FLUENT]:
+            observed_x_values.append(state[X_BIRD_FLUENT])
+            observed_y_values.append(state[Y_BIRD_FLUENT])
+    plt.plot(expected_x_values,expected_y_values,'r--',observed_x_values,observed_y_values,'bs')
+    plt.show()
+
+''' Extract from the given observation Hydra collected, an expected list of itnermediate states and an observed y'''
+def _extract_expected_and_observed(hydra : HydraAgent, our_observation: ScienceBirdsObservation):
+    assert our_observation.action is not None
+    assert our_observation.state is not None
+
+    pddl_problem = hydra.meta_model.create_pddl_problem(our_observation.state)
+    pddl_domain = hydra.meta_model.create_pddl_domain(our_observation.state)
+    planner = Planner()
+    grounded_domain = PddlPlusGrounder().ground_domain(pddl_domain, pddl_problem)  # Needed to identify plan action
+    plan_trace_file = "%s/docker_plan_trace.txt" % str(settings.PLANNING_DOCKER_PATH)
+    pddl_plan = planner.extract_plan_from_plan_trace(plan_trace_file, grounded_domain)
+
+
+    expected_timed_state_seq = __get_timed_state_seq(pddl_domain, pddl_problem, pddl_plan, DELTA_T)
+    observed_state_seq = []
+    perception = Perception()
+    for intermediate_state in our_observation.intermediate_states:
+        if isinstance(intermediate_state.objects, list):
+            intermediate_state = perception.process_sb_state(intermediate_state)
+        observed_state_seq.append(hydra.meta_model.create_pddl_state(intermediate_state))
+
+    return (expected_timed_state_seq, observed_state_seq)
