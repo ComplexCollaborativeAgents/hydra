@@ -60,9 +60,9 @@ class Planner():
 
         chdir("%s"  % settings.PLANNING_DOCKER_PATH)
         completed_process = subprocess.run(('docker', 'run',
-                                            '--volume=./sb_domain.pddl:/sb_domain.pddl',
-                                            '--volume=./sb_prob.pddl:/sb_prob.pddl',
-                                            '--volume=./run_script.sh:/run_script.sh'
+                                            f'--volume={settings.PLANNING_DOCKER_PATH}/sb_domain.pddl:/sb_domain.pddl',
+                                            f'--volume={settings.PLANNING_DOCKER_PATH}/sb_prob.pddl:/sb_prob.pddl',
+                                            f'--volume={settings.PLANNING_DOCKER_PATH}/run_script.sh:/run_script.sh'
                                             'aaronang/upmurphi',
                                             './run_script.sh', 'sb_domain.pddl', 'sb_prob.pddl',
                                             str(settings.PLANNER_MEMORY_LIMIT), '>', 'docker_plan_trace.txt'),
