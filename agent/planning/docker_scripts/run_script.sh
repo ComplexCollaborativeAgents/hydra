@@ -8,7 +8,7 @@ echo $domain
 
 # while IFS= read -r line; do echo $line; done < $domain
 
-upmc $domain $problem --custom 0.05 7 7 --force
+../../bin/upmc $domain $problem --custom 0.05 7 7 --force
 
 #./"${domain%%.*}"_planner -print
 
