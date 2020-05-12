@@ -59,14 +59,15 @@ class Planner():
         plan_actions = []
 
         chdir("%s"  % settings.PLANNING_DOCKER_PATH)
-        completed_process = subprocess.run(('docker', 'run',
-                                            f'--volume={settings.PLANNING_DOCKER_PATH}/sb_domain.pddl:/sb_domain.pddl',
-                                            f'--volume={settings.PLANNING_DOCKER_PATH}/sb_prob.pddl:/sb_prob.pddl',
-                                            f'--volume={settings.PLANNING_DOCKER_PATH}/run_script.sh:/run_script.sh'
-                                            'aaronang/upmurphi',
-                                            './run_script.sh', 'sb_domain.pddl', 'sb_prob.pddl',
-                                            str(settings.PLANNER_MEMORY_LIMIT), '>', 'docker_plan_trace.txt'),
-                                           capture_output=True)
+        completed_process = subprocess.run(('docker', 'build', '-t', 'upm_from_dockerfile', '.'), capture_output=True)
+        out_file = open("docker_build_trace.txt", "wb")
+        out_file.write(completed_process.stdout);
+        if len(completed_process.stderr)>0:
+            out_file.write(str.encode("\n Stderr: \n"))
+            out_file.write(completed_process.stderr);
+        out_file.close()
+
+        completed_process = subprocess.run(('docker', 'run', 'upm_from_dockerfile', 'sb_domain.pddl', 'sb_prob.pddl', str(settings.PLANNER_MEMORY_LIMIT) ,'>', 'docker_plan_trace.txt'), capture_output=True)
         out_file = open("docker_plan_trace.txt", "wb")
         out_file.write(completed_process.stdout);
         if len(completed_process.stderr)>0:
