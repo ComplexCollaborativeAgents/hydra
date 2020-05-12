@@ -17,7 +17,7 @@ class Planner():
     def __init__(self):
         pass
 
-    def make_plan(self,state,simplified_problem=False):
+    def make_plan(self,state,prob_complexity=0):
         '''
         The plan should be a list of actions that are either executable in the environment
         or invoking the RL agent
@@ -33,10 +33,11 @@ class Planner():
         # f.close()
 
 
-        pddl, pddl_simplified = state.translate_state_to_pddl()
-        if simplified_problem:
+        pddl, pddl_simplified, pddl_super_simplified = state.translate_state_to_pddl()
+        if prob_complexity==1:
             self.write_problem_file(pddl_simplified)
-
+        elif prob_complexity==2:
+            self.write_problem_file(pddl_super_simplified)
         else:
             self.write_problem_file(pddl)
         return self.get_plan_actions()
@@ -67,7 +68,7 @@ class Planner():
             out_file.write(completed_process.stderr);
         out_file.close()
 
-        completed_process = subprocess.run(('docker', 'run', 'upm_from_dockerfile', 'sb_domain.pddl', 'sb_prob.pddl', str(settings.PLANNER_MEMORY_LIMIT) ,'>', 'docker_plan_trace.txt'), capture_output=True)
+        completed_process = subprocess.run(('docker', 'run', 'upm_from_dockerfile', 'sb_domain.pddl', 'sb_prob.pddl', str(settings.PLANNER_MEMORY_LIMIT), str(settings.DELTA_T), '>', 'docker_plan_trace.txt'), capture_output=True)
         out_file = open("docker_plan_trace.txt", "wb")
         out_file.write(completed_process.stdout);
         if len(completed_process.stderr)>0:
@@ -93,8 +94,8 @@ class Planner():
 
                 if "syntax error" in line:
                     break
-
-        self.run_val()
+        # commented out for 6 months evaluation
+        # self.run_val()
 
         print("\nACTIONS: " + str(plan_actions))
         if len(plan_actions) > 0:

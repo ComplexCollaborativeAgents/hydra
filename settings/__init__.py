@@ -8,6 +8,7 @@ HEADLESS = False
 SCREENSHOT = False
 
 PLANNER_MEMORY_LIMIT = 10 # memory limit for UPMurphi (in MB)
+DELTA_T = 0.1
 
 OS_ROOT_PATH = path.abspath(os.sep)
 ROOT_PATH = path.join(path.dirname(path.dirname(path.abspath(__file__))))
@@ -15,7 +16,7 @@ SCIENCE_BIRDS_BIN_DIR = path.join(ROOT_PATH,'bin')
 SCIENCE_BIRDS_LEVELS_DIR = path.join(SCIENCE_BIRDS_BIN_DIR,'sciencebirds_linux',
                                      'sciencebirds_linux_Data','StreamingAssets','Levels','novelty_level_0','type1','Levels')
 SB_INIT_COLOR_MAP = path.join(ROOT_PATH,'worlds','science_birds_interface','demo','ColorMap.json')
-SB_SIM_SPEED = 1 # run at real time
+SB_SIM_SPEED = 50 # run at real time
 
 
 SCIENCE_BIRDS_SERVER_CMD = 'java -jar {}'.format(path.join(SCIENCE_BIRDS_BIN_DIR,'game_playing_interface.jar'))
