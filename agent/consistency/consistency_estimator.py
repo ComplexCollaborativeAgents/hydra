@@ -5,7 +5,7 @@ import numpy as np
 class ScienceBirdsObservation:
     def __init__(self):
         self.state = None # An SBState
-        self.action = None # An action performed at that state
+        self.action = None # An action performed at that state.
         self.intermediate_states = None # The  sequence of intermediates states observed after doing the action
         self.reward = 0 # The reward obtained from performing an action
 
@@ -32,12 +32,12 @@ class SingleNumericFluentConsistencyEstimator(ConsistencyEstimator):
     aiming to minimize its distance from the fitted piecewise-linear interpolation. 
     Returns a value representing how cons
     '''
-    def estimate_consistency(self, timed_state_seq: list, state_seq: list):
+    def estimate_consistency(self, simulation_trace: list, state_seq: list):
 
         # Fit a piecewise linear function based on the timed state sequence
         t_values = list()
         fluent_values = list()
-        for (state, t) in timed_state_seq:
+        for (state, t,_) in simulation_trace:
             value = float(state[self.fluent_name])
             t_values.append(t)
             fluent_values.append(value)
@@ -75,8 +75,8 @@ class NumericFluentsConsistencyEstimator(ConsistencyEstimator):
     and ignore cases where the fluent is not in the un-timed state seqqaiming to minimize its distance from the fitted piecewise-linear interpolation. 
     Returns a value representing how cons
     '''
-    def estimate_consistency(self, timed_state_seq: list, state_seq: list):
-        t_values, fluent_to_expected_values = self.fit_expected_values(timed_state_seq)
+    def estimate_consistency(self, simulation_trace: list, state_seq: list):
+        t_values, fluent_to_expected_values = self.fit_expected_values(simulation_trace)
 
         # Check max error: compute the error for every state w.r.t every time. Return max error found
         max_error = 0
@@ -88,11 +88,11 @@ class NumericFluentsConsistencyEstimator(ConsistencyEstimator):
         return max_error
 
     ''' Create a piecewise linear interpolation for the given timed_state_seq'''
-    def fit_expected_values(self, timed_state_seq):
+    def fit_expected_values(self, simulation_trace):
         # Get values over time for each fluent
         fluent_to_values = dict()
         fluent_to_times = dict()
-        for (state, t) in timed_state_seq:
+        for (state, t,_) in simulation_trace:
             for fluent_name in self.fluent_names:
                 if fluent_name in state.numeric_fluents:
                     fluent_value = state[fluent_name]

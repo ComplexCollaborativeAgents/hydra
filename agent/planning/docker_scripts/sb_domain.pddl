@@ -243,7 +243,8 @@
         :effect (and
             ; (assign (v_bird ?b) 0)
             (assign (vx_bird ?b) 0)
-            (assign (bounce_count ?b) 3)
+            (assign (bounce_count ?b) (+ (bounce_count ?b) 1))
+            (assign (vx_bird ?b) (* (vx_bird ?b) 0.5))
         )
     )
 

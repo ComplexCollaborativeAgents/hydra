@@ -113,6 +113,12 @@ class PddlPlusDomain():
         self.actions = list()
         self.events = list()
 
+    def get_action(self,action_name):
+        for action in self.actions:
+            if action.name==action_name:
+                return action
+        return None
+
 '''
 A class representing a PDDL+ state. Contains only the fluents and their values. 
 '''

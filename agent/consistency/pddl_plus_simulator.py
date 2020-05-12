@@ -5,6 +5,11 @@
 from agent.planning.pddl_plus import *
 from agent.planning.pddl_plus import is_float
 
+# Constants
+TI_STATE = 0 # Index in a trace_item for the state
+TI_T = 1 # Index in a trace_item for the time
+TI_WORLD_CHANGES = 2 # Index in a trace_item for the list of actions, processes, and events
+
 ''' A simplistic, probably not complete and sound, simulator for PDDL+ processes
  TODO: Replace this with a call to VAL. '''
 class PddlPlusSimulator():
@@ -40,13 +45,20 @@ class PddlPlusSimulator():
         plan = PddlPlusPlan(plan_to_simulate) # Clone the given plan
         next_timed_action  = plan.pop(0)
 
+        # Create the first trace_item
+        trace_item = [None, None, None]
+        trace.append(trace_item)
+        trace_item[TI_STATE]=current_state.clone() # TODO: Maybe this close is redundant
+        trace_item[TI_T] = t
+        world_changes_at_t = []
+        trace_item[TI_WORLD_CHANGES] = world_changes_at_t
+
         still_active = True
         while still_active and t<max_t:
-            trace.append((current_state.clone(), t))
-
             # If we reached the time in which the next action should be applied, apply it
             if next_timed_action is not None and next_timed_action.start_at<=t:
                 new_effects = self.compute_apply_action(current_state,next_timed_action.action)
+                world_changes_at_t.append(next_timed_action.action)
                 if new_effects is not None and len(new_effects)>0:
                     self.apply_effects(current_state, new_effects)
 
@@ -57,7 +69,9 @@ class PddlPlusSimulator():
                     next_timed_action = None
 
                 # Trigger events after action is performed
-                self.handle_events(current_state)
+                fired_events = self.handle_events(current_state)
+                for event in fired_events:
+                    world_changes_at_t.append(event)
 
             # Compute delta t
             if next_timed_action is None or next_timed_action.start_at > t+delta_t: # Next action should not start before t+delta_t
@@ -67,9 +81,22 @@ class PddlPlusSimulator():
 
             # Advance process and apply events
             active_processes = self.handle_processes(current_state, current_delta_t) # Advance processes
+            for process in active_processes:
+                world_changes_at_t.append(process)
+
             fired_events = self.handle_events(current_state) # Apply events to the resulting state
+            for event in fired_events:
+                world_changes_at_t.append(event)
+
             t = t+current_delta_t # Advance time
-            trace.append((current_state.clone(), t)) # Store current state to get trajectory
+
+            # Add new trace item, which will be completed by the next iteration of this while
+            trace_item = [None, None, None]
+            trace_item[TI_STATE]=current_state.clone()
+            trace_item[TI_T] = t
+            world_changes_at_t = []
+            trace_item[TI_WORLD_CHANGES]=world_changes_at_t # Actions, events, and process, performed in this (state,time) pair
+            trace.append(trace_item)
 
             # Stopping condition
             if len(plan)>0:

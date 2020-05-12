@@ -5,7 +5,7 @@ from agent.planning.planner import Planner
 import worlds.science_birds as SB
 import logging
 import math
-
+from agent.consistency.consistency_estimator import *
 from worlds.science_birds_interface.client.agent_client import GameState
 from agent.planning.pddl_meta_model import *
 
@@ -28,6 +28,7 @@ class HydraAgent():
         self.consistency_checker = ConsistencyChecker()
         self.planner = Planner()
         self.meta_model = MetaModel()
+        self.observations = []
 
 
     def main_loop(self,max_actions=1000):
@@ -35,6 +36,9 @@ class HydraAgent():
         t = 0
         state = self.env.get_current_state()
         while t < max_actions:
+            observation = ScienceBirdsObservation() # Create an observation object to track on what happend
+            observation.state = state
+
             if state.game_state.value == GameState.PLAYING.value:
                 state = self.perception.process_state(state)
                 if state and self.consistency_checker.is_consistent(state):
@@ -45,25 +49,28 @@ class HydraAgent():
                         plan = self.planner.make_plan(state, meta_model=self.meta_model, simplified_problem=True)
                         if len(plan) == 0 or plan[0][0] == "out of memory":
                             plan.append(("dummy-action", 20.0))
-                    logger.info("[hydra_agent_server] :: Taking action: {}".format(str(plan[0])))
-                    ref_point = self.env.tp.get_reference_point(state.sling)
-                    release_point_from_plan = \
-                        self.env.tp.find_release_point(state.sling, math.radians(plan[0][1]))
-                    action = SB.SBShoot(release_point_from_plan.X, release_point_from_plan.Y, 3000, ref_point.X,
-                                         ref_point.Y)
-                    state, reward = self.env.act(action)
-                    logger.info("[hydra_agent_server] :: Reward {} Game State {}".format(reward, state.game_state))
                 else:
                     logger.info("Perception Failure performing default shot")
-                    plan = []
-                    plan.append(("dummy-action", 20.0))
-                    ref_point = self.env.tp.get_reference_point(state.sling)
-                    release_point_from_plan = \
-                        self.env.tp.find_release_point(state.sling, math.radians(plan[0][1]))
-                    action = SB.SBShoot(release_point_from_plan.X, release_point_from_plan.Y, 3000, ref_point.X,
-                                         ref_point.Y)
-                    state, reward = self.env.act(action)
-                    logger.info("[hydra_agent_server] :: Reward {} Game State {}".format(reward, state.game_state))
+                    plan = [("dummy-action", 20.0)]
+                    plan.append(action_to_perform)
+
+                action_to_perform = plan[0]
+                logger.info("[hydra_agent_server] :: Taking action: {}".format(str(action_to_perform)))
+                angle = action_to_perform[1]
+
+                ref_point = self.env.tp.get_reference_point(state.sling)
+                release_point_from_plan = \
+                    self.env.tp.find_release_point(state.sling, math.radians(angle))
+                action = SB.SBShoot(release_point_from_plan.X, release_point_from_plan.Y, 3000, ref_point.X,
+                                    ref_point.Y)
+                state, reward = self.env.act(action)
+
+                observation.action = action_to_perform # Prefer action currently in PDDL+ format. Ideally, not.
+                observation.reward = reward
+                observation.intermediate_states = list(self.env.intermediate_states)
+
+                logger.info("[hydra_agent_server] :: Reward {} Game State {}".format(reward, state.game_state))
+
             elif state.game_state.value == GameState.WON.value:
                 logger.info("[hydra_agent_server] :: Level {} complete".format(self.current_level))
                 self.current_level = self.env.sb_client.load_next_available_level()
@@ -111,6 +118,7 @@ class HydraAgent():
                 logger.info("[hydra_agent_server] :: Unexpected state.game_state.value {}".format(state.game_state.value))
                 assert False
             t+=1
+            self.observations.append(observation)
 
     def set_env(self,env):
         '''Probably bad to have two pointers here'''
