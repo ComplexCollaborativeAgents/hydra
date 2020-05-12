@@ -29,6 +29,7 @@ class HydraAgent():
         self.perception = Perception()
         self.consistency_checker = ConsistencyChecker()
         self.planner = Planner()
+        self.novelty_likelihood = 0.0
 
 
     def main_loop(self,max_actions=1000):
@@ -119,8 +120,8 @@ class HydraAgent():
                 logger.info("[hydra_agent_server] :: Requesting Novelty Likelihood {}".format(0.1))
                 # Require report novelty likelihood and then playing can be resumed
                 # dummy likelihoods:
-                novelty_likelihood = 0.1
-                non_novelty_likelihood = 0.9
+                novelty_likelihood = self.consistency_checker.novelty_likelihood
+                non_novelty_likelihood = 1 - novelty_likelihood
                 self.env.sb_client.report_novelty_likelihood(novelty_likelihood, non_novelty_likelihood)
                 state = self.env.get_current_state()
             elif state.game_state.value == GameState.NEWTRIAL.value:
