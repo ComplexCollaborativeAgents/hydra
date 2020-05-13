@@ -72,6 +72,7 @@ def _validate_working_plan(problem: PddlPlusProblem, domain: PddlPlusDomain, pla
         assert tuple(goal_fluent) in current_state.boolean_fluents
 
 ''' Tests the simulator's behavior when setting the gravity to be 250 '''
+@pytest.mark.skipif(True, reason="Need a new observation object")
 def test_gravity_250():
     # Load observation as created by the _create_gravity_250_observation() function
     our_observation = pickle.load(open(GRAVITY_BAD_OBS, "rb"))

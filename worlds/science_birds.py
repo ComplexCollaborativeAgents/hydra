@@ -53,7 +53,7 @@ class SBState(State):
 
     ''' Translate the initial state, as observed, to a PddlPlusProblem object. 
     Note that in the initial state, we ignore the location of the bird and assume it is on the slingshot. '''
-    def translate_initial_state_to_pddl_problem(self):
+    def translate_state_to_pddl(self):
         # There is an annoying disconnect in representations.
         # 'x_pig[pig_4]:450' vs. (= (x_pig pig4) 450)
         # 'pig_dead[pig_4]:False vs. (not (pig_dead pig_4))

@@ -7,6 +7,7 @@ import settings
 from os import path, chdir
 import subprocess
 import re
+from agent.planning.pddl_plus import *
 
 class Planner():
     domain_file = None
@@ -106,29 +107,6 @@ class Planner():
         else:
             return []
 
-    ''' Parses the expected trace of the given plan trace '''
-    def extract_trace_from_plan_trace(self, plane_trace_file : str, count=0):
-        trace = []
-        lines_list = open(plane_trace_file).readlines()
-        with open(plane_trace_file) as plan_trace_file:
-            for i, line in enumerate(plan_trace_file):
-                if line.startswith("; TIME"):
-                    parts = line.split(",")
-                    key_value = parts[0].split(":")
-                    assert key_value[0]=="; TIME"
-                    trace_line = dict()
-                    trace_line["t"]=float(key_value[1])
-
-                    parts = parts[1:]
-                    for part in parts:
-                        if len(part.strip())>0:
-                            key_value = part.split(":")
-
-                            trace_line[key_value[0].strip()]=key_value[1].strip()
-                    trace.append(trace_line)
-        return trace
-
-
     def run_val(self):
 
         # chdir("%s" % settings.PLANNING_DOCKER_PATH)
@@ -175,3 +153,69 @@ class Planner():
             out_file.write(str.encode("\n Stderr: \n"))
             out_file.write(completed_process.stderr);
         out_file.close()
+
+
+
+
+
+
+
+
+        # TODO: After things calm down, the methods below should replace some of the code above.
+    ''' Extracts a PddlPlusPlan object from a plan trace. TODO: Currently assumes domain is grounded'''
+    def extract_plan_from_plan_trace(self, plan_trace_file_name :str, grounded_domain: PddlPlusDomain) -> PddlPlusPlan:
+        ACTION_REGEX = re.compile(r"^(\S*):.*\((.*)\).*$")
+        plan = PddlPlusPlan()
+        plan_trace_file = open(plan_trace_file_name,"r")
+        for i, line in enumerate(plan_trace_file):
+            if "Out of memory" in line:
+                return None
+            elif ACTION_REGEX.match(line):
+                groups = ACTION_REGEX.search(line)
+                time = float(groups[1].strip())
+                action_str = groups[2].strip() # Removing white spaces in the brackets
+                assert action_str.startswith("pa-twang") # Assert AB action is a twang TODO: Remove this when things get messier
+                action_obj = None
+                for action in grounded_domain.actions:
+                    if action.name==action_str:
+                        action_obj = action
+                        break
+
+                if action_obj is None:
+                    raise ValueError("Action name %s is not in the grounded domain" % action_str)
+
+                timed_action = TimedAction(action_obj, time)
+                plan.append(timed_action)
+        return plan
+
+    ''' Parses the given plan trace file and outputs the plan '''
+    def extract_actions_from_plan_trace(self, plane_trace_file : str, count=0):
+        plan_actions = []
+        lines_list = open(plane_trace_file).readlines()
+        with open(plane_trace_file) as plan_trace_file:
+            for i, line in enumerate(plan_trace_file):
+                # print(str(i) + " =====> " + str(line))
+                if "Out of memory" in line:
+                    plan_actions.append(("out of memory", 20.0))
+                    # if the planner ran out of memory:
+                    # change the goal to killing a single pig to make the problem easier and try again with one fewer pig
+                    return plan_actions
+
+                if " pa-twang " in line:
+                    # print(str(lines_list[i]))
+                    # print(float(str(lines_list[i+1].split('angle:')[1].split(',')[0])))
+                    plan_actions.append((line.split(':')[1].split('[')[0].replace('(','').replace(')','').strip(), float(str(lines_list[i+1].split('angle:')[1].split(',')[0]))))
+
+                if "syntax error" in line:
+                    break
+
+        self.run_val()
+
+        print("\nACTIONS: " + str(plan_actions))
+        if len(plan_actions) > 0:
+            return plan_actions
+        elif (count <1):
+            print("\nno actions, replanning...")
+            return self.get_plan_actions(count+1)
+        else:
+            return []

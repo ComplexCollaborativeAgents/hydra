@@ -263,8 +263,8 @@ class MetaModel():
         self.constant_numeric_fluents['gravity']=134.2
         self.constant_numeric_fluents['active_bird']=0
         self.constant_numeric_fluents['angle']=0
-        self.constant_numeric_fluents['angle_rate'] = 10
-        self.constant_numeric_fluents['ground_damper'] = 0.3
+        self.constant_numeric_fluents['angle_rate'] = 20
+        self.constant_numeric_fluents['ground_damper'] = 0.2
 
         self.constant_boolean_fluents['angle_adjusted']=False
         self.constant_boolean_fluents['pig_killed']=False
