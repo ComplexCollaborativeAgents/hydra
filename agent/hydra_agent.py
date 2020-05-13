@@ -37,6 +37,9 @@ class HydraAgent():
 
     def main_loop(self,max_actions=1000):
         logger.info("[hydra_agent_server] :: Entering main loop")
+        logger.info("[hydra_agent_server] :: Simulation speed = {}\n\n".format(str(settings.SB_SIM_SPEED)))
+        logger.info("[hydra_agent_server] :: Planner memory limit = {}".format(str(settings.PLANNER_MEMORY_LIMIT)))
+        logger.info("[hydra_agent_server] :: Delta t = {}\n\n".format(str(settings.DELTA_T)))
         t = 0
         state = self.env.get_current_state()
 

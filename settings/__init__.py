@@ -8,7 +8,7 @@ HEADLESS = False
 SCREENSHOT = False
 
 PLANNER_MEMORY_LIMIT = 10 # memory limit for UPMurphi (in MB)
-DELTA_T = 0.1
+DELTA_T = 0.05
 
 OS_ROOT_PATH = path.abspath(os.sep)
 ROOT_PATH = path.join(path.dirname(path.dirname(path.abspath(__file__))))

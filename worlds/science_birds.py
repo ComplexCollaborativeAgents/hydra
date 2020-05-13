@@ -257,7 +257,7 @@ class ScienceBirds(World):
     intermediate_states = []
     lock = threading.Lock()
 
-    def __init__(self,sel_level=0,launch=False,config=True):
+    def __init__(self,sel_level=0,launch=False,config='test_config.xml'):
         self.id = 2228
         self.tp = tp.SimpleTrajectoryPlanner()
         if launch:
@@ -323,8 +323,8 @@ class ScienceBirds(World):
                 cmd = 'open {}/ScienceBirds_MacOS.app'.format(settings.SCIENCE_BIRDS_BIN_DIR)
         else:
             if config:
-                cmd='{}/sciencebirds_linux/sciencebirds_linux.x86_64 --configpath {}/data/science_birds/config/test_config.xml'. \
-                    format(settings.SCIENCE_BIRDS_BIN_DIR, settings.ROOT_PATH)
+                cmd='{}/sciencebirds_linux/sciencebirds_linux.x86_64 --configpath {}/data/science_birds/config/{}'. \
+                    format(settings.SCIENCE_BIRDS_BIN_DIR, settings.ROOT_PATH,config)
             else:
                 cmd='{}/sciencebirds_linux/sciencebirds_linux.x86_64'.format(settings.SCIENCE_BIRDS_BIN_DIR)
         # Not sure if run will work this way on ubuntu...
