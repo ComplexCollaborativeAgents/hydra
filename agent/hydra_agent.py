@@ -46,6 +46,12 @@ class HydraAgent():
         while t < max_actions:
             if state.game_state.value == GameState.PLAYING.value:
                 state = self.perception.process_state(state)
+
+                if (len(state.objects) < 3):
+                    # time.sleep(1)
+                    state = self.env.get_current_state()
+                    continue
+
                 if state and self.consistency_checker.is_consistent(state):
                     logger.info("[hydra_agent_server] :: Invoking Planner".format())
                     settings.DELTA_T = 0.05
@@ -54,7 +60,6 @@ class HydraAgent():
                     plan = self.planner.make_plan(state, 1)
                     cumulative_plan_time += (time.perf_counter() - orig_plan_time)
                     logger.info("[hydra_agent_server] :: Original problem planning time: " + str((time.perf_counter() - orig_plan_time)))
-                    # plan = []
                     if len(plan) == 0 or plan[0][0] == "out of memory":
                         logger.info("[hydra_agent_server] :: Invoking Planner on a Simplified Problem".format())
                         settings.DELTA_T = 0.05
