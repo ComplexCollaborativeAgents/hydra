@@ -7,6 +7,7 @@
 3. create the hydra python environment
    - ```conda env create -f environment.yml```
    - ```conda activate hydra```
+   - `pip install -e .`
 4. run the tests from HYDRA directory
 ```
 pytest

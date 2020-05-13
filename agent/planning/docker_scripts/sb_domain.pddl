@@ -1,5 +1,5 @@
 (define (domain angry_birds_scaled)
-    (:requirements :typing :durative-actions :duration-inequalities :fluents :time :negative-preconditions :timed-initial-literals)
+    (:requirements :typing :durative-actions :disjunctive-preconditions :duration-inequalities :fluents :time :negative-preconditions :timed-initial-literals)
     (:types bird pig block platform)
     (:predicates (bird_released ?b - bird) (pig_dead ?p - pig) (angle_adjusted) (block_explosive ?bl - block) (pig_killed))
     (:functions (x_bird ?b - bird) (y_bird ?b - bird) (v_bird ?b - bird) (vx_bird ?b - bird) (vy_bird ?b - bird) (m_bird ?b - bird) (bird_id ?b - bird) (bounce_count ?b - bird)
@@ -137,10 +137,10 @@
         )
         :effect (and
         	(assign (block_stability ?bl) (- (block_stability ?bl) (v_bird ?b))        )
-            (assign (v_bird ?b) (* (v_bird ?b) 0.5))
+            (assign (block_life ?bl) (- (block_life ?bl) (v_bird ?b)) )
             (assign (vy_bird ?b) (* (vy_bird ?b) 0.5))
             (assign (vx_bird ?b) (* (vx_bird ?b) 0.5))
-            (assign (block_life ?bl) (- (block_life ?bl) (v_bird ?b)) )
+            (assign (v_bird ?b) (* (v_bird ?b) 0.5))
             (assign (bounce_count ?b) (+ (bounce_count ?b) 1))
             )
 
@@ -241,7 +241,7 @@
             (<= (y_bird ?b) (+ (y_platform ?pl) (/ (platform_height ?pl) 2) ) )
         )
         :effect (and
-            ; (assign (v_bird ?b) 0)
+            (assign (v_bird ?b) 0)
             (assign (vx_bird ?b) 0)
             (assign (bounce_count ?b) (+ (bounce_count ?b) 1))
             (assign (vx_bird ?b) (* (vx_bird ?b) 0.5))

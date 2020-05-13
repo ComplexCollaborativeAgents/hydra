@@ -5,6 +5,9 @@ from agent.planning.planner import Planner
 import worlds.science_birds as SB
 import logging
 import math
+import time
+import settings
+
 from agent.consistency.consistency_estimator import *
 from worlds.science_birds_interface.client.agent_client import GameState
 from agent.planning.pddl_meta_model import *
@@ -29,12 +32,17 @@ class HydraAgent():
         self.planner = Planner()
         self.meta_model = MetaModel()
         self.observations = []
+        self.novelty_likelihood = 0.0
 
 
     def main_loop(self,max_actions=1000):
         logger.info("[hydra_agent_server] :: Entering main loop")
         t = 0
         state = self.env.get_current_state()
+
+        overall_plan_time = time.perf_counter()
+        cumulative_plan_time = 0
+
         while t < max_actions:
             observation = ScienceBirdsObservation() # Create an observation object to track on what happend
             observation.state = state
@@ -43,43 +51,62 @@ class HydraAgent():
                 state = self.perception.process_state(state)
                 if state and self.consistency_checker.is_consistent(state):
                     logger.info("[hydra_agent_server] :: Invoking Planner".format())
-                    plan = self.planner.make_plan(state, meta_model=self.meta_model)
+                    settings.DELTA_T = 0.05
+                    orig_plan_time = time.perf_counter()
+                    plan = []
+                    plan = self.planner.make_plan(state, 1)
+                    cumulative_plan_time += (time.perf_counter() - orig_plan_time)
+                    logger.info("[hydra_agent_server] :: Original problem planning time: " + str((time.perf_counter() - orig_plan_time)))
+                    # plan = []
                     if len(plan) == 0 or plan[0][0] == "out of memory":
                         logger.info("[hydra_agent_server] :: Invoking Planner on a Simplified Problem".format())
-                        plan = self.planner.make_plan(state, meta_model=self.meta_model, simplified_problem=True)
+                        settings.DELTA_T = 0.05
+                        simple_plan_time = time.perf_counter()
+                        plan = self.planner.make_plan(state, 2)
+                        cumulative_plan_time += (time.perf_counter() - simple_plan_time)
+                        logger.info("[hydra_agent_server] :: Simplified problem planning time: " + str((time.perf_counter() - simple_plan_time)))
                         if len(plan) == 0 or plan[0][0] == "out of memory":
                             plan.append(("dummy-action", 20.0))
+                    logger.info("[hydra_agent_server] :: Taking action: {}".format(str(plan[0])))
+                    ref_point = self.env.tp.get_reference_point(state.sling)
+                    release_point_from_plan = \
+                        self.env.tp.find_release_point(state.sling, math.radians(plan[0][1]))
+                    action = SB.SBShoot(release_point_from_plan.X, release_point_from_plan.Y, 3000, ref_point.X,
+                                         ref_point.Y)
+                    state, reward = self.env.act(action)
+                    logger.info("[hydra_agent_server] :: Reward {} Game State {}".format(reward, state.game_state))
+                    # time.sleep(5)
                 else:
                     logger.info("Perception Failure performing default shot")
-                    plan = [("dummy-action", 20.0)]
-                    plan.append(action_to_perform)
-
-                action_to_perform = plan[0]
-                logger.info("[hydra_agent_server] :: Taking action: {}".format(str(action_to_perform)))
-                angle = action_to_perform[1]
-
-                ref_point = self.env.tp.get_reference_point(state.sling)
-                release_point_from_plan = \
-                    self.env.tp.find_release_point(state.sling, math.radians(angle))
-                action = SB.SBShoot(release_point_from_plan.X, release_point_from_plan.Y, 3000, ref_point.X,
-                                    ref_point.Y)
-                state, reward = self.env.act(action)
-
-                observation.action = action_to_perform # Prefer action currently in PDDL+ format. Ideally, not.
-                observation.reward = reward
-                observation.intermediate_states = list(self.env.intermediate_states)
-
-                logger.info("[hydra_agent_server] :: Reward {} Game State {}".format(reward, state.game_state))
-
+                    plan = []
+                    plan.append(("dummy-action", 20.0))
+                    ref_point = self.env.tp.get_reference_point(state.sling)
+                    release_point_from_plan = \
+                        self.env.tp.find_release_point(state.sling, math.radians(plan[0][1]))
+                    action = SB.SBShoot(release_point_from_plan.X, release_point_from_plan.Y, 3000, ref_point.X, ref_point.Y)
+                    state, reward = self.env.act(action)
+                    logger.info("[hydra_agent_server] :: Reward {} Game State {}".format(reward, state.game_state))
             elif state.game_state.value == GameState.WON.value:
-                logger.info("[hydra_agent_server] :: Level {} complete".format(self.current_level))
+                logger.info("[hydra_agent_server] :: Level {} Complete - WIN".format(self.current_level))
+                logger.info("[hydra_agent_server] :: Cumulative planning time only = {}".format(str(cumulative_plan_time)))
+                logger.info("[hydra_agent_server] :: Planning effort percentage = {}\n".format(str( (cumulative_plan_time/(time.perf_counter() - overall_plan_time)) )))
+                logger.info("[hydra_agent_server] :: Overall time to attempt level {} = {}\n\n".format(self.current_level, str((time.perf_counter() - overall_plan_time))))
+                cumulative_plan_time = 0
+                overall_plan_time = time.perf_counter()
                 self.current_level = self.env.sb_client.load_next_available_level()
                 #self.novelty_existence = self.env.sb_client.get_novelty_info()
+                # time.sleep(2)
                 state = self.env.get_current_state()
             elif state.game_state.value == GameState.LOST.value:
-                logger.info("[hydra_agent_server] :: Level {} complete Lost".format(self.current_level))
+                logger.info("[hydra_agent_server] :: Level {} complete - LOSS".format(self.current_level))
+                logger.info("[hydra_agent_server] :: Cumulative planning time only = {}".format(str(cumulative_plan_time)))
+                logger.info("[hydra_agent_server] :: Planning effort percentage = {}\n".format(str((cumulative_plan_time/(time.perf_counter() - overall_plan_time)))))
+                logger.info("[hydra_agent_server] :: Overall time to attempt level {} = {}\n\n".format(self.current_level, str((time.perf_counter() - overall_plan_time))))
+                cumulative_plan_time = 0
+                overall_plan_time = time.perf_counter()
                 self.current_level = self.env.sb_client.load_next_available_level()
                 #self.novelty_existence = self.env.sb_client.get_novelty_info()
+                # time.sleep(2)
                 state = self.env.get_current_state()
             elif state.game_state.value == GameState.NEWTRAININGSET.value:
                 # DO something to start a fresh agent for a new training set
@@ -99,8 +126,8 @@ class HydraAgent():
                 logger.info("[hydra_agent_server] :: Requesting Novelty Likelihood {}".format(0.1))
                 # Require report novelty likelihood and then playing can be resumed
                 # dummy likelihoods:
-                novelty_likelihood = 0.1
-                non_novelty_likelihood = 0.9
+                novelty_likelihood = self.consistency_checker.novelty_likelihood
+                non_novelty_likelihood = 1 - novelty_likelihood
                 self.env.sb_client.report_novelty_likelihood(novelty_likelihood, non_novelty_likelihood)
                 state = self.env.get_current_state()
             elif state.game_state.value == GameState.NEWTRIAL.value:

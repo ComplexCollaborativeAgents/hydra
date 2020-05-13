@@ -161,8 +161,8 @@ class SBState(State):
                      ['=', ['angle'], 0],
                      ['not', ['angle_adjusted']],
                      ['not', ['pig_killed']],
-                     ['=',['angle_rate'], 10],
-                     ['=', ['ground_damper'], 0.3]
+                     ['=',['angle_rate'], 20],
+                     ['=', ['ground_damper'], 0.2]
                      ]:
             prob.init.append(fact)
         if not platform:
@@ -174,15 +174,53 @@ class SBState(State):
         prob_simplified.name = copy.copy(prob.name)
         prob_simplified.domain = copy.copy(prob.domain)
         prob_simplified.objects = copy.copy(prob.objects)
+
+        prob_super_simplified = PddlPlusProblem()
+        prob_super_simplified.name = copy.copy(prob.name)
+        prob_super_simplified.domain = copy.copy(prob.domain)
+        prob_super_simplified.objects = copy.copy(prob.objects)
+
+        removed_list = []
+        super_removed_list = []
+        first_bird_spotted = False
+        for obj in prob.objects:
+            if ((obj[1] == 'Bird') and not first_bird_spotted):
+                first_bird_spotted = True
+            elif obj[1] == 'Bird':
+                removed_list.append(obj[0])
+                prob_simplified.objects.remove(obj)
+                prob_super_simplified.objects.remove(obj)
+            elif (obj[1] == 'block'):
+                super_removed_list.append(obj[0])
+                prob_super_simplified.objects.remove(obj)
+
         prob_simplified.init = copy.copy(prob.init)
+        prob_super_simplified.init = copy.copy(prob.init)
+
+        for init_stmt in prob.init:
+            for b_name in removed_list:
+                if (len(init_stmt[1]) > 1) and (init_stmt[1][1] == b_name):
+                    prob_simplified.init.remove(init_stmt)
+                    prob_super_simplified.init.remove(init_stmt)
+            for bl_name in super_removed_list:
+                if ((len(init_stmt[1]) > 1) and (init_stmt[1][1] == bl_name)) or (init_stmt[1] == bl_name):
+                    prob_super_simplified.init.remove(init_stmt)
+
+
+        prob_super_simplified.objects.append(['dummy_block', 'block'])
+
         prob_simplified.metric = copy.copy(prob.metric)
         prob_simplified.goal = list()
         prob_simplified.goal.append(['pig_killed'])
 
-        # print("\n\nPROB: " + str(prob.goal))
-        # print("\nPROB SIMPLIFIED: " + str(prob_simplified.goal))
+        prob_super_simplified.metric = copy.copy(prob.metric)
+        prob_super_simplified.goal = list()
+        prob_super_simplified.goal.append(['pig_killed'])
 
-        return prob, prob_simplified
+        # print("\n\nPROB: " + str(prob.init))
+        # print("\nPROB SIMPLIFIED: " + str(prob_simplified.init))
+
+        return prob, prob_simplified, prob_super_simplified
 
 
 class SBAction(Action):
@@ -313,14 +351,14 @@ class ScienceBirds(World):
     def create_interface(self,first_level=None):
         with open(str(path.join(settings.ROOT_PATH, 'worlds', 'science_birds_interface', 'client', 'server_client_config.json')), 'r') as config:
             sc_json_config = json.load(config)
-        self.sb_client = ac.AgentClient(sc_json_config[0]['host'], sc_json_config[0]['port'])
+        self.sb_client = ac.AgentClient('docker-host' if 'DOCKER' in os.environ else sc_json_config[0]['host'], sc_json_config[0]['port'])
         self.sb_client.connect_to_server()
         self.sb_client.configure(self.id)
         if first_level:
             self.init_selected_level(first_level)
         with open(str(path.join(settings.ROOT_PATH, 'worlds', 'science_birds_interface', 'client', 'server_observer_client_config.json')), 'r') as observer_config:
             observer_sc_json_config = json.load(observer_config)
-        self.sb_observer = ac.AgentClient(observer_sc_json_config[0]['host'],observer_sc_json_config[0]['port'])
+        self.sb_observer = ac.AgentClient('docker-host' if 'DOCKER' in os.environ else observer_sc_json_config[0]['host'],observer_sc_json_config[0]['port'])
         self.sb_observer.connect_to_server()
         self.sb_observer.configure(self.id)
 
