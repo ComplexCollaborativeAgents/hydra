@@ -96,7 +96,7 @@ class HydraAgent():
                 cumulative_plan_time = 0
                 overall_plan_time = time.perf_counter()
                 self.current_level = self.env.sb_client.load_next_available_level()
-                #self.novelty_existence = self.env.sb_client.get_novelty_info()
+                self.novelty_existence = self.env.sb_client.get_novelty_info()
                 # time.sleep(2)
                 state = self.env.get_current_state()
             elif state.game_state.value == GameState.LOST.value:
@@ -107,7 +107,7 @@ class HydraAgent():
                 cumulative_plan_time = 0
                 overall_plan_time = time.perf_counter()
                 self.current_level = self.env.sb_client.load_next_available_level()
-                #self.novelty_existence = self.env.sb_client.get_novelty_info()
+                self.novelty_existence = self.env.sb_client.get_novelty_info()
                 # time.sleep(2)
                 state = self.env.get_current_state()
             elif state.game_state.value == GameState.NEWTRAININGSET.value:
@@ -118,7 +118,7 @@ class HydraAgent():
                 self.training_level_backup = 0
                 change_from_training = True
                 self.current_level = self.env.sb_client.load_next_available_level()
-                #self.novelty_existence = self.env.sb_client.get_novelty_info()
+                self.novelty_existence = self.env.sb_client.get_novelty_info()
                 state = self.env.get_current_state()
             elif state.game_state.value == GameState.EVALUATION_TERMINATED.value:
                 # store info and disconnect the agent as the evaluation is finished
@@ -141,7 +141,7 @@ class HydraAgent():
                 self.training_level_backup = 0
                 change_from_training = True
                 self.current_level = self.env.sb_client.load_next_available_level()
-                #self.novelty_existence = self.env.sb_client.get_novelty_info()
+                self.novelty_existence = self.env.sb_client.get_novelty_info()
                 state = self.env.get_current_state()
             else:
                 logger.info("[hydra_agent_server] :: Unexpected state.game_state.value {}".format(state.game_state.value))
