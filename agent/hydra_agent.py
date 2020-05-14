@@ -26,6 +26,8 @@ class HydraAgent():
     def __init__(self,env=None):
         logger.info("[hydra_agent_server] :: Agent Created")
         self.env = env # agent always has a pointer to its environment
+        if env is not None:
+            env.sb_client.set_game_simulation_speed(settings.SB_SIM_SPEED)
         self.perception = Perception()
         self.consistency_checker = ConsistencyChecker()
         self.planner = Planner()
@@ -48,7 +50,7 @@ class HydraAgent():
                 state = self.perception.process_state(state)
 
                 if (len(state.objects) < 3):
-                    # time.sleep(1)
+                    time.sleep(1)
                     state = self.env.get_current_state()
                     continue
 
@@ -96,8 +98,9 @@ class HydraAgent():
                 cumulative_plan_time = 0
                 overall_plan_time = time.perf_counter()
                 self.current_level = self.env.sb_client.load_next_available_level()
+                # time.sleep(1)
                 self.novelty_existence = self.env.sb_client.get_novelty_info()
-                # time.sleep(2)
+                time.sleep(2/settings.SB_SIM_SPEED)
                 state = self.env.get_current_state()
             elif state.game_state.value == GameState.LOST.value:
                 logger.info("[hydra_agent_server] :: Level {} complete - LOSS".format(self.current_level))
@@ -107,8 +110,9 @@ class HydraAgent():
                 cumulative_plan_time = 0
                 overall_plan_time = time.perf_counter()
                 self.current_level = self.env.sb_client.load_next_available_level()
+                # time.sleep(1)
                 self.novelty_existence = self.env.sb_client.get_novelty_info()
-                # time.sleep(2)
+                time.sleep(2/settings.SB_SIM_SPEED)
                 state = self.env.get_current_state()
             elif state.game_state.value == GameState.NEWTRAININGSET.value:
                 # DO something to start a fresh agent for a new training set
@@ -126,7 +130,7 @@ class HydraAgent():
                 return None
             elif state.game_state.value == GameState.REQUESTNOVELTYLIKELIHOOD.value:
                 logger.info("[hydra_agent_server] :: Requesting Novelty Likelihood {}".format(0.1))
-                # Require report novelty likelihood and then playing can be resumed
+                # Require report novelty likelihood and then playing can be resumedconda env update -f environment.yml
                 # dummy likelihoods:
                 novelty_likelihood = self.consistency_checker.novelty_likelihood
                 non_novelty_likelihood = 1 - novelty_likelihood
