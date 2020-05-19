@@ -18,7 +18,6 @@ logger.addHandler(fh)
 PRECISION = 1
 DATA_DIR = path.join(settings.ROOT_PATH, 'data')
 TRACE_DIR = path.join(DATA_DIR, 'science_birds', 'serialized_levels', 'level-01')
-GRAVITY_BAD_OBS = path.join(TRACE_DIR,"g_250_observed.p")
 
 Y_BIRD_FLUENT = ('y_bird', 'redbird_0')
 X_BIRD_FLUENT = ('x_bird', 'redbird_0')
@@ -295,17 +294,3 @@ def test_consistency_in_agent_with_dummy_planner(launch_science_birds):
     consistency_value_for_healthy_model = consistency_estimator.estimate_consistency(expected_timed_state_seq, observed_seq)
 
     assert consistency_value_for_faulty_model>consistency_value_for_healthy_model
-
-''' Run Hydra agent with a planner that has a wrong meta model, which assumes (erronously) that the gravity is 250. '''
-def _create_gravity_250_observation():
-    env = launch_science_birds
-    hydra = HydraAgent(env)
-
-    # Inject fault and play
-    hydra.meta_model.constant_numeric_fluents[GRAVITY] = 250.0
-    hydra.main_loop(max_actions=3)  # enough actions to play the first level
-
-    our_observation =  hydra.observations[1]
-    pickle.dump(our_observation,open(GRAVITY_BAD_OBS, "wb"))
-
-

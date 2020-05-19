@@ -14,7 +14,6 @@ TRACE_DIR = path.join(DATA_DIR, 'science_birds', 'serialized_levels', 'level-01'
 PROBLEM_TEST_FILE = path.join(DATA_DIR, "pddl_parser_test_problem.pddl")
 DOMAIN_TEST_FILE = path.join(DATA_DIR, "pddl_parser_test_domain.pddl")
 
-GRAVITY_BAD_OBS = path.join(TRACE_DIR,"g_250_observed.p")
 PLAN_LEVEL_01_FILE = path.join(TRACE_DIR,'docker_plan_trace.txt')
 
 
@@ -68,54 +67,6 @@ def _validate_working_plan(problem: PddlPlusProblem, domain: PddlPlusDomain, pla
 
     for goal_fluent in problem.goal:  # (pig_dead pig_28)
         assert tuple(goal_fluent) in current_state.boolean_fluents
-
-''' Tests the simulator's behavior when setting the gravity to be 250 '''
-@pytest.mark.skipif(True, reason="Need a new observation object")
-def test_gravity_250():
-    # Load observation as created by the _create_gravity_250_observation() function
-    our_observation = pickle.load(open(GRAVITY_BAD_OBS, "rb"))
-    meta_model = MetaModel()
-    problem = meta_model.create_pddl_problem(our_observation.state)
-    domain = meta_model.create_pddl_domain(our_observation.state)
-    plan = test_utils.load_plan(PLAN_LEVEL_01_FILE, problem, domain)
-    expected_trace_ok = test_utils.simulate_plan_on_observed_state(plan, our_observation,meta_model)
-
-    # Inject fault and simulate
-    meta_model.constant_numeric_fluents['gravity'] = 250.0
-    problem = meta_model.create_pddl_problem(our_observation.state)
-    domain = meta_model.create_pddl_domain(our_observation.state)
-    plan = test_utils.load_plan(PLAN_LEVEL_01_FILE, problem, domain)
-    expected_trace_faulty = test_utils.simulate_plan_on_observed_state(plan, our_observation,meta_model)
-    obs_sequence = our_observation.get_trace(meta_model)
-
-    # Plot each
-    Y_BIRD_FLUENT = ('y_bird', 'redbird_0')
-    X_BIRD_FLUENT = ('x_bird', 'redbird_0')
-
-    expected_x_values = []
-    expected_y_values = []
-    for (state,_,_) in expected_trace_ok:
-        if state[X_BIRD_FLUENT] and state[Y_BIRD_FLUENT]:
-            expected_x_values.append(state[X_BIRD_FLUENT])
-            expected_y_values.append(state[Y_BIRD_FLUENT])
-    expected_x_values_bad = []
-    expected_y_values_bad = []
-    for (state,_,_) in expected_trace_faulty:
-        if state[X_BIRD_FLUENT] and state[Y_BIRD_FLUENT]:
-            expected_x_values_bad.append(state[X_BIRD_FLUENT])
-            expected_y_values_bad.append(state[Y_BIRD_FLUENT])
-    observed_x_values = []
-    observed_y_values = []
-    for state in obs_sequence:
-        if state[X_BIRD_FLUENT] and state[Y_BIRD_FLUENT]:
-            observed_x_values.append(state[X_BIRD_FLUENT])
-            observed_y_values.append(state[Y_BIRD_FLUENT])
-    plt.plot(expected_x_values,expected_y_values,'r--',
-             expected_x_values_bad, expected_y_values_bad,'bs',
-             observed_x_values, observed_y_values,'go')
-    plt.show()
-
-    print("Ok")
 
 
 ''' 
