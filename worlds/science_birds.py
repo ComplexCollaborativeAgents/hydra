@@ -16,8 +16,6 @@ from agent.planning.pddlplus_parser import PddlPlusProblem
 from utils.state import State, Action, World
 #import shapely.geometry as geo
 import logging
-from utils.host import Host
-
 
 fh = logging.FileHandler("hydra.log",mode='a')
 formatter = logging.Formatter('%(name)s - %(levelname)s - %(message)s')
@@ -163,7 +161,7 @@ class SBState(State):
                      ['not', ['angle_adjusted']],
                      ['not', ['pig_killed']],
                      ['=',['angle_rate'], 20],
-                     ['=', ['ground_damper'], 0.0]
+                     ['=', ['ground_damper'], 0.2]
                      ]:
             prob.init.append(fact)
         if not platform:
@@ -258,13 +256,15 @@ class ScienceBirds(World):
     intermediate_states = []
     lock = threading.Lock()
 
-    def __init__(self,sel_level=0,launch=False,config='test_config.xml', server_host=None, observer_host=None):
+    def __init__(self,sel_level=0,launch=False,config='test_config.xml'):
         self.id = 2228
         self.tp = tp.SimpleTrajectoryPlanner()
         if launch:
             self.launch_SB(config)
             time.sleep(1)
-        self.create_interface(sel_level, server_host=server_host, observer_host=observer_host)
+        self.create_interface(sel_level)
+
+
 
     def kill(self):
         print("Killing process groups: {}, {}".format(self.SB_server_process.pid,
@@ -344,40 +344,18 @@ class ScienceBirds(World):
         print('done')
 
 
-    def load_hosts(self, server_host: Host, observer_host: Host):
+
+
+
+    def create_interface(self,first_level=None):
         with open(str(path.join(settings.ROOT_PATH, 'worlds', 'science_birds_interface', 'client', 'server_client_config.json')), 'r') as config:
             sc_json_config = json.load(config)
-
-        server = Host(sc_json_config[0]['host'], sc_json_config[0]['port'])
-        if server_host:
-            server.hostname = server_host.hostname
-            server.port = server_host.port
-        if 'DOCKER' in os.environ:
-            server.hostname = 'docker-host'
-
-        with open(str(path.join(settings.ROOT_PATH, 'worlds', 'science_birds_interface', 'client', 'server_observer_client_config.json')), 'r') as observer_config:
-            observer_sc_json_config = json.load(observer_config)
-
-        observer = Host(observer_sc_json_config[0]['host'], observer_sc_json_config[0]['port'])
-        if observer_host:
-            observer.hostname = observer_host.hostname
-            observer.port = observer_host.port
-        if 'DOCKER' in os.environ:
-            observer.hostname = 'docker-host'
-
-        return server, observer
-
-    def create_interface(self,first_level=None, server_host=None, observer_host=None):
-        server_host, observer_host = self.load_hosts(server_host, observer_host)
-        self.sb_client = ac.AgentClient(server_host.hostname, server_host.port)
+        self.sb_client = ac.AgentClient('docker-host' if 'DOCKER' in os.environ else sc_json_config[0]['host'], sc_json_config[0]['port'])
         self.sb_client.connect_to_server()
         self.sb_client.configure(self.id)
         if first_level:
             self.init_selected_level(first_level)
 
-        self.sb_observer = ac.AgentClient(observer_host.hostname, observer_host.port)
-        self.sb_observer.connect_to_server()
-        self.sb_observer.configure(self.id)
 
     def init_selected_level(self, s_level):
         self.current_level = s_level
@@ -392,43 +370,16 @@ class ScienceBirds(World):
         """
         assert None
 
-    def sample_state(self, frequency=0.5):
-        """
-         sample a state from the observer agent
-         this method allows to be run in a different thread
-         NOTE: Setting the frequency too high, i.e. <0.01 may cause lag in science birds game
-               due to the calculation of the groundtruth
-        """
-        count = 0
-        self.intermediate_states = []
-        while True:
-#            print('sampling {}'.format(count))
-            count+=1
-            ground_truth = self.sb_observer.get_ground_truth_without_screenshot()
-            state = SBState(ground_truth, None, ac.GameState.UNKNOWN)
-            self.intermediate_states.append(state)
-#            print('sampling sleep')
-            time.sleep(frequency)
-            if self.lock.acquire(False):
-#                print('thread exiting')
-                break
-        self.lock.release()
-#        print('ending sampling')
-
 
     def act(self,action):
         '''returns the new current state and reward'''
         if isinstance(action,SBShoot):
             self.history.append(action)
             prev_score = self.sb_client.get_current_score()
-            # this blocks until scene is doing
-            self.lock.acquire()
-            self.gt_thread = threading.Thread(target=self.sample_state)
-            self.gt_thread.start()
-            ret = self.sb_client.shoot(action.ref_x, action.ref_y, action.dx, action.dy, 0, action.tap, False)
-            self.lock.release()
-            self.gt_thread.join()
-            if ret == 0:
+            # This blocks until the scene is static. Currently asking for every 10th frame, but it should be parameterized to sim_speed.
+            self.intermediate_states = self.sb_client.shoot_and_record_ground_truth(action.ref_x, action.ref_y, action.dx, action.dy, 0, action.tap,10)
+            time.sleep(2 / settings.SB_SIM_SPEED)
+            if len(self.intermediate_states) < 3: # we should get some intermediate states
                 assert False
             reward =  self.sb_client.get_current_score() - prev_score
             self.get_current_state()
