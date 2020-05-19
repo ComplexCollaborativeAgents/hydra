@@ -355,11 +355,7 @@ class ScienceBirds(World):
         self.sb_client.configure(self.id)
         if first_level:
             self.init_selected_level(first_level)
-        with open(str(path.join(settings.ROOT_PATH, 'worlds', 'science_birds_interface', 'client', 'server_observer_client_config.json')), 'r') as observer_config:
-            observer_sc_json_config = json.load(observer_config)
-        self.sb_observer = ac.AgentClient('docker-host' if 'DOCKER' in os.environ else observer_sc_json_config[0]['host'],observer_sc_json_config[0]['port'])
-        self.sb_observer.connect_to_server()
-        self.sb_observer.configure(self.id)
+
 
     def init_selected_level(self, s_level):
         self.current_level = s_level
@@ -374,43 +370,16 @@ class ScienceBirds(World):
         """
         assert None
 
-    def sample_state(self, frequency=0.5):
-        """
-         sample a state from the observer agent
-         this method allows to be run in a different thread
-         NOTE: Setting the frequency too high, i.e. <0.01 may cause lag in science birds game
-               due to the calculation of the groundtruth
-        """
-        count = 0
-        self.intermediate_states = []
-        while True:
-#            print('sampling {}'.format(count))
-            count+=1
-            ground_truth = self.sb_observer.get_ground_truth_without_screenshot()
-            state = SBState(ground_truth, None, ac.GameState.UNKNOWN)
-            self.intermediate_states.append(state)
-#            print('sampling sleep')
-            time.sleep(frequency)
-            if self.lock.acquire(False):
-#                print('thread exiting')
-                break
-        self.lock.release()
-#        print('ending sampling')
-
 
     def act(self,action):
         '''returns the new current state and reward'''
         if isinstance(action,SBShoot):
             self.history.append(action)
             prev_score = self.sb_client.get_current_score()
-            # this blocks until scene is doing
-            self.lock.acquire()
-            self.gt_thread = threading.Thread(target=self.sample_state)
-            self.gt_thread.start()
-            ret = self.sb_client.shoot(action.ref_x, action.ref_y, action.dx, action.dy, 0, action.tap, False)
-            self.lock.release()
-            self.gt_thread.join()
-            if ret == 0:
+            # This blocks until the scene is static. Currently asking for every 10th frame, but it should be parameterized to sim_speed.
+            self.intermediate_states = self.sb_client.shoot_and_record_ground_truth(action.ref_x, action.ref_y, action.dx, action.dy, 0, action.tap,10)
+            time.sleep(2 / settings.SB_SIM_SPEED)
+            if len(self.intermediate_states) < 3: # we should get some intermediate states
                 assert False
             reward =  self.sb_client.get_current_score() - prev_score
             self.get_current_state()
