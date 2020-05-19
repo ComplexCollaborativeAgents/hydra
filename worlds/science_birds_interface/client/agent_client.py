@@ -7,7 +7,8 @@ import json
 import logging
 import numpy as np
 from PIL import Image
-import sys
+import time
+import os
 
 #logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 class GameState(Enum):
@@ -44,6 +45,7 @@ class RequestCodes(Enum):
     LoadNextAvailableLevel = 53
     Cshoot = 31
     Pshoot = 32
+    GTshoot = 38
     GetState = 12
     FullyZoomOut = 34
     GetNoOfLevels = 15
@@ -214,8 +216,7 @@ class AgentClient:
             read_bytes += byte_buffer_length
 
         rgb_image = Image.frombytes("RGB", (width, height), image_bytes)  # check if  PIL is needed
-        # TODO: Remove after Debug
-        # rgb_image.save(os.path.join('./', 'test'), format='png')
+        # rgb_image.save(os.path.join('./', 'test'+str(id)), format='png')
 
         print('Received screenshot')
 
@@ -284,6 +285,40 @@ class AgentClient:
         """Request to restart level"""
         self._send_command(RequestCodes.RestartLevel)
         return self._read_from_buff("B")[0]
+
+    def shoot_and_record_ground_truth(self, fx, fy, dx, dy, t1, t2, gt_frequency):
+        """ Request to execute a shot and record ground truth every gt_frequency frames
+            Note: number of frames will be dependent on the set game simulation and gt_frequency
+            the slower the game is -> more frequent ground truth snapshots are possible and vice verta.
+        """
+        start_time = time.time()
+
+        code = RequestCodes.GTshoot
+        should_read_images = False # for now turned off completely on the server and SB, in case needed - ask
+        self._send_command(code, "iiiiiii", fx, fy, dx, dy, t1, t2, gt_frequency)
+
+        # read how many ground truths to expect
+        ground_truths_count_bytes = self._read_from_buff("I")[0]
+        ground_truths_count = int(ground_truths_count_bytes)
+
+        # read n ground truths
+        gt_images = []
+        gt_jsons = []
+        self._logger.info("receiving ground truth batch")
+        for i in range(0, ground_truths_count):
+
+            gt = self.read_ground_truth_from_stream()
+            if(should_read_images):
+                im = self.read_image_from_stream()
+            if(i%100 == 0):
+                self._logger.info("received gt number %d", i)
+            if (should_read_images):
+                gt_images.append(im)
+            gt_jsons.append(gt)
+        self._logger.info("received %d ground truth frames ", ground_truths_count)
+        print("--- %s seconds ---" % (time.time() - start_time))
+        return gt_jsons
+
 
     def shoot(self, fx, fy, dx, dy, t1, t2, isPolar):
         code = RequestCodes.Pshoot if isPolar else RequestCodes.Cshoot
