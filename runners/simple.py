@@ -1,6 +1,23 @@
 import worlds.science_birds as sb
 from agent.hydra_agent import HydraAgent
+import argparse
+from utils.host import Host
 
-env = sb.ScienceBirds(None, launch=False)
-hydra = HydraAgent(env)
-hydra.main_loop()
+
+def parse():
+    parser = argparse.ArgumentParser(description='HYDRA agent.')
+    parser.add_argument('--server', type=Host.type, help='server host (format: hostname:port)')
+    parser.add_argument('--observer', type=Host.type, help='observer host (format: hostname:port)')
+    arguments = parser.parse_args()
+    return arguments
+
+
+def main():
+    arguments = parse()
+    env = sb.ScienceBirds(None, launch=False, server_host=arguments.server, observer_host=arguments.observer)
+    hydra = HydraAgent(env)
+    hydra.main_loop()
+
+
+if __name__ == '__main__':
+    main()
