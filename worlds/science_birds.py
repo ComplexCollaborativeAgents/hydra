@@ -16,6 +16,8 @@ from agent.planning.pddlplus_parser import PddlPlusProblem
 from utils.state import State, Action, World
 #import shapely.geometry as geo
 import logging
+from utils.host import Host
+
 
 fh = logging.FileHandler("hydra.log",mode='a')
 formatter = logging.Formatter('%(name)s - %(levelname)s - %(message)s')
@@ -256,15 +258,13 @@ class ScienceBirds(World):
     intermediate_states = []
     lock = threading.Lock()
 
-    def __init__(self,sel_level=0,launch=False,config='test_config.xml'):
+    def __init__(self,sel_level=0,launch=False,config='test_config.xml', server_host=None, observer_host=None):
         self.id = 2228
         self.tp = tp.SimpleTrajectoryPlanner()
         if launch:
             self.launch_SB(config)
             time.sleep(1)
-        self.create_interface(sel_level)
-
-
+        self.create_interface(sel_level, server_host=server_host, observer_host=observer_host)
 
     def kill(self):
         print("Killing process groups: {}, {}".format(self.SB_server_process.pid,
@@ -344,20 +344,38 @@ class ScienceBirds(World):
         print('done')
 
 
-
-
-
-    def create_interface(self,first_level=None):
+    def load_hosts(self, server_host: Host, observer_host: Host):
         with open(str(path.join(settings.ROOT_PATH, 'worlds', 'science_birds_interface', 'client', 'server_client_config.json')), 'r') as config:
             sc_json_config = json.load(config)
-        self.sb_client = ac.AgentClient('docker-host' if 'DOCKER' in os.environ else sc_json_config[0]['host'], sc_json_config[0]['port'])
+
+        server = Host(sc_json_config[0]['host'], sc_json_config[0]['port'])
+        if server_host:
+            server.hostname = server_host.hostname
+            server.port = server_host.port
+        if 'DOCKER' in os.environ:
+            server.hostname = 'docker-host'
+
+        with open(str(path.join(settings.ROOT_PATH, 'worlds', 'science_birds_interface', 'client', 'server_observer_client_config.json')), 'r') as observer_config:
+            observer_sc_json_config = json.load(observer_config)
+
+        observer = Host(observer_sc_json_config[0]['host'], observer_sc_json_config[0]['port'])
+        if observer_host:
+            observer.hostname = observer_host.hostname
+            observer.port = observer_host.port
+        if 'DOCKER' in os.environ:
+            observer.hostname = 'docker-host'
+
+        return server, observer
+
+    def create_interface(self,first_level=None, server_host=None, observer_host=None):
+        server_host, observer_host = self.load_hosts(server_host, observer_host)
+        self.sb_client = ac.AgentClient(server_host.hostname, server_host.port)
         self.sb_client.connect_to_server()
         self.sb_client.configure(self.id)
         if first_level:
             self.init_selected_level(first_level)
-        with open(str(path.join(settings.ROOT_PATH, 'worlds', 'science_birds_interface', 'client', 'server_observer_client_config.json')), 'r') as observer_config:
-            observer_sc_json_config = json.load(observer_config)
-        self.sb_observer = ac.AgentClient('docker-host' if 'DOCKER' in os.environ else observer_sc_json_config[0]['host'],observer_sc_json_config[0]['port'])
+
+        self.sb_observer = ac.AgentClient(observer_host.hostname, observer_host.port)
         self.sb_observer.connect_to_server()
         self.sb_observer.configure(self.id)
 
