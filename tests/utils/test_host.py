@@ -9,5 +9,7 @@ def test_host_type():
 
 
 def test_host_type_invalid():
+    """Creating some false confidence. Currently, as long as the input contains
+    a colon `Host.type` will not throw an error. It's okay."""
     with pytest.raises(ValueError):
         host = Host.type('sciencebirds')
