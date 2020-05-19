@@ -6,6 +6,8 @@ import pickle
 from agent.consistency.meta_model_repair import *
 from agent.planning.planner import Planner
 import tests.test_utils as test_utils
+import matplotlib.pyplot as plt
+
 
 DATA_DIR = path.join(settings.ROOT_PATH, 'data')
 TRACE_DIR = path.join(DATA_DIR, 'science_birds', 'serialized_levels', 'level-01')
@@ -40,11 +42,7 @@ def _get_twang_action():
     (pddl_problem, pddl_domain) = test_utils.load_problem_and_domain(PROBLEM_TEST_FILE,
                                                                      DOMAIN_TEST_FILE)
     # Get the flying process
-    twang_action = None
-    for action in pddl_domain.actions:
-        if action.name=="pa-twang":
-            twang_action = action
-            break
+    twang_action = pddl_domain.get_action("pa-twang")
     assert twang_action is not None
 
     # Ground it
@@ -88,7 +86,7 @@ def test_gravity_250():
     domain = meta_model.create_pddl_domain(our_observation.state)
     plan = test_utils.load_plan(PLAN_LEVEL_01_FILE, problem, domain)
     expected_trace_faulty = test_utils.simulate_plan_on_observed_state(plan, our_observation,meta_model)
-    obs_sequence = test_utils.extract_intermediate_states(our_observation,meta_model)
+    obs_sequence = our_observation.get_trace(meta_model)
 
     # Plot each
     Y_BIRD_FLUENT = ('y_bird', 'redbird_0')
@@ -200,7 +198,6 @@ def test_simulate():
     (pddl_problem, pddl_domain) = test_utils.load_problem_and_domain(PROBLEM_TEST_FILE,
                                                                      DOMAIN_TEST_FILE)
     twang_action = _get_twang_action()
-
     simulator = PddlPlusSimulator()
 
     # Get the current state
@@ -212,6 +209,51 @@ def test_simulate():
     assert t>4
     assert trace[-1][0]==current_state
     assert t == trace[-1][1]
+
+
+
+''' TODO: REMOVE THIS TEST, JUST FOR DEBUG!!! Tests simulator in a simple 2 pig level '''
+def test_simulator_2_pig_level():
+    problem_file = path.join(DATA_DIR, "science_birds", "tests", "bad_angle_rate_problem.pddl")
+    domain_file = path.join(DATA_DIR,  "science_birds", "tests", "bad_angle_rate_domain.pddl")
+    (pddl_problem, pddl_domain) = test_utils.load_problem_and_domain(problem_file,
+                                                                     domain_file)
+    twang_action = _get_twang_action()
+
+    # Get the flying process
+    twang_action = pddl_domain.get_action("pa-twang")
+    # Ground it
+    binding = dict()
+    binding["?b"] = "redbird_0"
+    twang_action = PddlPlusGrounder().ground_world_change(twang_action, binding)
+
+
+    simulator = PddlPlusSimulator()
+
+    # Get the current state
+    delta_t = 0.05
+    timed_action = TimedAction(twang_action, 1)
+    plan = [timed_action]
+    (current_state, t, trace) = simulator.simulate(plan, pddl_problem, pddl_domain, delta_t)
+    expected_state_seq = [state[0] for state in trace]
+    red_bird_x_values = [state[('x_bird', 'redbird_0')] for state in expected_state_seq]
+    red_bird_y_values = [state[('y_bird', 'redbird_0')] for state in expected_state_seq]
+    plt.plot(red_bird_x_values, red_bird_y_values, 'bs')
+    plt.show()
+    for start_at in [1.5,2,2.5,3,3.5]:
+        timed_action = TimedAction(twang_action, start_at)
+        plan = [timed_action]
+
+        (current_state, t, trace) = simulator.simulate(plan, pddl_problem, pddl_domain, delta_t)
+
+        expected_state_seq  = [state[0] for state in trace]
+        red_bird_x_values = [state[('x_bird', 'redbird_0')] for state in expected_state_seq]
+        red_bird_y_values = [state[('y_bird', 'redbird_0')] for state in expected_state_seq]
+        plt.plot(red_bird_x_values,red_bird_y_values,'d')
+        plt.show()
+        print(3)
+
+
 
 ''' Test the simulator by actually running a planner and simulating the trace of the plan it generates'''
 def test_simulate_real_plan():

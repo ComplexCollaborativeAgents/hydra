@@ -99,7 +99,7 @@ class PddlPlusSimulator():
             trace.append(trace_item)
 
             # Stopping condition
-            if len(plan)>0:
+            if next_timed_action is not None:
                 still_active = True
             elif len(active_processes)>0:
                 still_active = True
@@ -176,7 +176,7 @@ class PddlPlusSimulator():
             action = action.ground(binding)
 
         if self.preconditions_hold(state, action.preconditions) == False:
-            raise ValueError("Action preconditions are not satisfied")  # No effects if preconditions do not hold
+            raise ValueError("Action %s preconditions are not satisfied" % action.name)  # No effects if preconditions do not hold
         return self.compute_effects(state, action.effects)
 
     ''' Compute the impact of firing a given event at the given state. If binding is not None, we first ground the action with the binding'''

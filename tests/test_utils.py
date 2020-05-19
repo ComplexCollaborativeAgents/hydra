@@ -1,8 +1,13 @@
-
+from agent.consistency.consistency_estimator import ScienceBirdsObservation
 from agent.consistency.meta_model_repair import *
+from agent.perception.perception import Perception
+from agent.planning.pddl_meta_model import MetaModel
 from agent.planning.planner import *
 from agent.perception.perception import *
 import matplotlib.pyplot as plt
+
+from agent.planning.planner import MetaModelBasedPlanner
+from worlds.science_birds import SBState
 
 Y_BIRD_FLUENT = ('y_bird', 'redbird_0')
 X_BIRD_FLUENT = ('x_bird', 'redbird_0')
@@ -29,36 +34,6 @@ def simulate_plan_on_observed_state(plan: PddlPlusPlan,
             break
     return simulate_plan_trace(plan_prefix, pddl_problem, pddl_domain, delta_t)
 
-''' Create a sequence of PDDL states from the observed sequence of intermediate SBStates '''
-def extract_intermediate_states(our_observation: ScienceBirdsObservation, meta_model : MetaModel = MetaModel()):
-    observed_state_seq = []
-    perception = Perception()
-    for intermediate_state in our_observation.intermediate_states:
-        if isinstance(intermediate_state.objects, list):
-            intermediate_state = perception.process_sb_state(intermediate_state)
-        observed_state_seq.append(meta_model.create_pddl_state(intermediate_state))
-    return observed_state_seq
-
-''' Plots the values of the given pair of fluents of the two series. Useful to compare state sequences '''
-def plot_bird_xy_series(serie1, serie2, fluent_names = [X_BIRD_FLUENT,Y_BIRD_FLUENT]):
-    # Plot each
-    expected_x_values = []
-    expected_y_values = []
-    for state in serie1:
-        if state[X_BIRD_FLUENT] and state[Y_BIRD_FLUENT]:
-            expected_x_values.append(state[X_BIRD_FLUENT])
-            expected_y_values.append(state[Y_BIRD_FLUENT])
-    observed_x_values = []
-    observed_y_values = []
-    for state in serie2:
-        if state[X_BIRD_FLUENT] and state[Y_BIRD_FLUENT]:
-            observed_x_values.append(state[X_BIRD_FLUENT])
-            observed_y_values.append(state[Y_BIRD_FLUENT])
-    plt.plot(expected_x_values,expected_y_values,'r--',observed_x_values,observed_y_values,'bs')
-    plt.show()
-
-
-
 ''' Helper function: returns a PDDL+ problem and domain objects'''
 def load_problem_and_domain(problem_file_name :str, domain_file_name: str):
     parser = PddlDomainParser()
@@ -77,3 +52,17 @@ def load_plan(plan_trace_file: str, pddl_problem: PddlPlusProblem, pddl_domain: 
     grounded_domain = PddlPlusGrounder().ground_domain(pddl_domain, pddl_problem)  # Needed to identify plan action
     pddl_plan = planner.extract_plan_from_plan_trace(plan_trace_file, grounded_domain)
     return pddl_plan
+
+
+''' A planner that executes a predefined plan '''
+class PlannerStub(MetaModelBasedPlanner):
+    ''' plan is assumed to be list of timed actions. '''
+    def __init__(self, plan, meta_model : MetaModel = MetaModel()):
+        super(PlannerStub, self).__init__(meta_model)
+        self.plan = list(plan)
+
+    ''' @Override superclass '''
+    def make_plan(self, state: SBState, prob_complexity=0, delta_t = 1.0):
+        action = self.plan.pop(0)
+        return [action]
+

@@ -1,4 +1,6 @@
 import numpy as np
+from agent.planning.pddl_meta_model import *
+from agent.perception.perception import *
 
 ''' A small object that represents an observation of the SB game, containing the values
 (state, action, intermedidate_states, reward)'''
@@ -8,6 +10,17 @@ class ScienceBirdsObservation:
         self.action = None # An action performed at that state.
         self.intermediate_states = None # The  sequence of intermediates states observed after doing the action
         self.reward = 0 # The reward obtained from performing an action
+
+
+    ''' Returns a sequence of PDDL states that are the observed intermediate states '''
+    def get_trace(self, meta_model: MetaModel = MetaModel()):
+        observed_state_seq = []
+        perception = Perception()
+        for intermediate_state in self.intermediate_states:
+            if isinstance(intermediate_state.objects, list):
+                intermediate_state = perception.process_sb_state(intermediate_state)
+            observed_state_seq.append(meta_model.create_pddl_state(intermediate_state))
+        return observed_state_seq
 
 '''
 An abstract class for checking if a given sequence of (state, time) pairs can be consistent with a given sequence of states.  
@@ -62,13 +75,17 @@ class SingleNumericFluentConsistencyEstimator(ConsistencyEstimator):
 ''' Checks consistency by considering the value of a set of numeric fluents '''
 class NumericFluentsConsistencyEstimator(ConsistencyEstimator):
 
-    def __init__(self, fluent_names):
+    ''' Specify which fluents to check, and the size of the observed sequence prefix to consider.
+    This is because we acknowledge that later in the observations, our model is less accurate. '''
+    def __init__(self, fluent_names, unique_prefix_size=3):
         self.fluent_names = []
         for fluent_name in fluent_names:
             if isinstance(fluent_name,list):
                 fluent_name = tuple(fluent_name) # Need a hashable object, to turn it to tuples. TODO: Change all fluent names to tuples
             assert isinstance(fluent_name,tuple)
             self.fluent_names.append(fluent_name)
+
+        self.unique_prefix_size = unique_prefix_size
 
     ''' The first parameter is a list of (state,time) pairs, the second is just a list of states '''
     ''' Current implementation ignores order, and just looks for the best time for each state in the state_seq, 
@@ -80,10 +97,18 @@ class NumericFluentsConsistencyEstimator(ConsistencyEstimator):
 
         # Check max error: compute the error for every state w.r.t every time. Return max error found
         max_error = 0
+        unique_prefix_counter = 0
+        old_obs_state = None
         for state in state_seq:
-            (best_fit_t, min_error) = self._compute_best_fit(state, t_values, fluent_to_expected_values)
-            if min_error>max_error:
-                max_error= min_error
+            if state!=old_obs_state: # Ignore duplicate states
+                old_obs_state = state
+                unique_prefix_counter = unique_prefix_counter+1
+                (best_fit_t, min_error) = self._compute_best_fit(state, t_values, fluent_to_expected_values)
+                if min_error>max_error:
+                    max_error= min_error
+
+                if unique_prefix_counter>=self.unique_prefix_size: # We only consider a limited prefix of the observed sequence of states
+                    break
 
         return max_error
 

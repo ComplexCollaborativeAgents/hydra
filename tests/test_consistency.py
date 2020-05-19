@@ -1,17 +1,12 @@
+import pickle
+import matplotlib.pyplot as plt
 import pytest
-import worlds.science_birds as sb
-from agent.perception.perception import Perception
-from agent.consistency.consistency_estimator import *
-from agent.consistency.pddl_plus_simulator import *
-from agent.planning.planner import *
-from agent.planning.pddlplus_parser import *
-from agent.planning.model_manipulator import ManipulateInitNumericFluent
-import logging
+import tests.test_utils as test_utils
 import worlds.science_birds as sb
 from agent.hydra_agent import *
-import matplotlib.pyplot as plt
-import pickle
-import tests.test_utils as test_utils
+from agent.planning.model_manipulator import ManipulateInitNumericFluent
+from agent.planning.planner import *
+from tests.test_utils import PlannerStub
 
 fh = logging.FileHandler("hydra.log",mode='w')
 formatter = logging.Formatter('%(name)s - %(levelname)s - %(message)s')
@@ -249,95 +244,57 @@ def test_all_bird_numeric_fluent_inconsistent():
     consistent_score = consistency_checker.estimate_consistency(simulation_trace, modified_state_seq)
     assert consistent_score > PRECISION
 
-
-''' Tests consistency check with real observations '''
-@pytest.mark.skipif(True, reason="TODO")
-def test_real_observations():
-    # Get the states observed from SB
-    file_format = path.join(settings.ROOT_PATH, 'data', 'science_birds', 'serialized_levels', 'level-01', 'dx_test_{}.p')
-    num_of_observations = 17
-    observed_state_seq = _load_observed_states(file_format, num_of_observations)
-
-    # Get the states we expect to encounter while executing the plan according to our model
-    (plan, problem, domain) = _load_plan_problem_domain()
-    simulated_plan_trace = test_utils.simulate_plan_trace(plan, problem, domain, DELTA_T)
-
-    consistency_checker = NumericFluentsConsistencyEstimator([Y_BIRD_FLUENT, X_BIRD_FLUENT])
-    test_utils.plot_bird_xy_series([state for (state,_,_) in simulated_plan_trace[1:3]], observed_state_seq)
-    inconsistency_score_good_model = consistency_checker.estimate_consistency(simulated_plan_trace, observed_state_seq[1:3])
-    logger.info("Consistency score good=%.2f" % inconsistency_score_good_model)
-
-    # Modify the model so it is incorrect
-    manipulator = ManipulateInitNumericFluent([GRAVITY],GRAVITY_CHANGE)
-    manipulator.apply_change(domain, problem)
-
-    # Get the new expected timed state sequence, according to the modified model
-    modified_timed_state_seq = test_utils.simulate_plan_trace(plan, problem, domain, DELTA_T)
-
-    # Assert new timed state sequence is different from the original timed state sequence
-    diff_list = diff_traces(simulated_plan_trace, modified_timed_state_seq)
-    logger.info("\n".join(diff_list))
-    assert len(diff_list)>0
-
-    # Assert the un-timed sequence created by the modified model is inconsistent with the timed sequence created by the original model
-    diff = diff_pddl_states(simulated_plan_trace[0][0], observed_state_seq[0])
-
-    # __print_fluents_values([state for (state,t) in modified_timed_state_seq], [X_BIRD_FLUENT,Y_BIRD_FLUENT])
-
-
-    consistency_checker = SingleNumericFluentConsistencyEstimator(Y_BIRD_FLUENT)
-    inconsistency_score_bad_model = consistency_checker.estimate_consistency(modified_timed_state_seq, observed_state_seq[1:])
-    logger.info("Consistency score bad=%.2f" % inconsistency_score_bad_model)
-    assert inconsistency_score_bad_model > inconsistency_score_good_model
-
-
 #################### System Test ###############################
 @pytest.fixture(scope="module")
 def launch_science_birds():
-    logger.info("starting")
-    #remove config files
-    cmd = 'cp {}/data/science_birds/level-14.xml {}/00001.xml'.format(str(settings.ROOT_PATH), str(settings.SCIENCE_BIRDS_LEVELS_DIR))
-    subprocess.run(cmd, shell=True)
-    cmd = 'cp {}/data/science_birds/level-15.xml {}/00002.xml'.format(str(settings.ROOT_PATH), str(settings.SCIENCE_BIRDS_LEVELS_DIR))
-    subprocess.run(cmd, shell=True)
-    cmd = 'cp {}/data/science_birds/level-16.xml {}/00003.xml'.format(str(settings.ROOT_PATH), str(settings.SCIENCE_BIRDS_LEVELS_DIR))
-    subprocess.run(cmd, shell=True)
-    logger.info("Launching ScienceBirds...")
-    env = sb.ScienceBirds(None,launch=True)
-    logger.info("ScienceBirds launched!")
+    print("starting")
+    env = sb.ScienceBirds(None,launch=True,config='test_consistency_config.xml')
     yield env
-    logger.info("teardown tests")
+    print("teardown tests")
     env.kill()
 
-
-
 ''' Run Hydra, collect observations, check for consistency '''
-@pytest.mark.skipif(True, reason="Modified planner fails on basic levels")
-def test_consistency_in_agent(launch_science_birds):
+# @pytest.mark.skipif(True, reason="Modified planner fails on basic levels")
+def test_consistency_in_agent_with_dummy_planner(launch_science_birds):
     env = launch_science_birds
     hydra = HydraAgent(env)
 
-    # Inject fault and play
-    original_gravity = hydra.meta_model.constant_numeric_fluents[GRAVITY]
-    hydra.meta_model.constant_numeric_fluents[GRAVITY] = 250.0
+    # Run agent with dummy action and collect observation
+    raw_timed_action = ["pa-twang redbird_0", 65.5]
+    plan = [raw_timed_action]
+    hydra.planner = PlannerStub(plan, hydra.meta_model)
     hydra.main_loop(max_actions=3)  # enough actions to play the first level
-
-    game_state = env.sb_client.get_game_state()
-    assert game_state.value != GameState.WON.value
-
-    # Get the state and the action, simulate expected observations
-    # Extract intermediate states, compate with simulated expected observations
-
     our_observation =  hydra.observations[1]
-    pickle.dump(our_observation,open(GRAVITY_BAD_OBS, "wb"))
+    # pickle.dump(our_observation,open(obs_output_file, "wb")) *** uncomment if needed for debugging ***
+    observed_seq = our_observation.get_trace(hydra.meta_model)
 
-    (expected_timed_seq, observed_seq) = _extract_expected_and_observed(hydra.meta_model, our_observation)
-    test_utils.plot_bird_xy_series([state[0] for state in expected_timed_seq], observed_seq)
+    # Inject fault in meta model and compute expected trace
+    ANGLE_RATE = 'angle_rate'
+    meta_model = MetaModel()
+    meta_model.constant_numeric_fluents[ANGLE_RATE] = 40
+    problem = meta_model.create_pddl_problem(our_observation.state)
+    domain = meta_model.create_pddl_domain(our_observation.state)
+    # PddlDomainExporter().to_file(domain, domain_output_file) *** uncomment if needed for debugging ***
+    # PddlProblemExporter().to_file(problem, problem_output_file) *** uncomment if needed for debugging ***
+    grounded_domain = PddlPlusGrounder().ground_domain(domain,problem)
 
-    hydra.meta_model.constant_numeric_fluents[GRAVITY] = original_gravity
-    (expected_timed_seq, observed_seq) = _extract_expected_and_observed(hydra.meta_model, our_observation)
-    test_utils.plot_bird_xy_series([state[0] for state in expected_timed_seq], observed_seq)
-    print("All done")
+    pddl_plan = PddlPlusPlan()
+    pddl_plan.add_raw_actions(plan, grounded_domain)
+    expected_timed_state_seq = test_utils.simulate_plan_trace(pddl_plan, problem, domain, DELTA_T)
+
+    consistency_estimator = NumericFluentsConsistencyEstimator([X_BIRD_FLUENT,Y_BIRD_FLUENT])
+    consistency_value_for_faulty_model = consistency_estimator.estimate_consistency(expected_timed_state_seq, observed_seq)
+
+    assert consistency_value_for_faulty_model>PRECISION
+
+    # Repair fault, and check consistency value
+    meta_model.constant_numeric_fluents[ANGLE_RATE] = 0.97
+    problem = meta_model.create_pddl_problem(our_observation.state)
+    domain = meta_model.create_pddl_domain(our_observation.state)
+    expected_timed_state_seq = test_utils.simulate_plan_trace(pddl_plan, problem, domain, DELTA_T)
+    consistency_value_for_healthy_model = consistency_estimator.estimate_consistency(expected_timed_state_seq, observed_seq)
+
+    assert consistency_value_for_faulty_model>consistency_value_for_healthy_model
 
 ''' Run Hydra agent with a planner that has a wrong meta model, which assumes (erronously) that the gravity is 250. '''
 def _create_gravity_250_observation():
@@ -351,48 +308,4 @@ def _create_gravity_250_observation():
     our_observation =  hydra.observations[1]
     pickle.dump(our_observation,open(GRAVITY_BAD_OBS, "wb"))
 
-@pytest.mark.skipif(True, reason="TODO")
-def test_gravity_250():
-    meta_model = MetaModel()
-
-    # Inject fault and play
-    original_gravity = meta_model.constant_numeric_fluents[GRAVITY]
-    meta_model.constant_numeric_fluents[GRAVITY] = 250.0
-
-    # Load observation as created by the _create_gravity_250_observation() function
-    our_observation = pickle.load(open(GRAVITY_BAD_OBS, "rb"))
-    (expected_timed_seq, observed_seq) = _extract_expected_and_observed(meta_model, our_observation)
-    test_utils.plot_bird_xy_series([state[0] for state in expected_timed_seq],
-                                   observed_seq)
-
-    meta_model.constant_numeric_fluents[GRAVITY] = original_gravity
-    (expected_timed_seq, observed_seq) = _extract_expected_and_observed(meta_model, our_observation)
-    test_utils.plot_bird_xy_series([state[0] for state in expected_timed_seq],
-                         observed_seq)
-
-    print(3)
-
-
-''' Extract from the given observation Hydra collected, an expected list of itnermediate states and an observed y'''
-def _extract_expected_and_observed(meta_model: MetaModel, our_observation: ScienceBirdsObservation):
-    assert our_observation.action is not None
-    assert our_observation.state is not None
-
-    problem = meta_model.create_pddl_problem(our_observation.state)
-    domain = meta_model.create_pddl_domain(our_observation.state)
-    planner = Planner()
-    grounded_domain = PddlPlusGrounder().ground_domain(domain, problem)  # Needed to identify plan action
-    plan_trace_file = "%s/docker_plan_trace.txt" % str(settings.PLANNING_DOCKER_PATH)
-    plan = planner.extract_plan_from_plan_trace(plan_trace_file, grounded_domain)
-
-
-    expected_timed_state_seq = test_utils.simulate_plan_trace(plan, problem, domain, DELTA_T)
-    observed_state_seq = []
-    perception = Perception()
-    for intermediate_state in our_observation.intermediate_states:
-        if isinstance(intermediate_state.objects, list):
-            intermediate_state = perception.process_sb_state(intermediate_state)
-        observed_state_seq.append(meta_model.create_pddl_state(intermediate_state))
-
-    return (expected_timed_state_seq, observed_state_seq)
 

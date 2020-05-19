@@ -186,6 +186,23 @@ class PddlPlusState():
                 birds.add(fluent_name[1])
         return birds
 
+    ''' Get the bird with the given bird id'''
+    def get_bird(self, bird_id: int):
+        for bird in self.get_birds(): # TODO: Can change this to be more efficient
+            if bird_id == int(self[("bird_id", bird)]):
+                return bird
+        raise ValueError("Bird %d not found in state" % bird_id)
+
+    ''' Returns the set of bird objects alive in this state. 
+     Bird is identified by the x_bird fluent. Returns a set of bird names. '''
+    def get_pigs(self):
+        pigs = set()
+        for fluent_name in self.numeric_fluents:
+            # We expect every bird has an x coordinate in a fluent of the form (x_bird, birdname)
+            if len(fluent_name)==2 and fluent_name[0]=="x_pig":
+                pigs.add(fluent_name[1])
+        return pigs
+
     # Deep compare
     def __eq__(self, other):
         if isinstance(other, PddlPlusState)==False:
@@ -352,9 +369,15 @@ class PddlPlusPlan(list):
     def __init__(self, actions: list = list()):
         for action in actions:
             if isinstance(action, TimedAction)==False:
-                raise ValueError("Action %s is not a TimedAction" % action) # This check should probably be removed at some stage
+                raise ValueError("Action %s is not a TimedAction or a [action,time] pair" % action) # This check should probably be removed at some stage
             self.append(action)
 
+    ''' Adds a list of [[action_name, action_time]...]. Converts actions to appropriate WorldChange objects '''
+    def add_raw_actions(self, raw_timed_action_list, grounded_domain: PddlPlusDomain):
+        for raw_timed_action in raw_timed_action_list:
+            action_name  = raw_timed_action[0]
+            action = grounded_domain.get_action(action_name)
+            self.append(TimedAction(action, float(raw_timed_action[1])))
 
 ''' Check if a given string is a float. TODO: Replace this with a more elegant python way of doing this.'''
 def is_float( text :str ):

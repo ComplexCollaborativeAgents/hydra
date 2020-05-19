@@ -77,6 +77,11 @@ class HydraAgent():
                     action = SB.SBShoot(release_point_from_plan.X, release_point_from_plan.Y, 3000, ref_point.X,
                                          ref_point.Y)
                     state, reward = self.env.act(action)
+
+                    observation.reward = reward
+                    observation.action = action
+                    observation.intermediate_states = list(self.env.intermediate_states)
+
                     logger.info("[hydra_agent_server] :: Reward {} Game State {}".format(reward, state.game_state))
                     # time.sleep(5)
                 else:
