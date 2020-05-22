@@ -16,7 +16,8 @@ SCIENCE_BIRDS_BIN_DIR = path.join(ROOT_PATH,'bin')
 SCIENCE_BIRDS_LEVELS_DIR = path.join(SCIENCE_BIRDS_BIN_DIR,'sciencebirds_linux',
                                      'sciencebirds_linux_Data','StreamingAssets','Levels','novelty_level_0','type1','Levels')
 SB_INIT_COLOR_MAP = path.join(ROOT_PATH,'worlds','science_birds_interface','demo','ColorMap.json')
-SB_SIM_SPEED = 50 # run at real time
+SB_SIM_SPEED = 30 # run at real time
+SB_GT_FREQ = int(30/SB_SIM_SPEED)
 
 
 SCIENCE_BIRDS_SERVER_CMD = 'java -jar {}'.format(path.join(SCIENCE_BIRDS_BIN_DIR,'game_playing_interface.jar'))
