@@ -349,21 +349,21 @@ class ScienceBirds(World):
             sc_json_config = json.load(config)
 
         server = Host(sc_json_config[0]['host'], sc_json_config[0]['port'])
+        if 'DOCKER' in os.environ:
+            server.hostname = 'docker-host'
         if server_host:
             server.hostname = server_host.hostname
             server.port = server_host.port
-        if 'DOCKER' in os.environ:
-            server.hostname = 'docker-host'
 
         with open(str(path.join(settings.ROOT_PATH, 'worlds', 'science_birds_interface', 'client', 'server_observer_client_config.json')), 'r') as observer_config:
             observer_sc_json_config = json.load(observer_config)
 
         observer = Host(observer_sc_json_config[0]['host'], observer_sc_json_config[0]['port'])
+        if 'DOCKER' in os.environ:
+            observer.hostname = 'docker-host'
         if observer_host:
             observer.hostname = observer_host.hostname
             observer.port = observer_host.port
-        if 'DOCKER' in os.environ:
-            observer.hostname = 'docker-host'
 
         return server, observer
 
