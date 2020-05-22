@@ -9,7 +9,9 @@ services:
     build: .
     image: hydra
     command: [
-      "conda", "run", "-n", "hydra", "python", "runners/simple.py", "--server", "${HOST}", "--observer", "${OBSERVER}"
+      "conda", "run", "-n", "hydra", "python", "runners/simple.py",
+      "--server", "${HOST:-docker-host:2004}",
+      "--observer", "${OBSERVER:-docker-host:2006}"
     ]
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock"
