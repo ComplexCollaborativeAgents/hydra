@@ -140,7 +140,7 @@ class SBState(State):
                 prob.init.append(['=',['block_life',obj_name],str(math.ceil(265 * block_life_multiplier))])
                 prob.init.append(['=',['block_mass',obj_name],str(block_mass_coeff)])
 
-                bl_stability = 265*(bl_width/bl_height)*(1-(bl_y/groundOffset))*block_mass_coeff
+                bl_stability = 265*(bl_width/(bl_height+1))*(1-(bl_y/(groundOffset+1)))*block_mass_coeff
 
                 prob.init.append(['=',['block_stability',obj_name], bl_stability])
 
