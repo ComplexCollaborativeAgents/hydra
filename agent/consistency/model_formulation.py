@@ -1,4 +1,13 @@
 from agent.consistency.novelty_classification import initize_novelty_detector
+import logging
+
+fh = logging.FileHandler("unknown_objects.csv",mode='w')
+formatter = logging.Formatter('%(name)s - %(levelname)s - %(message)s')
+fh.setFormatter(formatter)
+logger = logging.getLogger("hydra_agent_consistency")
+logger.setLevel(logging.INFO)
+logger.addHandler(fh)
+
 
 class ConsistencyChecker():
 
@@ -18,6 +27,7 @@ class ConsistencyChecker():
                 self.unknowns.append(obj)
         if self.new_level:
             self.unknown_history.insert(0, len(self.unknowns))
+            logger.info('Unknown, {}'.format(len(self.unknowns)))
             self.novelty_likelihood = self.novelty_model.predict_proba(
                 [self.unknown_history[:3]])[0][1]
             self.new_level = False

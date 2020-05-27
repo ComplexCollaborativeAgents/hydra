@@ -13,3 +13,5 @@ dependencies:
   - scipy
   - matplotlib
   - scikit-image
+  - sklearn
+  - pandas
