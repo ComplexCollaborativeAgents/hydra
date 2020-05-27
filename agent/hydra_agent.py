@@ -132,6 +132,7 @@ class HydraAgent():
                 return None
             elif state.game_state.value == GameState.REQUESTNOVELTYLIKELIHOOD.value:
                 logger.info("[hydra_agent_server] :: Requesting Novelty Likelihood {}".format(self.consistency_checker.novelty_likelihood))
+                logger.info("[hydra_agent_server] :: Unknown History {}".format(self.consistency_checker.unknown_history))
                 # Require report novelty likelihood and then playing can be resumedconda env update -f environment.yml
                 # dummy likelihoods:
                 novelty_likelihood = self.consistency_checker.novelty_likelihood

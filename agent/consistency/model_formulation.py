@@ -15,7 +15,6 @@ class ConsistencyChecker():
         self.unknowns = []
         for obj in state.objects.values():
             if obj['type'] == 'unknown':
-                self.novelty_likelihood = 1
                 self.unknowns.append(obj)
         if self.new_level:
             self.unknown_history.insert(0, len(self.unknowns))
