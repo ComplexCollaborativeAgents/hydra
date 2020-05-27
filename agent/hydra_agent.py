@@ -102,6 +102,7 @@ class HydraAgent():
                 self.novelty_existence = self.env.sb_client.get_novelty_info()
                 time.sleep(2/settings.SB_SIM_SPEED)
                 state = self.env.get_current_state()
+                self.consistency_checker.new_level = True
             elif state.game_state.value == GameState.LOST.value:
                 logger.info("[hydra_agent_server] :: Level {} complete - LOSS".format(self.current_level))
                 logger.info("[hydra_agent_server] :: Cumulative planning time only = {}".format(str(cumulative_plan_time)))
@@ -114,6 +115,7 @@ class HydraAgent():
                 self.novelty_existence = self.env.sb_client.get_novelty_info()
                 time.sleep(2/settings.SB_SIM_SPEED)
                 state = self.env.get_current_state()
+                self.consistency_checker.new_level = True
             elif state.game_state.value == GameState.NEWTRAININGSET.value:
                 # DO something to start a fresh agent for a new training set
                 (time_limit, interaction_limit, n_levels, attempts_per_level, mode, seq_or_set,
@@ -129,7 +131,7 @@ class HydraAgent():
                 logger.info("Evaluation complete.")
                 return None
             elif state.game_state.value == GameState.REQUESTNOVELTYLIKELIHOOD.value:
-                logger.info("[hydra_agent_server] :: Requesting Novelty Likelihood {}".format(0.1))
+                logger.info("[hydra_agent_server] :: Requesting Novelty Likelihood {}".format(self.consistency_checker.novelty_likelihood))
                 # Require report novelty likelihood and then playing can be resumedconda env update -f environment.yml
                 # dummy likelihoods:
                 novelty_likelihood = self.consistency_checker.novelty_likelihood
@@ -143,6 +145,10 @@ class HydraAgent():
                 logger.info("New Trial Request Received. Refresh agent.")
                 self.current_level = 0
                 self.training_level_backup = 0
+                self.perception = Perception()
+                self.consistency_checker = ConsistencyChecker()
+                self.planner = Planner()
+                self.novelty_likelihood = 0.0
                 change_from_training = True
                 self.current_level = self.env.sb_client.load_next_available_level()
                 self.novelty_existence = self.env.sb_client.get_novelty_info()
