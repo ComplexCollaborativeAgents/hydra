@@ -9,6 +9,8 @@ from os import path
 import copy
 import math
 
+import func_timeout
+
 import settings
 import worlds.science_birds_interface.client.agent_client as ac
 import worlds.science_birds_interface.trajectory_planner.trajectory_planner as tp
@@ -415,19 +417,19 @@ class ScienceBirds(World):
         self.lock.release()
 #        print('ending sampling')
 
-
+    @func_timeout.func_set_timeout(1)
     def act(self,action):
         '''returns the new current state and reward'''
         if isinstance(action,SBShoot):
             self.history.append(action)
             prev_score = self.sb_client.get_current_score()
             # this blocks until scene is doing
-            self.lock.acquire()
-            self.gt_thread = threading.Thread(target=self.sample_state)
-            self.gt_thread.start()
+#            self.lock.acquire()
+#            self.gt_thread = threading.Thread(target=self.sample_state)
+#            self.gt_thread.start()
             ret = self.sb_client.shoot(action.ref_x, action.ref_y, action.dx, action.dy, 0, action.tap, False)
-            self.lock.release()
-            self.gt_thread.join()
+#            self.lock.release()
+#            self.gt_thread.join()
             if ret == 0:
                 assert False
             reward =  self.sb_client.get_current_score() - prev_score
@@ -440,6 +442,7 @@ class ScienceBirds(World):
         else:
             assert False
 
+    @func_timeout.func_set_timeout(1)
     def get_current_state(self):
         """
         side effects to set the current game status and sling objects on the environment

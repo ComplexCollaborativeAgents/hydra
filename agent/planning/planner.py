@@ -7,6 +7,7 @@ import settings
 from os import path, chdir
 import subprocess
 import re
+import func_timeout
 
 class Planner():
     domain_file = None
@@ -17,6 +18,7 @@ class Planner():
     def __init__(self):
         pass
 
+    @func_timeout.func_set_timeout(60)
     def make_plan(self,state,prob_complexity=0):
         '''
         The plan should be a list of actions that are either executable in the environment

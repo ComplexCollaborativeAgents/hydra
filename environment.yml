@@ -13,5 +13,6 @@ dependencies:
   - scipy
   - matplotlib
   - scikit-image
-  - sklearn
+  - scikit-learn
   - pandas
+  - func_timeout
