@@ -417,7 +417,7 @@ class ScienceBirds(World):
         self.lock.release()
 #        print('ending sampling')
 
-    @func_timeout.func_set_timeout(1)
+    @func_timeout.func_set_timeout(2)
     def act(self,action):
         '''returns the new current state and reward'''
         if isinstance(action,SBShoot):
@@ -442,7 +442,7 @@ class ScienceBirds(World):
         else:
             assert False
 
-    @func_timeout.func_set_timeout(1)
+    @func_timeout.func_set_timeout(2)
     def get_current_state(self):
         """
         side effects to set the current game status and sling objects on the environment
