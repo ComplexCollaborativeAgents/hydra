@@ -163,10 +163,16 @@ class HydraAgent():
             except func_timeout.exceptions.FunctionTimedOut as e:
                 logger.info(
                     "Timeout raise by {}".format(e.msg))
-                self.current_level = self.env.sb_client.load_next_available_level()
-                logger.info("Next Level Loaded")
-                state = self.env.get_current_state()
+                try:
+                    self.current_level = self.load_next_level()
+                except func_timeout.exceptions.FunctionTimedOut as e:
+                    logger.info(
+                        "Timeout raise by {}".format(e.msg))
+                    logger.info("exiting")
 
+    @func_timeout.func_set_timeout(5)
+    def load_next_level(self):
+        return self.env.sb_client.load_next_available_level()
 
     def set_env(self,env):
         '''Probably bad to have two pointers here'''
