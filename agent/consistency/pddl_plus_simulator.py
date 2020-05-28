@@ -32,7 +32,7 @@ class PddlPlusSimulator():
         return output
 
     ''' Simulate running the given plan from the start state '''
-    def simulate(self, plan_to_simulate: PddlPlusPlan, problem: PddlPlusProblem, domain: PddlPlusDomain, delta_t:float, max_t:float = float('inf')):
+    def simulate(self, plan_to_simulate: PddlPlusPlan, problem: PddlPlusProblem, domain: PddlPlusDomain, delta_t:float, max_t:float = 1000):
         self.problem = problem
         # Ground the domain
         grounder = PddlPlusGrounder()
@@ -99,16 +99,29 @@ class PddlPlusSimulator():
             trace.append(trace_item)
 
             # Stopping condition
-            if next_timed_action is not None:
-                still_active = True
-            elif len(active_processes)>0:
+            if len(active_processes)>0:
                 still_active = True
             elif len(fired_events)>0:
                 still_active = True # This one is debatable TODO: Consult Wiktor and Matt
+            elif next_timed_action is not None:
+                # In this case, everything is waiting for the next timed action, so we can just "jump ahead" to get to do that action.
+                still_active = True
+                t = next_timed_action.start_at
             else:
                 still_active = False
 
         return current_state, t, trace
+
+
+    ''' Simulate the trace of a given action in a given state according to the given meta model'''
+    def simulate_observed_action(self, sb_state, time_action, meta_model, delta_t : float):
+        problem = meta_model.create_pddl_problem(sb_state)
+        domain = meta_model.create_pddl_domain(sb_state)
+        grounded_domain = PddlPlusGrounder().ground_domain(domain, problem)
+        plan = PddlPlusPlan()
+        plan.add_raw_actions([[time_action[0], time_action[1]]], grounded_domain)
+        (_, _, trace) = self.simulate(plan, problem, domain, delta_t)
+        return trace
 
     ''' Advanced all process in the givne state by the given delta t'''
     def handle_processes(self, state, delta_t):

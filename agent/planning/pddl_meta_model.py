@@ -90,6 +90,19 @@ class PddlObjectType():
         return '{}_{}'.format(type, obj[0])
 
 
+''' The slingshot is currently not directly modeled in our model, so its object is currently ignored. 
+TODO: Reconsider this design choice. '''
+class SlingshotType:
+    ''' Populate a PDDL+ problem with details about this object '''
+    def add_object_to_problem(self, prob: PddlPlusProblem, obj, problem_params:dict):
+        return # Do nothing, slingshot is currently not directly modeled as an object
+
+    ''' Populate a PDDL+ state with details about this object '''
+    def add_object_to_state(self, pddl_state: PddlPlusState, obj, state_params:dict):
+        return # Do nothing, slingshot is currently not directly modeled as an object
+
+
+
 
 class PigType(PddlObjectType):
     def __init__(self):
@@ -260,9 +273,9 @@ class MetaModel():
         self.constant_numeric_fluents = dict()
         self.constant_boolean_fluents = dict()
 
-        self.constant_numeric_fluents['gravity']=134.2
         self.constant_numeric_fluents['active_bird']=0
         self.constant_numeric_fluents['angle']=0
+        self.constant_numeric_fluents['gravity']=134.2
         self.constant_numeric_fluents['angle_rate'] = 20
         self.constant_numeric_fluents['ground_damper'] = 0.2
 
@@ -281,9 +294,10 @@ class MetaModel():
         self.object_types["stone"] = StoneType()
         self.object_types["TNT"] = TNTType()
         self.object_types["hill"] = PlatformType()
+        self.object_types["slingshot"] = SlingshotType()
 
-    ''' Get the sling object '''
-    def __get_sling_obj(self, sb_state :SBState):
+    ''' Get the slingshot object '''
+    def get_slingshot(self, sb_state :SBState):
         sling = None
         for o in sb_state.objects.items():
             if o[1]['type'] == 'slingshot':
@@ -309,7 +323,7 @@ class MetaModel():
         prob.goal = []
 
         #we should probably use the self.sling on the object
-        slingshot = self.__get_sling_obj(sb_state)
+        slingshot = self.get_slingshot(sb_state)
 
         # A dictionary with global problem parameters
         problem_params = dict()
@@ -317,7 +331,7 @@ class MetaModel():
         problem_params["has_block"]=False
         problem_params["bird_index"]=0
         problem_params["slingshot"]=slingshot
-        problem_params["groundOffset"] = slingshot[1]['bbox'].bounds[3]
+        problem_params["groundOffset"] = self.get_ground_offset(slingshot)
         # Above line redundant since we're storing the slingshot also, but it seems easier to store it also to save computations of the offset everytime we use it.
         problem_params["pigs"] = set()
         problem_params["birds"] = set()
@@ -333,7 +347,7 @@ class MetaModel():
                 if type_str in self.object_types:
                     type = self.object_types[type_str]
                 else:
-                    logger.info("Unknown object type: %s" % type_str)
+                    logger.debug("Unknown object type: %s" % type_str)
                     # TODO Handle unknown objects in some way (Error? default object?)
                     continue
 
@@ -363,13 +377,17 @@ class MetaModel():
 
         return prob
 
+    ''' Get the ground offset '''
+    def get_ground_offset(self, slingshot):
+        return slingshot[1]['bbox'].bounds[3]
+
     ''' Translate the given observed SBState to a PddlPlusState object. 
     This is designed to handle intermediate state observed during execution '''
     def create_pddl_state(self, sb_state:SBState):
         pddl_state = PddlPlusState()
 
         # we should probably use the self.sling on the object
-        slingshot = self.__get_sling_obj(sb_state)
+        slingshot = self.get_slingshot(sb_state)
 
         # A dictionary with global problem parameters
         state_params = dict()
@@ -377,7 +395,7 @@ class MetaModel():
         state_params["has_block"] = False
         state_params["bird_index"] = 0
         state_params["slingshot"] = slingshot
-        state_params["groundOffset"] = slingshot[1]['bbox'].bounds[3]
+        state_params["groundOffset"] = self.get_ground_offset(slingshot)
         # Above line redundant since we're storing the slingshot also, but it seems easier to store it also to save computations of the offset everytime we use it.
         state_params["pigs"] = set()
         state_params["birds"] = set()
@@ -422,3 +440,39 @@ class MetaModel():
         prob_simplified.goal.append(['pig_killed'])
         return prob_simplified
 
+    ''' Created an even more simplified version of the problem to speed up planner ?'''
+    def create_super_simplified(self, prob :PddlPlusProblem):
+        prob_super_simplified = PddlPlusProblem()
+        prob_super_simplified.name = copy.copy(prob.name)
+        prob_super_simplified.domain = copy.copy(prob.domain)
+        prob_super_simplified.objects = copy.copy(prob.objects)
+
+        removed_list = []
+        super_removed_list = []
+        first_bird_spotted = False
+        for obj in prob.objects:
+            if ((obj[1] == 'Bird') and not first_bird_spotted):
+                first_bird_spotted = True
+            elif obj[1] == 'Bird':
+                removed_list.append(obj[0])
+                prob_super_simplified.objects.remove(obj)
+            elif (obj[1] == 'block'):
+                super_removed_list.append(obj[0])
+                prob_super_simplified.objects.remove(obj)
+
+        prob_super_simplified.init = copy.copy(prob.init)
+
+        for init_stmt in prob.init:
+            for b_name in removed_list:
+                if (len(init_stmt[1]) > 1) and (init_stmt[1][1] == b_name):
+                    prob_super_simplified.init.remove(init_stmt)
+            for bl_name in super_removed_list:
+                if ((len(init_stmt[1]) > 1) and (init_stmt[1][1] == bl_name)) or (init_stmt[1] == bl_name):
+                    prob_super_simplified.init.remove(init_stmt)
+
+        prob_super_simplified.objects.append(['dummy_block', 'block'])
+        prob_super_simplified.metric = copy.copy(prob.metric)
+        prob_super_simplified.goal = list()
+        prob_super_simplified.goal.append(['pig_killed'])
+
+        return prob_super_simplified

@@ -1,11 +1,7 @@
-from agent.consistency.consistency_estimator import ScienceBirdsObservation
-from agent.consistency.meta_model_repair import *
-from agent.perception.perception import Perception
-from agent.planning.pddl_meta_model import MetaModel
-from agent.planning.planner import *
-from agent.perception.perception import *
 import matplotlib.pyplot as plt
 
+from agent.consistency.meta_model_repair import *
+from agent.planning.planner import *
 from agent.planning.planner import MetaModelBasedPlanner
 from worlds.science_birds import SBState
 
@@ -17,22 +13,6 @@ def simulate_plan_trace(plan: PddlPlusPlan, problem:PddlPlusProblem, domain: Pdd
     simulator = PddlPlusSimulator()
     (_, _, trace) =  simulator.simulate(plan, problem, domain, delta_t)
     return trace
-
-''' Simulate the outcome of performing an observed action in the observed state '''
-def simulate_plan_on_observed_state(plan: PddlPlusPlan,
-                             our_observation: ScienceBirdsObservation,
-                             meta_model :MetaModel, delta_t = 0.05):
-    assert our_observation.action is not None
-    assert our_observation.state is not None
-
-    pddl_problem = meta_model.create_pddl_problem(our_observation.state)
-    pddl_domain = meta_model.create_pddl_domain(our_observation.state)
-    plan_prefix = []
-    for timed_action in plan:
-        plan_prefix.append(timed_action)
-        if timed_action.action.name == our_observation.action[0]:
-            break
-    return simulate_plan_trace(plan_prefix, pddl_problem, pddl_domain, delta_t)
 
 ''' Helper function: returns a PDDL+ problem and domain objects'''
 def load_problem_and_domain(problem_file_name :str, domain_file_name: str):
@@ -53,6 +33,49 @@ def load_plan(plan_trace_file: str, pddl_problem: PddlPlusProblem, pddl_domain: 
     pddl_plan = planner.extract_plan_from_plan_trace(plan_trace_file, grounded_domain)
     return pddl_plan
 
+''' Simulate the given action in the given state using the given meta model'''
+def plot_expected_trace(meta_model: MetaModel,
+                        state : SBState,
+                        time_action : list,
+                        marker: str = "o",
+                        fluent_x = ('x_bird', 'redbird_0'),
+                        fluent_y = ('y_bird', 'redbird_0'), delta_t = 0.05):
+    expected_trace = PddlPlusSimulator().simulate_observed_action(state, time_action, meta_model, delta_t)
+    plt.plot([timed_state[0][fluent_x] for timed_state in expected_trace],
+             [timed_state[0][fluent_y] for timed_state in expected_trace],marker=marker)
+
+''' Plot the given observation'''
+def plot_observation(observation: ScienceBirdsObservation):
+    meta_model = MetaModel()
+    sb_state = observation.state
+    pddl_state = meta_model.create_pddl_state(sb_state)
+    fig, ax = plt.subplots()
+
+    # plot pigs
+    pigs = pddl_state.get_pigs()
+    x_pigs = [pddl_state[("x_pig",pig)] for pig in pigs]
+    y_pigs = [pddl_state[("y_pig", pig)] for pig in pigs]
+    ax.plot(x_pigs, y_pigs, marker="$pig$", markersize=19, linestyle="")
+
+    # plot birds
+    birds = pddl_state.get_birds()
+    x_birds = [pddl_state[("x_bird",bird)] for bird in birds]
+    y_birds = [pddl_state[("y_bird", bird)] for bird in birds]
+    ax.plot(x_birds, y_birds, marker="$bird$", markersize=19, linestyle="")
+
+    # plot active bird trajectory
+    active_bird = pddl_state.get_active_bird()
+    observed_seq = observation.get_trace(meta_model)
+
+    x_active_bird= [state[("x_bird",active_bird)] for state in observed_seq]
+    y_active_bird= [state[("y_bird",active_bird)] for state in observed_seq]
+    obs_points = set(zip(x_active_bird,y_active_bird))
+    x_active_bird = [state[0] for state in obs_points]
+    y_active_bird = [state[1] for state in obs_points]
+    ax.plot(x_active_bird, y_active_bird, marker="o", markersize=19, linestyle="")
+
+    plt.show()
+
 
 ''' A planner that executes a predefined plan '''
 class PlannerStub(MetaModelBasedPlanner):
@@ -65,4 +88,5 @@ class PlannerStub(MetaModelBasedPlanner):
     def make_plan(self, state: SBState, prob_complexity=0, delta_t = 1.0):
         action = self.plan.pop(0)
         return [action]
+
 

@@ -2,7 +2,6 @@ import pickle
 import matplotlib.pyplot as plt
 import pytest
 import tests.test_utils as test_utils
-import worlds.science_birds as sb
 from agent.hydra_agent import *
 from agent.planning.model_manipulator import ManipulateInitNumericFluent
 from agent.planning.planner import *
@@ -264,8 +263,11 @@ def test_consistency_in_agent_with_dummy_planner(launch_science_birds):
     hydra.planner = PlannerStub(plan, hydra.meta_model)
     hydra.main_loop(max_actions=3)  # enough actions to play the first level
     our_observation =  hydra.observations[1]
-    # pickle.dump(our_observation,open(obs_output_file, "wb")) *** uncomment if needed for debugging ***
+    # pickle.dump(our_observation,open("twang_65.p", "wb")) #*** uncomment if needed for debugging ***
     observed_seq = our_observation.get_trace(hydra.meta_model)
+
+    # plt.interactive(True)
+    # test_utils.plot_observation(our_observation)
 
     # Inject fault in meta model and compute expected trace
     ANGLE_RATE = 'angle_rate'
@@ -281,6 +283,9 @@ def test_consistency_in_agent_with_dummy_planner(launch_science_birds):
     pddl_plan.add_raw_actions(plan, grounded_domain)
     expected_timed_state_seq = test_utils.simulate_plan_trace(pddl_plan, problem, domain, DELTA_T)
 
+    # plt.plot([state[0][X_BIRD_FLUENT] for state in expected_timed_state_seq],
+    #          [state[0][Y_BIRD_FLUENT] for state in expected_timed_state_seq])
+
     consistency_estimator = NumericFluentsConsistencyEstimator([X_BIRD_FLUENT,Y_BIRD_FLUENT])
     consistency_value_for_faulty_model = consistency_estimator.estimate_consistency(expected_timed_state_seq, observed_seq)
 
@@ -291,6 +296,9 @@ def test_consistency_in_agent_with_dummy_planner(launch_science_birds):
     problem = meta_model.create_pddl_problem(our_observation.state)
     domain = meta_model.create_pddl_domain(our_observation.state)
     expected_timed_state_seq = test_utils.simulate_plan_trace(pddl_plan, problem, domain, DELTA_T)
-    consistency_value_for_healthy_model = consistency_estimator.estimate_consistency(expected_timed_state_seq, observed_seq)
 
+    # plt.plot([state[0][X_BIRD_FLUENT] for state in expected_timed_state_seq],
+    #          [state[0][Y_BIRD_FLUENT] for state in expected_timed_state_seq])
+
+    consistency_value_for_healthy_model = consistency_estimator.estimate_consistency(expected_timed_state_seq, observed_seq)
     assert consistency_value_for_faulty_model>consistency_value_for_healthy_model

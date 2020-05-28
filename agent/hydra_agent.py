@@ -70,6 +70,8 @@ class HydraAgent():
                         logger.info("[hydra_agent_server] :: Simplified problem planning time: " + str((time.perf_counter() - simple_plan_time)))
                         if len(plan) == 0 or plan[0][0] == "out of memory":
                             plan.append(("dummy-action", 20.0))
+
+                    action_taken = plan[0]
                     logger.info("[hydra_agent_server] :: Taking action: {}".format(str(plan[0])))
                     ref_point = self.env.tp.get_reference_point(state.sling)
                     release_point_from_plan = \
@@ -79,7 +81,7 @@ class HydraAgent():
                     state, reward = self.env.act(action)
 
                     observation.reward = reward
-                    observation.action = action
+                    observation.action = action_taken
                     observation.intermediate_states = list(self.env.intermediate_states)
 
                     logger.info("[hydra_agent_server] :: Reward {} Game State {}".format(reward, state.game_state))

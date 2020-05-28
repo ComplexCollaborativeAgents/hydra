@@ -186,6 +186,11 @@ class PddlPlusState():
                 birds.add(fluent_name[1])
         return birds
 
+    ''' Returns the active bird'''
+    def get_active_bird(self):
+        active_bird_id = int(self['active_bird'])
+        return self.get_bird(active_bird_id)
+
     ''' Get the bird with the given bird id'''
     def get_bird(self, bird_id: int):
         for bird in self.get_birds(): # TODO: Can change this to be more efficient

@@ -10,7 +10,6 @@ import re
 from agent.planning.pddl_plus import *
 from agent.planning.pddl_meta_model import *
 
-
 class Planner():
     domain_file = None
     problem = None # current state of the world
@@ -93,7 +92,8 @@ class Planner():
                 if " pa-twang " in line:
                     # print(str(lines_list[i]))
                     # print(float(str(lines_list[i+1].split('angle:')[1].split(',')[0])))
-                    plan_actions.append((line.split(':')[1].split('[')[0].replace('(','').replace(')','').strip(), float(str(lines_list[i+1].split('angle:')[1].split(',')[0]))))
+                    plan_actions.append((line.split(':')[1].split('[')[0].replace('(','').replace(')','').strip(),
+                                         float(str(lines_list[i+1].split('angle:')[1].split(',')[0]))))
 
                 if "syntax error" in line:
                     break
@@ -236,11 +236,25 @@ class MetaModelBasedPlanner(Planner):
         pddl = self.meta_model.create_pddl_problem(state)
         if prob_complexity==1:
             pddl = self.meta_model.create_simplified_problem(pddl)
-        else:
-            raise NotImplementedError("Problem complexity level %d not supported yet by MetaModel" % prob_complexity)
+        elif prob_complexity==2:
+            pddl = self.meta_model.create_super_simplified(pddl)
         self.write_problem_file(pddl)
 
-        return self.get_plan_actions()
+        plan = self.get_plan_actions()
+        # If plan could not be made, return a default twang action
+        if len(plan)>0 and plan[0][0] != "out of memory":
+            return plan
+        elif prob_complexity==2: # If this is the most simplified version and still we did not get a plan, return some default stuff
+                return self._get_default_plan(pddl)
+        else:
+            return plan
+
+    ''' Returns a default plan, which is used when the planner fails. '''
+    def _get_default_plan(self, problem):
+        init_state = PddlPlusState(problem.init)
+        active_bird = init_state.get_active_bird()
+        default_time = 75 # TODO: Replace with random
+        return [["pa-twang %s" % active_bird, default_time]]
 
     ################ TODO: After things calm down, the methods below should replace some of the code above.
     ''' Extracts a PddlPlusPlan object from a plan trace. TODO: Currently assumes domain is grounded'''

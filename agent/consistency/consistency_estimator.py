@@ -29,7 +29,7 @@ class ConsistencyEstimator:
     ''' The first parameter is a list of (state,time) pairs, the second is just a list of states.
      Returns a positive number  that represents the possible consistency between the sequences,
      where zero means fully consistent. '''
-    def estimate_consistency(self, timed_state_seq: list, state_seq: list):
+    def estimate_consistency(self, timed_state_seq: list, state_seq: list, delta_t: float = 0.05):
         raise NotImplementedError()
 
 ''' Checks consistency by considering the value of a single numeric fluent '''
@@ -45,7 +45,7 @@ class SingleNumericFluentConsistencyEstimator(ConsistencyEstimator):
     aiming to minimize its distance from the fitted piecewise-linear interpolation. 
     Returns a value representing how cons
     '''
-    def estimate_consistency(self, simulation_trace: list, state_seq: list):
+    def estimate_consistency(self, simulation_trace: list, state_seq: list, delta_t: float = 0.05):
 
         # Fit a piecewise linear function based on the timed state sequence
         t_values = list()
@@ -55,7 +55,6 @@ class SingleNumericFluentConsistencyEstimator(ConsistencyEstimator):
             t_values.append(t)
             fluent_values.append(value)
 
-        delta_t = 0.01
         all_t_values = np.arange(0,t_values[-1],delta_t)
         consistent_fluent_values = np.interp(all_t_values, t_values, fluent_values)
 
@@ -77,7 +76,7 @@ class NumericFluentsConsistencyEstimator(ConsistencyEstimator):
 
     ''' Specify which fluents to check, and the size of the observed sequence prefix to consider.
     This is because we acknowledge that later in the observations, our model is less accurate. '''
-    def __init__(self, fluent_names, unique_prefix_size=3):
+    def __init__(self, fluent_names, unique_prefix_size=7):
         self.fluent_names = []
         for fluent_name in fluent_names:
             if isinstance(fluent_name,list):
@@ -92,8 +91,8 @@ class NumericFluentsConsistencyEstimator(ConsistencyEstimator):
     and ignore cases where the fluent is not in the un-timed state seqqaiming to minimize its distance from the fitted piecewise-linear interpolation. 
     Returns a value representing how cons
     '''
-    def estimate_consistency(self, simulation_trace: list, state_seq: list):
-        t_values, fluent_to_expected_values = self.fit_expected_values(simulation_trace)
+    def estimate_consistency(self, simulation_trace: list, state_seq: list, delta_t: float = 0.05):
+        t_values, fluent_to_expected_values = self.fit_expected_values(simulation_trace, delta_t=delta_t)
 
         # Check max error: compute the error for every state w.r.t every time. Return max error found
         max_error = 0
@@ -104,6 +103,9 @@ class NumericFluentsConsistencyEstimator(ConsistencyEstimator):
                 old_obs_state = state
                 unique_prefix_counter = unique_prefix_counter+1
                 (best_fit_t, min_error) = self._compute_best_fit(state, t_values, fluent_to_expected_values)
+
+                min_error = min_error / unique_prefix_counter # Weight of errors later in the sequence is smaller TODO: Think about this more
+
                 if min_error>max_error:
                     max_error= min_error
 
@@ -113,7 +115,7 @@ class NumericFluentsConsistencyEstimator(ConsistencyEstimator):
         return max_error
 
     ''' Create a piecewise linear interpolation for the given timed_state_seq'''
-    def fit_expected_values(self, simulation_trace):
+    def fit_expected_values(self, simulation_trace, delta_t = 0.01):
         # Get values over time for each fluent
         fluent_to_values = dict()
         fluent_to_times = dict()
@@ -128,7 +130,6 @@ class NumericFluentsConsistencyEstimator(ConsistencyEstimator):
                     fluent_to_values[fluent_name].append(float(fluent_value))
 
                     # Fit a piecewise linear function to each fluent
-        delta_t = 0.01
         max_t = max([fluent_to_times[fluent_name][-1] for fluent_name in fluent_to_times])
         fluent_to_expected_values = dict()
         for fluent_name in self.fluent_names:
