@@ -35,7 +35,7 @@ class HydraAgent():
         self.novelty_likelihood = 0.0
 
 
-    def main_loop(self,max_actions=1000):
+    def main_loop(self,max_actions=10000000):
         logger.info("[hydra_agent_server] :: Entering main loop")
         logger.info("[hydra_agent_server] :: Simulation speed = {}\n\n".format(str(settings.SB_SIM_SPEED)))
         logger.info("[hydra_agent_server] :: Planner memory limit = {}".format(str(settings.PLANNER_MEMORY_LIMIT)))
@@ -45,13 +45,18 @@ class HydraAgent():
 
         overall_plan_time = time.perf_counter()
         cumulative_plan_time = 0
-
+        count = 0
         while t < max_actions:
             try:
-                if state.game_state.value == GameState.PLAYING.value:
+                if count > 20:
+                    self.load_next_level()
+                    count = 0
+
+                elif state.game_state.value == GameState.PLAYING.value:
+                    count += 1
                     state = self.perception.process_state(state)
 
-                    if (len(state.objects) < 3):
+                    if state is None or (len(state.objects) < 3):
                         time.sleep(1)
                         state = self.env.get_current_state()
                         continue
@@ -81,7 +86,7 @@ class HydraAgent():
                                              ref_point.Y)
                         state, reward = self.env.act(action)
                         logger.info("[hydra_agent_server] :: Reward {} Game State {}".format(reward, state.game_state))
-                        # time.sleep(5)
+                        #time.sleep(5)
                     else:
                         logger.info("Perception Failure performing default shot")
                         plan = []
@@ -93,6 +98,7 @@ class HydraAgent():
                         state, reward = self.env.act(action)
                         logger.info("[hydra_agent_server] :: Reward {} Game State {}".format(reward, state.game_state))
                 elif state.game_state.value == GameState.WON.value:
+                    count = 0
                     logger.info("[hydra_agent_server] :: Level {} Complete - WIN".format(self.current_level))
                     logger.info("[hydra_agent_server] :: Cumulative planning time only = {}".format(str(cumulative_plan_time)))
                     logger.info("[hydra_agent_server] :: Planning effort percentage = {}\n".format(str( (cumulative_plan_time/(time.perf_counter() - overall_plan_time)) )))
@@ -106,6 +112,7 @@ class HydraAgent():
                     state = self.env.get_current_state()
                     self.consistency_checker.new_level = True
                 elif state.game_state.value == GameState.LOST.value:
+                    count = 0
                     logger.info("[hydra_agent_server] :: Level {} complete - LOSS".format(self.current_level))
                     logger.info("[hydra_agent_server] :: Cumulative planning time only = {}".format(str(cumulative_plan_time)))
                     logger.info("[hydra_agent_server] :: Planning effort percentage = {}\n".format(str((cumulative_plan_time/(time.perf_counter() - overall_plan_time)))))
@@ -119,6 +126,7 @@ class HydraAgent():
                     state = self.env.get_current_state()
                     self.consistency_checker.new_level = True
                 elif state.game_state.value == GameState.NEWTRAININGSET.value:
+                    count = 0
                     # DO something to start a fresh agent for a new training set
                     (time_limit, interaction_limit, n_levels, attempts_per_level, mode, seq_or_set,
                      allowNoveltyInfo) = self.env.sb_client.ready_for_new_set()
@@ -169,9 +177,11 @@ class HydraAgent():
                     logger.info(
                         "Timeout raise by {}".format(e.msg))
                     logger.info("exiting")
+        logger.info("[hydra_agent_server] :: Exceeded max actions")
 
-    @func_timeout.func_set_timeout(5)
+    @func_timeout.func_set_timeout(60)
     def load_next_level(self):
+        self.consistency_checker.new_level = True
         return self.env.sb_client.load_next_available_level()
 
     def set_env(self,env):

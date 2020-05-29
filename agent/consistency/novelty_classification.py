@@ -50,7 +50,7 @@ def initize_novelty_detector():
     predictions = logmodel.predict(X_test)
 
     from sklearn.metrics import classification_report
-    print(classification_report(y_test,predictions))
+    #print(classification_report(y_test,predictions))
     return logmodel
 
 if __name__ == "__main__":
