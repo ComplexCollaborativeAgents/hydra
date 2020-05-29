@@ -51,6 +51,8 @@ class HydraAgent():
                 if count > 20:
                     self.load_next_level()
                     count = 0
+                    time.sleep(1)
+                    state = self.env.get_current_state()
 
                 elif state.game_state.value == GameState.PLAYING.value:
                     count += 1
