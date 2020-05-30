@@ -18,7 +18,7 @@ class Planner():
     def __init__(self):
         pass
 
-    @func_timeout.func_set_timeout(120)
+#    @func_timeout.func_set_timeout(120)
     def make_plan(self,state,prob_complexity=0):
         '''
         The plan should be a list of actions that are either executable in the environment
