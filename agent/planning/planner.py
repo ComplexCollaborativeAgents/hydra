@@ -100,11 +100,11 @@ class Planner():
         # commented out for 6 months evaluation
         # self.run_val()
 
-        print("\nACTIONS: " + str(plan_actions))
+        # print("\nACTIONS: " + str(plan_actions))
         if len(plan_actions) > 0:
             return plan_actions
         elif (count <1):
-            print("\nno actions, replanning...")
+            # print("\nno actions, replanning...")
             return self.get_plan_actions(count+1)
         else:
             return []

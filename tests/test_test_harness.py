@@ -19,13 +19,6 @@ from agent.hydra_agent import HydraAgent
 @pytest.fixture(scope="module")
 def launch_science_birds():
     print("starting")
-    #remove config files
-    cmd = 'cp {}/data/science_birds/level-14.xml {}/00001.xml'.format(str(settings.ROOT_PATH), str(settings.SCIENCE_BIRDS_LEVELS_DIR))
-    subprocess.run(cmd, shell=True)
-    cmd = 'cp {}/data/science_birds/level-15.xml {}/00002.xml'.format(str(settings.ROOT_PATH), str(settings.SCIENCE_BIRDS_LEVELS_DIR))
-    subprocess.run(cmd, shell=True)
-    cmd = 'cp {}/data/science_birds/level-16.xml {}/00003.xml'.format(str(settings.ROOT_PATH), str(settings.SCIENCE_BIRDS_LEVELS_DIR))
-    subprocess.run(cmd, shell=True)
     env = sb.ScienceBirds(None,launch=True,config=None) #run the experiment
     yield env
     print("teardown tests")
@@ -34,6 +27,6 @@ def launch_science_birds():
 @pytest.mark.skipif(settings.HEADLESS==True, reason="headless does not work in docker")
 def test_test_harness(launch_science_birds):
     env = launch_science_birds
-    env.sb_client.set_game_simulation_speed(50) #run at max speed as we are just testing all the API calls
+    env.sb_client.set_game_simulation_speed(5) #run at max speed as we are just testing all the API calls
     hydra = HydraAgent(env)
-    hydra.main_loop()  # enough actions to play the first two levels
+    hydra.main_loop(5)  # enough actions to play the first two levels

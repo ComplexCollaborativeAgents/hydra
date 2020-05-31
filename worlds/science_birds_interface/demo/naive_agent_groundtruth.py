@@ -477,7 +477,7 @@ class ClientNaiveAgent(Thread):
 						dy = int(release_point.Y - ref_point.Y)
 
 						if dx < 0:
-							print ('ref point ', ref_point.X, ',', ref_point.Y)
+							# print ('ref point ', ref_point.X, ',', ref_point.Y)
 							self.ar.shoot(ref_point.X, ref_point.Y, dx, dy, 0, tap_time, False)
 							time.sleep(2/self.sim_speed)
 							state = self.ar.get_game_state()

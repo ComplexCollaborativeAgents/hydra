@@ -12,3 +12,21 @@
 ```
 pytest
 ```
+
+## Building Docker
+
+```
+# Log in to the GitLab Docker registry.
+$ docker login registry.gitlab-external.parc.com:8443
+
+# Build Docker image for latest commit.
+$ docker build -t registry.gitlab-external.parc.com:8443/hydra/experiment:$(git rev-parse --short HEAD) .
+
+# Tag the most recent Docker image with `latest`.
+$ docker tag registry.gitlab-external.parc.com:8443/hydra/experiment:$(git rev-parse --short HEAD) registry.gitlab-external.parc.com:8443/hydra/experiment:latest
+
+# Push versioned and latest image to the registry.
+$ docker push registry.gitlab-external.parc.com:8443/hydra/experiment:$(git rev-parse --short HEAD)
+
+$ docker push registry.gitlab-external.parc.com:8443/hydra/experiment:latest
+```
