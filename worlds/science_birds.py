@@ -263,48 +263,51 @@ class ScienceBirds(World):
     def __init__(self,sel_level=0,launch=False,config='test_config.xml', server_host=None, observer_host=None):
         self.id = 2228
         self.tp = tp.SimpleTrajectoryPlanner()
+        self.SB_process = None
+        self.SB_server_process = None
         if launch:
             self.launch_SB(config)
             time.sleep(1)
         self.create_interface(sel_level, server_host=server_host, observer_host=observer_host)
 
     def kill(self):
-        print("Killing process groups: {}, {}".format(self.SB_server_process.pid,
-                                                     self.SB_process.pid))
-        if sys.platform == 'darwin':
-            try:
-                os.kill(self.SB_process.pid,9)
-            except:
-                logger.info("Error during process termination 1")
-                pass
-            try:
-                os.kill(self.SB_process.pid+1,9)
-            except:
-                logger.info("Error during process termination 2")
-                pass
-            try:
-                os.kill(self.SB_server_process.pid,9)
-            except:
-                logger.info("Error during process termination 3")
-                pass
-            try:
-                os.kill(self.SB_server_process.pid+1,9)
-            except:
-                logger.info("Error during process termination 4")
-                pass
-            try:
-                self.gt_thread.kill()
-            except:
-                logger.info("Error during process termination 5")
-                pass
-        else:
-            try:
-                os.killpg(self.SB_process.pid,9)
-                os.killpg(self.SB_server_process.pid,9)
-                self.gt_thread.kill()
-            except:
-                logger.info("Error during process terminatio6n")
-                pass
+        if self.SB_process:
+            print("Killing process groups: {}, {}".format(self.SB_server_process.pid,
+                                                         self.SB_process.pid))
+            if sys.platform == 'darwin':
+                try:
+                    os.kill(self.SB_process.pid,9)
+                except:
+                    logger.info("Error during process termination 1")
+                    pass
+                try:
+                    os.kill(self.SB_process.pid+1,9)
+                except:
+                    logger.info("Error during process termination 2")
+                    pass
+                try:
+                    os.kill(self.SB_server_process.pid,9)
+                except:
+                    logger.info("Error during process termination 3")
+                    pass
+                try:
+                    os.kill(self.SB_server_process.pid+1,9)
+                except:
+                    logger.info("Error during process termination 4")
+                    pass
+                try:
+                    self.gt_thread.kill()
+                except:
+                    logger.info("Error during process termination 5")
+                    pass
+            else:
+                try:
+                    os.killpg(self.SB_process.pid,9)
+                    os.killpg(self.SB_server_process.pid,9)
+                    self.gt_thread.kill()
+                except:
+                    logger.info("Error during process terminatio6n")
+                    pass
 
             
 

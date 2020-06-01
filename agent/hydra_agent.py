@@ -48,6 +48,7 @@ class HydraAgent():
         count = 0
         while t < max_actions:
             try:
+                self.env.sb_client.fully_zoom_out()
                 if count > 20:
                     self.load_next_level()
                     count = 0
