@@ -230,6 +230,30 @@ def launch_science_birds_level_01():
     print("teardown tests")
     env.kill()
 
+
+def test_observation_win():
+    meta_model = MetaModel()
+
+    obs_output_file = path.join(DATA_DIR, "good_gravity.p") # For debug
+    observation_simple = pickle.load(open(obs_output_file, "rb"))  # For debug
+
+    obs_output_file = path.join(DATA_DIR, "good_gravity_good_planner.p") # For debug
+    observation_good = pickle.load(open(obs_output_file, "rb"))  # For debug
+
+    matplotlib.interactive(True) # For debug
+    observed_seq_simple = observation_simple.get_trace(meta_model)
+    observed_seq_good = observation_good.get_trace(meta_model)
+
+    test_utils.plot_observation(observation_simple) # For debug
+    test_utils.plot_observation(observation_good) # For debug
+
+    simple_planner = SimplePlanner(MetaModel())
+    simple_planner.make_plan(observation_good.state, 0)
+
+    test_utils.plot_expected_trace(meta_model, observation_simple.state, observation_simple.action, delta_t=DELTA_T) # For debug
+    test_utils.plot_expected_trace(meta_model, observation_good.state, observation_good.action, delta_t=DELTA_T) # For debug
+
+
 ''' A full system test: run SB with a bad meta model, observe results, fix meta model '''
 @pytest.mark.skipif(settings.HEADLESS == True, reason="headless does not work in docker")
 def test_repair_gravity_in_agent(launch_science_birds_level_01):
@@ -241,12 +265,10 @@ def test_repair_gravity_in_agent(launch_science_birds_level_01):
 
     # Inject fault and play
     meta_model = hydra.meta_model
-    meta_model.constant_numeric_fluents["ground_damper"] = 0.3
-    meta_model.constant_numeric_fluents["gravity"] = 175
-    meta_model.constant_numeric_fluents["angle_rate"] = 0.95
+    meta_model.constant_numeric_fluents["gravity"] = 150
     logger.info("Running agent with current meta model")
-    hydra.planner = SimplePlanner(meta_model)
-
+    hydra.planner = MetaModelBasedPlanner(meta_model)
+    # hydra.planner = SimplePlanner(meta_model)
     hydra.main_loop(max_actions=3)  # enough actions to play the first level
 
     scores = env.get_all_scores()
@@ -259,7 +281,7 @@ def test_repair_gravity_in_agent(launch_science_birds_level_01):
     observation = _find_last_obs(hydra)
     observed_seq = observation.get_trace(hydra.meta_model)
 
-    obs_output_file = path.join(DATA_DIR, "bad_gravity_600_level_042.p") # For debug
+    obs_output_file = path.join(DATA_DIR, "good_gravity_good_planner.p") # For debug
     pickle.dump(observation, open(obs_output_file, "wb"))  # For debug
     matplotlib.interactive(True) # For debug
     test_utils.plot_observation(observation) # For debug

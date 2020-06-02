@@ -4,6 +4,7 @@ from agent.consistency.meta_model_repair import *
 from agent.planning.planner import *
 from agent.planning.planner import MetaModelBasedPlanner
 from worlds.science_birds import SBState
+import matplotlib.patches as patches
 
 Y_BIRD_FLUENT = ('y_bird', 'redbird_0')
 X_BIRD_FLUENT = ('x_bird', 'redbird_0')
@@ -63,6 +64,17 @@ def plot_observation(observation: ScienceBirdsObservation):
     y_birds = [pddl_state[("y_bird", bird)] for bird in birds]
     ax.plot(x_birds, y_birds, marker="$bird$", markersize=19, linestyle="")
 
+    platforms = pddl_state.get_platforms()
+    for platform in platforms:
+        x = pddl_state[("x_platform", platform)]
+        y = pddl_state[("y_platform", platform)]
+        width = pddl_state[("platform_width", platform)]
+        height = pddl_state[("platform_height", platform)]
+        x= x-width/2
+        y = y-height/2
+        rect = patches.Rectangle((x,y), width, height, linewidth=1, edgecolor='r', facecolor='none')
+        ax.add_patch(rect)
+
     # plot active bird trajectory
     active_bird = pddl_state.get_active_bird()
     observed_seq = observation.get_trace(meta_model)
@@ -72,6 +84,14 @@ def plot_observation(observation: ScienceBirdsObservation):
     obs_points = set(zip(x_active_bird,y_active_bird))
     x_active_bird = [state[0] for state in obs_points]
     y_active_bird = [state[1] for state in obs_points]
+
+    # Set plot area to be a square, so that proprtions are right.
+    (left,right_x) = plt.xlim()
+    (left,right_y) = plt.ylim()
+    max_axis = max(right_x,right_y)
+    plt.xlim((0,max_axis))
+    plt.ylim((0, max_axis))
+
     ax.plot(x_active_bird, y_active_bird, marker="x", markersize=8, linestyle="")
 
     plt.show()

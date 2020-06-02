@@ -208,6 +208,16 @@ class PddlPlusState():
                 pigs.add(fluent_name[1])
         return pigs
 
+    ''' Returns the set of bird objects alive in this state. 
+     Bird is identified by the x_bird fluent. Returns a set of bird names. '''
+    def get_platforms(self):
+        platforms = set()
+        for fluent_name in self.numeric_fluents:
+            # We expect every bird has an x coordinate in a fluent of the form (x_bird, birdname)
+            if len(fluent_name)==2 and fluent_name[0]=="x_platform":
+                platforms.add(fluent_name[1])
+        return platforms
+
     # Deep compare
     def __eq__(self, other):
         if isinstance(other, PddlPlusState)==False:
