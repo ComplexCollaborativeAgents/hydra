@@ -72,7 +72,7 @@ def plot_observation(observation: ScienceBirdsObservation):
     obs_points = set(zip(x_active_bird,y_active_bird))
     x_active_bird = [state[0] for state in obs_points]
     y_active_bird = [state[1] for state in obs_points]
-    ax.plot(x_active_bird, y_active_bird, marker="o", markersize=19, linestyle="")
+    ax.plot(x_active_bird, y_active_bird, marker="x", markersize=8, linestyle="")
 
     plt.show()
 
