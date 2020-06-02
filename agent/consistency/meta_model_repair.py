@@ -30,7 +30,7 @@ class MetaModelRepair():
 
     ''' The first parameter is a list of (state, time) pairs, the second is just a list of states. 
      Checks if they can be aligned. '''
-    def is_consistent(self, timed_state_seq: list, state_seq: list):
+    def is_consistent(self, timed_state_seq: list, state_seq: list, delta_t =0.05):
         raise NotImplementedError("Not yet")
 
     def choose_manipulator(self):
@@ -42,7 +42,7 @@ A greedy best-first search model repair implementation.
 class GreedyBestFirstSearchMetaModelRepair(MetaModelRepair):
     def __init__(self, fluents_to_repair, consistency_estimator,
                  deltas,
-                 consistency_threshold=30,
+                 consistency_threshold=5,
                  max_iteration=30):
 
         self.consistency_estimator = consistency_estimator
@@ -138,8 +138,8 @@ class GreedyBestFirstSearchMetaModelRepair(MetaModelRepair):
 
     ''' The first parameter is a list of (state, time) pairs, the second is just a list of states. 
      Checks if they can be aligned. '''
-    def is_consistent(self, timed_state_seq: list, state_seq: list):
-        consistency_value = self.consistency_estimator.estimate_consistency(timed_state_seq, state_seq)
+    def is_consistent(self, timed_state_seq: list, state_seq: list, delta_t = 0.05):
+        consistency_value = self.consistency_estimator.estimate_consistency(timed_state_seq, state_seq, delta_t=delta_t)
         if consistency_value < self.consistency_threshold:
             return True
         else:
