@@ -1,10 +1,3 @@
-'''
-This module contains the meta-model according to which we generate PDDL+ problems for a given state observed in ScienceBirds.
-It is designed so that it is mutable, i.e., one can modify the way the meta model generates PDDL+ problems.
-'''
-
-
-from agent.planning.pddl_plus import *
 import copy
 import math
 from worlds.science_birds import SBState
@@ -241,9 +234,10 @@ class BlockType(PddlObjectType):
     def __compute_block_mass(self):
         return str(self.hyper_parameters["block_mass_coeff"])
     def __compute_stability(self, bl_width, bl_height, bl_y, groundOffset):
-        return 265 * (bl_width / bl_height) \
-               * (1 - (bl_y / groundOffset)) \
+        return 265 * (bl_width / (bl_height + 1)) \
+               * (1 - (bl_y / (groundOffset + 1))) \
                * self.hyper_parameters["block_mass_coeff"]
+
 
 class WoodType(BlockType):
     def __init__(self):
@@ -275,14 +269,16 @@ class MetaModel():
         self.constant_numeric_fluents = dict()
         self.constant_boolean_fluents = dict()
 
-        self.constant_numeric_fluents['active_bird']=0
-        self.constant_numeric_fluents['angle']=0
-        self.constant_numeric_fluents['gravity']=134.2
-        self.constant_numeric_fluents['angle_rate'] = 20
-        self.constant_numeric_fluents['ground_damper'] = 0.2
+        for (fluent, value) in [('gravity', 134.2),
+                                ('active_bird', 0),
+                                ('angle', 0),
+                                ('angle_rate', 20),
+                                ('ground_damper', 0.2)]:
+            self.constant_numeric_fluents[fluent]=value
 
-        self.constant_boolean_fluents['angle_adjusted']=False
-        self.constant_boolean_fluents['pig_killed']=False
+        for not_fluent in ['angle_adjusted',
+                           'pig_killed']:
+            self.constant_boolean_fluents[not_fluent]=False
 
         self.metric = 'minimize(total-time)'
 
