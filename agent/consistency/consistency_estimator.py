@@ -15,10 +15,7 @@ class ScienceBirdsObservation:
     ''' Returns a sequence of PDDL states that are the observed intermediate states '''
     def get_trace(self, meta_model: MetaModel = MetaModel()):
         observed_state_seq = []
-        perception = Perception()
         for intermediate_state in self.intermediate_states:
-            if isinstance(intermediate_state.objects, list):
-                intermediate_state = perception.process_sb_state(intermediate_state)
             observed_state_seq.append(meta_model.create_pddl_state(intermediate_state))
         return observed_state_seq
 

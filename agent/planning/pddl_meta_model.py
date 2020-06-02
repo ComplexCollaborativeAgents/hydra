@@ -12,6 +12,8 @@ from agent.planning.pddlplus_parser import *
 import settings
 import logging
 
+from agent.perception.perception import Perception
+
 fh = logging.FileHandler("hydra.log",mode='w')
 formatter = logging.Formatter('%(asctime)-15s %(name)s - %(levelname)s - %(message)s')
 fh.setFormatter(formatter)
@@ -299,6 +301,8 @@ class MetaModel():
     ''' Get the slingshot object '''
     def get_slingshot(self, sb_state :SBState):
         sling = None
+        if isinstance(sb_state.objects, list):
+            sb_state = Perception().process_sb_state(sb_state)
         for o in sb_state.objects.items():
             if o[1]['type'] == 'slingshot':
                 sling = o

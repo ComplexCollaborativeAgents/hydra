@@ -41,12 +41,9 @@ def _load_observed_states(file_format, num_of_observations, meta_model = MetaMod
     for i in range(0, num_of_observations):
         observations.append(sb.SBState.load_from_serialized_state(file_format.format(i)))
     assert len(observations) == 17
-    perception = Perception()
     state_seq = []
     bird_count = 100  # I'm assuming this is the maximum number of birds we will get.
     for observation in observations:
-        if isinstance(observation.objects, list):
-            perception.process_sb_state(observation)
         new_state = meta_model.create_pddl_state(observation)
         state_seq.append(new_state)
 
