@@ -92,7 +92,7 @@ class NumericFluentsConsistencyEstimator(ConsistencyEstimator):
     Returns a value representing how cons
     '''
     def estimate_consistency(self, simulation_trace: list, state_seq: list, delta_t: float = 0.05):
-        t_values, fluent_to_expected_values = self.fit_expected_values(simulation_trace, delta_t=delta_t)
+        t_values, fluent_to_expected_values = self._fit_expected_values(simulation_trace, delta_t=delta_t)
 
         # Check max error: compute the error for every state w.r.t every time. Return max error found
         max_error = 0
@@ -115,7 +115,7 @@ class NumericFluentsConsistencyEstimator(ConsistencyEstimator):
         return max_error
 
     ''' Create a piecewise linear interpolation for the given timed_state_seq'''
-    def fit_expected_values(self, simulation_trace, delta_t = 0.01):
+    def _fit_expected_values(self, simulation_trace, delta_t = 0.01):
         # Get values over time for each fluent
         fluent_to_values = dict()
         fluent_to_times = dict()
@@ -148,6 +148,8 @@ class NumericFluentsConsistencyEstimator(ConsistencyEstimator):
         for t in range(len(t_values)):
             error_at_t = 0
             for fluent_name in self.fluent_names:
+                if fluent_name not in state: # TODO: A design choice. Ignore missing fluent values
+                    continue
                 fluent_value = float(state[fluent_name])
                 consistent_fluent_value = fluent_to_expected_values[fluent_name][t]
                 fluent_error = abs(fluent_value - consistent_fluent_value)
@@ -158,6 +160,29 @@ class NumericFluentsConsistencyEstimator(ConsistencyEstimator):
                 best_t = t
         return (best_t, best_fit_error)
 
+
+
+
+
+''' Checks consistency by considering the location of the birds '''
+class BirdLocationConsistencyEstimator():
+    def __init__(self, unique_prefix_size = 7):
+        self.unique_prefix_size=unique_prefix_size
+
+    ''' Estimate consitency by considering the location of the birds in the observed state seq '''
+    def estimate_consistency(self, simulation_trace: list, state_seq: list, delta_t: float = 0.05):
+        # Get birds
+        birds = set()
+        for state in state_seq:
+            birds.update(state.get_birds())
+
+        fluent_names = []
+        for bird in birds:
+            fluent_names.append(('x_bird', bird))
+            fluent_names.append(('y_bird', bird))
+
+        consistency_checker = NumericFluentsConsistencyEstimator(fluent_names, self.unique_prefix_size)
+        return consistency_checker.estimate_consistency(simulation_trace, state_seq, delta_t)
 
 ''' A utility function for comparing (state, time) sequences. 
 It outputs a list of differences between the sequences. '''

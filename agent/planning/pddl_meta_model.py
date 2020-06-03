@@ -294,6 +294,10 @@ class MetaModel():
         self.object_types["hill"] = PlatformType()
         self.object_types["slingshot"] = SlingshotType()
 
+    ''' Get the ralation between angle and twang time TODO: Think if this is right or not'''
+    def get_angle_rate(self):
+        return float(self.constant_numeric_fluents["angle_rate"])
+
     ''' Get the slingshot object '''
     def get_slingshot(self, sb_state :SBState):
         sling = None

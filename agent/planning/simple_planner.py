@@ -33,7 +33,7 @@ class SimplePlanner(MetaModelBasedPlanner):
                 current_state, t, trace = self.simulator.simulate(plan, pddl_problem, pddl_domain, 0.05)
 
                 if self._killed_pigs(current_state)>0:
-                    return [[action_name, action_time]]
+                    return [[action_name, action_time * self.meta_model.get_angle_rate()]] # Convert time to angle TODO: Not pretty
                 else:
                     action_time = action_time+delta_t
 

@@ -122,6 +122,10 @@ class GreedyBestFirstSearchMetaModelRepair(MetaModelRepair):
         pddl_domain = self.current_meta_model.create_pddl_domain(self.current_sb_state)
         pddl_problem = self.current_meta_model.create_pddl_problem(self.current_sb_state)
         (_, _, timed_state_seq) = self.simulator.simulate(self.current_plan, pddl_problem, pddl_domain, self.current_delta_t)
+
+        # import tests.test_utils as test_utils # for debug
+        # action_time = [self.current_plan[0].action.name, self.current_plan[0].start_at] # for debug
+        # test_utils.plot_expected_trace(self.current_meta_model,self.current_sb_state,action_time) # for debug
         self._undo_change(delta_state)
         return self.consistency_estimator.estimate_consistency(timed_state_seq, observed_states)
 

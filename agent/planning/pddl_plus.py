@@ -138,7 +138,12 @@ class PddlPlusState():
         else:
             return False # For the case of Boolean fluents, this makes sense
 
-
+    def __contains__(self, fluent_name):
+        if fluent_name in self.numeric_fluents:
+            return True
+        if fluent_name in self.boolean_fluents:
+            return True
+        return False
 
     ''' Loads the PddlPlusState object with a list of tuples as imported from PDDL file. 
         A tuple representing a numeric variable is of the form (=, object_list, value). 
