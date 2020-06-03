@@ -16,6 +16,7 @@ from utils.point2D import Point2D
 import subprocess
 import agent.perception.perception as perception
 from agent.hydra_agent import HydraAgent
+from agent.planning.pddl_meta_model import *
 
 @pytest.fixture(scope="module")
 def launch_science_birds():
@@ -66,7 +67,8 @@ def test_science_birds(launch_science_birds):
     # print(str(env.cur_sling.bottom_right))
 
     planner = pl.Planner()
-    planner.write_problem_file(state.translate_state_to_pddl())
+    meta_model = MetaModel()
+    planner.write_problem_file(meta_model.create_pddl_problem(state))
 
     ref_point = env.tp.get_reference_point(state.sling)
     #release_point_from_plan = env.tp.find_release_point(state.sling, 0.174533) # 10 degree launch
@@ -102,7 +104,8 @@ def test_multi_shot(launch_science_birds):
     p.process_state(state)
 
     planner = pl.Planner()
-    planner.write_problem_file(state.translate_state_to_pddl())
+    meta_model = MetaModel()
+    planner.write_problem_file(meta_model.create_pddl_problem(state))
 
 
     # env.sb_client.tp.estimate_launch_point(env.cur_sling, Point2D(540,355))

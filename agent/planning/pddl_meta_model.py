@@ -445,7 +445,7 @@ class MetaModel():
         return prob_simplified
 
     ''' Created an even more simplified version of the problem to speed up planner ?'''
-    def create_super_simplified(self, prob :PddlPlusProblem):
+    def create_super_simplified_problem(self, prob :PddlPlusProblem):
         prob_super_simplified = PddlPlusProblem()
         prob_super_simplified.name = copy.copy(prob.name)
         prob_super_simplified.domain = copy.copy(prob.domain)

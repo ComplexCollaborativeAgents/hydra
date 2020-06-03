@@ -16,8 +16,8 @@ class Planner():
     SB_OFFSET = 1
 
 
-    def __init__(self):
-        pass
+    def __init__(self, meta_model = MetaModel()):
+        self.meta_model = meta_model
 
     def make_plan(self,state,prob_complexity=0):
         '''
@@ -34,12 +34,11 @@ class Planner():
         # f.write(newdata)
         # f.close()
 
-
-        pddl, pddl_simplified, pddl_super_simplified = state.translate_state_to_pddl()
+        pddl = self.meta_model.create_pddl_problem(state)
         if prob_complexity==1:
-            self.write_problem_file(pddl_simplified)
+            self.write_problem_file(self.meta_model.create_simplified_problem(pddl))
         elif prob_complexity==2:
-            self.write_problem_file(pddl_super_simplified)
+            self.write_problem_file(self.meta_model.create_super_simplified_problem(pddl))
         else:
             self.write_problem_file(pddl)
         return self.get_plan_actions()
@@ -237,7 +236,7 @@ class MetaModelBasedPlanner(Planner):
         if prob_complexity==1:
             pddl = self.meta_model.create_simplified_problem(pddl)
         elif prob_complexity==2:
-            pddl = self.meta_model.create_super_simplified(pddl)
+            pddl = self.meta_model.create_super_simplified_problem(pddl)
         self.write_problem_file(pddl)
 
         plan = self.get_plan_actions()
