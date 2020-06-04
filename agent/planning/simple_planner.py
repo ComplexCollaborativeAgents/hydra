@@ -3,16 +3,20 @@ from agent.consistency.pddl_plus_simulator import *
 import random
 
 ''' A simple, inefficient planner that uses the simulator to choose which action to do '''
-class SimplePlanner(MetaModelBasedPlanner):
+class SimplePlanner(Planner):
 
-    def __init__(self, meta_model : MetaModel = MetaModel()):
+    def __init__(self, meta_model : MetaModel = MetaModel(), default_delta_t=None):
         super(SimplePlanner, self).__init__(meta_model)
         self.simulator = PddlPlusSimulator()
+        self.default_delta_t = default_delta_t
 
     ''' @Override superclass '''
-    def make_plan(self, state: SBState, prob_complexity=0, delta_t = None):
+    def make_plan(self, state: ProcessedSBState, prob_complexity=0, delta_t = None):
         if delta_t is None:
-            delta_t = 1/self.meta_model.constant_numeric_fluents["angle_rate"]
+            if self.default_delta_t is not None:
+                delta_t = self.default_delta_t
+            else:
+                delta_t = 1/self.meta_model.constant_numeric_fluents["angle_rate"]
 
         pddl_problem = self.meta_model.create_pddl_problem(state)
         pddl_domain = self.meta_model.create_pddl_domain(state)

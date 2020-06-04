@@ -17,7 +17,7 @@ class ScienceBirdsObservation:
         observed_state_seq = []
         perception = Perception()
         for intermediate_state in self.intermediate_states:
-            if isinstance(intermediate_state.objects, list):
+            if isinstance(intermediate_state, SBState):
                 intermediate_state = perception.process_sb_state(intermediate_state)
             observed_state_seq.append(meta_model.create_pddl_state(intermediate_state))
         return observed_state_seq
@@ -76,7 +76,7 @@ class NumericFluentsConsistencyEstimator(ConsistencyEstimator):
 
     ''' Specify which fluents to check, and the size of the observed sequence prefix to consider.
     This is because we acknowledge that later in the observations, our model is less accurate. '''
-    def __init__(self, fluent_names, unique_prefix_size=7):
+    def __init__(self, fluent_names, unique_prefix_size=7, discount_factor=0.9):
         self.fluent_names = []
         for fluent_name in fluent_names:
             if isinstance(fluent_name,list):
@@ -84,6 +84,7 @@ class NumericFluentsConsistencyEstimator(ConsistencyEstimator):
             assert isinstance(fluent_name,tuple)
             self.fluent_names.append(fluent_name)
 
+        self.discount_factor = discount_factor
         self.unique_prefix_size = unique_prefix_size
 
     ''' The first parameter is a list of (state,time) pairs, the second is just a list of states '''
@@ -98,13 +99,15 @@ class NumericFluentsConsistencyEstimator(ConsistencyEstimator):
         max_error = 0
         unique_prefix_counter = 0
         old_obs_state = None
+        discount = 1.0
         for state in state_seq:
             if state!=old_obs_state: # Ignore duplicate states
                 old_obs_state = state
                 unique_prefix_counter = unique_prefix_counter+1
                 (best_fit_t, min_error) = self._compute_best_fit(state, t_values, fluent_to_expected_values)
 
-                min_error = min_error / unique_prefix_counter # Weight of errors later in the sequence is smaller TODO: Think about this more
+                min_error = min_error *discount # Weight of errors later in the sequence is smaller TODO: Think about this more
+                discount = discount*self.discount_factor
 
                 if min_error>max_error:
                     max_error= min_error
@@ -166,8 +169,9 @@ class NumericFluentsConsistencyEstimator(ConsistencyEstimator):
 
 ''' Checks consistency by considering the location of the birds '''
 class BirdLocationConsistencyEstimator():
-    def __init__(self, unique_prefix_size = 7):
+    def __init__(self, unique_prefix_size = 7,discount_factor=0.9):
         self.unique_prefix_size=unique_prefix_size
+        self.discount_factor = discount_factor
 
     ''' Estimate consitency by considering the location of the birds in the observed state seq '''
     def estimate_consistency(self, simulation_trace: list, state_seq: list, delta_t: float = 0.05):
@@ -181,7 +185,7 @@ class BirdLocationConsistencyEstimator():
             fluent_names.append(('x_bird', bird))
             fluent_names.append(('y_bird', bird))
 
-        consistency_checker = NumericFluentsConsistencyEstimator(fluent_names, self.unique_prefix_size)
+        consistency_checker = NumericFluentsConsistencyEstimator(fluent_names, self.unique_prefix_size, self.discount_factor)
         return consistency_checker.estimate_consistency(simulation_trace, state_seq, delta_t)
 
 ''' A utility function for comparing (state, time) sequences. 

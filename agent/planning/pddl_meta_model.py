@@ -1,6 +1,7 @@
 import copy
 import math
-from worlds.science_birds import SBState
+from agent.perception.perception import ProcessedSBState
+
 from agent.planning.pddlplus_parser import *
 import settings
 import logging
@@ -273,7 +274,7 @@ class MetaModel():
                                 ('active_bird', 0),
                                 ('angle', 0),
                                 ('angle_rate', 20),
-                                ('ground_damper', 0.2)]:
+                                ('ground_damper', 0.3)]:
             self.constant_numeric_fluents[fluent]=value
 
         for not_fluent in ['angle_adjusted',
@@ -299,10 +300,8 @@ class MetaModel():
         return float(self.constant_numeric_fluents["angle_rate"])
 
     ''' Get the slingshot object '''
-    def get_slingshot(self, sb_state :SBState):
+    def get_slingshot(self, sb_state :ProcessedSBState):
         sling = None
-        if isinstance(sb_state.objects, list):
-            sb_state = Perception().process_sb_state(sb_state)
         for o in sb_state.objects.items():
             if o[1]['type'] == 'slingshot':
                 sling = o
@@ -310,7 +309,7 @@ class MetaModel():
 
     ''' Translate the initial SBState, as observed, to a PddlPlusProblem object. 
     Note that in the initial state, we ignore the location of the bird and assume it is on the slingshot. '''
-    def create_pddl_problem(self, sb_state : SBState):
+    def create_pddl_problem(self, sb_state : ProcessedSBState):
         # There is an annoying disconnect in representations.
         # 'x_pig[pig_4]:450' vs. (= (x_pig pig4) 450)
         # 'pig_dead[pig_4]:False vs. (not (pig_dead pig_4))
@@ -387,7 +386,7 @@ class MetaModel():
 
     ''' Translate the given observed SBState to a PddlPlusState object. 
     This is designed to handle intermediate state observed during execution '''
-    def create_pddl_state(self, sb_state:SBState):
+    def create_pddl_state(self, sb_state:ProcessedSBState):
         pddl_state = PddlPlusState()
 
         # we should probably use the self.sling on the object
@@ -426,7 +425,7 @@ class MetaModel():
 
     ''' Creates a PDDL+ domain object for the given SB state 
     Current implementation simply copies an existing domain file '''
-    def create_pddl_domain(self, sb_State: SBState):
+    def create_pddl_domain(self, sb_State: ProcessedSBState):
         domain_file = "%s/sb_domain.pddl" % str(settings.PLANNING_DOCKER_PATH)
         domain_parser = PddlDomainParser()
         return domain_parser.parse_pddl_domain(domain_file)

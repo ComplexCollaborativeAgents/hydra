@@ -2,8 +2,7 @@ import matplotlib.pyplot as plt
 
 from agent.consistency.meta_model_repair import *
 from agent.planning.planner import *
-from agent.planning.planner import MetaModelBasedPlanner
-from worlds.science_birds import SBState
+from agent.planning.planner import Planner
 import matplotlib.patches as patches
 
 Y_BIRD_FLUENT = ('y_bird', 'redbird_0')
@@ -27,16 +26,33 @@ def load_problem_and_domain(problem_file_name :str, domain_file_name: str):
 
     return (pddl_problem, pddl_domain)
 
+''' Extracts a PddlPlusPlan object from a plan trace. '''
+def extract_plan_from_plan_trace(plan_trace_file, grounded_domain :PddlPlusDomain):
+    planner = Planner()
+    plan_actions = planner.extract_actions_from_plan_trace(plan_trace_file)
+    plan = PddlPlusPlan()
+
+    for (action_name, time) in plan_actions:
+        assert action_name.startswith("pa-twang")
+        time = float(time)
+        action_obj = grounded_domain.get_action(action_name)
+        if action_obj is None:
+            raise ValueError("Action name %s is not in the grounded domain" % action_name)
+
+        timed_action = TimedAction(action_obj, time)
+        plan.append(timed_action)
+    return plan
+
 ''' Loads a plan for a given problem and domain, from a file. '''
 def load_plan(plan_trace_file: str, pddl_problem: PddlPlusProblem, pddl_domain: PddlPlusDomain):
     planner = Planner()
     grounded_domain = PddlPlusGrounder().ground_domain(pddl_domain, pddl_problem)  # Needed to identify plan action
-    pddl_plan = planner.extract_plan_from_plan_trace(plan_trace_file, grounded_domain)
+    pddl_plan = extract_plan_from_plan_trace(plan_trace_file, grounded_domain)
     return pddl_plan
 
 ''' Simulate the given action in the given state using the given meta model'''
 def plot_expected_trace(meta_model: MetaModel,
-                        state : SBState,
+                        state : ProcessedSBState,
                         time_action : list,
                         marker: str = "o",
                         fluent_x = ('x_bird', 'redbird_0'),
@@ -98,14 +114,14 @@ def plot_observation(observation: ScienceBirdsObservation):
 
 
 ''' A planner that executes a predefined plan '''
-class PlannerStub(MetaModelBasedPlanner):
+class PlannerStub(Planner):
     ''' plan is assumed to be list of timed actions. '''
     def __init__(self, plan, meta_model : MetaModel = MetaModel()):
         super(PlannerStub, self).__init__(meta_model)
         self.plan = list(plan)
 
     ''' @Override superclass '''
-    def make_plan(self, state: SBState, prob_complexity=0, delta_t = 1.0):
+    def make_plan(self, state: ProcessedSBState, prob_complexity=0, delta_t = 1.0):
         action = self.plan.pop(0)
         return [action]
 

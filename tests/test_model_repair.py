@@ -1,21 +1,16 @@
-import pytest
-import pickle
-from agent.planning.planner import *
-from agent.consistency.model_repair import *
-from agent.consistency.meta_model_repair import *
-from agent.planning.pddl_meta_model import *
-import agent.planning.pddl_plus as pddl_plus
-from worlds.science_birds import SBState
-from agent.perception.perception import Perception
-from worlds.science_birds import ScienceBirds as sb
-import subprocess
-import worlds.science_birds as sb
-from agent.hydra_agent import *
-import tests.test_utils as test_utils
-import matplotlib
-import matplotlib.pyplot as plt
-from agent.planning.simple_planner import SimplePlanner
 import logging
+import subprocess
+
+import matplotlib
+import pytest
+
+import agent.planning.pddl_plus as pddl_plus
+import tests.test_utils as test_utils
+from agent.consistency.meta_model_repair import *
+from agent.hydra_agent import *
+from agent.planning.planner import *
+from agent.planning.simple_planner import *
+import worlds.science_birds as sb
 
 fh = logging.FileHandler("test_model_repair.log",mode='a')
 formatter = logging.Formatter('%(name)s - %(levelname)s - %(message)s')
@@ -62,7 +57,7 @@ def __load_plan_problem_domain():
     planner = Planner()
     grounded_domain = PddlPlusGrounder().ground_domain(pddl_domain, pddl_problem)  # Needed to identify plan action
     plan_trace_file = path.join(DATA_DIR, "docker_plan_trace_l1.txt")
-    pddl_plan = planner.extract_plan_from_plan_trace(plan_trace_file, grounded_domain)
+    pddl_plan = test_utils.extract_plan_from_plan_trace(plan_trace_file, grounded_domain)
     return (pddl_plan, pddl_problem, pddl_domain)
 
 
@@ -77,53 +72,6 @@ def _check_consistency(observation: ScienceBirdsObservation,
     expected_trace = test_utils.simulate_plan_trace(plan, problem, domain, delta_t)
     observed_seq = observation.get_trace(meta_model)
     return consistency_checker.estimate_consistency(expected_trace,observed_seq)
-
-
-''' Test repair angle rate using a single observed state '''
-def test_repair_angle_rate():
-    desired_precision = 10
-    # Load observed state sequence
-    observation_file_name = path.join(TRACE_DIR,"test_repair_obs.p")
-    observation = pickle.load(open(observation_file_name, "rb"))
-    meta_model = MetaModel()
-    meta_model.constant_numeric_fluents["angle_rate"] = 1
-
-    # matplotlib.interactive(True)
-    # test_utils.plot_observation(observation) # For debug
-
-    # Compute expected trajectory
-    state = observation.state
-    time_action = observation.action
-    problem = meta_model.create_pddl_problem(state)
-    domain = meta_model.create_pddl_domain(state)
-    grounded_domain = PddlPlusGrounder().ground_domain(domain, problem)
-
-    plan = PddlPlusPlan()
-    plan.add_raw_actions([[time_action[0], time_action[1]]],grounded_domain)
-    expected_trace = test_utils.simulate_plan_trace(plan, problem, domain, DELTA_T)
-    test_utils.plot_expected_trace(meta_model, observation.state, observation.action) # For debug
-
-    # Verify expected trace with bad model is not consistent enough
-    consistency_fluents = [X_REDBIRD, Y_REDBIRD]
-    consistency_checker = NumericFluentsConsistencyEstimator(consistency_fluents)
-    observed_seq = observation.get_trace(meta_model)
-    consistency_before_repair = consistency_checker.estimate_consistency(expected_trace,observed_seq)
-    assert consistency_before_repair>desired_precision
-
-    # Now apply repair
-    meta_model_repair = GreedyBestFirstSearchMetaModelRepair(["angle_rate"],
-                                                             consistency_checker,
-                                                             deltas=[0.1],
-                                                             consistency_threshold=desired_precision)
-    assert meta_model_repair.is_consistent(expected_trace, observed_seq)==False
-
-    repaired_meta_model = meta_model_repair.repair(meta_model, observation.state, plan, observed_seq)
-
-    consistency_after_repair = _check_consistency(observation, plan, repaired_meta_model, consistency_checker)
-
-    assert consistency_before_repair>consistency_after_repair
-    assert consistency_after_repair<desired_precision
-
 
 
 #################### System tests ########################
@@ -151,7 +99,7 @@ def test_repair_in_agent(launch_science_birds):
 
     # meta_model.constant_numeric_fluents[ANGLE_RATE] = 2
     logger.info("Running agent with current meta model")
-    hydra.planner = MetaModelBasedPlanner(meta_model)
+    hydra.planner = Planner(meta_model)
     hydra.main_loop(max_actions=3)  # enough actions to play the first level
 
     scores = env.get_all_scores()
@@ -278,7 +226,13 @@ def test_repair_gravity_in_agent(launch_science_birds_level_01):
     meta_model = hydra.meta_model
     meta_model.constant_numeric_fluents["gravity"] = 200
     logger.info("Running agent with current meta model")
-    hydra.planner = MetaModelBasedPlanner(meta_model)
+
+    # Run agent with dummy action and collect observation
+    raw_timed_action = ["pa-twang redbird_0", 65.5]
+    plan = [raw_timed_action]
+    hydra.planner = test_utils.PlannerStub(plan, hydra.meta_model)
+    #
+    # hydra.planner = Planner(meta_model)
     hydra.main_loop(max_actions=3)  # enough actions to play the first level
     logger.info("Agent performed action %s " % str(hydra.observations[1].action))
 
@@ -287,12 +241,12 @@ def test_repair_gravity_in_agent(launch_science_birds_level_01):
 
     # Extract expected and observed states
     observed_seq = observation.get_trace(hydra.meta_model)
-    # obs_output_file = path.join(DATA_DIR, "gravity_200_level_004.p") # For debug
-    # pickle.dump(observation, open(obs_output_file, "wb"))  # For debug
-    # matplotlib.interactive(True) # For debug
-    # test_utils.plot_observation(observation) # For debug
+    obs_output_file = path.join(DATA_DIR, "gravity_200_level_004.p") # For debug
+    pickle.dump(observation, open(obs_output_file, "wb"))  # For debug
+    matplotlib.interactive(True) # For debug
+    test_utils.plot_observation(observation) # For debug
     time_action = [observation.action[0], observation.action[1]/meta_model.get_angle_rate()]
-    # test_utils.plot_expected_trace(meta_model, observation.state, time_action, delta_t=DELTA_T) # For debug
+    test_utils.plot_expected_trace(meta_model, observation.state, time_action, delta_t=DELTA_T) # For debug
     problem = meta_model.create_pddl_problem(observation.state)
     domain = meta_model.create_pddl_domain(observation.state)
     grounded_domain = PddlPlusGrounder().ground_domain(domain,problem)
@@ -311,7 +265,7 @@ def test_repair_gravity_in_agent(launch_science_birds_level_01):
     repair_deltas = [30,]
     logger.info("Starting model repair for fluents %s..." % str(fluents_to_repair))
     meta_model_repair = GreedyBestFirstSearchMetaModelRepair(fluents_to_repair, consistency_checker, repair_deltas, consistency_threshold=desired_precision)
-    # assert meta_model_repair.is_consistent(expected_trace, observed_seq) == False
+    assert meta_model_repair.is_consistent(expected_trace, observed_seq) == False
     repaired_meta_model = meta_model_repair.repair(meta_model, observation.state, plan, observed_seq, delta_t=DELTA_T)
     logger.info("Repair done. Fluent values in meta model  are now %s" %
                 str([repaired_meta_model.constant_numeric_fluents[fluent] for fluent in fluents_to_repair]))
@@ -319,7 +273,7 @@ def test_repair_gravity_in_agent(launch_science_birds_level_01):
     consistency_after_repair = _check_consistency(observation, plan, repaired_meta_model, consistency_checker,
                                                   delta_t=DELTA_T)
     assert consistency_before_repair > consistency_after_repair
-    # assert consistency_after_repair < desired_precision
+    assert consistency_after_repair < desired_precision
     logger.info("Consistency with model after repair: %.2f " % consistency_after_repair)
 
     logger.info("Running agent with repaired model...")

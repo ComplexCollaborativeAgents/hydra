@@ -51,22 +51,6 @@ def _get_twang_action():
 
     return grounded_twang_action
 
-''' Helper funciton for tests. It simulates the execution of a plan on the given problem, 
-and asserts that the goal has been achieved in the simulation'''
-def _validate_working_plan(problem: PddlPlusProblem, domain: PddlPlusDomain, plan_trace_file: str, delta_t : float=0.05):
-    planner = Planner()
-    grounded_domain = PddlPlusGrounder().ground_domain(domain, problem)  # Needed to identify plan action
-    plan = planner.extract_plan_from_plan_trace(plan_trace_file, grounded_domain)
-
-    assert plan is not None
-    assert len(plan)>0
-
-    # Get the current state
-    simulator = PddlPlusSimulator()
-    (current_state, t, trace) = simulator.simulate(plan, problem, domain, delta_t)
-
-    for goal_fluent in problem.goal:  # (pig_dead pig_28)
-        assert tuple(goal_fluent) in current_state.boolean_fluents
 
 
 ''' 
@@ -160,58 +144,3 @@ def test_simulate():
     assert t>4
     assert trace[-1][0]==current_state
     assert t == trace[-1][1]
-
-
-
-''' TODO: REMOVE THIS TEST, JUST FOR DEBUG!!! Tests simulator in a simple 2 pig level '''
-def test_simulator_2_pig_level():
-    problem_file = path.join(DATA_DIR, "science_birds", "tests", "bad_angle_rate_problem.pddl")
-    domain_file = path.join(DATA_DIR,  "science_birds", "tests", "bad_angle_rate_domain.pddl")
-    (pddl_problem, pddl_domain) = test_utils.load_problem_and_domain(problem_file,
-                                                                     domain_file)
-    twang_action = _get_twang_action()
-
-    # Get the flying process
-    twang_action = pddl_domain.get_action("pa-twang")
-    # Ground it
-    binding = dict()
-    binding["?b"] = "redbird_0"
-    twang_action = PddlPlusGrounder().ground_world_change(twang_action, binding)
-
-
-    simulator = PddlPlusSimulator()
-
-    # Get the current state
-    delta_t = 0.05
-    timed_action = TimedAction(twang_action, 1)
-    plan = [timed_action]
-    (current_state, t, trace) = simulator.simulate(plan, pddl_problem, pddl_domain, delta_t)
-    expected_state_seq = [state[0] for state in trace]
-    red_bird_x_values = [state[('x_bird', 'redbird_0')] for state in expected_state_seq]
-    red_bird_y_values = [state[('y_bird', 'redbird_0')] for state in expected_state_seq]
-    plt.plot(red_bird_x_values, red_bird_y_values, 'bs')
-    plt.show()
-    for start_at in [1.5,2,2.5,3,3.5]:
-        timed_action = TimedAction(twang_action, start_at)
-        plan = [timed_action]
-
-        (current_state, t, trace) = simulator.simulate(plan, pddl_problem, pddl_domain, delta_t)
-
-        expected_state_seq  = [state[0] for state in trace]
-        red_bird_x_values = [state[('x_bird', 'redbird_0')] for state in expected_state_seq]
-        red_bird_y_values = [state[('y_bird', 'redbird_0')] for state in expected_state_seq]
-        plt.plot(red_bird_x_values,red_bird_y_values,'d')
-        plt.show()
-        print(3)
-
-
-
-''' Test the simulator by actually running a planner and simulating the trace of the plan it generates'''
-def test_simulate_real_plan():
-    problem_file = path.join(DATA_DIR, "sb_prob_l1.pddl")
-    domain_file = path.join(DATA_DIR, "sb_domain_l1.pddl")
-
-    (problem, domain) = test_utils.load_problem_and_domain(problem_file,domain_file)
-
-    trace_file_name = path.join(DATA_DIR, "docker_plan_trace_l1.txt")
-    _validate_working_plan(problem, domain, trace_file_name)

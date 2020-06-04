@@ -7,6 +7,8 @@ from agent.planning.model_manipulator import ManipulateInitNumericFluent
 from agent.planning.planner import *
 from tests.test_utils import PlannerStub
 
+from agent.perception.perception import *
+
 fh = logging.FileHandler("hydra.log",mode='w')
 formatter = logging.Formatter('%(name)s - %(levelname)s - %(message)s')
 fh.setFormatter(formatter)
@@ -34,35 +36,12 @@ def _load_plan_problem_domain():
     plan = test_utils.load_plan(PLAN_FILE, problem,domain)
     return (plan, problem, domain)
 
-
-''' Loads a sequence of observed states of the given formal and desired quantity '''
-def _load_observed_states(file_format, num_of_observations, meta_model = MetaModel()):
-    observations = []
-    for i in range(0, num_of_observations):
-        observations.append(sb.SBState.load_from_serialized_state(file_format.format(i)))
-    assert len(observations) == 17
-    state_seq = []
-    bird_count = 100  # I'm assuming this is the maximum number of birds we will get.
-    for observation in observations:
-        new_state = meta_model.create_pddl_state(observation)
-        state_seq.append(new_state)
-
-        # This is a hack to identify when the observed state is from a new level
-        birds = new_state.get_birds()
-        if len(birds) < bird_count:
-            bird_count = len(birds)
-        assert not (len(
-            birds) > bird_count)  # A new level has started TODO: Find a better way to identify that a new level has started
-    return state_seq
-
 def _print_fluents_values(state_seq:list, fluent_names:list):
     headers = ",".join([str(fluent_name) for fluent_name in fluent_names])
     print("\n%s" % headers)
     for state in state_seq:
         line = ",".join(["%.2f" % state[fluent_name] for fluent_name in fluent_names])
         print("%s" % line)
-
-
 
 
 ''' Test the single numeric fluent consistency checker, for the case where the numeric fluent is constant,
@@ -194,7 +173,9 @@ def test_multiple_numeric_fluent_inconsistent():
     modified_state_seq = [state for (state, t, _) in simulation_trace]
 
     # Assert the un-timed sequence created by the modified model is inconsistent with the timed sequence created by the original model
-    consistency_checker = NumericFluentsConsistencyEstimator([X_BIRD_FLUENT, Y_BIRD_FLUENT])
+    consistency_checker = NumericFluentsConsistencyEstimator([X_BIRD_FLUENT, Y_BIRD_FLUENT],
+                                                             unique_prefix_size=float('inf'),
+                                                             discount_factor=1.0)
     consistent_score = consistency_checker.estimate_consistency(timed_state_seq, modified_state_seq)
     assert consistent_score > PRECISION
 
@@ -206,11 +187,7 @@ def test_all_bird_numeric_fluent_inconsistent():
     (plan, problem, domain) = _load_plan_problem_domain()
     simulation_trace = test_utils.simulate_plan_trace(plan, problem, domain, DELTA_T)
 
-
-    fluents_to_check = [fluent_name for fluent_name in PddlPlusState(problem.init).numeric_fluents.keys()
-                        if "bird" in fluent_name[0].lower()]
-
-    consistency_checker = NumericFluentsConsistencyEstimator(fluents_to_check)
+    consistency_checker = BirdLocationConsistencyEstimator(discount_factor=1.0, unique_prefix_size=float('inf'))
     # Assert the un-timed sequence created by the original model is consistent with the timed sequence created by the original model
     original_state_seq = [state for (state,t,_) in simulation_trace]
     consistency_score = consistency_checker.estimate_consistency(simulation_trace, original_state_seq)
@@ -283,7 +260,7 @@ def test_consistency_in_agent_with_dummy_planner(launch_science_birds):
     # plt.plot([state[0][X_BIRD_FLUENT] for state in expected_timed_state_seq],
     #          [state[0][Y_BIRD_FLUENT] for state in expected_timed_state_seq])
 
-    consistency_estimator = NumericFluentsConsistencyEstimator([X_BIRD_FLUENT,Y_BIRD_FLUENT])
+    consistency_estimator = BirdLocationConsistencyEstimator()
     consistency_value_for_faulty_model = consistency_estimator.estimate_consistency(expected_timed_state_seq, observed_seq)
 
     assert consistency_value_for_faulty_model>PRECISION
