@@ -228,11 +228,11 @@ def test_repair_gravity_in_agent(launch_science_birds_level_01):
     logger.info("Running agent with current meta model")
 
     # Run agent with dummy action and collect observation
-    raw_timed_action = ["pa-twang redbird_0", 65.5]
-    plan = [raw_timed_action]
-    hydra.planner = test_utils.PlannerStub(plan, hydra.meta_model)
-    #
-    # hydra.planner = Planner(meta_model)
+    # raw_timed_action = ["pa-twang redbird_0", 65.5]
+    # plan = [raw_timed_action]
+    # hydra.planner = test_utils.PlannerStub(plan, hydra.meta_model)
+
+    hydra.planner = Planner(meta_model)
     hydra.main_loop(max_actions=3)  # enough actions to play the first level
     logger.info("Agent performed action %s " % str(hydra.observations[1].action))
 
