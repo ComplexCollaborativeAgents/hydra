@@ -70,13 +70,17 @@ class Planner():
             out_file.write(completed_process.stderr)
         out_file.close()
 
-        completed_process = subprocess.run(('docker', 'run', '--rm', 'upm_from_dockerfile', 'sb_domain.pddl', 'sb_prob.pddl', str(settings.PLANNER_MEMORY_LIMIT), str(settings.DELTA_T), '>', 'docker_plan_trace.txt'), capture_output=True)
+        completed_process = subprocess.run(('docker', 'run', '--rm', 'upm_from_dockerfile', 'sb_domain.pddl',
+                                            'sb_prob.pddl', str(settings.PLANNER_MEMORY_LIMIT), str(settings.DELTA_T),
+                                            '>', 'docker_plan_trace.txt'), capture_output=True)
         out_file = open("docker_plan_trace.txt", "wb")
         out_file.write(completed_process.stdout)
         if len(completed_process.stderr)>0:
             out_file.write(str.encode("\n Stderr: \n"))
             out_file.write(completed_process.stderr)
         out_file.close()
+
+        subprocess.run(['docker', 'image', 'prune', '--force'])
 
         lines_list = open("%s/docker_plan_trace.txt" % str(settings.PLANNING_DOCKER_PATH)).readlines()
 
