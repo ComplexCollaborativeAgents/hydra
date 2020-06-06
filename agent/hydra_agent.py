@@ -60,7 +60,7 @@ class HydraAgent():
                 if processed_state and self.consistency_checker.is_consistent(processed_state):
                     logger.info("[hydra_agent_server] :: Invoking Planner".format())
                     orig_plan_time = time.perf_counter()
-                    plan = self.planner.make_plan(processed_state, 1)
+                    plan = self.planner.make_plan(processed_state, 0)
                     cumulative_plan_time += (time.perf_counter() - orig_plan_time)
                     logger.info("[hydra_agent_server] :: Original problem planning time: " + str((time.perf_counter() - orig_plan_time)))
                     if len(plan) == 0 or plan[0][0] == "out of memory":
