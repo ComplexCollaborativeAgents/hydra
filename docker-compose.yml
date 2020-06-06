@@ -3,12 +3,16 @@ services:
   docker-host:
     image: qoomon/docker-host
     cap_add: [ 'NET_ADMIN', 'NET_RAW' ]
-    restart: on-failure
   hydra:
     depends_on:
       - docker-host
     build: .
     image: hydra
+    command: [
+      "conda", "run", "-n", "hydra", "python", "runners/simple.py",
+      "--server", "${HOST:-docker-host:2004}",
+      "--observer", "${OBSERVER:-docker-host:2006}"
+    ]
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock"
       - "/usr/bin/docker:/usr/bin/docker"

@@ -43,40 +43,34 @@ class HydraAgent():
         logger.info("[hydra_agent_server] :: Planner memory limit = {}".format(str(settings.PLANNER_MEMORY_LIMIT)))
         logger.info("[hydra_agent_server] :: Delta t = {}\n\n".format(str(settings.DELTA_T)))
         t = 0
-        raw_state = self.env.get_current_state()
+
 
         overall_plan_time = time.perf_counter()
         cumulative_plan_time = 0
 
         while t < max_actions:
-            observation = ScienceBirdsObservation() # Create an observation object to track on what happend
-            observation.state = raw_state
+            self.env.sb_client.fully_zoom_out()
+            time.sleep(1)
+            observation = ScienceBirdsObservation()  # Create an observation object to track on what happend
+            raw_state = self.env.get_current_state()
 
             if raw_state.game_state.value == GameState.PLAYING.value:
                 processed_state = self.perception.process_state(raw_state)
 
-                if (len(processed_state.objects) < 3):
-                    time.sleep(1)
-                    raw_state = self.env.get_current_state()
-                    continue
-
                 if processed_state and self.consistency_checker.is_consistent(processed_state):
                     logger.info("[hydra_agent_server] :: Invoking Planner".format())
-                    settings.DELTA_T = 0.05
                     orig_plan_time = time.perf_counter()
                     plan = self.planner.make_plan(processed_state, 1)
                     cumulative_plan_time += (time.perf_counter() - orig_plan_time)
                     logger.info("[hydra_agent_server] :: Original problem planning time: " + str((time.perf_counter() - orig_plan_time)))
                     if len(plan) == 0 or plan[0][0] == "out of memory":
                         logger.info("[hydra_agent_server] :: Invoking Planner on a Simplified Problem".format())
-                        settings.DELTA_T = 0.05
                         simple_plan_time = time.perf_counter()
                         plan = self.planner.make_plan(processed_state, 2)
                         cumulative_plan_time += (time.perf_counter() - simple_plan_time)
                         logger.info("[hydra_agent_server] :: Simplified problem planning time: " + str((time.perf_counter() - simple_plan_time)))
                         if len(plan) == 0 or plan[0][0] == "out of memory":
                             plan.append(("dummy-action", 20.0))
-
                     action_taken = plan[0]
                     logger.info("[hydra_agent_server] :: Taking action: {}".format(str(plan[0])))
                     ref_point = self.env.tp.get_reference_point(processed_state.sling)
@@ -85,11 +79,9 @@ class HydraAgent():
                     action = SB.SBShoot(release_point_from_plan.X, release_point_from_plan.Y, 3000, ref_point.X,
                                          ref_point.Y)
                     raw_state, reward = self.env.act(action)
-
                     observation.reward = reward
                     observation.action = action_taken
                     observation.intermediate_states = list(self.env.intermediate_states)
-
                     logger.info("[hydra_agent_server] :: Reward {} Game State {}".format(reward, raw_state.game_state))
                     # time.sleep(5)
                 else:
@@ -113,7 +105,6 @@ class HydraAgent():
                 # time.sleep(1)
                 self.novelty_existence = self.env.sb_client.get_novelty_info()
                 time.sleep(2/settings.SB_SIM_SPEED)
-                raw_state = self.env.get_current_state()
             elif raw_state.game_state.value == GameState.LOST.value:
                 logger.info("[hydra_agent_server] :: Level {} complete - LOSS".format(self.current_level))
                 logger.info("[hydra_agent_server] :: Cumulative planning time only = {}".format(str(cumulative_plan_time)))
@@ -125,7 +116,6 @@ class HydraAgent():
                 # time.sleep(1)
                 self.novelty_existence = self.env.sb_client.get_novelty_info()
                 time.sleep(2/settings.SB_SIM_SPEED)
-                raw_state = self.env.get_current_state()
             elif raw_state.game_state.value == GameState.NEWTRAININGSET.value:
                 # DO something to start a fresh agent for a new training set
                 (time_limit, interaction_limit, n_levels, attempts_per_level, mode, seq_or_set,
@@ -135,19 +125,17 @@ class HydraAgent():
                 change_from_training = True
                 self.current_level = self.env.sb_client.load_next_available_level()
                 self.novelty_existence = self.env.sb_client.get_novelty_info()
-                raw_state = self.env.get_current_state()
             elif raw_state.game_state.value == GameState.EVALUATION_TERMINATED.value:
                 # store info and disconnect the agent as the evaluation is finished
                 logger.info("Evaluation complete.")
                 return None
             elif raw_state.game_state.value == GameState.REQUESTNOVELTYLIKELIHOOD.value:
-                logger.info("[hydra_agent_server] :: Requesting Novelty Likelihood {}".format(0.1))
+                logger.info("[hydra_agent_server] :: Requesting Novelty Likelihood {}".format(self.consistency_checker.novelty_likelihood))
                 # Require report novelty likelihood and then playing can be resumedconda env update -f environment.yml
                 # dummy likelihoods:
                 novelty_likelihood = self.consistency_checker.novelty_likelihood
                 non_novelty_likelihood = 1 - novelty_likelihood
                 self.env.sb_client.report_novelty_likelihood(novelty_likelihood, non_novelty_likelihood)
-                raw_state = self.env.get_current_state()
             elif raw_state.game_state.value == GameState.NEWTRIAL.value:
                 # DO something to start a fresh agent for a new training set
                 (time_limit, interaction_limit, n_levels, attempts_per_level, mode, seq_or_set,
@@ -158,7 +146,6 @@ class HydraAgent():
                 change_from_training = True
                 self.current_level = self.env.sb_client.load_next_available_level()
                 self.novelty_existence = self.env.sb_client.get_novelty_info()
-                raw_state = self.env.get_current_state()
             else:
                 logger.info("[hydra_agent_server] :: Unexpected state.game_state.value {}".format(raw_state.game_state.value))
                 assert False

@@ -22,12 +22,12 @@ from agent.planning.pddl_meta_model import *
 def launch_science_birds():
     print("starting")
     #remove config files
-    # cmd = 'cp {}/data/science_birds/level-14.xml {}/00001.xml'.format(str(settings.ROOT_PATH), str(settings.SCIENCE_BIRDS_LEVELS_DIR))
-    # subprocess.run(cmd, shell=True)
-    # cmd = 'cp {}/data/science_birds/level-15.xml {}/00002.xml'.format(str(settings.ROOT_PATH), str(settings.SCIENCE_BIRDS_LEVELS_DIR))
-    # subprocess.run(cmd, shell=True)
-    # cmd = 'cp {}/data/science_birds/level-16.xml {}/00003.xml'.format(str(settings.ROOT_PATH), str(settings.SCIENCE_BIRDS_LEVELS_DIR))
-    # subprocess.run(cmd, shell=True)
+    cmd = 'cp {}/data/science_birds/level-14.xml {}/00001.xml'.format(str(settings.ROOT_PATH), str(settings.SCIENCE_BIRDS_LEVELS_DIR))
+    subprocess.run(cmd, shell=True)
+    cmd = 'cp {}/data/science_birds/level-15.xml {}/00002.xml'.format(str(settings.ROOT_PATH), str(settings.SCIENCE_BIRDS_LEVELS_DIR))
+    subprocess.run(cmd, shell=True)
+    cmd = 'cp {}/data/science_birds/level-16.xml {}/00003.xml'.format(str(settings.ROOT_PATH), str(settings.SCIENCE_BIRDS_LEVELS_DIR))
+    subprocess.run(cmd, shell=True)
     env = sb.ScienceBirds(None,launch=True,config='test_config.xml')
     yield env
     print("teardown tests")

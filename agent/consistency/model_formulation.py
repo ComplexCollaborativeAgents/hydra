@@ -1,3 +1,12 @@
+from agent.consistency.novelty_classification import initize_novelty_detector
+import logging
+
+fh = logging.FileHandler("unknown_objects.csv",mode='w')
+formatter = logging.Formatter('%(name)s - %(levelname)s - %(message)s')
+fh.setFormatter(formatter)
+logger = logging.getLogger("hydra_agent_consistency")
+logger.setLevel(logging.INFO)
+logger.addHandler(fh)
 
 
 class ConsistencyChecker():
@@ -5,6 +14,9 @@ class ConsistencyChecker():
     def __init__(self):
         self.novelty_likelihood = 0
         self.unknowns = []
+        self.unknown_history = [0,0,0]
+        self.novelty_model = initize_novelty_detector()
+        self.new_level = True
 
     def is_consistent(self,state):
         '''This should take a sequence of states perhaps with actions interleaved'''
@@ -12,6 +24,11 @@ class ConsistencyChecker():
         self.unknowns = []
         for obj in state.objects.values():
             if obj['type'] == 'unknown':
-                self.novelty_likelihood = 1
                 self.unknowns.append(obj)
+        if self.new_level:
+            self.unknown_history.insert(0, len(self.unknowns))
+            logger.info('Unknown, {}'.format(len(self.unknowns)))
+            self.novelty_likelihood = self.novelty_model.predict_proba(
+                [self.unknown_history[:3]])[0][1]
+            self.new_level = False
         return True

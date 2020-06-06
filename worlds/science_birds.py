@@ -9,9 +9,12 @@ from os import path
 import copy
 import math
 
+import func_timeout
+
 import settings
 import worlds.science_birds_interface.client.agent_client as ac
 import worlds.science_birds_interface.trajectory_planner.trajectory_planner as tp
+from utils.host import Host
 from agent.planning.pddlplus_parser import PddlPlusProblem
 from utils.state import State, Action, World
 #import shapely.geometry as geo
@@ -88,6 +91,8 @@ class ScienceBirds(World):
     def __init__(self,sel_level=0,launch=False,config='test_config.xml'):
         self.id = 2228
         self.tp = tp.SimpleTrajectoryPlanner()
+        self.SB_process = None
+        self.SB_server_process = None
         if launch:
             self.launch_SB(config)
             time.sleep(1)
@@ -96,42 +101,43 @@ class ScienceBirds(World):
 
 
     def kill(self):
-        print("Killing process groups: {}, {}".format(self.SB_server_process.pid,
-                                                     self.SB_process.pid))
-        if sys.platform == 'darwin':
-            try:
-                os.kill(self.SB_process.pid,9)
-            except:
-                logger.info("Error during process termination 1")
-                pass
-            try:
-                os.kill(self.SB_process.pid+1,9)
-            except:
-                logger.info("Error during process termination 2")
-                pass
-            try:
-                os.kill(self.SB_server_process.pid,9)
-            except:
-                logger.info("Error during process termination 3")
-                pass
-            try:
-                os.kill(self.SB_server_process.pid+1,9)
-            except:
-                logger.info("Error during process termination 4")
-                pass
-            try:
-                self.gt_thread.kill()
-            except:
-                logger.info("Error during process termination 5")
-                pass
-        else:
-            try:
-                os.killpg(self.SB_process.pid,9)
-                os.killpg(self.SB_server_process.pid,9)
-                self.gt_thread.kill()
-            except:
-                logger.info("Error during process terminatio6n")
-                pass
+        if self.SB_process:
+            print("Killing process groups: {}, {}".format(self.SB_server_process.pid,
+                                                         self.SB_process.pid))
+            if sys.platform == 'darwin':
+                try:
+                    os.kill(self.SB_process.pid,9)
+                except:
+                    logger.info("Error during process termination 1")
+                    pass
+                try:
+                    os.kill(self.SB_process.pid+1,9)
+                except:
+                    logger.info("Error during process termination 2")
+                    pass
+                try:
+                    os.kill(self.SB_server_process.pid,9)
+                except:
+                    logger.info("Error during process termination 3")
+                    pass
+                try:
+                    os.kill(self.SB_server_process.pid+1,9)
+                except:
+                    logger.info("Error during process termination 4")
+                    pass
+                try:
+                    self.gt_thread.kill()
+                except:
+                    logger.info("Error during process termination 5")
+                    pass
+            else:
+                try:
+                    os.killpg(self.SB_process.pid,9)
+                    os.killpg(self.SB_server_process.pid,9)
+                    self.gt_thread.kill()
+                except:
+                    logger.info("Error during process terminatio6n")
+                    pass
 
             
 
@@ -174,6 +180,26 @@ class ScienceBirds(World):
 
 
 
+    def load_hosts(self, server_host: Host, observer_host: Host):
+        with open(str(path.join(settings.ROOT_PATH, 'worlds', 'science_birds_interface', 'client', 'server_client_config.json')), 'r') as config:
+            sc_json_config = json.load(config)
+
+        server = Host(sc_json_config[0]['host'], sc_json_config[0]['port'])
+        if 'DOCKER' in os.environ:
+            server.hostname = 'docker-host'
+        if server_host:
+            server.hostname = server_host.hostname
+            server.port = server_host.port
+
+        with open(str(path.join(settings.ROOT_PATH, 'worlds', 'science_birds_interface', 'client', 'server_observer_client_config.json')), 'r') as observer_config:
+            observer_sc_json_config = json.load(observer_config)
+
+        observer = Host(observer_sc_json_config[0]['host'], observer_sc_json_config[0]['port'])
+        if 'DOCKER' in os.environ:
+            observer.hostname = 'docker-host'
+        if observer_host:
+            observer.hostname = observer_host.hostname
+            observer.port = observer_host.port
 
 
     def create_interface(self,first_level=None):
@@ -199,12 +225,12 @@ class ScienceBirds(World):
         """
         assert None
 
-
     def act(self,action):
         '''returns the new current state and reward'''
         if isinstance(action,SBShoot):
             self.history.append(action)
             prev_score = self.sb_client.get_current_score()
+
             # This blocks until the scene is static. Currently asking for every 10th frame, but it should be parameterized to sim_speed.
             self.intermediate_states = self.sb_client.shoot_and_record_ground_truth(action.ref_x, action.ref_y, action.dx, action.dy, 0, action.tap, settings.SB_GT_FREQ)
             self.intermediate_states = [SBState(intermediate_state, None, None) for intermediate_state in self.intermediate_states]
@@ -221,11 +247,13 @@ class ScienceBirds(World):
         else:
             assert False
 
+#    @func_timeout.func_set_timeout(2)
     def get_current_state(self):
         """
         side effects to set the current game status and sling objects on the environment
         """
         image = None
+        time.sleep(0.1)
         if settings.SCREENSHOT:
             image, ground_truth = self.sb_client.get_ground_truth_with_screenshot()
         else:
