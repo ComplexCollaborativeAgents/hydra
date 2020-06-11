@@ -273,7 +273,7 @@ class MetaModel():
         for (fluent, value) in [('gravity', 134.2),
                                 ('active_bird', 0),
                                 ('angle', 0),
-                                ('angle_rate', 20),
+                                ('angle_rate', 10),
                                 ('ground_damper', 0.3)]:
             self.constant_numeric_fluents[fluent]=value
 

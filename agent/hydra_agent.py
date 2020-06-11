@@ -33,6 +33,7 @@ class HydraAgent():
         self.consistency_checker = ConsistencyChecker()
         self.planner = Planner()
         self.meta_model = MetaModel()
+        self.completed_levels = []
         self.observations = []
         self.novelty_likelihood = 0.0
 
@@ -64,7 +65,7 @@ class HydraAgent():
                     cumulative_plan_time += (time.perf_counter() - orig_plan_time)
                     logger.info("[hydra_agent_server] :: Original problem planning time: " + str((time.perf_counter() - orig_plan_time)))
                     if len(plan) == 0 or plan[0][0] == "out of memory":
-                        logger.info("[hydra_agent_server] :: Invoking Planner on a Simplified Problem".format())
+                        logger.info("[hydra_agent_server] :: Invoking Planner on a Simplified Problem {}".format('timeout' if len(plan)==0 else 'out of memory'))
                         simple_plan_time = time.perf_counter()
                         plan = self.planner.make_plan(processed_state, 2)
                         cumulative_plan_time += (time.perf_counter() - simple_plan_time)
@@ -95,6 +96,7 @@ class HydraAgent():
                     raw_state, reward = self.env.act(action)
                     logger.info("[hydra_agent_server] :: Reward {} Game State {}".format(reward, raw_state.game_state))
             elif raw_state.game_state.value == GameState.WON.value:
+                self.completed_levels.append(True)
                 logger.info("[hydra_agent_server] :: Level {} Complete - WIN".format(self.current_level))
                 logger.info("[hydra_agent_server] :: Cumulative planning time only = {}".format(str(cumulative_plan_time)))
                 logger.info("[hydra_agent_server] :: Planning effort percentage = {}\n".format(str( (cumulative_plan_time/(time.perf_counter() - overall_plan_time)) )))
@@ -106,6 +108,7 @@ class HydraAgent():
                 self.novelty_existence = self.env.sb_client.get_novelty_info()
                 time.sleep(2/settings.SB_SIM_SPEED)
             elif raw_state.game_state.value == GameState.LOST.value:
+                self.completed_levels.append(False)
                 logger.info("[hydra_agent_server] :: Level {} complete - LOSS".format(self.current_level))
                 logger.info("[hydra_agent_server] :: Cumulative planning time only = {}".format(str(cumulative_plan_time)))
                 logger.info("[hydra_agent_server] :: Planning effort percentage = {}\n".format(str((cumulative_plan_time/(time.perf_counter() - overall_plan_time)))))

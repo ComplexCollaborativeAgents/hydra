@@ -13,5 +13,5 @@ echo $domain
 
 #./"${domain%%.*}"_planner -print
 
-timeout 10s ./"${domain%%.*}"_planner -m$memory -pi10000 -print -format:pddlvv
+timeout 60s ./"${domain%%.*}"_planner -m$memory -pi10000 -print -format:pddlvv
 
