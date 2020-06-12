@@ -9,6 +9,7 @@ import subprocess
 import re
 from agent.planning.pddl_plus import *
 from agent.planning.pddl_meta_model import *
+import datetime
 
 class Planner():
     domain_file = None
@@ -56,6 +57,9 @@ class Planner():
         pddl_problem_file = "%s/sb_prob.pddl" % str(settings.PLANNING_DOCKER_PATH)
         exporter = PddlProblemExporter()
         exporter.to_file(pddl_problem, pddl_problem_file)
+        if settings.DEBUG:
+            exporter.to_file(pddl_problem, "{}/{}".format(settings.PLANNING_DOCKER_PATH,
+                                                          datetime.datetime.now().strftime("%y%m%d_%H%M%S_problem.pddl") ))
 
     def get_plan_actions(self,count=0):
         chdir("%s"  % settings.PLANNING_DOCKER_PATH)

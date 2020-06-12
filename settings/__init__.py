@@ -6,6 +6,7 @@ from os import path
 # to override this variable and not run headless
 HEADLESS = False
 SCREENSHOT = False
+DEBUG = False
 
 PLANNER_MEMORY_LIMIT = 10 # memory limit for UPMurphi (in MB)
 DELTA_T = 0.025
@@ -20,7 +21,8 @@ SB_SIM_SPEED = 30 # run at real time
 SB_GT_FREQ = int(30/SB_SIM_SPEED)
 
 
-SCIENCE_BIRDS_SERVER_CMD = 'java -jar {}'.format(path.join(SCIENCE_BIRDS_BIN_DIR,'game_playing_interface.jar'))
+
+SCIENCE_BIRDS_SERVER_CMD = 'java -jar {} > game_planing_interface.log'.format(path.join(SCIENCE_BIRDS_BIN_DIR,'game_playing_interface.jar'))
 
 PLANNING_DOCKER_PATH = path.join(ROOT_PATH, 'agent', 'planning', 'docker_scripts')
 VAL_DOCKER_PATH = path.join(ROOT_PATH, 'agent', 'planning', 'val_scripts')
