@@ -74,30 +74,16 @@
         )
     )
 
-
     (:event explode_bird
         :parameters (?b - bird)
         :precondition (and
             (= (active_bird) (bird_id ?b))
             (bird_released ?b)
-            (>= (bounce_count ?b) 3)
+            (or (>= (bounce_count ?b) 3) 
+                (>= (x_bird ?b) 800)
+            )
             (angle_adjusted)
             ; (<= (v_bird) 20)
-        )
-        :effect (and
-            (assign (angle) 0)
-            (assign (active_bird) (+ (active_bird) 1) )
-            (not (angle_adjusted))
-        )
-    )
-
-    (:event explode_bird_1 ;; Off screen
-        :parameters (?b - bird)
-        :precondition (and
-            (= (active_bird) (bird_id ?b))
-            (bird_released ?b)
-            (angle_adjusted)
-            (>= (x_bird) 800)
         )
         :effect (and
             (assign (angle) 0)
