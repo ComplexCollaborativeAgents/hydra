@@ -10,6 +10,7 @@ import re
 from agent.planning.pddl_plus import *
 from agent.planning.pddl_meta_model import *
 import datetime
+import time
 
 class Planner():
     domain_file = None
@@ -25,15 +26,6 @@ class Planner():
         The plan should be a list of actions that are either executable in the environment
         or invoking the RL agent
         '''
-
-        # # CHANGE THE PLANNER MEMORY LIMIT
-        # f = open(path.join(settings.PLANNING_DOCKER_PATH, "run_script.sh"), 'r')
-        # filedata = f.read()
-        # f.close()
-        # newdata = re.sub(r'\bm\d*\b', 'm'+str(settings.PLANNER_MEMORY_LIMIT), str(filedata))
-        # f = open(path.join(settings.PLANNING_DOCKER_PATH, "run_script.sh"), 'w')
-        # f.write(newdata)
-        # f.close()
 
         pddl = self.meta_model.create_pddl_problem(state)
         if prob_complexity==1:
@@ -71,21 +63,32 @@ class Planner():
             out_file.write(completed_process.stderr)
         out_file.close()
 
+        docker_plan_time = time.perf_counter()
         completed_process = subprocess.run(('docker', 'run', '--rm', 'upm_from_dockerfile', 'sb_domain.pddl',
-                                            'sb_prob.pddl', str(settings.PLANNER_MEMORY_LIMIT), str(settings.DELTA_T),
+                                            'sb_prob.pddl', str(settings.PLANNER_MEMORY_LIMIT), str(settings.DELTA_T), (str(settings.TIMEOUT)+"s"),
                                             '>', 'docker_plan_trace.txt'), capture_output=True)
+        completed_docker_plan_time = (time.perf_counter() - docker_plan_time)
         out_file = open("docker_plan_trace.txt", "wb")
         out_file.write(completed_process.stdout)
+
         if len(completed_process.stderr)>0:
             out_file.write(str.encode("\n Stderr: \n"))
             out_file.write(completed_process.stderr)
         out_file.close()
+
         subprocess.run(['docker', 'image', 'prune', '--force'])
+
         plan_actions =  self.extract_actions_from_plan_trace("%s/docker_plan_trace.txt" % str(settings.PLANNING_DOCKER_PATH))
+
+        out_file = open("docker_plan_trace.txt", "a")
+        out_file.write("\n\nCUMULATIVE COMPILATION AND PLAN TIME: " + str(completed_docker_plan_time) + "\n\n")
+        out_file.close()
+
         if len(plan_actions) > 0:
-            return plan_actions
-        elif (count <1):
-            return self.get_plan_actions(count+1)
+            if (plan_actions[0][0] == "syntax error") and (count < 1):
+                return self.get_plan_actions(count + 1)
+            else:
+                return plan_actions
         else:
             return []
 
@@ -107,6 +110,7 @@ class Planner():
                                          float(str(lines_list[i + 1].split('angle:')[1].split(',')[0]))))
 
                 if "syntax error" in line:
+                    plan_actions.append(("syntax error", 0.0))
                     break
         return  plan_actions
 
