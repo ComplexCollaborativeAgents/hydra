@@ -27,6 +27,10 @@ def get_slingshot_x(slingshot):
     return round((slingshot[1]['bbox'].bounds[0] + slingshot[1]['bbox'].bounds[2]) / 2) - 0 # TODO: Why this minus zero
 def get_slingshot_y(groundOffset, slingshot):
     return round(abs(((slingshot[1]['bbox'].bounds[1] + slingshot[1]['bbox'].bounds[3]) / 2) - groundOffset) - 0)
+def get_scale(slingshot):
+    # sling.width + sling.height
+    return abs(round(slingshot[1]['bbox'].bounds[0] - slingshot[1]['bbox'].bounds[2])) + round(abs(slingshot[1]['bbox'].bounds[1] - slingshot[1]['bbox'].bounds[3]))
+
 
 def get_radius(obj):
     return round((abs(obj[1]['bbox'].bounds[2] - obj[1]['bbox'].bounds[0]) / 2) * 0.75)
@@ -128,7 +132,7 @@ class BirdType(PddlObjectType):
     def __init__(self):
         super(BirdType, self).__init__()
         self.pddl_type = "bird"
-        self.hyper_parameters["v_bird"] = 270
+        # self.hyper_parameters["v_bird"] = 270
         self.hyper_parameters["vx_bird"] = 0
         self.hyper_parameters["vy_bird"] = 0
         self.hyper_parameters["m_bird"] = 1
@@ -138,7 +142,7 @@ class BirdType(PddlObjectType):
     def _compute_obj_attributes(self, obj, problem_params: dict):
         obj_attributes = self._compute_observable_obj_attributes(obj, problem_params)
 
-        obj_attributes["v_bird"] = self.hyper_parameters["v_bird"]
+        # obj_attributes["v_bird"] = self.hyper_parameters["v_bird"]
         obj_attributes["vx_bird"] = self.hyper_parameters["vx_bird"]
         obj_attributes["vy_bird"] = self.hyper_parameters["vy_bird"]
         obj_attributes["m_bird"] = self.hyper_parameters["m_bird"]
@@ -160,6 +164,7 @@ class BirdType(PddlObjectType):
         if "initial_state" in problem_params and problem_params["initial_state"] == True:
             obj_attributes["x_bird"] = slingshot_x
             obj_attributes["y_bird"] = slingshot_y
+            obj_attributes["v_bird"] = (9.5 / 2.7) * (get_scale(slingshot))
         else:
             obj_attributes["x_bird"] = get_x_coordinate(obj)  # TODO: Why this minos zero?
             obj_attributes["y_bird"] = get_y_coordinate(obj, groundOffset)  # TODO: Why this minos zero?
@@ -170,6 +175,7 @@ class BirdType(PddlObjectType):
             if obj_attributes["x_bird"] <= slingshot_x:
                 obj_attributes["x_bird"] = slingshot_x
                 obj_attributes["y_bird"] = slingshot_y
+
 
         obj_attributes["bird_id"] = problem_params["bird_index"]
         problem_params["bird_index"] = problem_params["bird_index"] + 1
@@ -270,8 +276,7 @@ class MetaModel():
         self.constant_numeric_fluents = dict()
         self.constant_boolean_fluents = dict()
 
-        for (fluent, value) in [('gravity', 134.2),
-                                ('active_bird', 0),
+        for (fluent, value) in [('active_bird', 0),
                                 ('angle', 0),
                                 ('angle_rate', 10),
                                 ('ground_damper', 0.3)]:
@@ -335,6 +340,7 @@ class MetaModel():
         problem_params["bird_index"]=0
         problem_params["slingshot"]=slingshot
         problem_params["groundOffset"] = self.get_ground_offset(slingshot)
+        problem_params["gravity"] =  0.48*9.81 / 2.7 * get_scale(slingshot)
         # Above line redundant since we're storing the slingshot also, but it seems easier to store it also to save computations of the offset everytime we use it.
         problem_params["pigs"] = set()
         problem_params["birds"] = set()
@@ -371,6 +377,7 @@ class MetaModel():
                 prob.init.append([boolean_fluent])
             else:
                 prob.init.append(['not',[boolean_fluent]])
+        prob.init.append(['=', ['gravity'], problem_params["gravity"]])
 
         # Add goal
         pigs = problem_params["pigs"]
