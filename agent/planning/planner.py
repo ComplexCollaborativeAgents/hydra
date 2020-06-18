@@ -50,7 +50,9 @@ class Planner():
         exporter = PddlProblemExporter()
         exporter.to_file(pddl_problem, pddl_problem_file)
         if settings.DEBUG:
-            exporter.to_file(pddl_problem, "{}/{}".format(settings.PLANNING_DOCKER_PATH,
+            cmd = "mkdir -p /trace/problems"
+            subprocess.run(cmd, shell=True)
+            exporter.to_file(pddl_problem, "{}/trace/problems/{}".format(settings.PLANNING_DOCKER_PATH,
                                                           datetime.datetime.now().strftime("%y%m%d_%H%M%S_problem.pddl") ))
 
     def get_plan_actions(self,count=0):
@@ -83,6 +85,10 @@ class Planner():
         out_file = open("docker_plan_trace.txt", "a")
         out_file.write("\n\nCUMULATIVE COMPILATION AND PLAN TIME: " + str(completed_docker_plan_time) + "\n\n")
         out_file.close()
+
+        if settings.DEBUG:
+            cmd = "mkdir -p /trace/plan_output && cp {}/docker_plan_trace.txt {}/trace/plan_output/{}".format(settings.PLANNING_DOCKER_PATH, settings.PLANNING_DOCKER_PATH, datetime.datetime.now().strftime("%y%m%d_%H%M%S_plan_trace.txt"))
+            subprocess.run(cmd, shell=True)
 
         if len(plan_actions) > 0:
             if (plan_actions[0][0] == "syntax error") and (count < 1):

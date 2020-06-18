@@ -278,7 +278,7 @@ class MetaModel():
 
         for (fluent, value) in [('active_bird', 0),
                                 ('angle', 0),
-                                ('angle_rate', 10),
+                                ('angle_rate', 20),
                                 ('ground_damper', 0.3)]:
             self.constant_numeric_fluents[fluent]=value
 
@@ -444,7 +444,23 @@ class MetaModel():
         prob_simplified.name = copy.copy(prob.name)
         prob_simplified.domain = copy.copy(prob.domain)
         prob_simplified.objects = copy.copy(prob.objects)
+
+        removed_list = []
+        first_bird_spotted = False
+        for obj in prob.objects:
+            if ((obj[1] == 'bird') and not first_bird_spotted):
+                first_bird_spotted = True
+            elif obj[1] == 'bird':
+                removed_list.append(obj[0])
+                prob_simplified.objects.remove(obj)
+
         prob_simplified.init = copy.copy(prob.init)
+
+        for init_stmt in prob.init:
+            for b_name in removed_list:
+                if (len(init_stmt[1]) > 1) and (init_stmt[1][1] == b_name):
+                    prob_simplified.init.remove(init_stmt)
+
         prob_simplified.metric = copy.copy(prob.metric)
         prob_simplified.goal = list()
         prob_simplified.goal.append(['pig_killed'])
@@ -461,9 +477,9 @@ class MetaModel():
         super_removed_list = []
         first_bird_spotted = False
         for obj in prob.objects:
-            if ((obj[1] == 'Bird') and not first_bird_spotted):
+            if ((obj[1] == 'bird') and not first_bird_spotted):
                 first_bird_spotted = True
-            elif obj[1] == 'Bird':
+            elif obj[1] == 'bird':
                 removed_list.append(obj[0])
                 prob_super_simplified.objects.remove(obj)
             elif (obj[1] == 'block'):
