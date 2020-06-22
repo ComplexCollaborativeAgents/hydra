@@ -149,27 +149,27 @@ class ScienceBirds(World):
         print('launching science birds')
         cmd = ''
 
-        if sys.platform=='darwin':
-            if config:
-                cmd='open {}/ScienceBirds_MacOS.app --args --configpath {}/data/science_birds/config/{}'.format(
-                    settings.SCIENCE_BIRDS_BIN_DIR,settings.ROOT_PATH,config)
-            else:
-                cmd = 'open {}/ScienceBirds_MacOS.app'.format(settings.SCIENCE_BIRDS_BIN_DIR)
-        else:
-            if config:
-                cmd='{}/sciencebirds_linux/sciencebirds_linux.x86_64 --configpath {}/data/science_birds/config/{}'. \
-                    format(settings.SCIENCE_BIRDS_BIN_DIR, settings.ROOT_PATH,config)
-            else:
-                cmd='{}/sciencebirds_linux/sciencebirds_linux.x86_64'.format(settings.SCIENCE_BIRDS_BIN_DIR)
-        # Not sure if run will work this way on ubuntu...
-        self.SB_process = subprocess.Popen(cmd,stdout=subprocess.PIPE,
-                                           stderr=subprocess.STDOUT,
-                                           shell=True,
-                                           start_new_session=True)
-        print('launching science birds interface:{}'.format(str(self.SB_process.pid)))
-        time.sleep(4)
+        # if sys.platform=='darwin':
+        #     if config:
+        #         cmd='open {}/ScienceBirds_MacOS.app --args --configpath {}/data/science_birds/config/{}'.format(
+        #             settings.SCIENCE_BIRDS_BIN_DIR,settings.ROOT_PATH,config)
+        #     else:
+        #         cmd = 'open {}/ScienceBirds_MacOS.app'.format(settings.SCIENCE_BIRDS_BIN_DIR)
+        # else:
+        #     if config:
+        #         cmd='{}/sciencebirds_linux/sciencebirds_linux.x86_64 --configpath {}/data/science_birds/config/{}'. \
+        #             format(settings.SCIENCE_BIRDS_BIN_DIR, settings.ROOT_PATH,config)
+        #     else:
+        #         cmd='{}/sciencebirds_linux/sciencebirds_linux.x86_64'.format(settings.SCIENCE_BIRDS_BIN_DIR)
+        # # Not sure if run will work this way on ubuntu...
+        # self.SB_process = subprocess.Popen(cmd,stdout=subprocess.PIPE,
+        #                                    stderr=subprocess.STDOUT,
+        #                                    shell=True,
+        #                                    start_new_session=True)
+        # print('launching science birds interface:{}'.format(str(self.SB_process.pid)))
+        # time.sleep(4)
         # Popen is necessary as we have to run it in the background
-        cmd2 = '{}{}'.format('xvfb-run ' if settings.HEADLESS else '',
+        cmd2 = ' cd {} && {}{}'.format(settings.SCIENCE_BIRDS_BIN_DIR + "/linux/", 'xvfb-run ' if settings.HEADLESS else '',
                              settings.SCIENCE_BIRDS_SERVER_CMD)
         self.SB_server_process = subprocess.Popen(cmd2,
                                                   stdout=subprocess.PIPE, stderr=subprocess.STDOUT,shell=True,
