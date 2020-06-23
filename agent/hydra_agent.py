@@ -50,8 +50,6 @@ class HydraAgent():
         cumulative_plan_time = 0
 
         while t < max_actions:
-            self.env.sb_client.fully_zoom_out()
-            time.sleep(1)
             observation = ScienceBirdsObservation()  # Create an observation object to track on what happend
             raw_state = self.env.get_current_state()
 

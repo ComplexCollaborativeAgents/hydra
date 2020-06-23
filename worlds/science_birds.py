@@ -101,43 +101,13 @@ class ScienceBirds(World):
 
 
     def kill(self):
-        if self.SB_process:
-            print("Killing process groups: {}, {}".format(self.SB_server_process.pid,
-                                                         self.SB_process.pid))
-            if sys.platform == 'darwin':
-                try:
-                    os.kill(self.SB_process.pid,9)
-                except:
-                    logger.info("Error during process termination 1")
-                    pass
-                try:
-                    os.kill(self.SB_process.pid+1,9)
-                except:
-                    logger.info("Error during process termination 2")
-                    pass
-                try:
-                    os.kill(self.SB_server_process.pid,9)
-                except:
-                    logger.info("Error during process termination 3")
-                    pass
-                try:
-                    os.kill(self.SB_server_process.pid+1,9)
-                except:
-                    logger.info("Error during process termination 4")
-                    pass
-                try:
-                    self.gt_thread.kill()
-                except:
-                    logger.info("Error during process termination 5")
-                    pass
-            else:
-                try:
-                    os.killpg(self.SB_process.pid,9)
-                    os.killpg(self.SB_server_process.pid,9)
-                    self.gt_thread.kill()
-                except:
-                    logger.info("Error during process terminatio6n")
-                    pass
+        if self.SB_server_process:
+            logger.info("Killing process groups: {}".format(self.SB_server_process.pid))
+            try:
+                os.killpg(self.SB_server_process.pid,9)
+            except:
+                logger.info("Error during process terminatio6n")
+                pass
 
             
 
