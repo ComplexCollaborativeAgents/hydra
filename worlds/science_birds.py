@@ -139,6 +139,10 @@ class ScienceBirds(World):
         # print('launching science birds interface:{}'.format(str(self.SB_process.pid)))
         # time.sleep(4)
         # Popen is necessary as we have to run it in the background
+
+        cmd = 'cp {}/data/science_birds/config/{} {}/linux/config.xml'.format(str(settings.ROOT_PATH), config, settings.SCIENCE_BIRDS_BIN_DIR)
+        subprocess.run(cmd, shell=True)
+
         cmd2 = ' cd {} && {}{}'.format(settings.SCIENCE_BIRDS_BIN_DIR + "/linux/", 'xvfb-run ' if settings.HEADLESS else '',
                              settings.SCIENCE_BIRDS_SERVER_CMD)
         self.SB_server_process = subprocess.Popen(cmd2,
