@@ -20,6 +20,7 @@ class Planner():
 
     def __init__(self, meta_model = MetaModel()):
         self.meta_model = meta_model
+        self.current_problem_prefix = None
 
     def make_plan(self,state,prob_complexity=0):
         '''
@@ -50,10 +51,11 @@ class Planner():
         exporter = PddlProblemExporter()
         exporter.to_file(pddl_problem, pddl_problem_file)
         if settings.DEBUG:
-            cmd = "mkdir -p /trace/problems"
+            self.current_problem_prefix = datetime.datetime.now().strftime("%y%m%d_%H%M%S")
+            cmd = "mkdir -p {}/trace/problems".format(settings.PLANNING_DOCKER_PATH)
             subprocess.run(cmd, shell=True)
-            exporter.to_file(pddl_problem, "{}/trace/problems/{}".format(settings.PLANNING_DOCKER_PATH,
-                                                          datetime.datetime.now().strftime("%y%m%d_%H%M%S_problem.pddl") ))
+            exporter.to_file(pddl_problem, "{}/trace/problems/{}_problem.pddl".format(settings.PLANNING_DOCKER_PATH,
+                                                          self.current_problem_prefix))
 
     def get_plan_actions(self,count=0):
         chdir("%s"  % settings.PLANNING_DOCKER_PATH)
@@ -87,7 +89,10 @@ class Planner():
         out_file.close()
 
         if settings.DEBUG:
-            cmd = "mkdir -p /trace/plan_output && cp {}/docker_plan_trace.txt {}/trace/plan_output/{}".format(settings.PLANNING_DOCKER_PATH, settings.PLANNING_DOCKER_PATH, datetime.datetime.now().strftime("%y%m%d_%H%M%S_plan_trace.txt"))
+            cmd = "mkdir -p {}/trace/plan_output && cp {}/docker_plan_trace.txt {}/trace/plan_output/{}_plan_trace.txt".format(settings.PLANNING_DOCKER_PATH,
+                                                                                                                            settings.PLANNING_DOCKER_PATH,
+                                                                                                                            settings.PLANNING_DOCKER_PATH,
+                                                                                                                            self.current_problem_prefix)
             subprocess.run(cmd, shell=True)
 
         if len(plan_actions) > 0:

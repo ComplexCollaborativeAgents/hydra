@@ -1,6 +1,7 @@
 import numpy as np
 from agent.planning.pddl_meta_model import *
 from agent.perception.perception import *
+import subprocess
 
 ''' A small object that represents an observation of the SB game, containing the values
 (state, action, intermedidate_states, reward)'''
@@ -21,6 +22,16 @@ class ScienceBirdsObservation:
                 intermediate_state = perception.process_sb_state(intermediate_state)
             observed_state_seq.append(meta_model.create_pddl_state(intermediate_state))
         return observed_state_seq
+
+    ''' Stores the observation in a file specified by the prefix'''
+    def log_observation(self,prefix):
+        trace_dir = "{}/agent/consistency/trace/observations".format(settings.ROOT_PATH)
+        cmd = "mkdir -p {}".format(trace_dir)
+        subprocess.run(cmd, shell=True)
+        pickle.dump(self, open("{}/{}_observation.p".format(trace_dir,prefix), 'wb'))
+
+    def load_observation(full_path):
+        return pickle.load(open(full_path, 'rb'))
 
 '''
 An abstract class for checking if a given sequence of (state, time) pairs can be consistent with a given sequence of states.  
