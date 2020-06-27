@@ -6,6 +6,8 @@ from agent.planning.pddlplus_parser import *
 import settings
 import logging
 
+from utils.point2D import Point2D
+
 from agent.perception.perception import Perception
 
 fh = logging.FileHandler("hydra.log",mode='w')
@@ -31,9 +33,64 @@ def get_scale(slingshot):
     # sling.width + sling.height
     return abs(round(slingshot[1]['bbox'].bounds[0] - slingshot[1]['bbox'].bounds[2])) + round(abs(slingshot[1]['bbox'].bounds[1] - slingshot[1]['bbox'].bounds[3]))
 
+def estimate_launch_angle(slingshot, targetPoint):
+    # calculate relative position of the target (normalised)
+    scale_factor = 2.7
+    _velocity = 9.5 / scale_factor
+    X_OFFSET = 0.45
+    Y_OFFSET = 0.6
+
+    ground_offset = slingshot[1]['bbox'].bounds[3]
+
+    scale = get_scale(slingshot)
+
+    print ('scale ', scale)
+    # System.out.println("scale " + scale)
+    # ref = Point2D(int(slingshot.X + X_OFFSET * slingshot.width), int(slingshot.Y + Y_OFFSET * slingshot.height))
+    ref = Point2D(int(get_slingshot_x(slingshot) + X_OFFSET * get_width(slingshot)), int(Y_OFFSET * get_height(slingshot)))
+    print ('ref point', str(ref))
+    x = (targetPoint.X - ref.X)
+    y = -(targetPoint.Y - ref.Y)
+
+    print ('sling X', get_slingshot_x(slingshot))
+    print ('sling Y', get_slingshot_y(ground_offset, slingshot))
+
+    print ('X', x)
+    print ('Y', y)
+
+    # gravity
+    g = 0.48 * 9.81 / scale_factor * scale
+    print('gravity', g)
+    # launch speed
+    v = _velocity * scale
+    print ('launch speed ', v)
+
+    solution_existence_factor = v ** 4 - g ** 2 * x ** 2 - 2 * y * g * v ** 2
+
+    # the target point cannot be reached
+    if solution_existence_factor < 0:
+        print ('\n\nNO SOLUTION!\n\n')
+        return 0.0, 90.0
+
+    # solve cos theta from projectile equation
+
+    cos_theta_1 = math.sqrt(
+        (x ** 2 * v ** 2 - x ** 2 * y * g + x ** 2 * math.sqrt(v ** 4 - g ** 2 * x ** 2 - 2 * y * g * v ** 2)) / (2 * v ** 2 * (x ** 2 + y ** 2)))
+    cos_theta_2 = math.sqrt(
+        (x ** 2 * v ** 2 - x ** 2 * y * g - x ** 2 * math.sqrt(v ** 4 - g ** 2 * x ** 2 - 2 * y * g * v ** 2)) / (2 * v ** 2 * (x ** 2 + y ** 2)))
+    #        print ('cos_theta_1 ', cos_theta_1, ' cos_theta_2 ', cos_theta_2)
+
+    distance_between = math.sqrt(x ** 2 + y ** 2)  # ad-hoc patch
+
+    theta_1 = math.acos(cos_theta_1) + distance_between * 0.0001  # compensate the rounding error
+    print('theta 1', math.degrees(theta_1))
+    theta_2 = math.acos(cos_theta_2) + distance_between * 0.00005  # compensate the rounding error
+    print('theta 2', math.degrees(theta_2))
+
+    return math.floor(math.degrees(theta_1)), math.ceil(math.degrees(theta_2))
 
 def get_radius(obj):
-    return round((abs(obj[1]['bbox'].bounds[2] - obj[1]['bbox'].bounds[0]) / 2) * 0.75)
+    return round((abs(obj[1]['bbox'].bounds[2] - obj[1]['bbox'].bounds[0]) / 2) * 0.9)
 def get_height(obj):
     return abs(obj[1]['bbox'].bounds[3] - obj[1]['bbox'].bounds[1])
 def get_width(obj):
@@ -164,7 +221,7 @@ class BirdType(PddlObjectType):
         if "initial_state" in problem_params and problem_params["initial_state"] == True:
             obj_attributes["x_bird"] = slingshot_x
             obj_attributes["y_bird"] = slingshot_y
-            obj_attributes["v_bird"] = (9.5 / 2.7) * (get_scale(slingshot))
+            obj_attributes["v_bird"] = round((9.5 / 2.7) * (get_scale(slingshot)))
         else:
             obj_attributes["x_bird"] = get_x_coordinate(obj)  # TODO: Why this minos zero?
             obj_attributes["y_bird"] = get_y_coordinate(obj, groundOffset)  # TODO: Why this minos zero?
@@ -277,7 +334,7 @@ class MetaModel():
         self.constant_boolean_fluents = dict()
 
         for (fluent, value) in [('active_bird', 0),
-                                ('angle', 0),
+                                # ('angle', 0),
                                 ('angle_rate', 20),
                                 ('ground_damper', 0.3)]:
             self.constant_numeric_fluents[fluent]=value
@@ -340,7 +397,7 @@ class MetaModel():
         problem_params["bird_index"]=0
         problem_params["slingshot"]=slingshot
         problem_params["groundOffset"] = self.get_ground_offset(slingshot)
-        problem_params["gravity"] =  0.48*9.81 / 2.7 * get_scale(slingshot)
+        problem_params["gravity"] = round(0.48*9.81 / 2.7 * get_scale(slingshot))
         # Above line redundant since we're storing the slingshot also, but it seems easier to store it also to save computations of the offset everytime we use it.
         problem_params["pigs"] = set()
         problem_params["birds"] = set()
@@ -378,6 +435,23 @@ class MetaModel():
             else:
                 prob.init.append(['not',[boolean_fluent]])
         prob.init.append(['=', ['gravity'], problem_params["gravity"]])
+
+
+        # Initial angle value to prune un-promising trajectories which only hit the ground
+        state = PddlPlusState(prob.init)
+        target_pigs = state.get_pigs()
+        closest_pig = None
+        assert len(problem_params["pigs"]) > 0
+        for pig in target_pigs:
+            x_pig = state[('x_pig', pig)]
+            y_pig = state[('y_pig', pig)]
+            if (closest_pig == None) or (math.sqrt(x_pig**2 + y_pig**2) < math.sqrt(state[('x_pig', closest_pig)]**2 + state[('y_pig', closest_pig)]**2)):
+                closest_pig = pig
+
+        min_angle, max_angle = estimate_launch_angle(slingshot, Point2D(state[('x_pig', closest_pig)], state[('y_pig', closest_pig)]))
+        problem_params["angle"] = min_angle
+        prob.init.append(['=', ['angle'], problem_params["angle"]])
+
 
         # Add goal
         pigs = problem_params["pigs"]
