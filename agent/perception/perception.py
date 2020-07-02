@@ -59,8 +59,8 @@ class Perception():
         except:
             logger.info("perception failed on state: {}".format(state))
             return None
-        state.sling = vision.find_slingshot_mbr()[0]
-        state.sling.width, state.sling.height = state.sling.height, state.sling.width #TODO: Verify w. Wiktor/Matt
+        sling = vision.find_slingshot_mbr()[0]
+        sling.width, sling.height = sling.height, sling.width # ScienceBirds reverses width and height
         new_objs = {}
         id = 0
         for type, objs in vision.allObj.items():
@@ -74,7 +74,6 @@ class Perception():
                             new_objs[id]['colormap'] = state_obj['colormap']
                     assert 'colormap' in new_objs[id].keys()
                 id+=1
-        state.objects = new_objs
 
         return ProcessedSBState(state, new_objs, vision.find_slingshot_mbr()[0])
 

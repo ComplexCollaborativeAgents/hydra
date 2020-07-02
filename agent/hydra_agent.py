@@ -56,6 +56,7 @@ class HydraAgent():
 
             if raw_state.game_state.value == GameState.PLAYING.value:
                 processed_state = self.perception.process_state(raw_state)
+                observation.state = processed_state
 
                 if processed_state and self.consistency_checker.is_consistent(processed_state):
                     logger.info("[hydra_agent_server] :: Invoking Planner".format())
