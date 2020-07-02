@@ -176,18 +176,15 @@ def launch_science_birds_level_01():
 ''' Repair gravity based on an observed state'''
 def test_repair_gravity_offline():
     meta_model = MetaModel()
-    meta_model.constant_numeric_fluents["gravity"] = 200
-    obs_output_file = path.join(DATA_DIR, 'science_birds','tests', "gravity_200_level_004.p") # For debug
+    fluents_to_repair = ["gravity_factor",]
+    repair_deltas = [2.5,]
+    desired_precision = 20
+    delta_t = 0.05
+    meta_model.constant_numeric_fluents["gravity_factor"] = 2.5
+    obs_output_file = path.join(DATA_DIR, 'science_birds','tests', "bad_gravity_level_004.p") # For debug
     observation = pickle.load(open(obs_output_file, "rb"))  # For debug
     time_action = [observation.action[0], observation.action[1]/meta_model.get_angle_rate()]
 
-    # matplotlib.interactive(True) # For debug
-    # test_utils.plot_observation(observation) # For debug
-    # test_utils.plot_expected_trace(meta_model, observation.state, time_action, delta_t=DELTA_T) # For debug
-
-    fluents_to_repair = ["gravity",]
-    repair_deltas = [30,]
-    desired_precision = 11
     consistency_checker = BirdLocationConsistencyEstimator()
     meta_model_repair = GreedyBestFirstSearchMetaModelRepair(fluents_to_repair, consistency_checker, repair_deltas,
                                                              consistency_threshold=desired_precision)
@@ -201,11 +198,9 @@ def test_repair_gravity_offline():
 
     consistency_before_repair = consistency_checker.estimate_consistency(test_utils.simulate_plan_trace(plan, problem, domain), observed_seq)
 
-    repaired_meta_model = meta_model_repair.repair(meta_model, observation.state, plan, observed_seq, delta_t=DELTA_T)
+    repaired_meta_model = meta_model_repair.repair(meta_model, observation.state, plan, observed_seq, delta_t=delta_t)
     logger.info("Repair done. Fluent values in meta model  are now %s" %
                 str([repaired_meta_model.constant_numeric_fluents[fluent] for fluent in fluents_to_repair]))
-
-    # test_utils.plot_expected_trace(meta_model, observation.state, time_action, delta_t=DELTA_T) # For debug
 
     problem = meta_model.create_pddl_problem(observation.state)
     domain = meta_model.create_pddl_domain(observation.state)
@@ -246,7 +241,7 @@ def test_repair_gravity_in_agent(launch_science_birds_level_01):
     observed_seq = observation.get_trace(hydra.meta_model)
     obs_output_file = path.join(DATA_DIR, "bad_gravity_level_004.p") # For debug
     pickle.dump(observation, open(obs_output_file, "wb"))  # For debug
-    matplotlib.interactive(True) # For debug
+    # matplotlib.interactive(True) # For debug
     # test_utils.plot_observation(observation) # For debug
     time_action = [observation.action[0], observation.action[1]/meta_model.get_angle_rate()]
     # test_utils.plot_expected_trace(meta_model, observation.state, time_action, delta_t=DELTA_T) # For debug
@@ -282,6 +277,8 @@ def test_repair_gravity_in_agent(launch_science_birds_level_01):
 
     observation = _find_last_obs(hydra)
     assert observation.reward > 0
+
+
 
 
 def _run_next_action(hydra_agent: HydraAgent):
