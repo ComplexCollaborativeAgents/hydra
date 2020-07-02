@@ -4,7 +4,7 @@ Utility file for handling PDDL+ domains and problems.
 Using code from https://norvig.com/lispy.html by Peter Norvig
 '''
 from enum import Enum
-
+from collections import defaultdict
 
 '''
 Return a numeric fluent from the list of fluents
@@ -125,7 +125,7 @@ A class representing a PDDL+ state. Contains only the fluents and their values.
 class PddlPlusState():
     ''' Creates a PDDL+ state object initialized by a list of fluent given in the PddlPlusProblem format of lists'''
     def __init__(self, fluent_list: list = None):
-        self.numeric_fluents = dict()
+        self.numeric_fluents = defaultdict(lambda: 0) # Default value of non-existing fluents is zero in current planner.
         self.boolean_fluents = set()
         if fluent_list is not None:
             self.load_from_fluent_list(fluent_list)
@@ -274,8 +274,10 @@ class PddlPlusState():
 
 ''' Class responsible for all groundings'''
 class PddlPlusGrounder():
-    ''' Recursively ground the given element with the given binding '''
+    def __init__(self, no_dummy_objects = True):
+        self.no_dummy_objects = no_dummy_objects
 
+    ''' Recursively ground the given element with the given binding '''
     def ground_element(self, element, binding):
         if isinstance(element, list):
             grounded_element = list()
@@ -365,6 +367,8 @@ class PddlPlusGrounder():
     ''' Recursive method to find all bindings '''
     def __recursive_get_possible_bindings(self, parameters, problem, binding, bindings):
         for object in problem.objects:
+            if len(object)>1 and "dummy" in object[0]:
+                continue
             if self.__can_bind(parameters[0], object):
                 assert parameters[0][0].startswith("?")
 

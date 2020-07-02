@@ -224,7 +224,7 @@ class PddlPlusSimulator():
             return not self.__precondition_hold(state, single_precondition[1])
         if single_precondition[0]=="or":
             for precondition in single_precondition[1:]:
-                if self.__precondition_hold(precondition, state)==True:
+                if self.__precondition_hold(state, precondition)==True:
                     return True
             return False
         return self.__eval(single_precondition, state)
