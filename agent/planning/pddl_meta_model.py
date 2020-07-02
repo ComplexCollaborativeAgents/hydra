@@ -336,7 +336,8 @@ class MetaModel():
         for (fluent, value) in [('active_bird', 0),
                                 # ('angle', 0),
                                 ('angle_rate', 20),
-                                ('ground_damper', 0.3)]:
+                                ('ground_damper', 0.3),
+                                ('gravity_factor', 9.81)]:
             self.constant_numeric_fluents[fluent]=value
 
         for not_fluent in ['angle_adjusted',
@@ -397,7 +398,7 @@ class MetaModel():
         problem_params["bird_index"]=0
         problem_params["slingshot"]=slingshot
         problem_params["groundOffset"] = self.get_ground_offset(slingshot)
-        problem_params["gravity"] = round(0.48*9.81 / 2.7 * get_scale(slingshot))
+        problem_params["gravity"] = round(0.48* self.constant_numeric_fluents['gravity_factor'] / 2.7 * get_scale(slingshot))
         # Above line redundant since we're storing the slingshot also, but it seems easier to store it also to save computations of the offset everytime we use it.
         problem_params["pigs"] = set()
         problem_params["birds"] = set()
@@ -467,7 +468,7 @@ class MetaModel():
 
     ''' Translate the given observed SBState to a PddlPlusState object. 
     This is designed to handle intermediate state observed during execution '''
-    def create_pddl_state(self, sb_state:ProcessedSBState):
+    def create_pddl_state(self, sb_state: ProcessedSBState):
         pddl_state = PddlPlusState()
 
         # we should probably use the self.sling on the object

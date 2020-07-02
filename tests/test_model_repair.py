@@ -217,14 +217,17 @@ def test_repair_gravity_offline():
 @pytest.mark.skipif(settings.HEADLESS == True, reason="headless does not work in docker")
 def test_repair_gravity_in_agent(launch_science_birds_level_01):
     DELTA_T = 0.05
-    desired_precision = 10.5
+    desired_precision = 20
 
     env = launch_science_birds_level_01
     hydra = HydraAgent(env)
 
     # Inject fault and play
     meta_model = hydra.meta_model
-    meta_model.constant_numeric_fluents["gravity"] = 200
+
+    fluents_to_repair = ["gravity_factor",]
+    repair_deltas = [2.5,]
+    meta_model.constant_numeric_fluents["gravity_factor"] = 2.5
     logger.info("Running agent with current meta model")
 
     # Run agent with dummy action and collect observation
@@ -241,12 +244,12 @@ def test_repair_gravity_in_agent(launch_science_birds_level_01):
 
     # Extract expected and observed states
     observed_seq = observation.get_trace(hydra.meta_model)
-    obs_output_file = path.join(DATA_DIR, "gravity_200_level_004.p") # For debug
+    obs_output_file = path.join(DATA_DIR, "bad_gravity_level_004.p") # For debug
     pickle.dump(observation, open(obs_output_file, "wb"))  # For debug
     matplotlib.interactive(True) # For debug
-    test_utils.plot_observation(observation) # For debug
+    # test_utils.plot_observation(observation) # For debug
     time_action = [observation.action[0], observation.action[1]/meta_model.get_angle_rate()]
-    test_utils.plot_expected_trace(meta_model, observation.state, time_action, delta_t=DELTA_T) # For debug
+    # test_utils.plot_expected_trace(meta_model, observation.state, time_action, delta_t=DELTA_T) # For debug
     problem = meta_model.create_pddl_problem(observation.state)
     domain = meta_model.create_pddl_domain(observation.state)
     grounded_domain = PddlPlusGrounder().ground_domain(domain,problem)
@@ -261,8 +264,6 @@ def test_repair_gravity_in_agent(launch_science_birds_level_01):
     assert consistency_before_repair > desired_precision
 
     # Now apply repair
-    fluents_to_repair = ["gravity",]
-    repair_deltas = [30,]
     logger.info("Starting model repair for fluents %s..." % str(fluents_to_repair))
     meta_model_repair = GreedyBestFirstSearchMetaModelRepair(fluents_to_repair, consistency_checker, repair_deltas, consistency_threshold=desired_precision)
     assert meta_model_repair.is_consistent(expected_trace, observed_seq) == False
@@ -273,17 +274,21 @@ def test_repair_gravity_in_agent(launch_science_birds_level_01):
     consistency_after_repair = _check_consistency(observation, plan, repaired_meta_model, consistency_checker,
                                                   delta_t=DELTA_T)
     assert consistency_before_repair > consistency_after_repair
-    assert consistency_after_repair < desired_precision
     logger.info("Consistency with model after repair: %.2f " % consistency_after_repair)
 
     logger.info("Running agent with repaired model...")
     hydra.planner.meta_model = repaired_meta_model
-    hydra.main_loop(max_actions=2)  # enough actions to play the first level
+    _run_next_action(hydra)  # enough actions to play a level
 
     observation = _find_last_obs(hydra)
     assert observation.reward > 0
 
 
+def _run_next_action(hydra_agent: HydraAgent):
+    while True:
+        hydra_agent.main_loop(max_actions=1)
+        if hydra_agent.observations[-1].action is not None:
+            return
 
 ''' Finds the last observations of the game. That is, the last observation that has intermediate states. 
 TODO: Is this the best way to implement this?'''

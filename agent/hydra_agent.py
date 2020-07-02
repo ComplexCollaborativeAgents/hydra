@@ -71,7 +71,8 @@ class HydraAgent():
                         cumulative_plan_time += (time.perf_counter() - simple_plan_time)
                         logger.info("[hydra_agent_server] :: Simplified problem planning time: " + str((time.perf_counter() - simple_plan_time)))
                         if len(plan) == 0 or plan[0][0] == "out of memory":
-                            plan.append(("dummy-action", 20.0))
+                            plan = []
+                            plan.append(self.__get_default_action(processed_state))
                     action_taken = plan[0]
                     logger.info("[hydra_agent_server] :: Taking action: {}".format(str(plan[0])))
                     ref_point = self.env.tp.get_reference_point(processed_state.sling)
@@ -90,7 +91,7 @@ class HydraAgent():
                 else:
                     logger.info("Perception Failure performing default shot")
                     plan = []
-                    plan.append(("dummy-action", 20.0))
+                    plan.append(self.__get_default_action(processed_state))
                     ref_point = self.env.tp.get_reference_point(processed_state.sling)
                     release_point_from_plan = \
                         self.env.tp.find_release_point(processed_state.sling, math.radians(plan[0][1]))
@@ -156,6 +157,13 @@ class HydraAgent():
                 assert False
             t+=1
             self.observations.append(observation)
+
+    ''' A default action taken by the Hydra agent if planning fails'''
+    def __get_default_action(self, state : ProcessedSBState):
+        problem = self.meta_model.create_pddl_problem(state)
+        pddl_state = PddlPlusState(problem.init)
+        active_bird = pddl_state.get_active_bird()
+        return ("pa-twang %s" % active_bird, 20.0)
 
     def set_env(self,env):
         '''Probably bad to have two pointers here'''
