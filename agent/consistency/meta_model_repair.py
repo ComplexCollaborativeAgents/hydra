@@ -52,6 +52,12 @@ class GreedyBestFirstSearchMetaModelRepair(MetaModelRepair):
         self.max_iterations = max_iteration
         self.simulator = PddlPlusSimulator()
 
+        # Init other fields
+        self.current_sb_state = None
+        self.current_delta_t = None
+        self.current_plan = None
+        self.current_meta_model = None
+
     ''' The heursitic to use to prioritize repairs'''
     def _heuristic(self, repair, consistency):
         change_cardinality = 0
@@ -148,3 +154,88 @@ class GreedyBestFirstSearchMetaModelRepair(MetaModelRepair):
             return True
         else:
             return False
+
+'''
+A greedy best-first search model repair implementation. 
+'''
+class FixedPointMetaModelRepair(GreedyBestFirstSearchMetaModelRepair):
+    def __init__(self, fluents_to_repair, consistency_estimator,
+                 deltas,
+                 consistency_threshold=5,
+                 max_iteration=30):
+        super(FixedPointMetaModelRepair, self).__init__(fluents_to_repair, consistency_estimator, deltas, consistency_threshold, max_iteration)
+
+    ''' Repair the given domain and plan such that the given plan's expected outcome matches the observed outcome'''
+    def repair(self,
+               pddl_meta_model: MetaModel,
+               sb_state: ProcessedSBState,
+               pddl_plan: PddlPlusPlan,
+               observed_states: list, delta_t=1.0):
+
+        self.current_sb_state = sb_state
+        self.current_delta_t = delta_t
+        self.current_plan = pddl_plan
+        self.current_meta_model = pddl_meta_model
+
+        repair = [0]* len(self.fluents_to_repair) # Repair is a list, in order of the fluents_to_repair list
+        base_consistency = self._compute_consistency(repair, observed_states)
+        incumbent_consistency = base_consistency
+        incumbent_repair = repair
+
+        # Populate OPEN with initial repairs
+        iteration = 0
+        open = []
+        new_repairs = []
+        for i, fluent in enumerate(self.fluents_to_repair):
+            new_repair = list(repair)
+            new_repair[i] = new_repair[i] + self.deltas[i]
+            new_repairs.append(new_repair)
+
+            new_repair = list(repair)
+            new_repair[i] = new_repair[i] - self.deltas[i]
+            new_repairs.append(new_repair)
+
+        for new_repair in new_repairs:
+            consistency = self._compute_consistency(new_repair, observed_states)
+            priority = self._heuristic(new_repair, consistency)
+            heapq.heappush(open, [priority, new_repair])
+
+            # If there is a new best solution
+            if consistency < incumbent_consistency:
+                incumbent_consistency = consistency
+                incumbent_repair = new_repair
+
+        while incumbent_consistency > self.consistency_threshold\
+                and iteration<self.max_iterations:
+            [_, repair] = heapq.heappop(open)
+
+            # Generate a new repair
+            new_repair = None
+            for i,fluent in enumerate(self.fluents_to_repair):
+                if repair[i]>0:
+                    new_repair = list(repair)
+                    new_repair[i] = new_repair[i] + self.deltas[i]
+                    break
+                if repair[i]<0: # Note: if repair has zero for the current fluent, add both +delta and -delta states to open
+                    new_repair = list(repair)
+                    new_repair[i] = new_repair[i]-self.deltas[i]
+                    break
+            assert new_repair is not None
+
+            consistency = self._compute_consistency(new_repair, observed_states)
+            priority = self._heuristic(new_repair, consistency)
+            heapq.heappush(open, [priority, new_repair])
+
+            # If there is a new best solution
+            if consistency<incumbent_consistency:
+                incumbent_consistency = consistency
+                incumbent_repair = new_repair
+
+            iteration = iteration+1
+
+        # If found a useful consistency
+        if base_consistency>incumbent_consistency:
+            logger.debug("Found a useful repair! %s,\n consistency gain=%.2f" % (str(incumbent_repair),
+                                                                                 base_consistency-incumbent_consistency))
+            self._do_change(incumbent_repair)
+        return pddl_meta_model

@@ -44,26 +44,26 @@ def estimate_launch_angle(slingshot, targetPoint):
 
     scale = get_scale(slingshot)
 
-    print ('scale ', scale)
+    # print ('scale ', scale)
     # System.out.println("scale " + scale)
     # ref = Point2D(int(slingshot.X + X_OFFSET * slingshot.width), int(slingshot.Y + Y_OFFSET * slingshot.height))
     ref = Point2D(int(get_slingshot_x(slingshot) + X_OFFSET * get_width(slingshot)), int(Y_OFFSET * get_height(slingshot)))
-    print ('ref point', str(ref))
+    # print ('ref point', str(ref))
     x = (targetPoint.X - ref.X)
     y = -(targetPoint.Y - ref.Y)
-
-    print ('sling X', get_slingshot_x(slingshot))
-    print ('sling Y', get_slingshot_y(ground_offset, slingshot))
-
-    print ('X', x)
-    print ('Y', y)
+    #
+    # print ('sling X', get_slingshot_x(slingshot))
+    # print ('sling Y', get_slingshot_y(ground_offset, slingshot))
+    #
+    # print ('X', x)
+    # print ('Y', y)
 
     # gravity
     g = 0.48 * 9.81 / scale_factor * scale
-    print('gravity', g)
+    # print('gravity', g)
     # launch speed
     v = _velocity * scale
-    print ('launch speed ', v)
+    # print ('launch speed ', v)
 
     solution_existence_factor = v ** 4 - g ** 2 * x ** 2 - 2 * y * g * v ** 2
 
@@ -83,9 +83,9 @@ def estimate_launch_angle(slingshot, targetPoint):
     distance_between = math.sqrt(x ** 2 + y ** 2)  # ad-hoc patch
 
     theta_1 = math.acos(cos_theta_1) + distance_between * 0.0001  # compensate the rounding error
-    print('theta 1', math.degrees(theta_1))
+    # print('theta 1', math.degrees(theta_1))
     theta_2 = math.acos(cos_theta_2) + distance_between * 0.00005  # compensate the rounding error
-    print('theta 2', math.degrees(theta_2))
+    # print('theta 2', math.degrees(theta_2))
 
     return math.floor(math.degrees(theta_1)), math.ceil(math.degrees(theta_2))
 
@@ -223,8 +223,8 @@ class BirdType(PddlObjectType):
             obj_attributes["y_bird"] = slingshot_y
             obj_attributes["v_bird"] = round((9.5 / 2.7) * (get_scale(slingshot)))
         else:
-            obj_attributes["x_bird"] = get_x_coordinate(obj)  # TODO: Why this minos zero?
-            obj_attributes["y_bird"] = get_y_coordinate(obj, groundOffset)  # TODO: Why this minos zero?
+            obj_attributes["x_bird"] = get_x_coordinate(obj)
+            obj_attributes["y_bird"] = get_y_coordinate(obj, groundOffset)
 
             # Need to separate the case where we're before shooting the bird and after.
             # Before: the bird location is considered as the location of the slingshot,
@@ -337,7 +337,8 @@ class MetaModel():
                                 # ('angle', 0),
                                 ('angle_rate', 20),
                                 ('ground_damper', 0.3),
-                                ('gravity_factor', 9.81)]:
+                                ('gravity_factor', 9.81),
+                                ('pig_bounce_factor', 2)]:
             self.constant_numeric_fluents[fluent]=value
 
         for not_fluent in ['angle_adjusted',

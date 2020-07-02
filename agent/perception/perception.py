@@ -61,9 +61,28 @@ class Perception():
             return None
         sling = vision.find_slingshot_mbr()[0]
         sling.width, sling.height = sling.height, sling.width # ScienceBirds reverses width and height
-        new_objs = {}
-        id = 0
+
+
+        # Birds get the smallest IDs. This helps a bit to track the birds TODO: Discuss a better approach
+        bird_types = []
         for type, objs in vision.allObj.items():
+            if "bird" in type.lower():
+                bird_types.append(type)
+        bird_types = sorted(bird_types)
+
+        id = 0
+        new_objs = {}
+        for bird_type in bird_types:
+            for obj in vision.allObj[bird_type]:
+                new_objs[id] = {'type': bird_type,
+                                'bbox': box(obj.top_left[0], obj.top_left[1],
+                                            obj.bottom_right[0], obj.bottom_right[1])}
+                id += 1
+
+        for type, objs in vision.allObj.items():
+            if type in bird_types:
+                continue
+
             for obj in objs:
                 new_objs[id] = {'type':type,
                                 'bbox':box(obj.top_left[0],obj.top_left[1],

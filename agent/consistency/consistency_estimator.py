@@ -189,7 +189,10 @@ class BirdLocationConsistencyEstimator():
         # Get birds
         birds = set()
         for state in state_seq:
-            birds.update(state.get_birds())
+            if len(birds)==0: # TODO: Discuss how to make this work. Currently a new bird suddenly appears
+                birds = state.get_birds()
+            else:
+                break
 
         fluent_names = []
         for bird in birds:
