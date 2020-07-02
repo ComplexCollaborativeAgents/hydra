@@ -6,7 +6,7 @@ from agent.hydra_agent import *
 from agent.planning.model_manipulator import ManipulateInitNumericFluent
 from agent.planning.planner import *
 from tests.test_utils import PlannerStub
-
+import settings
 from agent.perception.perception import *
 
 fh = logging.FileHandler("hydra.log",mode='w')
@@ -228,6 +228,9 @@ def launch_science_birds():
 ''' Run Hydra, collect observations, check for consistency '''
 # @pytest.mark.skipif(True, reason="Modified planner fails on basic levels")
 def test_consistency_in_agent_with_dummy_planner(launch_science_birds):
+    settings.SB_SIM_SPEED = 1
+    settings.SB_GT_FREQ = int(15 / settings.SB_SIM_SPEED)
+
     env = launch_science_birds
     hydra = HydraAgent(env)
 
@@ -236,12 +239,12 @@ def test_consistency_in_agent_with_dummy_planner(launch_science_birds):
     plan = [raw_timed_action]
     hydra.planner = PlannerStub(plan, hydra.meta_model)
     hydra.main_loop(max_actions=3)  # enough actions to play the first level
-    our_observation =  hydra.observations[1]
+    our_observation =  hydra.observations[-1]
     # pickle.dump(our_observation,open("twang_65.p", "wb")) #*** uncomment if needed for debugging ***
     observed_seq = our_observation.get_trace(hydra.meta_model)
 
-    # plt.interactive(True)
-    # test_utils.plot_observation(our_observation)
+    plt.interactive(True)
+    test_utils.plot_observation(our_observation)
 
     # Inject fault in meta model and compute expected trace
     ANGLE_RATE = 'angle_rate'
@@ -256,9 +259,8 @@ def test_consistency_in_agent_with_dummy_planner(launch_science_birds):
     pddl_plan = PddlPlusPlan()
     pddl_plan.add_raw_actions(plan, grounded_domain)
     expected_timed_state_seq = test_utils.simulate_plan_trace(pddl_plan, problem, domain, DELTA_T)
-
-    # plt.plot([state[0][X_BIRD_FLUENT] for state in expected_timed_state_seq],
-    #          [state[0][Y_BIRD_FLUENT] for state in expected_timed_state_seq])
+    pddl_state = meta_model.create_pddl_state(our_observation.state)
+    test_utils.plot_state_sequence([timed_state[0] for timed_state in expected_timed_state_seq], pddl_state)
 
     consistency_estimator = BirdLocationConsistencyEstimator()
     consistency_value_for_faulty_model = consistency_estimator.estimate_consistency(expected_timed_state_seq, observed_seq)
@@ -266,13 +268,14 @@ def test_consistency_in_agent_with_dummy_planner(launch_science_birds):
     assert consistency_value_for_faulty_model>PRECISION
 
     # Repair fault, and check consistency value
-    meta_model.constant_numeric_fluents[ANGLE_RATE] = 0.97
+    meta_model = MetaModel()
+    meta_model.constant_numeric_fluents[ANGLE_RATE] = settings.SB_SIM_SPEED *20/30 # Allowing me to play with the simulation speed
+
     problem = meta_model.create_pddl_problem(our_observation.state)
     domain = meta_model.create_pddl_domain(our_observation.state)
     expected_timed_state_seq = test_utils.simulate_plan_trace(pddl_plan, problem, domain, DELTA_T)
-
-    # plt.plot([state[0][X_BIRD_FLUENT] for state in expected_timed_state_seq],
-    #          [state[0][Y_BIRD_FLUENT] for state in expected_timed_state_seq])
+    pddl_state = meta_model.create_pddl_state(our_observation.state)
+    test_utils.plot_state_sequence([timed_state[0] for timed_state in expected_timed_state_seq], pddl_state)
 
     consistency_value_for_healthy_model = consistency_estimator.estimate_consistency(expected_timed_state_seq, observed_seq)
     assert consistency_value_for_faulty_model>consistency_value_for_healthy_model

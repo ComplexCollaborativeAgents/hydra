@@ -54,62 +54,59 @@ def load_plan(plan_trace_file: str, pddl_problem: PddlPlusProblem, pddl_domain: 
 def plot_expected_trace(meta_model: MetaModel,
                         state : ProcessedSBState,
                         time_action : list,
-                        marker: str = "o",
-                        fluent_x = ('x_bird', 'redbird_0'),
-                        fluent_y = ('y_bird', 'redbird_0'), delta_t = 0.05):
+                        delta_t = 0.05):
     expected_trace = PddlPlusSimulator().simulate_observed_action(state, time_action, meta_model, delta_t)
-    plt.plot([timed_state[0][fluent_x] for timed_state in expected_trace],
-             [timed_state[0][fluent_y] for timed_state in expected_trace],marker=marker)
+    state_sequence = [timed_state[0] for timed_state in expected_trace]
+    plot_state_sequence(state_sequence,meta_model.create_pddl_state(state))
 
 ''' Plot the given observation'''
 def plot_observation(observation: ScienceBirdsObservation):
     meta_model = MetaModel()
     sb_state = observation.state
     pddl_state = meta_model.create_pddl_state(sb_state)
-    fig, ax = plt.subplots()
+    obs_state_sequence = observation.get_trace(meta_model)
+    plot_state_sequence(obs_state_sequence, pddl_state)
 
+'''
+Plotting a sequence of states, showing where the pigs, platforms, and birds are initially,
+and showing the trajectory of the active bird. 
+'''
+def plot_state_sequence(state_seq : list, pddl_state: PddlPlusState):
+    fig, ax = plt.subplots()
     # plot pigs
     pigs = pddl_state.get_pigs()
-    x_pigs = [pddl_state[("x_pig",pig)] for pig in pigs]
+    x_pigs = [pddl_state[("x_pig", pig)] for pig in pigs]
     y_pigs = [pddl_state[("y_pig", pig)] for pig in pigs]
     ax.plot(x_pigs, y_pigs, marker="$pig$", markersize=19, linestyle="")
-
     # plot birds
     birds = pddl_state.get_birds()
-    x_birds = [pddl_state[("x_bird",bird)] for bird in birds]
+    x_birds = [pddl_state[("x_bird", bird)] for bird in birds]
     y_birds = [pddl_state[("y_bird", bird)] for bird in birds]
     ax.plot(x_birds, y_birds, marker="$bird$", markersize=19, linestyle="")
-
     platforms = pddl_state.get_platforms()
     for platform in platforms:
         x = pddl_state[("x_platform", platform)]
         y = pddl_state[("y_platform", platform)]
         width = pddl_state[("platform_width", platform)]
         height = pddl_state[("platform_height", platform)]
-        x= x-width/2
-        y = y-height/2
-        rect = patches.Rectangle((x,y), width, height, linewidth=1, edgecolor='r', facecolor='none')
+        x = x - width / 2
+        y = y - height / 2
+        rect = patches.Rectangle((x, y), width, height, linewidth=1, edgecolor='r', facecolor='none')
         ax.add_patch(rect)
-
     # plot active bird trajectory
     active_bird = pddl_state.get_active_bird()
-    observed_seq = observation.get_trace(meta_model)
-
-    x_active_bird= [state[("x_bird",active_bird)] for state in observed_seq]
-    y_active_bird= [state[("y_bird",active_bird)] for state in observed_seq]
-    obs_points = set(zip(x_active_bird,y_active_bird))
+    x_active_bird = [state[("x_bird", active_bird)] for state in state_seq]
+    y_active_bird = [state[("y_bird", active_bird)] for state in state_seq]
+    obs_points = set(zip(x_active_bird, y_active_bird))
     x_active_bird = [state[0] for state in obs_points]
     y_active_bird = [state[1] for state in obs_points]
-
     # Set plot area to be a square, so that proprtions are right.
-    (left,right_x) = plt.xlim()
-    (left,right_y) = plt.ylim()
-    max_axis = max(right_x,right_y)
-    plt.xlim((0,max_axis))
+    (left, right_x) = plt.xlim()
+    (left, right_y) = plt.ylim()
+    max_axis = max(right_x, right_y)
+    plt.xlim((0, max_axis))
     plt.ylim((0, max_axis))
-
     ax.plot(x_active_bird, y_active_bird, marker="x", markersize=8, linestyle="")
-
     plt.show()
 
 
