@@ -218,10 +218,20 @@ class PddlPlusState():
     def get_platforms(self):
         platforms = set()
         for fluent_name in self.numeric_fluents:
-            # We expect every bird has an x coordinate in a fluent of the form (x_bird, birdname)
+            # We expect every bird has an x coordinate in a fluent of the form (x_platform, platform_name)
             if len(fluent_name)==2 and fluent_name[0]=="x_platform":
                 platforms.add(fluent_name[1])
         return platforms
+
+    ''' Returns the set of block objects present in this state. 
+     Block is identified by the x_block fluent. Returns a set of block names. '''
+    def get_blocks(self):
+        blocks = set()
+        for fluent_name in self.numeric_fluents:
+            # We expect every bird has an x coordinate in a fluent of the form (x_block, block_name)
+            if len(fluent_name)==2 and fluent_name[0]=="x_block":
+                blocks.add(fluent_name[1])
+        return blocks
 
     # Deep compare
     def __eq__(self, other):

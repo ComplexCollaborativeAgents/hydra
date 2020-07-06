@@ -3,7 +3,7 @@
     (:types bird pig block platform)
     (:predicates (bird_released ?b - bird) (pig_dead ?p - pig) (angle_adjusted) (block_explosive ?bl - block) (pig_killed))
     (:functions (x_bird ?b - bird) (y_bird ?b - bird) (v_bird ?b - bird) (vx_bird ?b - bird) (vy_bird ?b - bird) (m_bird ?b - bird) (bird_id ?b - bird) (bounce_count ?b - bird)
-                (gravity) (angle_rate) (angle) (active_bird) (ground_damper) (gravity_factor) (pig_bounce_factor)
+                (gravity) (angle_rate) (angle) (active_bird) (ground_damper) (max_angle) (gravity_factor) (pig_bounce_factor)
                 (x_pig ?p - pig) (y_pig ?p - pig) (pig_radius ?p - pig) (m_pig ?p - pig)
                 (x_platform ?pl - platform) (y_platform ?pl - platform) (platform_width ?pl - platform) (platform_height ?pl - platform)
                 (x_block ?bl - block) (y_block ?bl - block) (block_width ?bl - block) (block_height ?bl - block) (block_life ?bl - block) (block_mass ?bl - block) (block_stability ?bl - block)
@@ -20,7 +20,8 @@
             (not (angle_adjusted))
             (= (active_bird) (bird_id ?b))
             (not (bird_released ?b))
-            (<= (angle) 90)
+            (< (angle) (max_angle))
+            (>= (angle) 0)
         )
         :effect (and
             (increase (angle) (* #t (angle_rate)))
@@ -105,7 +106,7 @@
         )
         :effect (and
             (pig_dead ?p)
-            (assign (vx_bird ?b) (- (vx_bird ?b) (* (/ (* (pig_bounce_factor) (m_pig ?p)) (+ (m_bird ?b) (m_pig ?p))) (*
+            (assign (vx_bird ?b) (- (vx_bird ?b) (* (/ (* 2 (m_pig ?p)) (+ (m_bird ?b) (m_pig ?p))) (*
                 (/
                     (+ (+ (- (- (- (- (+ (* (vx_bird ?b) (x_bird ?b)) (* (vy_bird ?b) (y_bird ?b))) (* (vx_bird ?b) (x_pig ?p))) (* (vy_bird ?b) (y_pig ?p))) (* 0 (x_bird ?b))) (* 0 (y_bird ?b))) (* 0 (x_pig ?p))) (* 0 (y_pig ?p)))
                     (+ (+ (- (- (- (- (+ (* (x_pig ?p) (x_pig ?p)) (* (y_pig ?p) (y_pig ?p))) (* (x_pig ?p) (x_bird ?b))) (* (y_pig ?p) (y_bird ?b))) (* (x_bird ?b) (x_pig ?p))) (* (y_bird ?b) (y_pig ?p))) (* (x_bird ?b) (x_bird ?b))) (* (y_bird ?b) (y_bird ?b)))
@@ -113,7 +114,7 @@
                 (- (x_pig ?p) (x_bird ?b)) )
             )  ) )
 
-            (assign (vy_bird ?b) (- (vy_bird ?b) (* (/ (* (pig_bounce_factor) (m_pig ?p)) (+ (m_bird ?b) (m_pig ?p))) (*
+            (assign (vy_bird ?b) (- (vy_bird ?b) (* (/ (* 2 (m_pig ?p)) (+ (m_bird ?b) (m_pig ?p))) (*
                 (/
                     (+ (+ (- (- (- (- (+ (* (vx_bird ?b) (x_bird ?b)) (* (vy_bird ?b) (y_bird ?b))) (* (vx_bird ?b) (x_pig ?p))) (* (vy_bird ?b) (y_pig ?p))) (* 0 (x_bird ?b))) (* 0 (y_bird ?b))) (* 0 (x_pig ?p))) (* 0 (y_pig ?p)))
                     (+ (+ (- (- (- (- (+ (* (x_pig ?p) (x_pig ?p)) (* (y_pig ?p) (y_pig ?p))) (* (x_pig ?p) (x_bird ?b))) (* (y_pig ?p) (y_bird ?b))) (* (x_bird ?b) (x_pig ?p))) (* (y_bird ?b) (y_pig ?p))) (* (x_bird ?b) (x_bird ?b))) (* (y_bird ?b) (y_bird ?b)))
@@ -138,7 +139,7 @@
             (<= (y_bird ?b) (+ (y_block ?bl) (/ (block_height ?bl) 2) ) )
         )
         :effect (and
-        	(assign (block_stability ?bl) (- (block_stability ?bl) (v_bird ?b))        )
+            (assign (block_stability ?bl) (- (block_stability ?bl) (v_bird ?b))        )
             (assign (block_life ?bl) (- (block_life ?bl) (v_bird ?b)) )
             (assign (vy_bird ?b) (* (vy_bird ?b) 0.5))
             (assign (vx_bird ?b) (* (vx_bird ?b) 0.5))
@@ -183,7 +184,7 @@
     (:event explode_block
         :parameters (?bl_tnt - block ?bl_near - block)
         :precondition (and
-        	(block_explosive ?bl_tnt)
+            (block_explosive ?bl_tnt)
             ; (<= (block_stability ?bl_tnt) 0)
             (<= (block_life ?bl_tnt) 0)
             (> (block_stability ?bl_near) 0)
@@ -202,7 +203,7 @@
     (:event explode_pig
         :parameters (?bl_tnt - block ?p - pig)
         :precondition (and
-        	(block_explosive ?bl_tnt)
+            (block_explosive ?bl_tnt)
             ; (<= (block_stability ?bl_tnt) 0)
             (<= (block_life ?bl_tnt) 0)
             (not (pig_dead ?p))
@@ -237,10 +238,10 @@
         :precondition (and
             (= (active_bird) (bird_id ?b))
             (> (v_bird ?b) 0)
-            (<= (x_bird ?b) (+ (x_platform ?pl) (/ (platform_width ?pl) 2) ) )
-            (>= (x_bird ?b) (- (x_platform ?pl) (/ (platform_width ?pl) 2) ) )
-            (>= (y_bird ?b) (- (y_platform ?pl) (/ (platform_height ?pl) 2) ) )
-            (<= (y_bird ?b) (+ (y_platform ?pl) (/ (platform_height ?pl) 2) ) )
+            (<= (x_bird ?b) (+ (x_platform ?pl) (/ (platform_width ?pl) 1.75) ) )
+            (>= (x_bird ?b) (- (x_platform ?pl) (/ (platform_width ?pl) 1.75) ) )
+            (>= (y_bird ?b) (- (y_platform ?pl) (/ (platform_height ?pl) 1.75) ) )
+            (<= (y_bird ?b) (+ (y_platform ?pl) (/ (platform_height ?pl) 1.75) ) )
         )
         :effect (and
             (assign (v_bird ?b) 0)

@@ -50,11 +50,11 @@ def estimate_launch_angle(slingshot, targetPoint):
     ref = Point2D(int(get_slingshot_x(slingshot) + X_OFFSET * get_width(slingshot)), int(Y_OFFSET * get_height(slingshot)))
     # print ('ref point', str(ref))
     x = (targetPoint.X - ref.X)
-    y = -(targetPoint.Y - ref.Y)
-    #
+    y = (targetPoint.Y - ref.Y)
+
     # print ('sling X', get_slingshot_x(slingshot))
     # print ('sling Y', get_slingshot_y(ground_offset, slingshot))
-    #
+
     # print ('X', x)
     # print ('Y', y)
 
@@ -254,8 +254,8 @@ class PlatformType(PddlObjectType):
         obj_attributes["x_platform"] = get_x_coordinate(obj)
         obj_attributes["y_platform"] = get_y_coordinate(obj, problem_params["groundOffset"])
 
-        obj_attributes["platform_height"] = get_height(obj)
-        obj_attributes["platform_width"] = get_width(obj)
+        obj_attributes["platform_height"] = get_height(obj) * 1.1
+        obj_attributes["platform_width"] = get_width(obj) * 1.1
         return obj_attributes
 
     def _compute_obj_attributes(self, obj, problem_params: dict):
@@ -298,9 +298,9 @@ class BlockType(PddlObjectType):
     def __compute_block_mass(self):
         return str(self.hyper_parameters["block_mass_coeff"])
     def __compute_stability(self, bl_width, bl_height, bl_y, groundOffset):
-        return 265 * (bl_width / (bl_height + 1)) \
+        return round(265 * (bl_width / (bl_height + 1)) \
                * (1 - (bl_y / (groundOffset + 1))) \
-               * self.hyper_parameters["block_mass_coeff"]
+               * self.hyper_parameters["block_mass_coeff"])
 
 
 class WoodType(BlockType):
@@ -342,7 +342,10 @@ class MetaModel():
             self.constant_numeric_fluents[fluent]=value
 
         for not_fluent in ['angle_adjusted',
-                           'pig_killed']:
+                           # 'increasing',
+                           # 'decreasing',
+                           'pig_killed'
+                           ]:
             self.constant_boolean_fluents[not_fluent]=False
 
         self.metric = 'minimize(total-time)'
@@ -442,17 +445,42 @@ class MetaModel():
         # Initial angle value to prune un-promising trajectories which only hit the ground
         state = PddlPlusState(prob.init)
         target_pigs = state.get_pigs()
-        closest_pig = None
+
+        closest_obj_x = None
+        closest_obj_y = None
         assert len(problem_params["pigs"]) > 0
         for pig in target_pigs:
             x_pig = state[('x_pig', pig)]
             y_pig = state[('y_pig', pig)]
-            if (closest_pig == None) or (math.sqrt(x_pig**2 + y_pig**2) < math.sqrt(state[('x_pig', closest_pig)]**2 + state[('y_pig', closest_pig)]**2)):
-                closest_pig = pig
+            if (closest_obj_x == None) or (math.sqrt(x_pig**2 + y_pig**2) < math.sqrt(closest_obj_x**2 + closest_obj_y**2)):
+                closest_obj_x = x_pig
+                closest_obj_y = y_pig
+                # print("\n\nNEW CLOSEST TARGET: " + pig + "(" + str(closest_obj_x) + ", " + str(closest_obj_y) + ")\n")
 
-        min_angle, max_angle = estimate_launch_angle(slingshot, Point2D(state[('x_pig', closest_pig)], state[('y_pig', closest_pig)]))
+        for plat in state.get_platforms():
+            x_plat = state[('x_platform', plat)]
+            y_plat = state[('y_platform', plat)]
+            if (y_plat - ((state[('y_height', plat)])/2)) >= 10.0:
+                y_plat = 0
+            if (closest_obj_x == None) or (math.sqrt(x_plat ** 2 + y_plat ** 2) < math.sqrt(closest_obj_x**2 + closest_obj_y**2)):
+                closest_obj_x = x_plat
+                closest_obj_y = y_plat
+                # print("\n\nNEW CLOSEST TARGET: " + plat + "(" + str(closest_obj_x) + ", " + str(closest_obj_y) + ")\n")
+
+        for blo in state.get_blocks():
+            x_blo = state[('x_block', blo)]
+            y_blo = state[('y_block', blo)]
+            if (closest_obj_x == None) or (
+                    math.sqrt(x_blo ** 2 + y_blo ** 2) < math.sqrt(closest_obj_x ** 2 + closest_obj_y ** 2)):
+                closest_obj_x = x_blo
+                closest_obj_y = y_blo
+                # print("\n\nNEW CLOSEST TARGET: " + blo + "(" + str(closest_obj_x) + ", " + str(closest_obj_y) + ")\n")
+
+        min_angle, max_angle = estimate_launch_angle(slingshot, Point2D(closest_obj_x,closest_obj_y))
         problem_params["angle"] = min_angle
         prob.init.append(['=', ['angle'], problem_params["angle"]])
+        problem_params["max_angle"] = max_angle
+        prob.init.append(['=', ['max_angle'], problem_params["max_angle"]])
 
 
         # Add goal
