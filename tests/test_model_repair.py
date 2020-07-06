@@ -208,46 +208,6 @@ def test_repair_gravity_offline():
 
     assert consistency_before_repair>consistency_after_repair
 
-''' Repair gravity based on an observed state'''
-def test_repair_pig_bounce():
-    meta_model = MetaModel()
-
-    fluents_to_repair = ["pig_bounce_factor",]
-    repair_deltas = [2.0,]
-    desired_precision = 20
-    delta_t = 0.05
-    meta_model.constant_numeric_fluents[fluents_to_repair[0]] = 2.0
-    obs_output_file = path.join(DATA_DIR, 'science_birds','tests', "bad_pig_bounce.p") # For debug
-    observation = pickle.load(open(obs_output_file, "rb"))  # For debug
-    time_action = [observation.action[0], observation.action[1]/meta_model.get_angle_rate()]
-
-    consistency_checker = BirdLocationConsistencyEstimator()
-    meta_model_repair = FixedPointMetaModelRepair(fluents_to_repair, consistency_checker, repair_deltas,
-                                                             consistency_threshold=desired_precision)
-
-    problem = meta_model.create_pddl_problem(observation.state)
-    domain = meta_model.create_pddl_domain(observation.state)
-    grounded_domain = PddlPlusGrounder().ground_domain(domain,problem)
-    plan = PddlPlusPlan()
-    plan.add_raw_actions([time_action], grounded_domain)
-    observed_seq = observation.get_trace(meta_model)
-
-    test_utils.plot_observation(observation) # For debug
-    test_utils.plot_expected_trace(meta_model, observation.state, time_action, delta_t=DELTA_T) # For debug
-
-    consistency_before_repair = consistency_checker.estimate_consistency(test_utils.simulate_plan_trace(plan, problem, domain), observed_seq)
-
-    repaired_meta_model = meta_model_repair.repair(meta_model, observation.state, plan, observed_seq, delta_t=delta_t)
-    logger.info("Repair done. Fluent values in meta model  are now %s" %
-                str([repaired_meta_model.constant_numeric_fluents[fluent] for fluent in fluents_to_repair]))
-
-    problem = meta_model.create_pddl_problem(observation.state)
-    domain = meta_model.create_pddl_domain(observation.state)
-    consistency_after_repair = consistency_checker.estimate_consistency(test_utils.simulate_plan_trace(plan, problem, domain), observed_seq)
-
-    assert consistency_before_repair>consistency_after_repair
-
-
 ''' A full system test: run SB with a bad meta model, observe results, fix meta model '''
 @pytest.mark.skipif(settings.HEADLESS == True, reason="headless does not work in docker")
 def test_repair_gravity_in_agent(launch_science_birds_level_01):

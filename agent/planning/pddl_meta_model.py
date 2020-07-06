@@ -337,8 +337,7 @@ class MetaModel():
                                 # ('angle', 0),
                                 ('angle_rate', 20),
                                 ('ground_damper', 0.3),
-                                ('gravity_factor', 9.81),
-                                ('pig_bounce_factor', 2)]:
+                                ('gravity_factor', 9.81)]:
             self.constant_numeric_fluents[fluent]=value
 
         for not_fluent in ['angle_adjusted',
