@@ -3,7 +3,7 @@ import subprocess
 
 import matplotlib
 import pytest
-
+import agent.planning.planner_utils as planner_utils
 import agent.planning.pddl_plus as pddl_plus
 import tests.test_utils as test_utils
 from agent.consistency.meta_model_repair import *
@@ -184,9 +184,10 @@ def test_repair_gravity_offline():
     meta_model.constant_numeric_fluents["gravity_factor"] = 2.5
     obs_output_file = path.join(DATA_DIR, 'science_birds','tests', "bad_gravity_level_004.p") # For debug
     observation = pickle.load(open(obs_output_file, "rb"))  # For debug
-    time_action = [observation.action[0], observation.action[1]/meta_model.get_angle_rate()]
+    time_action = [observation.action[0], observation.action[2]]
 
-    test_utils.plot_expected_trace(meta_model, observation.state, time_action)
+    matplotlib.interactive(True)
+    plot_axes = test_utils.plot_expected_trace(meta_model, observation.state, time_action)
 
     consistency_checker = BirdLocationConsistencyEstimator()
     meta_model_repair = FixedPointMetaModelRepair(fluents_to_repair, consistency_checker, repair_deltas,
@@ -198,6 +199,16 @@ def test_repair_gravity_offline():
     plan = PddlPlusPlan()
     plan.add_raw_actions([time_action], grounded_domain)
     observed_seq = observation.get_trace(meta_model)
+
+    plot_axes =test_utils.plot_observation(observation, plot_axes)
+    meta_model.constant_numeric_fluents["gravity_factor"] = 9.81
+    plot_axes = test_utils.plot_expected_trace(meta_model, observation.state, time_action, ax=plot_axes)
+    meta_model.constant_numeric_fluents["gravity_factor"] = 10
+    plot_axes = test_utils.plot_expected_trace(meta_model, observation.state, time_action, ax=plot_axes)
+    meta_model.constant_numeric_fluents["gravity_factor"] = 12.5
+    plot_axes = test_utils.plot_expected_trace(meta_model, observation.state, time_action, ax=plot_axes)
+    meta_model.constant_numeric_fluents["gravity_factor"] = 15
+    plot_axes = test_utils.plot_expected_trace(meta_model, observation.state, time_action, ax=plot_axes)
 
     consistency_before_repair = consistency_checker.estimate_consistency(test_utils.simulate_plan_trace(plan, problem, domain), observed_seq)
 
@@ -211,7 +222,8 @@ def test_repair_gravity_offline():
 
     assert consistency_before_repair>consistency_after_repair
 
-
+    plot_axes = test_utils.plot_expected_trace(repaired_meta_model, observation.state, time_action, ax=plot_axes)
+    print(3)
 
 ''' Check that the agent can win level01 with the given meta model'''
 def test_sanity_check(launch_science_birds_level_01):
@@ -220,6 +232,18 @@ def test_sanity_check(launch_science_birds_level_01):
     _run_next_action(hydra)
     observation = _find_last_obs(hydra)
     assert observation.reward > 0
+
+    plot_axes =test_utils.plot_observation(observation)
+    time_action = [observation.action[0], observation.action[2]]
+    test_utils.plot_expected_trace(hydra.meta_model, observation.state, time_action, ax=plot_axes)
+
+    # Check consistency
+    consistency_checker = BirdLocationConsistencyEstimator()
+    observed_seq = observation.get_trace(hydra.meta_model)
+    expected_trace, plan = planner_utils.get_expected_trace(observation, hydra.meta_model, delta_t=DELTA_T)
+    consistency = consistency_checker.estimate_consistency(expected_trace, observed_seq, delta_t=DELTA_T)
+    logger.info("Consistency with model: %.2f " % consistency)
+    assert consistency < 10
 
 ''' A full system test: run SB with a bad meta model, observe results, fix meta model '''
 @pytest.mark.skipif(settings.HEADLESS == True, reason="headless does not work in docker")
@@ -237,15 +261,8 @@ def test_repair_gravity_in_agent(launch_science_birds_level_01):
     repair_deltas = [2.5, ]
     meta_model.constant_numeric_fluents["gravity_factor"] = 2.5
 
-
     logger.info("Running agent with current meta model")
 
-    # Run agent with dummy action and collect observation
-    # raw_timed_action = ["pa-twang redbird_0", 65.5]
-    # plan = [raw_timed_action]
-    # hydra.planner = test_utils.PlannerStub(plan, hydra.meta_model)
-
-    hydra.planner = Planner(meta_model)
     hydra.main_loop(max_actions=3)  # enough actions to play the first level
     logger.info("Agent performed action %s " % str(hydra.observations[1].action))
 
@@ -256,16 +273,12 @@ def test_repair_gravity_in_agent(launch_science_birds_level_01):
     observed_seq = observation.get_trace(hydra.meta_model)
     obs_output_file = path.join(DATA_DIR, "bad_gravity_level_004.p") # For debug
     pickle.dump(observation, open(obs_output_file, "wb"))  # For debug
-    # matplotlib.interactive(True) # For debug
-    # test_utils.plot_observation(observation) # For debug
-    time_action = [observation.action[0], observation.action[1]/meta_model.get_angle_rate()]
-    # test_utils.plot_expected_trace(meta_model, observation.state, time_action, delta_t=DELTA_T) # For debug
-    problem = meta_model.create_pddl_problem(observation.state)
-    domain = meta_model.create_pddl_domain(observation.state)
-    grounded_domain = PddlPlusGrounder().ground_domain(domain,problem)
-    plan = PddlPlusPlan()
-    plan.add_raw_actions([time_action], grounded_domain)
-    expected_trace = test_utils.simulate_plan_trace(plan, problem, domain, delta_t=DELTA_T)
+
+    matplotlib.interactive(True) # For debug
+    fig = test_utils.plot_observation(observation) # For debug
+    test_utils.plot_expected_trace(hydra.meta_model, observation.state, [observation.action[0], observation.action[2]], ax=fig)
+
+    expected_trace, plan = planner_utils.get_expected_trace(observation, meta_model, DELTA_T)
 
     # Check consistency
     consistency_checker = BirdLocationConsistencyEstimator()
@@ -315,7 +328,6 @@ def test_repair_gravity_in_agent(launch_science_birds_level_01):
     _run_next_action(hydra)  # enough actions to play a level
     observation = _find_last_obs(hydra)
     assert observation.reward > 0
-
 
 ####### Helper functions
 

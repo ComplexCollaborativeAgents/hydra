@@ -54,25 +54,27 @@ def load_plan(plan_trace_file: str, pddl_problem: PddlPlusProblem, pddl_domain: 
 def plot_expected_trace(meta_model: MetaModel,
                         state : ProcessedSBState,
                         time_action : list,
-                        delta_t = 0.05):
+                        delta_t = 0.05,
+                        ax=None):
     expected_trace = PddlPlusSimulator().simulate_observed_action(state, time_action, meta_model, delta_t)
     state_sequence = [timed_state[0] for timed_state in expected_trace]
-    plot_state_sequence(state_sequence,meta_model.create_pddl_state(state))
+    return plot_state_sequence(state_sequence,meta_model.create_pddl_state(state),ax)
 
 ''' Plot the given observation'''
-def plot_observation(observation: ScienceBirdsObservation):
+def plot_observation(observation: ScienceBirdsObservation, ax=None, marker="o"):
     meta_model = MetaModel()
     sb_state = observation.state
     pddl_state = meta_model.create_pddl_state(sb_state)
     obs_state_sequence = observation.get_trace(meta_model)
-    plot_state_sequence(obs_state_sequence, pddl_state)
+    return plot_state_sequence(obs_state_sequence, pddl_state, ax, marker)
 
 '''
 Plotting a sequence of states, showing where the pigs, platforms, and birds are initially,
 and showing the trajectory of the active bird. 
 '''
-def plot_state_sequence(state_seq : list, pddl_state: PddlPlusState):
-    fig, ax = plt.subplots()
+def plot_state_sequence(state_seq : list, pddl_state: PddlPlusState, ax= None, marker="x"):
+    if ax is None:
+        _, ax = plt.subplots()
     # plot pigs
     pigs = pddl_state.get_pigs()
     x_pigs = [pddl_state[("x_pig", pig)] for pig in pigs]
@@ -106,8 +108,9 @@ def plot_state_sequence(state_seq : list, pddl_state: PddlPlusState):
     max_axis = max(right_x, right_y)
     plt.xlim((0, max_axis))
     plt.ylim((0, max_axis))
-    ax.plot(x_active_bird, y_active_bird, marker="x", markersize=8, linestyle="")
+    ax.plot(x_active_bird, y_active_bird, marker=marker, markersize=8, linestyle="")
     plt.show()
+    return ax
 
 
 ''' A planner that executes a predefined plan '''

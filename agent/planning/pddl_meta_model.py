@@ -33,6 +33,13 @@ def get_scale(slingshot):
     # sling.width + sling.height
     return abs(round(slingshot[1]['bbox'].bounds[0] - slingshot[1]['bbox'].bounds[2])) + round(abs(slingshot[1]['bbox'].bounds[1] - slingshot[1]['bbox'].bounds[3]))
 
+def get_radius(obj):
+    return round((abs(obj[1]['bbox'].bounds[2] - obj[1]['bbox'].bounds[0]) / 2) * 0.9)
+def get_height(obj):
+    return abs(obj[1]['bbox'].bounds[3] - obj[1]['bbox'].bounds[1])
+def get_width(obj):
+    return abs(obj[1]['bbox'].bounds[2] - obj[1]['bbox'].bounds[0])
+
 ''' Returns the location of the closest object to aim for '''
 def get_closest_object_xy(pddl_problem : PddlPlusProblem):
     state = PddlPlusState(pddl_problem.init)
@@ -69,9 +76,9 @@ def get_closest_object_xy(pddl_problem : PddlPlusProblem):
     return closest_obj_x, closest_obj_y
 
 ''' Returns a min/max launch angle to hit the given target point '''
-def estimate_launch_angle(slingshot, targetPoint):
+def estimate_launch_angle(slingshot, targetPoint, meta_model):
     # calculate relative position of the target (normalised)
-    scale_factor = 2.7
+    scale_factor = meta_model.hyper_parameters['scale_factor']
     _velocity = 9.5 / scale_factor
     X_OFFSET = 0.45
     Y_OFFSET = 0.6
@@ -95,7 +102,7 @@ def estimate_launch_angle(slingshot, targetPoint):
     # print ('Y', y)
 
     # gravity
-    g = 0.48 * 9.81 / scale_factor * scale
+    g = 0.48 * meta_model.constant_numeric_fluents['gravity_factor'] / scale_factor * scale
     # print('gravity', g)
     # launch speed
     v = _velocity * scale
@@ -124,13 +131,6 @@ def estimate_launch_angle(slingshot, targetPoint):
     # print('theta 2', math.degrees(theta_2))
 
     return math.floor(math.degrees(theta_1)), math.ceil(math.degrees(theta_2))
-
-def get_radius(obj):
-    return round((abs(obj[1]['bbox'].bounds[2] - obj[1]['bbox'].bounds[0]) / 2) * 0.9)
-def get_height(obj):
-    return abs(obj[1]['bbox'].bounds[3] - obj[1]['bbox'].bounds[1])
-def get_width(obj):
-    return abs(obj[1]['bbox'].bounds[2] - obj[1]['bbox'].bounds[0])
 
 ''' A generator for Pddl Objects '''
 class PddlObjectType():
@@ -366,8 +366,12 @@ class MetaModel():
     ''' Sets the default meta-model'''
     def __init__(self):
         # TODO: Read this from file instead of hard coding
+        self.hyper_parameters = dict() # These are parameters that do not appear in the PDDL files
+        self.hyper_parameters['scale_factor']= 2.7
+
         self.constant_numeric_fluents = dict()
         self.constant_boolean_fluents = dict()
+
 
         for (fluent, value) in [('active_bird', 0),
                                 # ('angle', 0),
@@ -437,7 +441,8 @@ class MetaModel():
         problem_params["bird_index"]=0
         problem_params["slingshot"]=slingshot
         problem_params["groundOffset"] = self.get_ground_offset(slingshot)
-        problem_params["gravity"] = round(0.48* self.constant_numeric_fluents['gravity_factor'] / 2.7 * get_scale(slingshot))
+        problem_params["gravity"] = round(0.48* self.constant_numeric_fluents['gravity_factor'] /
+                                          self.hyper_parameters['scale_factor'] * get_scale(slingshot))
         # Above line redundant since we're storing the slingshot also, but it seems easier to store it also to save computations of the offset everytime we use it.
         problem_params["pigs"] = set()
         problem_params["birds"] = set()
@@ -479,7 +484,7 @@ class MetaModel():
 
         # Initial angle value to prune un-promising trajectories which only hit the ground
         closest_obj_x, closest_obj_y = get_closest_object_xy(pddl_problem)
-        min_angle, max_angle = estimate_launch_angle(slingshot, Point2D(closest_obj_x, closest_obj_y))
+        min_angle, max_angle = estimate_launch_angle(slingshot, Point2D(closest_obj_x, closest_obj_y), self)
         problem_params["angle"] = min_angle
         pddl_problem.init.append(['=', ['angle'], problem_params["angle"]])
         problem_params["max_angle"] = max_angle

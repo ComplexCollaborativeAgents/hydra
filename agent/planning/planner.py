@@ -118,10 +118,11 @@ class Planner():
 
                 if " pa-twang " in line:
                     plan_actions.append((line.split(':')[1].split('[')[0].replace('(', '').replace(')', '').strip(),
-                                         float(str(lines_list[i + 1].split('angle:')[1].split(',')[0]))))
+                                         float(str(lines_list[i + 1].split('angle:')[1].split(',')[0])),
+                                         float(line.split(':')[0])))
 
                 if "syntax error" in line:
-                    plan_actions.append(("syntax error", 0.0))
+                    plan_actions.append(("syntax error", 0.0, -1))
                     break
         return  plan_actions
 

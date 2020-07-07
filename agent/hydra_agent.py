@@ -31,8 +31,8 @@ class HydraAgent():
             env.sb_client.set_game_simulation_speed(settings.SB_SIM_SPEED)
         self.perception = Perception()
         self.consistency_checker = ConsistencyChecker()
-        self.planner = Planner()
         self.meta_model = MetaModel()
+        self.planner = Planner(self.meta_model) # TODO: Discuss this w. Wiktor & Matt
         self.completed_levels = []
         self.observations = []
         self.novelty_likelihood = 0.0
