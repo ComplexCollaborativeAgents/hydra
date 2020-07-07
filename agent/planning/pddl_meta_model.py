@@ -33,6 +33,42 @@ def get_scale(slingshot):
     # sling.width + sling.height
     return abs(round(slingshot[1]['bbox'].bounds[0] - slingshot[1]['bbox'].bounds[2])) + round(abs(slingshot[1]['bbox'].bounds[1] - slingshot[1]['bbox'].bounds[3]))
 
+''' Returns the location of the closest object to aim for '''
+def get_closest_object_xy(pddl_problem : PddlPlusProblem):
+    state = PddlPlusState(pddl_problem.init)
+    target_pigs = state.get_pigs()
+    closest_obj_x = None
+    closest_obj_y = None
+    assert len(target_pigs) > 0
+    for pig in target_pigs:
+        x_pig = state[('x_pig', pig)]
+        y_pig = state[('y_pig', pig)]
+        if (closest_obj_x == None) or (
+                math.sqrt(x_pig ** 2 + y_pig ** 2) < math.sqrt(closest_obj_x ** 2 + closest_obj_y ** 2)):
+            closest_obj_x = x_pig
+            closest_obj_y = y_pig
+            # print("\n\nNEW CLOSEST TARGET: " + pig + "(" + str(closest_obj_x) + ", " + str(closest_obj_y) + ")\n")
+    for plat in state.get_platforms():
+        x_plat = state[('x_platform', plat)]
+        y_plat = state[('y_platform', plat)]
+        if (y_plat - ((state[('y_height', plat)]) / 2)) >= 10.0:
+            y_plat = 0
+        if (closest_obj_x == None) or (
+                math.sqrt(x_plat ** 2 + y_plat ** 2) < math.sqrt(closest_obj_x ** 2 + closest_obj_y ** 2)):
+            closest_obj_x = x_plat
+            closest_obj_y = y_plat
+            # print("\n\nNEW CLOSEST TARGET: " + plat + "(" + str(closest_obj_x) + ", " + str(closest_obj_y) + ")\n")
+    for blo in state.get_blocks():
+        x_blo = state[('x_block', blo)]
+        y_blo = state[('y_block', blo)]
+        if (closest_obj_x == None) or (
+                math.sqrt(x_blo ** 2 + y_blo ** 2) < math.sqrt(closest_obj_x ** 2 + closest_obj_y ** 2)):
+            closest_obj_x = x_blo
+            closest_obj_y = y_blo
+            # print("\n\nNEW CLOSEST TARGET: " + blo + "(" + str(closest_obj_x) + ", " + str(closest_obj_y) + ")\n")
+    return closest_obj_x, closest_obj_y
+
+''' Returns a min/max launch angle to hit the given target point '''
 def estimate_launch_angle(slingshot, targetPoint):
     # calculate relative position of the target (normalised)
     scale_factor = 2.7
@@ -383,13 +419,13 @@ class MetaModel():
         # init rep [['=', ['gravity'], '134.2'], ['=', ['active_bird'], '0'], ['=', ['angle'], '0'], ['=', ['angle_rate'], '20'], ['not', ['angle_adjusted']], ['not', ['bird_dead', 'redBird_0']], ['not', ['bird_released', 'redBird_0']], ['=', ['x_bird', 'redBird_0'], '192'], ['=', ['y_bird', 'redBird_0'], '29'], ['=', ['v_bird', 'redBird_0'], '270'], ['=', ['vy_bird', 'redBird_0'], '0'], ['=', ['bird_id', 'redBird_0'], '0'], ['not', ['wood_destroyed', 'wood_2']], ['=', ['x_wood', 'wood_2'], '445.0'], ['=', ['y_wood', 'wood_2'], '25.0'], ['=', ['wood_height', 'wood_2'], '12.0'], ['=', ['wood_width', 'wood_2'], '24.0'], ['not', ['wood_destroyed', 'wood_3']], ['=', ['x_wood', 'wood_3'], '447.0'], ['=', ['y_wood', 'wood_3'], '13.0'], ['=', ['wood_height', 'wood_3'], '13.0'], ['=', ['wood_width', 'wood_3'], '24.0'], ['not', ['pig_dead', 'pig_4']], ['=', ['x_pig', 'pig_4'], '449.0'], ['=', ['y_pig', 'pig_4'], '53.0'], ['=', ['margin_pig', 'pig_4'], '21']]
         # objects rep [('redBird_0', 'bird'), ('pig_4', 'pig'), ('wood_2', 'wood_block'), ('wood_3', 'wood_block'), ('dummy_ice', 'ice_block'), ('dummy_stone', 'stone_block'), ('dummy_platform', 'platform')]
 
-        prob = PddlPlusProblem()
-        prob.domain = 'angry_birds_scaled'
-        prob.name = 'angry_birds_prob'
-        prob.metric = self.metric
-        prob.objects = []
-        prob.init = []
-        prob.goal = []
+        pddl_problem = PddlPlusProblem()
+        pddl_problem.domain = 'angry_birds_scaled'
+        pddl_problem.name = 'angry_birds_prob'
+        pddl_problem.metric = self.metric
+        pddl_problem.objects = []
+        pddl_problem.init = []
+        pddl_problem.goal = []
 
         #we should probably use the self.sling on the object
         slingshot = self.get_slingshot(sb_state)
@@ -422,73 +458,41 @@ class MetaModel():
                     continue
 
             # Add object of this type to the problem
-            type.add_object_to_problem(prob, obj, problem_params)
+            type.add_object_to_problem(pddl_problem, obj, problem_params)
 
         # Add dummy platform and block if none exists TODO: Why do we need this?
         if problem_params["has_platform"]==False:
-            prob.objects.append(['dummy_platform','platform'])
+            pddl_problem.objects.append(['dummy_platform','platform'])
         if problem_params["has_block"]==False:
-            prob.objects.append(['dummy_block','block'])
+            pddl_problem.objects.append(['dummy_block','block'])
 
         # Add constants fluents
         for numeric_fluent in self.constant_numeric_fluents:
-            prob.init.append(['=', [numeric_fluent], self.constant_numeric_fluents[numeric_fluent]])
+            pddl_problem.init.append(['=', [numeric_fluent], self.constant_numeric_fluents[numeric_fluent]])
         for boolean_fluent in self.constant_boolean_fluents:
             if self.constant_boolean_fluents[boolean_fluent]:
-                prob.init.append([boolean_fluent])
+                pddl_problem.init.append([boolean_fluent])
             else:
-                prob.init.append(['not',[boolean_fluent]])
-        prob.init.append(['=', ['gravity'], problem_params["gravity"]])
+                pddl_problem.init.append(['not',[boolean_fluent]])
+        pddl_problem.init.append(['=', ['gravity'], problem_params["gravity"]])
 
 
         # Initial angle value to prune un-promising trajectories which only hit the ground
-        state = PddlPlusState(prob.init)
-        target_pigs = state.get_pigs()
-
-        closest_obj_x = None
-        closest_obj_y = None
-        assert len(problem_params["pigs"]) > 0
-        for pig in target_pigs:
-            x_pig = state[('x_pig', pig)]
-            y_pig = state[('y_pig', pig)]
-            if (closest_obj_x == None) or (math.sqrt(x_pig**2 + y_pig**2) < math.sqrt(closest_obj_x**2 + closest_obj_y**2)):
-                closest_obj_x = x_pig
-                closest_obj_y = y_pig
-                # print("\n\nNEW CLOSEST TARGET: " + pig + "(" + str(closest_obj_x) + ", " + str(closest_obj_y) + ")\n")
-
-        for plat in state.get_platforms():
-            x_plat = state[('x_platform', plat)]
-            y_plat = state[('y_platform', plat)]
-            if (y_plat - ((state[('y_height', plat)])/2)) >= 10.0:
-                y_plat = 0
-            if (closest_obj_x == None) or (math.sqrt(x_plat ** 2 + y_plat ** 2) < math.sqrt(closest_obj_x**2 + closest_obj_y**2)):
-                closest_obj_x = x_plat
-                closest_obj_y = y_plat
-                # print("\n\nNEW CLOSEST TARGET: " + plat + "(" + str(closest_obj_x) + ", " + str(closest_obj_y) + ")\n")
-
-        for blo in state.get_blocks():
-            x_blo = state[('x_block', blo)]
-            y_blo = state[('y_block', blo)]
-            if (closest_obj_x == None) or (
-                    math.sqrt(x_blo ** 2 + y_blo ** 2) < math.sqrt(closest_obj_x ** 2 + closest_obj_y ** 2)):
-                closest_obj_x = x_blo
-                closest_obj_y = y_blo
-                # print("\n\nNEW CLOSEST TARGET: " + blo + "(" + str(closest_obj_x) + ", " + str(closest_obj_y) + ")\n")
-
-        min_angle, max_angle = estimate_launch_angle(slingshot, Point2D(closest_obj_x,closest_obj_y))
+        closest_obj_x, closest_obj_y = get_closest_object_xy(pddl_problem)
+        min_angle, max_angle = estimate_launch_angle(slingshot, Point2D(closest_obj_x, closest_obj_y))
         problem_params["angle"] = min_angle
-        prob.init.append(['=', ['angle'], problem_params["angle"]])
+        pddl_problem.init.append(['=', ['angle'], problem_params["angle"]])
         problem_params["max_angle"] = max_angle
-        prob.init.append(['=', ['max_angle'], problem_params["max_angle"]])
+        pddl_problem.init.append(['=', ['max_angle'], problem_params["max_angle"]])
 
 
         # Add goal
         pigs = problem_params["pigs"]
         assert len(pigs)>0
         for pig in pigs:
-            prob.goal.append(['pig_dead', pig])
+            pddl_problem.goal.append(['pig_dead', pig])
 
-        return prob
+        return pddl_problem
 
     ''' Get the ground offset '''
     def get_ground_offset(self, slingshot):

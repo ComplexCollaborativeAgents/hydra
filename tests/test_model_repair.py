@@ -173,6 +173,7 @@ def launch_science_birds_level_01():
     print("teardown tests")
     env.kill()
 
+
 ''' Repair gravity based on an observed state'''
 def test_repair_gravity_offline():
     meta_model = MetaModel()
@@ -184,6 +185,8 @@ def test_repair_gravity_offline():
     obs_output_file = path.join(DATA_DIR, 'science_birds','tests', "bad_gravity_level_004.p") # For debug
     observation = pickle.load(open(obs_output_file, "rb"))  # For debug
     time_action = [observation.action[0], observation.action[1]/meta_model.get_angle_rate()]
+
+    test_utils.plot_expected_trace(meta_model, observation.state, time_action)
 
     consistency_checker = BirdLocationConsistencyEstimator()
     meta_model_repair = FixedPointMetaModelRepair(fluents_to_repair, consistency_checker, repair_deltas,
@@ -207,6 +210,16 @@ def test_repair_gravity_offline():
     consistency_after_repair = consistency_checker.estimate_consistency(test_utils.simulate_plan_trace(plan, problem, domain), observed_seq)
 
     assert consistency_before_repair>consistency_after_repair
+
+
+
+''' Check that the agent can win level01 with the given meta model'''
+def test_sanity_check(launch_science_birds_level_01):
+    env = launch_science_birds_level_01
+    hydra = HydraAgent(env)
+    _run_next_action(hydra)
+    observation = _find_last_obs(hydra)
+    assert observation.reward > 0
 
 ''' A full system test: run SB with a bad meta model, observe results, fix meta model '''
 @pytest.mark.skipif(settings.HEADLESS == True, reason="headless does not work in docker")
@@ -303,6 +316,8 @@ def test_repair_gravity_in_agent(launch_science_birds_level_01):
     observation = _find_last_obs(hydra)
     assert observation.reward > 0
 
+
+####### Helper functions
 
 def _run_next_action(hydra_agent: HydraAgent):
     while True:
