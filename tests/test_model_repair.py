@@ -221,7 +221,7 @@ def test_repair_gravity_offline():
     plot_axes = test_utils.plot_expected_trace(repaired_meta_model, observation.state, time_action, ax=plot_axes)
     print(3)
 
-''' Check that the agent can win level01 with the given meta model'''
+''' Check that the agent can win level01 with the given meta model, and its consistency with the model is OK '''
 def test_sanity_check(launch_science_birds_level_01):
     env = launch_science_birds_level_01
     hydra = HydraAgent(env)
@@ -229,11 +229,15 @@ def test_sanity_check(launch_science_birds_level_01):
     observation = _find_last_obs(hydra)
     assert observation.reward > 0
 
+    ### Uncomment for visual debugging
+    matplotlib.interactive(True)
     plot_axes =test_utils.plot_observation(observation)
+    obs_output_file = path.join(DATA_DIR, "debug.p") # For debug
+    pickle.dump(observation, open(obs_output_file, "wb"))  # For debug
     time_action = [observation.action[0], observation.action[2]]
     test_utils.plot_expected_trace(hydra.meta_model, observation.state, time_action, ax=plot_axes)
 
-    # Check consistency
+    # Extract expected and observed states and check consistency
     consistency_checker = BirdLocationConsistencyEstimator()
     observed_seq = observation.get_trace(hydra.meta_model)
     expected_trace, plan = simulator.get_expected_trace(observation, hydra.meta_model, delta_t=DELTA_T)

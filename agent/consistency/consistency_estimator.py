@@ -87,7 +87,7 @@ class NumericFluentsConsistencyEstimator(ConsistencyEstimator):
 
     ''' Specify which fluents to check, and the size of the observed sequence prefix to consider.
     This is because we acknowledge that later in the observations, our model is less accurate. '''
-    def __init__(self, fluent_names, unique_prefix_size=7, discount_factor=0.9):
+    def __init__(self, fluent_names, unique_prefix_size=7, discount_factor=0.7):
         self.fluent_names = []
         for fluent_name in fluent_names:
             if isinstance(fluent_name,list):
@@ -110,6 +110,7 @@ class NumericFluentsConsistencyEstimator(ConsistencyEstimator):
         max_error = 0
         unique_prefix_counter = 0
         old_obs_state = None
+        most_inconsistent_state = None
         discount = 1.0
         for state in state_seq:
             if state!=old_obs_state: # Ignore duplicate states
@@ -122,6 +123,7 @@ class NumericFluentsConsistencyEstimator(ConsistencyEstimator):
 
                 if min_error>max_error:
                     max_error= min_error
+                    most_inconsistent_state = state # For debug
 
                 if unique_prefix_counter>=self.unique_prefix_size: # We only consider a limited prefix of the observed sequence of states
                     break
@@ -188,7 +190,7 @@ class BirdLocationConsistencyEstimator():
     def estimate_consistency(self, simulation_trace: list, state_seq: list, delta_t: float = 0.05):
         # Get birds
         birds = set()
-        for state in state_seq:
+        for [state, _,_] in simulation_trace:
             if len(birds)==0: # TODO: Discuss how to make this work. Currently a new bird suddenly appears
                 birds = state.get_birds()
             else:

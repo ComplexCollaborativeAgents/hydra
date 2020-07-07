@@ -95,20 +95,29 @@ def plot_state_sequence(state_seq : list, pddl_state: PddlPlusState, ax= None, m
         y = y - height / 2
         rect = patches.Rectangle((x, y), width, height, linewidth=1, edgecolor='r', facecolor='none')
         ax.add_patch(rect)
+
     # plot active bird trajectory
     active_bird = pddl_state.get_active_bird()
-    x_active_bird = [state[("x_bird", active_bird)] for state in state_seq]
-    y_active_bird = [state[("y_bird", active_bird)] for state in state_seq]
-    obs_points = set(zip(x_active_bird, y_active_bird))
+    obs_points = [] # Remove
+    last_point = None
+    for state in state_seq:
+        new_point = (state[("x_bird", active_bird)],state[("y_bird", active_bird)])
+        if last_point is not None and last_point==new_point:
+            continue
+        obs_points.append(new_point)
+        last_point=new_point
+
     x_active_bird = [state[0] for state in obs_points]
     y_active_bird = [state[1] for state in obs_points]
-    # Set plot area to be a square, so that proprtions are right.
+    ax.plot(x_active_bird, y_active_bird, marker=marker, markersize=8, linestyle="")
+
+    # Set plot area to be a square, so that proportions are right.
     (left, right_x) = plt.xlim()
     (left, right_y) = plt.ylim()
     max_axis = max(right_x, right_y)
     plt.xlim((0, max_axis))
     plt.ylim((0, max_axis))
-    ax.plot(x_active_bird, y_active_bird, marker=marker, markersize=8, linestyle="")
+
     plt.show()
     return ax
 
