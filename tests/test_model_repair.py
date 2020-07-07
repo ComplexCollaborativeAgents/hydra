@@ -1,14 +1,10 @@
-import logging
-import subprocess
-
 import matplotlib
 import pytest
-import agent.planning.planner_utils as planner_utils
 import agent.planning.pddl_plus as pddl_plus
 import tests.test_utils as test_utils
 from agent.consistency.meta_model_repair import *
 from agent.hydra_agent import *
-from agent.planning.planner import *
+import agent.consistency.pddl_plus_simulator as simulator
 from agent.planning.simple_planner import *
 import worlds.science_birds as sb
 
@@ -240,7 +236,7 @@ def test_sanity_check(launch_science_birds_level_01):
     # Check consistency
     consistency_checker = BirdLocationConsistencyEstimator()
     observed_seq = observation.get_trace(hydra.meta_model)
-    expected_trace, plan = planner_utils.get_expected_trace(observation, hydra.meta_model, delta_t=DELTA_T)
+    expected_trace, plan = simulator.get_expected_trace(observation, hydra.meta_model, delta_t=DELTA_T)
     consistency = consistency_checker.estimate_consistency(expected_trace, observed_seq, delta_t=DELTA_T)
     logger.info("Consistency with model: %.2f " % consistency)
     assert consistency < 10
@@ -278,7 +274,7 @@ def test_repair_gravity_in_agent(launch_science_birds_level_01):
     fig = test_utils.plot_observation(observation) # For debug
     test_utils.plot_expected_trace(hydra.meta_model, observation.state, [observation.action[0], observation.action[2]], ax=fig)
 
-    expected_trace, plan = planner_utils.get_expected_trace(observation, meta_model, DELTA_T)
+    expected_trace, plan = simulator.get_expected_trace(observation, meta_model, DELTA_T)
 
     # Check consistency
     consistency_checker = BirdLocationConsistencyEstimator()

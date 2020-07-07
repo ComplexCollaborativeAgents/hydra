@@ -2,8 +2,7 @@
     This module provides very basic capabilities for simulating PDDL+ domain behavior, 
     including actions, events, and processes.
 '''
-from agent.planning.pddl_plus import *
-from agent.planning.pddl_plus import is_float
+from agent.consistency.consistency_estimator import *
 
 # Constants
 TI_STATE = 0 # Index in a trace_item for the state
@@ -314,3 +313,21 @@ class PddlPlusSimulator():
         else:
             return False
 
+
+''' Simulate the observed action in the observed state according to the given meta model '''
+def get_expected_trace(observation : ScienceBirdsObservation, meta_model, delta_t = 0.05):
+    time_action = [observation.action[0], observation.action[2]]
+    # test_utils.plot_expected_trace(meta_model, observation.state, time_action, delta_t=DELTA_T) # For debug
+    problem = meta_model.create_pddl_problem(observation.state)
+    domain = meta_model.create_pddl_domain(observation.state)
+    grounded_domain = PddlPlusGrounder().ground_domain(domain, problem)
+    plan = PddlPlusPlan()
+    plan.add_raw_actions([time_action], grounded_domain)
+    expected_trace = simulate_plan_trace(plan, problem, domain, delta_t=delta_t)
+    return expected_trace, plan
+
+''' Helper function: simulate the given plan, on the given problem and domain.  '''
+def simulate_plan_trace(plan: PddlPlusPlan, problem:PddlPlusProblem, domain: PddlPlusDomain, delta_t:float = 0.05):
+    simulator = PddlPlusSimulator()
+    (_, _, trace) =  simulator.simulate(plan, problem, domain, delta_t)
+    return trace
