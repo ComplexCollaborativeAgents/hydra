@@ -65,7 +65,7 @@ class HydraAgent():
                         plan = self.planner.make_plan(processed_state, 2)
                         cumulative_plan_time += (time.perf_counter() - simple_plan_time)
                         logger.info("[hydra_agent_server] :: Simplified problem planning time: " + str((time.perf_counter() - simple_plan_time)))
-                        if len(plan) == 0 or plan[0][0] == "out of memory": # TODO FIX THIS
+                        if len(plan) == 0 or plan[0].action_name == "out of memory": # TODO FIX THIS
                             plan = []
                             plan.append(self.__get_default_action(processed_state))
 
