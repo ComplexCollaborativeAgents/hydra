@@ -137,7 +137,7 @@ def test_simulate():
 
     # Get the current state
     delta_t = 0.05
-    timed_action = TimedAction(twang_action, 20)
+    timed_action = TimedAction(twang_action.name, 20)
     plan = [timed_action]
 
     (current_state, t, trace) = simulator.simulate(plan, pddl_problem, pddl_domain, delta_t)

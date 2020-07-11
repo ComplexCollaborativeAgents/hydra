@@ -1,12 +1,7 @@
 #from agent.policy_learning.sarsa import SarsaLearner
-from agent.perception.perception import Perception
 from agent.consistency.model_formulation import ConsistencyChecker
 from agent.planning.planner import Planner
-import worlds.science_birds as SB
-import logging
-import math
 import time
-import settings
 
 from agent.consistency.consistency_estimator import *
 from worlds.science_birds_interface.client.agent_client import GameState
@@ -37,7 +32,7 @@ class HydraAgent():
         self.observations = []
         self.novelty_likelihood = 0.0
 
-
+    ''' Runs the agent. Returns False if the evaluation has not ended, and True if it has ended.'''
     def main_loop(self,max_actions=1000):
         logger.info("[hydra_agent_server] :: Entering main loop")
         logger.info("[hydra_agent_server] :: Delta t = {}".format(str(settings.DELTA_T)))
@@ -73,16 +68,13 @@ class HydraAgent():
                         if len(plan) == 0 or plan[0][0] == "out of memory":
                             plan = []
                             plan.append(self.__get_default_action(processed_state))
-                    action_taken = plan[0]
-                    logger.info("[hydra_agent_server] :: Taking action: {}".format(str(plan[0])))
-                    ref_point = self.env.tp.get_reference_point(processed_state.sling)
-                    release_point_from_plan = \
-                        self.env.tp.find_release_point(processed_state.sling, math.radians(plan[0][1]))
-                    action = SB.SBShoot(release_point_from_plan.X, release_point_from_plan.Y, 3000, ref_point.X,
-                                         ref_point.Y)
-                    raw_state, reward = self.env.act(action)
+
+                    action_angle_time = plan[0]
+                    logger.info("[hydra_agent_server] :: Taking action: {}".format(str(action_angle_time[0])))
+                    sb_action = self.meta_model.create_sb_action(action_angle_time, processed_state)
+                    raw_state, reward = self.env.act(sb_action)
                     observation.reward = reward
-                    observation.action = action_taken
+                    observation.action = sb_action
                     observation.intermediate_states = list(self.env.intermediate_states)
                     if settings.DEBUG:
                         observation.log_observation(self.planner.current_problem_prefix)
@@ -92,11 +84,8 @@ class HydraAgent():
                     logger.info("Perception Failure performing default shot")
                     plan = []
                     plan.append(self.__get_default_action(processed_state))
-                    ref_point = self.env.tp.get_reference_point(processed_state.sling)
-                    release_point_from_plan = \
-                        self.env.tp.find_release_point(processed_state.sling, math.radians(plan[0][1]))
-                    action = SB.SBShoot(release_point_from_plan.X, release_point_from_plan.Y, 3000, ref_point.X, ref_point.Y)
-                    raw_state, reward = self.env.act(action)
+                    sb_action = self.meta_model.create_sb_action(plan[0], processed_state)
+                    raw_state, reward = self.env.act(sb_action)
                     logger.info("[hydra_agent_server] :: Reward {} Game State {}".format(reward, raw_state.game_state))
             elif raw_state.game_state.value == GameState.WON.value:
                 self.completed_levels.append(True)
@@ -134,7 +123,7 @@ class HydraAgent():
             elif raw_state.game_state.value == GameState.EVALUATION_TERMINATED.value:
                 # store info and disconnect the agent as the evaluation is finished
                 logger.info("Evaluation complete.")
-                return None
+                return True
             elif raw_state.game_state.value == GameState.REQUESTNOVELTYLIKELIHOOD.value:
                 logger.info("[hydra_agent_server] :: Requesting Novelty Likelihood {}".format(self.consistency_checker.novelty_likelihood))
                 # Require report novelty likelihood and then playing can be resumedconda env update -f environment.yml
@@ -157,14 +146,35 @@ class HydraAgent():
                 assert False
             t+=1
             self.observations.append(observation)
+        return False
 
     ''' A default action taken by the Hydra agent if planning fails'''
     def __get_default_action(self, state : ProcessedSBState):
         problem = self.meta_model.create_pddl_problem(state)
         pddl_state = PddlPlusState(problem.init)
         active_bird = pddl_state.get_active_bird()
-        return ("pa-twang %s" % active_bird, 20.0)
+        default_angle = 20.0
+        default_time = self.meta_model.angle_to_action_time(default_angle, pddl_state)
+        return ["pa-twang %s" % active_bird, default_angle, default_time]
 
     def set_env(self,env):
         '''Probably bad to have two pointers here'''
         self.env = env
+
+    ''' Runs the agent until it performs an action'''
+    def run_next_action(self):
+        while True:
+            evaluation_done = self.main_loop(max_actions=1)
+            if self.observations[-1].action is not None:
+                return
+            if evaluation_done == True:
+                return
+
+
+    ''' Finds the last observations of the game. That is, the last observation that has intermediate states. 
+    TODO: Is this the best way to implement this?'''
+    def find_last_obs(self):
+        i = -1
+        while self.observations[i].intermediate_states is None:
+            i=i-1
+        return self.observations[i]

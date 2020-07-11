@@ -13,7 +13,7 @@ import func_timeout
 
 import settings
 import worlds.science_birds_interface.client.agent_client as ac
-import worlds.science_birds_interface.trajectory_planner.trajectory_planner as tp
+from worlds.science_birds_interface.trajectory_planner.trajectory_planner import SimpleTrajectoryPlanner
 from utils.host import Host
 from agent.planning.pddlplus_parser import PddlPlusProblem
 from utils.state import State, Action, World
@@ -88,9 +88,10 @@ class ScienceBirds(World):
     intermediate_states = []
     lock = threading.Lock()
 
+    trajectory_planner = SimpleTrajectoryPlanner() # This is static to allow others to reason about it
+
     def __init__(self,sel_level=0,launch=False,config='test_config.xml'):
         self.id = 2228
-        self.tp = tp.SimpleTrajectoryPlanner()
         self.SB_process = None
         self.SB_server_process = None
         if launch:
@@ -109,9 +110,6 @@ class ScienceBirds(World):
                 logger.info("Error during process terminatio6n")
                 pass
 
-            
-
-            
     def launch_SB(self,config='test_config.xml'):
         """
         Maybe this would be better in a shell script than in python

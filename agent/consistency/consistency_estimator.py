@@ -1,37 +1,15 @@
-import numpy as np
-from agent.planning.pddl_meta_model import *
+import matplotlib
+
+from agent.consistency import pddl_plus_simulator as simulator
+from agent.consistency.observation import ScienceBirdsObservation
 from agent.perception.perception import *
-import subprocess
 
-''' A small object that represents an observation of the SB game, containing the values
-(state, action, intermedidate_states, reward)'''
-class ScienceBirdsObservation:
-    def __init__(self):
-        self.state = None # An SBState
-        self.action = None # An action performed at that state.
-        self.intermediate_states = None # The  sequence of intermediates states observed after doing the action
-        self.reward = 0 # The reward obtained from performing an action
+from agent.planning.pddl_meta_model import MetaModel
+from tests import test_utils
 
-
-    ''' Returns a sequence of PDDL states that are the observed intermediate states '''
-    def get_trace(self, meta_model: MetaModel = MetaModel()):
-        observed_state_seq = []
-        perception = Perception()
-        for intermediate_state in self.intermediate_states:
-            if isinstance(intermediate_state, SBState):
-                intermediate_state = perception.process_sb_state(intermediate_state)
-            observed_state_seq.append(meta_model.create_pddl_state(intermediate_state))
-        return observed_state_seq
-
-    ''' Stores the observation in a file specified by the prefix'''
-    def log_observation(self,prefix):
-        trace_dir = "{}/agent/consistency/trace/observations".format(settings.ROOT_PATH)
-        cmd = "mkdir -p {}".format(trace_dir)
-        subprocess.run(cmd, shell=True)
-        pickle.dump(self, open("{}/{}_observation.p".format(trace_dir,prefix), 'wb'))
-
-    def load_observation(full_path):
-        return pickle.load(open(full_path, 'rb'))
+# Defaults
+DEFAULT_DELTA_T = 0.05
+DEFAULT_PLOT_OBS_VS_EXP = False
 
 '''
 An abstract class for checking if a given sequence of (state, time) pairs can be consistent with a given sequence of states.  
@@ -87,7 +65,7 @@ class NumericFluentsConsistencyEstimator(ConsistencyEstimator):
 
     ''' Specify which fluents to check, and the size of the observed sequence prefix to consider.
     This is because we acknowledge that later in the observations, our model is less accurate. '''
-    def __init__(self, fluent_names, unique_prefix_size=7, discount_factor=0.7):
+    def __init__(self, fluent_names, obs_prefix=7, discount_factor=0.7):
         self.fluent_names = []
         for fluent_name in fluent_names:
             if isinstance(fluent_name,list):
@@ -96,39 +74,39 @@ class NumericFluentsConsistencyEstimator(ConsistencyEstimator):
             self.fluent_names.append(fluent_name)
 
         self.discount_factor = discount_factor
-        self.unique_prefix_size = unique_prefix_size
+        self.obs_prefix = obs_prefix
 
-    ''' The first parameter is a list of (state,time) pairs, the second is just a list of states '''
-    ''' Current implementation ignores order, and just looks for the best time for each state in the state_seq, 
-    and ignore cases where the fluent is not in the un-timed state seqqaiming to minimize its distance from the fitted piecewise-linear interpolation. 
-    Returns a value representing how cons
-    '''
+    ''' Returns a value indicating the estimated consistency. '''
     def estimate_consistency(self, simulation_trace: list, state_seq: list, delta_t: float = 0.05):
-        t_values, fluent_to_expected_values = self._fit_expected_values(simulation_trace, delta_t=delta_t)
-
-        # Check max error: compute the error for every state w.r.t every time. Return max error found
-        max_error = 0
-        unique_prefix_counter = 0
-        old_obs_state = None
-        most_inconsistent_state = None
+        consistency_per_state = self.compute_consistency_per_state(simulation_trace, state_seq, delta_t)
         discount = 1.0
-        for state in state_seq:
-            if state!=old_obs_state: # Ignore duplicate states
-                old_obs_state = state
-                unique_prefix_counter = unique_prefix_counter+1
-                (best_fit_t, min_error) = self._compute_best_fit(state, t_values, fluent_to_expected_values)
+        max_error = 0
+        for i, consistency in enumerate(consistency_per_state):
+            if i>self.obs_prefix:
+                break
 
-                min_error = min_error *discount # Weight of errors later in the sequence is smaller TODO: Think about this more
-                discount = discount*self.discount_factor
+            weighted_error = consistency*discount
+            if max_error < weighted_error:
+                max_error = weighted_error
 
-                if min_error>max_error:
-                    max_error= min_error
-                    most_inconsistent_state = state # For debug
-
-                if unique_prefix_counter>=self.unique_prefix_size: # We only consider a limited prefix of the observed sequence of states
-                    break
+            discount = discount*self.discount_factor
 
         return max_error
+
+    ''' Returns a vector of values, one per observed state, indicating how much it is consistent with the simulation.
+    The first parameter is a list of (state,time) pairs, the second is just a list of states 
+    Current implementation ignores order, and just looks for the best time for each state in the state_seq, 
+    and ignore cases where the fluent is not in the un-timed state seqq aiming to minimize its distance from the fitted piecewise-linear interpolation. 
+    '''
+    def compute_consistency_per_state(self, expected_state_seq: list, observed_states: list, delta_t: float = 0.05):
+        t_values, fluent_to_expected_values = self._fit_expected_values(expected_state_seq, delta_t=delta_t)
+        consistency_per_state = []
+        for i, state in enumerate(observed_states):
+            (best_fit_t, min_error) = self._compute_best_fit(state, t_values, fluent_to_expected_values)
+            consistency_per_state.append(min_error)
+            if i>=self.obs_prefix: # We only consider a limited prefix of the observed sequence of states
+                break
+        return consistency_per_state
 
     ''' Create a piecewise linear interpolation for the given timed_state_seq'''
     def _fit_expected_values(self, simulation_trace, delta_t = 0.01):
@@ -177,12 +155,9 @@ class NumericFluentsConsistencyEstimator(ConsistencyEstimator):
         return (best_t, best_fit_error)
 
 
-
-
-
 ''' Checks consistency by considering the location of the birds '''
 class BirdLocationConsistencyEstimator():
-    def __init__(self, unique_prefix_size = 7,discount_factor=0.9):
+    def __init__(self, unique_prefix_size = 3,discount_factor=0.9):
         self.unique_prefix_size=unique_prefix_size
         self.discount_factor = discount_factor
 
@@ -200,6 +175,18 @@ class BirdLocationConsistencyEstimator():
         for bird in birds:
             fluent_names.append(('x_bird', bird))
             fluent_names.append(('y_bird', bird))
+
+        # Only consider states with some info regarding the relevant fluents
+        states_with_info = []
+        for state in state_seq:
+            has_info=False
+            for fluent_name in fluent_names:
+                if fluent_name in state:
+                    has_info=True
+                    break
+            if has_info:
+                states_with_info.append(state)
+        state_seq = states_with_info
 
         consistency_checker = NumericFluentsConsistencyEstimator(fluent_names, self.unique_prefix_size, self.discount_factor)
         return consistency_checker.estimate_consistency(simulation_trace, state_seq, delta_t)
@@ -240,3 +227,18 @@ def diff_pddl_states(state1, state2):
         if fluent_name not in state1.numeric_fluents:
             diff_list.append("%s exists in state2 but not in state1" % str(fluent_name))
     return diff_list
+
+''' Checks if an observation is consisten with a given meta model'''
+def check_obs_consistency(observation: ScienceBirdsObservation,
+                          meta_model: MetaModel,
+                          consistency_checker = BirdLocationConsistencyEstimator(),
+                          delta_t : float = DEFAULT_DELTA_T,
+                          plot_obs_vs_exp = DEFAULT_PLOT_OBS_VS_EXP):
+    if plot_obs_vs_exp:
+        matplotlib.interactive(True)
+        plot_axes = test_utils.plot_observation(observation)
+        test_utils.plot_expected_trace_for_obs(meta_model, observation, ax=plot_axes)
+
+    expected_trace, plan = simulator.get_expected_trace(observation, meta_model, delta_t=delta_t)
+    observed_seq = observation.get_trace(meta_model)
+    return consistency_checker.estimate_consistency(expected_trace, observed_seq, delta_t=delta_t)

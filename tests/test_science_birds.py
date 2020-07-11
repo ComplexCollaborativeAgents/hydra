@@ -20,7 +20,7 @@ from agent.planning.pddl_meta_model import *
 
 @pytest.fixture(scope="module")
 def launch_science_birds():
-    print("starting")
+    logger.info("starting")
     #remove config files
     cmd = 'cp {}/data/science_birds/level-14.xml {}/00001.xml'.format(str(settings.ROOT_PATH), str(settings.SCIENCE_BIRDS_LEVELS_DIR))
     subprocess.run(cmd, shell=True)
@@ -30,8 +30,8 @@ def launch_science_birds():
     subprocess.run(cmd, shell=True)
     env = sb.ScienceBirds(None,launch=True,config='test_config.xml')
     yield env
-    print("teardown tests")
     env.kill()
+    logger.info("teardown tests")
 
 @pytest.mark.skipif(settings.HEADLESS==True, reason="headless does not work in docker")
 def test_science_birds_agent(launch_science_birds):
@@ -69,9 +69,9 @@ def test_science_birds(launch_science_birds):
     meta_model = MetaModel()
     planner.write_problem_file(meta_model.create_pddl_problem(state))
 
-    ref_point = env.tp.get_reference_point(state.sling)
+    ref_point = env.trajectory_planner.get_reference_point(state.sling)
     #release_point_from_plan = env.tp.find_release_point(state.sling, 0.174533) # 10 degree launch
-    release_point_from_plan = env.tp.find_release_point(state.sling, math.radians(planner.get_plan_actions()[0][1]))
+    release_point_from_plan = env.trajectory_planner.find_release_point(state.sling, math.radians(planner.get_plan_actions()[0][1]))
     action = sb.SBShoot(release_point_from_plan.X, release_point_from_plan.Y, 3000, ref_point.X, ref_point.Y)
 
     state, reward = env.act(action)
@@ -110,7 +110,7 @@ def test_multi_shot(launch_science_birds):
     # env.sb_client.tp.estimate_launch_point(env.cur_sling, Point2D(540,355))
 
     # state.sling.width,state.sling.height = state.sling.height,state.sling.width
-    ref_point = env.tp.get_reference_point(state.sling)
+    ref_point = env.trajectory_planner.get_reference_point(state.sling)
 
     actions_from_plan = []
 
@@ -135,7 +135,7 @@ def test_multi_shot(launch_science_birds):
             return
 
     assert(len(actions_from_plan) == 3)
-    release_point_from_plan = env.tp.find_release_point(state.sling, math.radians(actions_from_plan[0][1] * 1.00))
+    release_point_from_plan = env.trajectory_planner.find_release_point(state.sling, math.radians(actions_from_plan[0][1] * 1.00))
     action = sb.SBAction(release_point_from_plan.X, release_point_from_plan.Y, 1000, ref_point.X, ref_point.Y)
     print("action executed: " + str(actions_from_plan[0]))
     state, reward = env.act(action)
@@ -168,7 +168,7 @@ def test_multi_shot(launch_science_birds):
 
             p.process_state(state)
             # for a_i in planner.get_plan_actions():
-            release_point_from_plan = env.tp.find_release_point(state.sling, math.radians(actions_from_plan[action_idx][1]*1.00))
+            release_point_from_plan = env.trajectory_planner.find_release_point(state.sling, math.radians(actions_from_plan[action_idx][1] * 1.00))
             action = sb.SBAction(release_point_from_plan.X, release_point_from_plan.Y, 1000, ref_point.X, ref_point.Y)
             print("\nexecuted action: " + str(actions_from_plan[action_idx]))
             state,reward,done = env.act(action)

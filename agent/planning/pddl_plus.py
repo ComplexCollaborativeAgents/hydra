@@ -90,6 +90,9 @@ class PddlPlusProblem():
             return False
         return True
 
+    ''' Get the initial state in PDDL+ format'''
+    def get_init_state(self):
+        return PddlPlusState(self.init)
 
 class PddlPlusDomain():
     def __init__(self):
@@ -383,8 +386,8 @@ class PddlPlusGrounder():
 
 ''' An action with a time stamp saying when it should start'''
 class TimedAction():
-    def __init__(self, action: PddlPlusWorldChange, start_at : float):
-        self.action = action
+    def __init__(self, action_name: str, start_at : float):
+        self.action_name = action_name
         self.start_at = start_at
 
 ''' Just a list of timed actions '''
@@ -394,13 +397,6 @@ class PddlPlusPlan(list):
             if isinstance(action, TimedAction)==False:
                 raise ValueError("Action %s is not a TimedAction or a [action,time] pair" % action) # This check should probably be removed at some stage
             self.append(action)
-
-    ''' Adds a list of [[action_name, action_time]...]. Converts actions to appropriate WorldChange objects '''
-    def add_raw_actions(self, raw_timed_action_list, grounded_domain: PddlPlusDomain):
-        for raw_timed_action in raw_timed_action_list:
-            action_name  = raw_timed_action[0]
-            action = grounded_domain.get_action(action_name)
-            self.append(TimedAction(action, float(raw_timed_action[1])))
 
 ''' Check if a given string is a float. TODO: Replace this with a more elegant python way of doing this.'''
 def is_float( text :str ):

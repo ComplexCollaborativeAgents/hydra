@@ -2,7 +2,9 @@
     This module provides very basic capabilities for simulating PDDL+ domain behavior, 
     including actions, events, and processes.
 '''
-from agent.consistency.consistency_estimator import *
+from agent.planning.pddl_meta_model import *
+from agent.consistency.observation import *
+
 
 # Constants
 TI_STATE = 0 # Index in a trace_item for the state
@@ -56,8 +58,10 @@ class PddlPlusSimulator():
         while still_active and t<max_t:
             # If we reached the time in which the next action should be applied, apply it
             if next_timed_action is not None and next_timed_action.start_at<=t:
-                new_effects = self.compute_apply_action(current_state,next_timed_action.action)
-                world_changes_at_t.append(next_timed_action.action)
+                # Get the WorldChange object for the action to perform
+                world_change = self.domain.get_action(next_timed_action.action_name)
+                new_effects = self.compute_apply_action(current_state, world_change)
+                world_changes_at_t.append(world_change)
                 if new_effects is not None and len(new_effects)>0:
                     self.apply_effects(current_state, new_effects)
 
@@ -113,12 +117,11 @@ class PddlPlusSimulator():
 
 
     ''' Simulate the trace of a given action in a given state according to the given meta model'''
-    def simulate_observed_action(self, sb_state, time_action, meta_model, delta_t : float):
+    def simulate_observed_action(self, sb_state: SB.SBState, sb_action: SB.SBAction, meta_model: MetaModel, delta_t : float):
         problem = meta_model.create_pddl_problem(sb_state)
         domain = meta_model.create_pddl_domain(sb_state)
-        grounded_domain = PddlPlusGrounder().ground_domain(domain, problem)
         plan = PddlPlusPlan()
-        plan.add_raw_actions([[time_action[0], time_action[1]]], grounded_domain)
+        plan.append(meta_model.create_timed_action(sb_action, sb_state))
         (_, _, trace) = self.simulate(plan, problem, domain, delta_t)
         return trace
 
@@ -135,7 +138,7 @@ class PddlPlusSimulator():
         self.apply_effects(state, effects_list)
         return active_processes
 
-    ''' Processes the events and modify the current state accordinly'''
+    ''' Processes the events and modify the current state accordingly'''
     def handle_events(self, state: PddlPlusState):
         events_to_fire = []
         effects_list = []
@@ -313,18 +316,18 @@ class PddlPlusSimulator():
         else:
             return False
 
+    ''' Simulate the observed action in the observed state according to the given meta model '''
+    def get_expected_trace(self, observation : ScienceBirdsObservation, meta_model : MetaModel, delta_t = 0.05):
+        problem = meta_model.create_pddl_problem(observation.state)
+        domain = meta_model.create_pddl_domain(observation.state)
+        plan = observation.get_pddl_plan(meta_model)
+        (_,_,trace,) = self.simulate(plan, problem, domain, delta_t=delta_t)
+        return trace, plan
+
 
 ''' Simulate the observed action in the observed state according to the given meta model '''
-def get_expected_trace(observation : ScienceBirdsObservation, meta_model, delta_t = 0.05):
-    time_action = [observation.action[0], observation.action[2]]
-    # test_utils.plot_expected_trace(meta_model, observation.state, time_action, delta_t=DELTA_T) # For debug
-    problem = meta_model.create_pddl_problem(observation.state)
-    domain = meta_model.create_pddl_domain(observation.state)
-    grounded_domain = PddlPlusGrounder().ground_domain(domain, problem)
-    plan = PddlPlusPlan()
-    plan.add_raw_actions([time_action], grounded_domain)
-    expected_trace = simulate_plan_trace(plan, problem, domain, delta_t=delta_t)
-    return expected_trace, plan
+def get_expected_trace(observation : ScienceBirdsObservation, meta_model : MetaModel, delta_t = 0.05):
+    return PddlPlusSimulator().get_expected_trace(observation, meta_model, delta_t)
 
 ''' Helper function: simulate the given plan, on the given problem and domain.  '''
 def simulate_plan_trace(plan: PddlPlusPlan, problem:PddlPlusProblem, domain: PddlPlusDomain, delta_t:float = 0.05):

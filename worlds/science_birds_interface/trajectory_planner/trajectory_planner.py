@@ -208,6 +208,14 @@ class SimpleTrajectoryPlanner:
 
         return release
 
+    ''' The inverse of find_release_point() TODO: SHOULD THIS REPLACE get_release_angle()'''
+    def find_release_angle(self, sling, release_point):
+        mag = sling.height * 5
+        ref = self.get_reference_point(sling)
+
+        release_x = int(ref.X - mag * cos(theta))
+        release_y = int(ref.Y + mag * sin(theta))
+
 
     def find_release_point_partial_power(self, sling, theta, v_portion):
         """find the release point given the sling location, launch angle and velocity

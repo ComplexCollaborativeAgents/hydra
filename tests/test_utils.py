@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 
 from agent.consistency.meta_model_repair import *
+from agent.consistency.observation import ScienceBirdsObservation
 from agent.planning.planner import *
 from agent.planning.planner import Planner
 import matplotlib.patches as patches
@@ -32,14 +33,10 @@ def extract_plan_from_plan_trace(plan_trace_file, grounded_domain :PddlPlusDomai
     plan_actions = planner.extract_actions_from_plan_trace(plan_trace_file)
     plan = PddlPlusPlan()
 
-    for (action_name, time) in plan_actions:
+    for (action_name, angle, time) in plan_actions:
         assert action_name.startswith("pa-twang")
         time = float(time)
-        action_obj = grounded_domain.get_action(action_name)
-        if action_obj is None:
-            raise ValueError("Action name %s is not in the grounded domain" % action_name)
-
-        timed_action = TimedAction(action_obj, time)
+        timed_action = TimedAction(action_name, time)
         plan.append(timed_action)
     return plan
 
@@ -51,14 +48,14 @@ def load_plan(plan_trace_file: str, pddl_problem: PddlPlusProblem, pddl_domain: 
     return pddl_plan
 
 ''' Simulate the given action in the given state using the given meta model'''
-def plot_expected_trace(meta_model: MetaModel,
-                        state : ProcessedSBState,
-                        time_action : list,
-                        delta_t = 0.05,
-                        ax=None):
-    expected_trace = PddlPlusSimulator().simulate_observed_action(state, time_action, meta_model, delta_t)
+def plot_expected_trace_for_obs(meta_model: MetaModel,
+                                observation: ScienceBirdsObservation,
+                                delta_t = 0.05,
+                                ax=None):
+    # Repair angle
+    expected_trace = PddlPlusSimulator().simulate_observed_action(observation.state, observation.action, meta_model, delta_t)
     state_sequence = [timed_state[0] for timed_state in expected_trace]
-    return plot_state_sequence(state_sequence,meta_model.create_pddl_state(state),ax)
+    return plot_state_sequence(state_sequence, meta_model.create_pddl_state(observation.state),ax)
 
 ''' Plot the given observation'''
 def plot_observation(observation: ScienceBirdsObservation, ax=None, marker="o"):
@@ -100,8 +97,13 @@ def plot_state_sequence(state_seq : list, pddl_state: PddlPlusState, ax= None, m
     active_bird = pddl_state.get_active_bird()
     obs_points = [] # Remove
     last_point = None
+    x_bird_fluent = ("x_bird", active_bird)
+    y_bird_fluent = ("y_bird", active_bird)
     for state in state_seq:
-        new_point = (state[("x_bird", active_bird)],state[("y_bird", active_bird)])
+        if (x_bird_fluent not in state) or (y_bird_fluent not in state):
+            continue
+
+        new_point = (state[x_bird_fluent], state[y_bird_fluent])
         if last_point is not None and last_point==new_point:
             continue
         obs_points.append(new_point)
@@ -120,18 +122,4 @@ def plot_state_sequence(state_seq : list, pddl_state: PddlPlusState, ax= None, m
 
     plt.show()
     return ax
-
-
-''' A planner that executes a predefined plan '''
-class PlannerStub(Planner):
-    ''' plan is assumed to be list of timed actions. '''
-    def __init__(self, plan, meta_model : MetaModel = MetaModel()):
-        super(PlannerStub, self).__init__(meta_model)
-        self.plan = list(plan)
-
-    ''' @Override superclass '''
-    def make_plan(self, state: ProcessedSBState, prob_complexity=0, delta_t = 1.0):
-        action = self.plan.pop(0)
-        return [action]
-
 

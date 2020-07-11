@@ -1,13 +1,12 @@
 import copy
 import math
 from agent.perception.perception import ProcessedSBState
-
 from agent.planning.pddlplus_parser import *
 import settings
 import logging
 
 from utils.point2D import Point2D
-
+import worlds.science_birds as SB
 from agent.perception.perception import Perception
 
 fh = logging.FileHandler("hydra.log",mode='w')
@@ -194,9 +193,6 @@ class SlingshotType:
     def add_object_to_state(self, pddl_state: PddlPlusState, obj, state_params:dict):
         return # Do nothing, slingshot is currently not directly modeled as an object
 
-
-
-
 class PigType(PddlObjectType):
     def __init__(self):
         super(PigType,self).__init__()
@@ -363,6 +359,8 @@ class TNTType(BlockType):
 
 
 class MetaModel():
+    TWANG_ACTION = "pa-twang" # Default action type
+
     ''' Sets the default meta-model'''
     def __init__(self):
         # TODO: Read this from file instead of hard coding
@@ -401,10 +399,6 @@ class MetaModel():
         self.object_types["hill"] = PlatformType()
         self.object_types["slingshot"] = SlingshotType()
 
-    ''' Get the ralation between angle and twang time TODO: Think if this is right or not'''
-    def get_angle_rate(self):
-        return float(self.constant_numeric_fluents["angle_rate"])
-
     ''' Get the slingshot object '''
     def get_slingshot(self, sb_state :ProcessedSBState):
         sling = None
@@ -412,6 +406,50 @@ class MetaModel():
             if o[1]['type'] == 'slingshot':
                 sling = o
         return sling
+
+
+
+    ''' Converts twang angle to the corresponding action time '''
+    @staticmethod
+    def action_time_to_angle(action_time: float, state: PddlPlusState):
+        return action_time * float(state[('angle_rate',)]) + float(state[('angle',)])
+
+    ''' Converts a twang angle to the time of the twang action. '''
+    @staticmethod
+    def angle_to_action_time(angle: float, state: PddlPlusState):
+        return (angle - float(state[('angle',)]))/float(state[('angle_rate',)])
+
+    ''' Creates an SB action from a PDDL action_angle_time triple outputted by the planner '''
+    def create_sb_action(self, action_angle_time : list, processed_state: ProcessedSBState):
+        tp = SB.ScienceBirds.trajectory_planner
+        ref_point = tp.get_reference_point(processed_state.sling)
+        release_point_from_plan = \
+            tp.find_release_point(processed_state.sling, math.radians(action_angle_time[1]))
+        action = SB.SBShoot(release_point_from_plan.X, release_point_from_plan.Y,
+                            3000, ref_point.X, ref_point.Y)
+        return action
+
+    ''' Create a PDDL+ TimedAction object from an SB action and state '''
+    def create_timed_action(self, sb_shoot: SB.SBShoot, sb_state :ProcessedSBState):
+        ref_x = sb_shoot.ref_x
+        ref_y = sb_shoot.ref_y
+        release_x = ref_x + sb_shoot.dx
+        release_y = ref_y + sb_shoot.dy
+        sling = sb_state.sling
+
+        mag = sling.height * 5.0
+        theta_from_x = math.acos((release_x - ref_x) / (-mag))
+        theta_from_y = math.asin((release_y - ref_y) / mag)
+        assert abs(theta_from_x - theta_from_y) < 1  # Precision TODO: Discuss this, the number 1 is arbitrary
+        action_angle = math.degrees(theta_from_x)
+
+        pddl_state = PddlPlusState(self.create_pddl_problem(sb_state).init)
+        action_time = self.angle_to_action_time(action_angle, pddl_state)
+
+        active_bird = pddl_state.get_active_bird()
+        action_name = "%s %s" % (MetaModel.TWANG_ACTION, active_bird)
+
+        return TimedAction(action_name, action_time)
 
     ''' Translate the initial SBState, as observed, to a PddlPlusProblem object. 
     Note that in the initial state, we ignore the location of the bird and assume it is on the slingshot. '''
