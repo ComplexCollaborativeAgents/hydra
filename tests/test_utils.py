@@ -27,25 +27,6 @@ def load_problem_and_domain(problem_file_name :str, domain_file_name: str):
 
     return (pddl_problem, pddl_domain)
 
-''' Extracts a PddlPlusPlan object from a plan trace. '''
-def extract_plan_from_plan_trace(plan_trace_file, grounded_domain :PddlPlusDomain):
-    planner = Planner()
-    plan_actions = planner.extract_actions_from_plan_trace(plan_trace_file)
-    plan = PddlPlusPlan()
-
-    for (action_name, angle, time) in plan_actions:
-        assert action_name.startswith("pa-twang")
-        time = float(time)
-        timed_action = TimedAction(action_name, time)
-        plan.append(timed_action)
-    return plan
-
-''' Loads a plan for a given problem and domain, from a file. '''
-def load_plan(plan_trace_file: str, pddl_problem: PddlPlusProblem, pddl_domain: PddlPlusDomain):
-    planner = Planner()
-    grounded_domain = PddlPlusGrounder().ground_domain(pddl_domain, pddl_problem)  # Needed to identify plan action
-    pddl_plan = extract_plan_from_plan_trace(plan_trace_file, grounded_domain)
-    return pddl_plan
 
 ''' Simulate the given action in the given state using the given meta model'''
 def plot_expected_trace_for_obs(meta_model: MetaModel,

@@ -17,6 +17,8 @@ logger.setLevel(logging.INFO)
 logger.addHandler(fh)
 
 
+
+
 ''' Utility functions '''
 def get_x_coordinate(obj):
     return round(abs(obj[1]['bbox'].bounds[2] + obj[1]['bbox'].bounds[0]) / 2)
@@ -420,11 +422,15 @@ class MetaModel():
         return (angle - float(state[('angle',)]))/float(state[('angle_rate',)])
 
     ''' Creates an SB action from a PDDL action_angle_time triple outputted by the planner '''
-    def create_sb_action(self, action_angle_time : list, processed_state: ProcessedSBState):
+    def create_sb_action(self, timed_action : TimedAction, processed_state: ProcessedSBState):
+        # Compute angle from action time
+        pddl_state = self.create_pddl_problem(processed_state).get_init_state()
+        angle = self.action_time_to_angle(timed_action.start_at, pddl_state)
+
+        # Convert angle to release point
         tp = SB.ScienceBirds.trajectory_planner
         ref_point = tp.get_reference_point(processed_state.sling)
-        release_point_from_plan = \
-            tp.find_release_point(processed_state.sling, math.radians(action_angle_time[1]))
+        release_point_from_plan = tp.find_release_point(processed_state.sling, math.radians(angle))
         action = SB.SBShoot(release_point_from_plan.X, release_point_from_plan.Y,
                             3000, ref_point.X, ref_point.Y)
         return action

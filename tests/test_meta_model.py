@@ -16,7 +16,7 @@ def test_action_creation():
     # Create action
     t = 1.025
     angle = MetaModel.action_time_to_angle(t, pddl_state)
-    sb_action = meta_model.create_sb_action([meta_model.TWANG_ACTION, angle, t], observation.state)
+    sb_action = meta_model.create_sb_action(TimedAction(meta_model.TWANG_ACTION, t), observation.state)
 
     # Compute angle and time from SB Action
     timed_action = meta_model.create_timed_action(sb_action, observation.state)
@@ -27,7 +27,7 @@ def test_action_creation():
     assert abs(action_angle - angle) < 0.5
 
     # Re-create the SB Action, make sure it is almost the same
-    sb_action2 = meta_model.create_sb_action([meta_model.TWANG_ACTION, action_angle, timed_action.start_at], observation.state)
+    sb_action2 = meta_model.create_sb_action(TimedAction(meta_model.TWANG_ACTION, timed_action.start_at), observation.state)
     assert abs(sb_action.ref_x - sb_action2.ref_x) < 1.5
     assert abs(sb_action.ref_y - sb_action2.ref_y) < 1.5
     assert abs(sb_action.dx - sb_action2.dx) < 1.5

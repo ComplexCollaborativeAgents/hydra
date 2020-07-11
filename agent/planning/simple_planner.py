@@ -37,7 +37,7 @@ class SimplePlanner(Planner):
                 current_state, t, trace = self.simulator.simulate(plan, pddl_problem, pddl_domain, 0.05)
 
                 if self._killed_pigs(current_state)>0:
-                    return [[action_name, self.meta_model.action_time_to_angle(action_time, init_state), action_time]]
+                    return [TimedAction(action_time, action_time)]
                 else:
                     action_time = action_time+delta_t
 

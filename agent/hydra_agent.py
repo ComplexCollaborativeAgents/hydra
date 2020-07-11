@@ -59,19 +59,19 @@ class HydraAgent():
                     plan = self.planner.make_plan(processed_state, 0)
                     cumulative_plan_time += (time.perf_counter() - orig_plan_time)
                     logger.info("[hydra_agent_server] :: Original problem planning time: " + str((time.perf_counter() - orig_plan_time)))
-                    if len(plan) == 0 or plan[0][0] == "out of memory":
+                    if len(plan) == 0 or plan[0].action_name == "out of memory":
                         logger.info("[hydra_agent_server] :: Invoking Planner on a Simplified Problem {}".format('timeout' if len(plan)==0 else 'out of memory'))
                         simple_plan_time = time.perf_counter()
                         plan = self.planner.make_plan(processed_state, 2)
                         cumulative_plan_time += (time.perf_counter() - simple_plan_time)
                         logger.info("[hydra_agent_server] :: Simplified problem planning time: " + str((time.perf_counter() - simple_plan_time)))
-                        if len(plan) == 0 or plan[0][0] == "out of memory":
+                        if len(plan) == 0 or plan[0][0] == "out of memory": # TODO FIX THIS
                             plan = []
                             plan.append(self.__get_default_action(processed_state))
 
-                    action_angle_time = plan[0]
-                    logger.info("[hydra_agent_server] :: Taking action: {}".format(str(action_angle_time[0])))
-                    sb_action = self.meta_model.create_sb_action(action_angle_time, processed_state)
+                    timed_action = plan[0]
+                    logger.info("[hydra_agent_server] :: Taking action: {}".format(str(timed_action.action_name)))
+                    sb_action = self.meta_model.create_sb_action(timed_action, processed_state)
                     raw_state, reward = self.env.act(sb_action)
                     observation.reward = reward
                     observation.action = sb_action
@@ -82,7 +82,7 @@ class HydraAgent():
                     # time.sleep(5)
                 else:
                     logger.info("Perception Failure performing default shot")
-                    plan = []
+                    plan = PddlPlusPlan()
                     plan.append(self.__get_default_action(processed_state))
                     sb_action = self.meta_model.create_sb_action(plan[0], processed_state)
                     raw_state, reward = self.env.act(sb_action)
@@ -155,7 +155,7 @@ class HydraAgent():
         active_bird = pddl_state.get_active_bird()
         default_angle = 20.0
         default_time = self.meta_model.angle_to_action_time(default_angle, pddl_state)
-        return ["pa-twang %s" % active_bird, default_angle, default_time]
+        return TimedAction("pa-twang %s" % active_bird, default_time)
 
     def set_env(self,env):
         '''Probably bad to have two pointers here'''

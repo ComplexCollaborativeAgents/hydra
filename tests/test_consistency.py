@@ -30,7 +30,7 @@ PLAN_FILE = path.join(DATA_DIR, "docker_plan_trace_l1.txt")
 ''' Helper function: loads plan, problem, and domain used to evaluate consistency checker'''
 def _load_plan_problem_domain():
     (problem, domain) = test_utils.load_problem_and_domain(PROBLEM_FILE,DOMAIN_FILE)
-    plan = test_utils.load_plan(PLAN_FILE, problem,domain)
+    plan = Planner().extract_actions_from_plan_trace(PLAN_FILE)
     return (plan, problem, domain)
 
 def _print_fluents_values(state_seq:list, fluent_names:list):

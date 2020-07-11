@@ -96,7 +96,7 @@ class Planner():
             subprocess.run(cmd, shell=True)
 
         if len(plan_actions) > 0:
-            if (plan_actions[0][0] == "syntax error") and (count < 1):
+            if (plan_actions[0].action_name == "syntax error") and (count < 1):
                 return self.get_plan_actions(count + 1)
             else:
                 return plan_actions
@@ -105,24 +105,23 @@ class Planner():
 
     ''' Parses the given plan trace file and outputs the plan '''
     def extract_actions_from_plan_trace(self, plane_trace_file: str):
-        plan_actions = []
+        plan_actions = PddlPlusPlan()
         lines_list = open(plane_trace_file).readlines()
         with open(plane_trace_file) as plan_trace_file:
             for i, line in enumerate(plan_trace_file):
                 # print(str(i) + " =====> " + str(line))
                 if "Out of memory" in line:
-                    plan_actions.append(("out of memory", 20.0))
+                    plan_actions.append(TimedAction("out of memory", 1.0))
                     # if the planner ran out of memory:
                     # change the goal to killing a single pig to make the problem easier and try again with one fewer pig
                     return plan_actions
-
                 if " pa-twang " in line:
-                    plan_actions.append((line.split(':')[1].split('[')[0].replace('(', '').replace(')', '').strip(),
+                    action_angle_time = (line.split(':')[1].split('[')[0].replace('(', '').replace(')', '').strip(),
                                          float(str(lines_list[i + 1].split('angle:')[1].split(',')[0])),
-                                         float(line.split(':')[0])))
-
+                                         float(line.split(':')[0]))
+                    plan_actions.append(TimedAction(action_angle_time[0], action_angle_time[2]))
                 if "syntax error" in line:
-                    plan_actions.append(("syntax error", 0.0, -1))
+                    plan_actions.append(TimedAction("syntax error", 0.0))
                     break
         return  plan_actions
 
