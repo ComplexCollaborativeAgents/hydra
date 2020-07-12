@@ -33,7 +33,7 @@ def launch_science_birds_level_01():
 ''' Adjusts game speed and ground truth frequency to obtain more observations'''
 def _adjust_game_speed():
     settings.SB_SIM_SPEED = 1
-    settings.SB_GT_FREQ = int(60 / settings.SB_SIM_SPEED)
+    settings.SB_GT_FREQ = int(15 / settings.SB_SIM_SPEED)
 
 ''' Inject a fault to the agent's meta model '''
 def _inject_fault_to_meta_model(meta_model : MetaModel, fluent_to_change = GRAVITY_FACTOR):
