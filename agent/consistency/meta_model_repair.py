@@ -83,6 +83,8 @@ class GreedyBestFirstSearchMetaModelRepair(MetaModelRepair):
         priority = self._heuristic(repair, base_consistency)
         heapq.heappush(open, [priority, repair])
 
+        generated_repairs = set() # A set of all generated repaired. This is used for pruning duplicate repairs
+
         iteration = 0
         # fig = test_utils.plot_observation(observation) # For debug
         incumbent_consistency = base_consistency
@@ -94,14 +96,17 @@ class GreedyBestFirstSearchMetaModelRepair(MetaModelRepair):
             [_, repair] = heapq.heappop(open)
             new_repairs = self.expand(repair)
             for new_repair in new_repairs:
-                consistency = self._compute_consistency(new_repair, observation)
-                priority = self._heuristic(new_repair, consistency)
-                heapq.heappush(open, [priority, new_repair])
+                new_repair_tuple = tuple(new_repair)
+                if new_repair_tuple not in generated_repairs: # If  this is a new repair
+                    generated_repairs.add(new_repair_tuple) # To allow duplicate detection
+                    consistency = self._compute_consistency(new_repair, observation)
+                    priority = self._heuristic(new_repair, consistency)
+                    heapq.heappush(open, [priority, new_repair])
 
-                # If there is a new best solution
-                if consistency < incumbent_consistency:
-                    incumbent_consistency = consistency
-                    incumbent_repair = new_repair
+                    # If there is a new best solution
+                    if consistency < incumbent_consistency:
+                        incumbent_consistency = consistency
+                        incumbent_repair = new_repair
 
             iteration = iteration+1
 
@@ -110,7 +115,7 @@ class GreedyBestFirstSearchMetaModelRepair(MetaModelRepair):
             logger.debug("Found a useful repair! %s,\n consistency gain=%.2f" % (str(incumbent_repair),
                                                                                  base_consistency-incumbent_consistency))
             self._do_change(incumbent_repair)
-        return incumbent_repair
+        return incumbent_repair, incumbent_consistency
 
     ''' Return True if the incumbent is good enough '''
     def is_incumbent_good_enough(self, consistency: float):

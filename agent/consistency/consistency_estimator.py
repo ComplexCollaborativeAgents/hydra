@@ -1,9 +1,9 @@
 import matplotlib
-
+from utils.point2D import Point2D
 from agent.consistency import pddl_plus_simulator as simulator
 from agent.consistency.observation import ScienceBirdsObservation
 from agent.perception.perception import *
-
+from agent.planning.pddl_plus import *
 from agent.planning.pddl_meta_model import MetaModel
 from tests import test_utils
 
@@ -65,7 +65,7 @@ class NumericFluentsConsistencyEstimator(ConsistencyEstimator):
 
     ''' Specify which fluents to check, and the size of the observed sequence prefix to consider.
     This is because we acknowledge that later in the observations, our model is less accurate. '''
-    def __init__(self, fluent_names, obs_prefix=7, discount_factor=0.7):
+    def __init__(self, fluent_names, obs_prefix=7, discount_factor=0.25):
         self.fluent_names = []
         for fluent_name in fluent_names:
             if isinstance(fluent_name,list):

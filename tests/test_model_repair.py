@@ -91,7 +91,7 @@ def test_repair_gravity_in_agent(launch_science_birds_level_01):
             consistency = check_obs_consistency(observation, meta_model, consistency_checker, delta_t=DEFAULT_DELTA_T)
             meta_model_repair = GreedyBestFirstSearchMetaModelRepair(fluents_to_repair, consistency_checker, repair_deltas,
                                                                      consistency_threshold=desired_precision)
-            repair = meta_model_repair.repair(meta_model, observation, delta_t=DEFAULT_DELTA_T)
+            repair, _ = meta_model_repair.repair(meta_model, observation, delta_t=DEFAULT_DELTA_T)
             logger.info("Repair done (%s), iteration %d" % (repair,iteration))
             consistency_after = check_obs_consistency(observation, meta_model, consistency_checker, delta_t=DEFAULT_DELTA_T)
             assert consistency >= consistency_after # TODO: This actually may fail, because current model may be best, but we look for a different one
@@ -128,26 +128,3 @@ def test_repair_gravity_offline():
     meta_model_repair.repair(meta_model, observation, delta_t=DEFAULT_DELTA_T)
     repaired_consistency = check_obs_consistency(observation, meta_model, delta_t=DEFAULT_DELTA_T)
     assert bad_consistency > repaired_consistency
-
-
-# ''' A full system test: run SB with a bad meta model, observe results, fix meta model '''
-# @pytest.mark.skipif(settings.HEADLESS == True, reason="headless does not work in docker")
-# def test_debug(launch_science_birds_level_01):
-#     # Setup environment and agent
-#     _adjust_game_speed()
-#     env = launch_science_birds_level_01
-#     hydra = HydraAgent(env)
-#
-#
-#     hydra.planner = PlannerStub(45, hydra.meta_model)
-#     hydra.run_next_action()  # enough actions to play a level
-#
-#     # Store observations
-#     observation = hydra.find_last_obs()
-#     obs_output_file = path.join(TEST_DATA_DIR, "obs_debug.p")  # For debug
-#     pickle.dump(observation, open(obs_output_file, "wb"))  # For debug
-#
-#     matplotlib.interactive(True)  # For debug
-#     fig = test_utils.plot_observation(observation)  # For debug
-#     test_utils.plot_expected_trace_for_obs(hydra.meta_model, observation, ax=fig)
-#     matplotlib.pyplot.close()

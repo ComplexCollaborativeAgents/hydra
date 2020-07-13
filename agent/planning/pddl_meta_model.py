@@ -372,6 +372,8 @@ class MetaModel():
         self.constant_numeric_fluents = dict()
         self.constant_boolean_fluents = dict()
 
+        # Constants to repair
+        self.repairable_constants = ('ground_damper', 'gravity_factor')
 
         for (fluent, value) in [('active_bird', 0),
                                 # ('angle', 0),
