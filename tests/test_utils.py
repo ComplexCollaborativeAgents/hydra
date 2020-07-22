@@ -47,52 +47,109 @@ def plot_observation(observation: ScienceBirdsObservation, ax=None, marker="o"):
     return plot_state_sequence(obs_state_sequence, pddl_state, ax, marker)
 
 '''
+Plotting a PDDL+ state. '''
+def plot_pddl_state(pddl_state : PddlPlusState, ax ):
+    plot_pigs_and_birds(pddl_state.get_birds(), pddl_state.get_pigs(), pddl_state, ax)
+
+    # PLot blocks
+    blocks = pddl_state.get_blocks()
+    for block in blocks:
+        plot_block(block, pddl_state, ax)
+
+    # plot platforms
+    platforms = pddl_state.get_platforms()
+    for platform in platforms:
+        plot_platform(platform, pddl_state, ax)
+
+
+
+'''
+Plotting an intermediate PDDL+ state. Do not plot an object if it did not change '''
+def plot_intermediate_state(pddl_state : PddlPlusState, previous_pddl_state: PddlPlusState, ax ):
+
+    modified_fluents = set()
+    for numeric_fluent in pddl_state.numeric_fluents:
+        if numeric_fluent in previous_pddl_state.numeric_fluents and \
+                pddl_state[numeric_fluent]==previous_pddl_state[numeric_fluent]:
+            continue
+        modified_fluents.add(numeric_fluent)
+
+    # Identified modified objects
+    pigs = pddl_state.get_pigs()
+    birds = pddl_state.get_birds()
+    platforms = pddl_state.get_platforms()
+    blocks = pddl_state.get_blocks()
+
+    modified_pigs = set()
+    modified_birds = set()
+    modified_blocks = set()
+    modified_platforms = set()
+    for modified_fluent in modified_fluents:
+        if len(modified_fluent) == 2:
+            if modified_fluent[1] in pigs:
+                modified_pigs.add(modified_fluent[1])
+            elif modified_fluent[1] in birds:
+                modified_birds.add(modified_fluent[1])
+            elif modified_fluent[1] in blocks:
+                modified_blocks.add(modified_fluent[1])
+            elif modified_fluent[1] in platforms:
+                modified_platforms.add(modified_fluent[1])
+
+    plot_pigs_and_birds(modified_birds, modified_pigs, pddl_state, ax)
+
+    # PLot blocks
+    for block in modified_blocks:
+        plot_block(block, pddl_state, ax)
+
+    # plot platforms
+    for platform in modified_platforms:
+        plot_platform(platform, pddl_state, ax)
+
+''' Plot the pigs and birds in the pddl state '''
+def plot_pigs_and_birds(modified_birds, modified_pigs, pddl_state : PddlPlusState, ax):
+    x_pigs = [pddl_state[("x_pig", pig)] for pig in modified_pigs]
+    y_pigs = [pddl_state[("y_pig", pig)] for pig in modified_pigs]
+    ax.plot(x_pigs, y_pigs, marker="$pig$", markersize=19, linestyle="")
+    # plot birds
+    x_birds = [pddl_state[("x_bird", bird)] for bird in modified_birds]
+    y_birds = [pddl_state[("y_bird", bird)] for bird in modified_birds]
+    ax.plot(x_birds, y_birds, marker="$bird$", markersize=19, linestyle="")
+
+''' Plot a block '''
+def plot_block(block, pddl_state, ax):
+    x = pddl_state[("x_block", block)]
+    y = pddl_state[("y_block", block)]
+    width = pddl_state[("block_width", block)]
+    height = pddl_state[("block_height", block)]
+    x = x - width / 2
+    y = y - height / 2
+    rect = patches.Rectangle((x, y), width, height, linewidth=1, edgecolor='b', facecolor='none')
+    ax.add_patch(rect)
+
+''' Plot a platform'''
+def plot_platform(platform, pddl_state, ax):
+    x = pddl_state[("x_platform", platform)]
+    y = pddl_state[("y_platform", platform)]
+    width = pddl_state[("platform_width", platform)]
+    height = pddl_state[("platform_height", platform)]
+    x = x - width / 2
+    y = y - height / 2
+    rect = patches.Rectangle((x, y), width, height, linewidth=1, edgecolor='r', facecolor='none')
+    ax.add_patch(rect)
+
+'''
 Plotting a sequence of states, showing where the pigs, platforms, and birds are initially,
 and showing the trajectory of the active bird. 
 '''
-def plot_state_sequence(state_seq : list, pddl_state: PddlPlusState, ax= None, marker="x"):
+def plot_state_sequence(pddl_state_seq : list, pddl_state: PddlPlusState, ax= None, marker="x"):
     if ax is None:
         _, ax = plt.subplots()
-    # plot pigs
-    pigs = pddl_state.get_pigs()
-    x_pigs = [pddl_state[("x_pig", pig)] for pig in pigs]
-    y_pigs = [pddl_state[("y_pig", pig)] for pig in pigs]
-    ax.plot(x_pigs, y_pigs, marker="$pig$", markersize=19, linestyle="")
-    # plot birds
-    birds = pddl_state.get_birds()
-    x_birds = [pddl_state[("x_bird", bird)] for bird in birds]
-    y_birds = [pddl_state[("y_bird", bird)] for bird in birds]
-    ax.plot(x_birds, y_birds, marker="$bird$", markersize=19, linestyle="")
-    platforms = pddl_state.get_platforms()
-    for platform in platforms:
-        x = pddl_state[("x_platform", platform)]
-        y = pddl_state[("y_platform", platform)]
-        width = pddl_state[("platform_width", platform)]
-        height = pddl_state[("platform_height", platform)]
-        x = x - width / 2
-        y = y - height / 2
-        rect = patches.Rectangle((x, y), width, height, linewidth=1, edgecolor='r', facecolor='none')
-        ax.add_patch(rect)
+    plot_pddl_state(pddl_state, ax)
 
-    # plot active bird trajectory
-    active_bird = pddl_state.get_active_bird()
-    obs_points = [] # Remove
-    last_point = None
-    x_bird_fluent = ("x_bird", active_bird)
-    y_bird_fluent = ("y_bird", active_bird)
-    for state in state_seq:
-        if (x_bird_fluent not in state) or (y_bird_fluent not in state):
-            continue
-
-        new_point = (state[x_bird_fluent], state[y_bird_fluent])
-        if last_point is not None and last_point==new_point:
-            continue
-        obs_points.append(new_point)
-        last_point=new_point
-
-    x_active_bird = [state[0] for state in obs_points]
-    y_active_bird = [state[1] for state in obs_points]
-    ax.plot(x_active_bird, y_active_bird, marker=marker, markersize=8, linestyle="")
+    previous_state = pddl_state
+    for intermediate_pddl_state in pddl_state_seq:
+        plot_intermediate_state(intermediate_pddl_state, previous_state, ax)
+        previous_state = intermediate_pddl_state
 
     # Set plot area to be a square, so that proportions are right.
     (left, right_x) = plt.xlim()
@@ -103,4 +160,3 @@ def plot_state_sequence(state_seq : list, pddl_state: PddlPlusState, ax= None, m
 
     plt.show()
     return ax
-

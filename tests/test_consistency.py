@@ -150,7 +150,7 @@ def test_consistency_in_agent(launch_science_birds):
 ''' Run Hydra, collect observations, check for consistency '''
 # @pytest.mark.skipif(True, reason="Modified planner fails on basic levels")
 def test_consistency_in_agent_offline():
-    plot_obs_vs_exp = False
+    plot_obs_vs_exp = True
     obs_output_file = path.join(TEST_DATA_DIR, "obs_test_consistency_in_agent.p")
     our_observation = pickle.load(open(obs_output_file, "rb"))
     meta_model = MetaModel()

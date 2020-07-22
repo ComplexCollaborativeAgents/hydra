@@ -358,6 +358,11 @@ class TNTType(BlockType):
         obj_attributes["block_explosive"] = True
         return obj_attributes
 
+''' Assumption: unknown types are assumed to be blocks '''
+class UnknownType(BlockType):
+    def __init__(self):
+        super().__init__()
+
 
 
 class MetaModel():
@@ -402,6 +407,7 @@ class MetaModel():
         self.object_types["TNT"] = TNTType()
         self.object_types["hill"] = PlatformType()
         self.object_types["slingshot"] = SlingshotType()
+        self.object_types["unknown"] = UnknownType()
 
     ''' Get the slingshot object '''
     def get_slingshot(self, sb_state :ProcessedSBState):
