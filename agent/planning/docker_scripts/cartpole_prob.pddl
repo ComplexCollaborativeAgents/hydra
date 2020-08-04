@@ -1,0 +1,30 @@
+(define(problem cartpole_prob)
+(:domain cartpole-initial-bhaskara)
+(:objects )
+(:init 	
+
+	(= (x) 1.0)
+	(= (x_dot) 1.0)
+	(= (x_ddot) 1.0)
+	(= (m_cart) 1.0)
+	(= (friction_cart) 1.0)
+
+	(= (theta) 0.0)
+	(= (theta_dot) 1.0)
+	(= (theta_ddot) 1.0)
+	(= (l_pole) 1.0)
+	(= (m_pole) 1.0)
+	(= (friction_pole) 1.0)
+	(= (gravity) 9.81)
+	(= (F) 0.0)
+	(= (inertia) 1.0)
+	(= (elapsed_time) 0.0)
+
+	(not (total_failure))
+	(not (pole_position))
+	(ready)
+
+)
+(:goal (and (>= (elapsed_time) 1) (pole_position) (not (total_failure)) ))
+(:metric minimize(total-time))
+)
