@@ -4,12 +4,16 @@ import pytest
 from agent.planning.pddl_meta_model import *
 import subprocess
 import worlds.science_birds as sb
+import pickle
+import tests.test_utils as test_utils
 
 GRAVITY_FACTOR = "gravity_factor"
 
+logger = test_utils.create_logger("test_repairing_agent")
+
 #################### System tests ########################
 @pytest.fixture(scope="module")
-def launch_science_birds_level_01():
+def launch_science_birds():
     logger.info("Starting ScienceBirds")
     cmd = 'cp {}/data/science_birds/level-04.xml {}/00001.xml'.format(str(settings.ROOT_PATH), str(settings.SCIENCE_BIRDS_LEVELS_DIR))
     subprocess.run(cmd, shell=True)
@@ -19,11 +23,6 @@ def launch_science_birds_level_01():
     env.kill()
     logger.info("Ending ScienceBirds")
 
-''' Adjusts game speed and ground truth frequency to obtain more observations'''
-def _adjust_game_speed():
-    settings.SB_SIM_SPEED = 1
-    settings.SB_GT_FREQ = int(15 / settings.SB_SIM_SPEED)
-
 ''' Inject a fault to the agent's meta model '''
 def _inject_fault_to_meta_model(meta_model : MetaModel, fluent_to_change = GRAVITY_FACTOR):
     meta_model.constant_numeric_fluents[fluent_to_change] = 6.0
@@ -31,10 +30,15 @@ def _inject_fault_to_meta_model(meta_model : MetaModel, fluent_to_change = GRAVI
 
 ''' A full system test: run SB with a bad meta model, observe results, fix meta model '''
 @pytest.mark.skipif(settings.HEADLESS == True, reason="headless does not work in docker")
-def test_repair_gravity_in_agent(launch_science_birds_level_01):
+def test_repair_gravity_in_agent(launch_science_birds):
     # Setup environment and agent
-    _adjust_game_speed()
-    env = launch_science_birds_level_01
+    save_obs = True
+    plot_exp_vs_obs = True
+
+    settings.SB_SIM_SPEED=5
+    settings.SB_GT_FREQ =1
+
+    env = launch_science_birds
     hydra = RepairingHydraAgent(env)
 
     # Inject fault and run the agent
@@ -43,9 +47,17 @@ def test_repair_gravity_in_agent(launch_science_birds_level_01):
     iteration = 0
     obs_with_rewards = 0
 
-    while iteration < 6:
+    while iteration < 4:
         hydra.run_next_action()
         observation = hydra.find_last_obs()
+
+        # Store observation for debug
+        if save_obs:
+            obs_output_file = "test_repair_gravity_in_agent_obs_%d.p" % iteration  # For debug
+            pickle.dump(observation, open(obs_output_file, "wb"))  # For debug
+        if plot_exp_vs_obs:
+            test_utils.plot_expected_vs_observed(hydra.meta_model, observation)
+
         if observation.reward > 0:
             logger.info("Reward ! (%.2f), iteration %d" % (observation.reward, iteration))
             obs_with_rewards = obs_with_rewards + 1

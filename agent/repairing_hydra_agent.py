@@ -14,7 +14,7 @@ class RepairingHydraAgent(HydraAgent):
     '''
 
     def __init__(self,env=None):
-        super(RepairingHydraAgent, self).__init__(env)
+        super().__init__(env)
 
         self.consistency_estimator = BirdLocationConsistencyEstimator()
 

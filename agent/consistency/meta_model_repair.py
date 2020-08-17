@@ -47,7 +47,7 @@ class GreedyBestFirstSearchMetaModelRepair(MetaModelRepair):
     def __init__(self, fluents_to_repair,
                  consistency_estimator,
                  deltas,
-                 consistency_threshold=5,
+                 consistency_threshold=2,
                  max_iteration=30):
 
         self.consistency_estimator = consistency_estimator

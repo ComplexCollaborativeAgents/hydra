@@ -1,13 +1,18 @@
+import logging
+
 import matplotlib.pyplot as plt
 
+import settings
 from agent.consistency.meta_model_repair import *
 from agent.consistency.observation import ScienceBirdsObservation
 from agent.planning.planner import *
 from agent.planning.planner import Planner
 import matplotlib.patches as patches
 
-Y_BIRD_FLUENT = ('y_bird', 'redbird_0')
-X_BIRD_FLUENT = ('x_bird', 'redbird_0')
+
+BIRD_MARKER = ".r"
+PIG_MARKER = "o"
+
 
 ''' Helper function: simulate the given plan, on the given problem and domain.  '''
 def simulate_plan_trace(plan: PddlPlusPlan, problem:PddlPlusProblem, domain: PddlPlusDomain, delta_t:float = 0.05):
@@ -36,15 +41,27 @@ def plot_expected_trace_for_obs(meta_model: MetaModel,
     # Repair angle
     expected_trace = PddlPlusSimulator().simulate_observed_action(observation.state, observation.action, meta_model, delta_t)
     state_sequence = [timed_state[0] for timed_state in expected_trace]
+    global BIRD_MARKER
+    BIRD_MARKER = ".b"
     return plot_state_sequence(state_sequence, meta_model.create_pddl_state(observation.state),ax)
 
 ''' Plot the given observation'''
 def plot_observation(observation: ScienceBirdsObservation, ax=None, marker="o"):
     meta_model = MetaModel()
     sb_state = observation.state
-    pddl_state = meta_model.create_pddl_state(sb_state)
+    # pddl_state = meta_model.create_pddl_state(sb_state)
+    initial_state = PddlPlusState(meta_model.create_pddl_problem(sb_state).init)
     obs_state_sequence = observation.get_trace(meta_model)
-    return plot_state_sequence(obs_state_sequence, pddl_state, ax, marker)
+    global BIRD_MARKER
+    BIRD_MARKER = "xr"
+    return plot_state_sequence(obs_state_sequence, initial_state, ax, marker)
+
+''' Plots the expected vs observated trajectories '''
+def plot_expected_vs_observed(meta_model: MetaModel, observation: ScienceBirdsObservation, ):
+    matplotlib.interactive(True)
+    _, fig = plt.subplots()
+    plot_expected_trace_for_obs(meta_model, observation, ax = fig)
+    plot_observation(observation, ax=fig)
 
 '''
 Plotting a PDDL+ state. '''
@@ -107,13 +124,15 @@ def plot_intermediate_state(pddl_state : PddlPlusState, previous_pddl_state: Pdd
 
 ''' Plot the pigs and birds in the pddl state '''
 def plot_pigs_and_birds(modified_birds, modified_pigs, pddl_state : PddlPlusState, ax):
-    x_pigs = [pddl_state[("x_pig", pig)] for pig in modified_pigs]
-    y_pigs = [pddl_state[("y_pig", pig)] for pig in modified_pigs]
-    ax.plot(x_pigs, y_pigs, marker="$pig$", markersize=19, linestyle="")
     # plot birds
     x_birds = [pddl_state[("x_bird", bird)] for bird in modified_birds]
     y_birds = [pddl_state[("y_bird", bird)] for bird in modified_birds]
-    ax.plot(x_birds, y_birds, marker="$bird$", markersize=19, linestyle="")
+    ax.plot(x_birds, y_birds, BIRD_MARKER, linestyle="")
+
+    x_pigs = [pddl_state[("x_pig", pig)] for pig in modified_pigs]
+    y_pigs = [pddl_state[("y_pig", pig)] for pig in modified_pigs]
+    ax.plot(x_pigs, y_pigs, PIG_MARKER, linestyle="")
+
 
 ''' Plot a block '''
 def plot_block(block, pddl_state, ax):
@@ -144,7 +163,7 @@ and showing the trajectory of the active bird.
 def plot_state_sequence(pddl_state_seq : list, pddl_state: PddlPlusState, ax= None, marker="x"):
     if ax is None:
         _, ax = plt.subplots()
-    plot_pddl_state(pddl_state, ax)
+    # plot_pddl_state(pddl_state, ax)
 
     previous_state = pddl_state
     for intermediate_pddl_state in pddl_state_seq:
@@ -160,3 +179,13 @@ def plot_state_sequence(pddl_state_seq : list, pddl_state: PddlPlusState, ax= No
 
     plt.show()
     return ax
+
+''' Setup the logger for the given module name'''
+def create_logger(logger_name: str):
+    fh = logging.FileHandler("hydra.log", mode='w')
+    formatter = logging.Formatter('%(name)s - %(levelname)s - %(message)s')
+    fh.setFormatter(formatter)
+    logger = logging.getLogger(logger_name)
+    logger.setLevel(logging.INFO)
+    logger.addHandler(fh)
+    return logger

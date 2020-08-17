@@ -147,7 +147,7 @@ class GroundTruthReader:
 
         #put unknow for the dot products less than a threshold
 
-        threshold = 0.6
+        threshold = 0 # TODO: This needs to consider the novelty detection module
 
         obj_types[dot_product.max(axis=0) < threshold] = "unknown"
 
