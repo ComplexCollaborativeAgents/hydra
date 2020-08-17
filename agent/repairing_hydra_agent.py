@@ -19,7 +19,7 @@ class RepairingHydraAgent(HydraAgent):
         self.consistency_estimator = BirdLocationConsistencyEstimator()
 
         # Create meta_model_repair object
-        self.desired_consistency = 10 # The consistency threshold for initiating repair
+        self.desired_consistency = 25 # The consistency threshold for initiating repair
         constants_to_repair = list(self.meta_model.repairable_constants)
         repair_deltas = [1.0] * len(constants_to_repair)
         self.meta_model_repair = GreedyBestFirstSearchMetaModelRepair(constants_to_repair,

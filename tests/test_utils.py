@@ -57,11 +57,13 @@ def plot_observation(observation: ScienceBirdsObservation, ax=None, marker="o"):
     return plot_state_sequence(obs_state_sequence, initial_state, ax, marker)
 
 ''' Plots the expected vs observated trajectories '''
-def plot_expected_vs_observed(meta_model: MetaModel, observation: ScienceBirdsObservation, ):
+def plot_expected_vs_observed(meta_model: MetaModel, observation: ScienceBirdsObservation, fig = None):
     matplotlib.interactive(True)
-    _, fig = plt.subplots()
+    if fig==None:
+        _, fig = plt.subplots()
     plot_expected_trace_for_obs(meta_model, observation, ax = fig)
     plot_observation(observation, ax=fig)
+    return fig
 
 '''
 Plotting a PDDL+ state. '''

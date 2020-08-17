@@ -6,8 +6,11 @@ import subprocess
 import worlds.science_birds as sb
 import pickle
 import tests.test_utils as test_utils
+import os.path as path
 
 GRAVITY_FACTOR = "gravity_factor"
+DATA_DIR = path.join(settings.ROOT_PATH, 'data')
+TEST_DATA_DIR = path.join(DATA_DIR, 'science_birds', 'tests')
 
 logger = test_utils.create_logger("test_repairing_agent")
 
@@ -53,7 +56,7 @@ def test_repair_gravity_in_agent(launch_science_birds):
 
         # Store observation for debug
         if save_obs:
-            obs_output_file = "test_repair_gravity_in_agent_obs_%d.p" % iteration  # For debug
+            obs_output_file = path.join(TEST_DATA_DIR, "test_repair_gravity_in_agent_obs_%d.p" % iteration)  # For debug
             pickle.dump(observation, open(obs_output_file, "wb"))  # For debug
         if plot_exp_vs_obs:
             test_utils.plot_expected_vs_observed(hydra.meta_model, observation)
