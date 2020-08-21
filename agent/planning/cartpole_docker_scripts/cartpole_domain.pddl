@@ -5,7 +5,7 @@
   (:types cart )
 
   (:predicates
-    (total_failure) (pole_position) (ready)
+    (total_failure) (pole_position) (ready) (cart_available)
   )
 
   (:functions
@@ -13,6 +13,7 @@
     (theta) (theta_dot) (theta_ddot)
     (l_pole) (m_pole) (friction_pole)
     (gravity) (F) (elapsed_time) (inertia)
+    (time_limit)
   )
 
 
@@ -23,8 +24,9 @@
 
   (:event set_force
       :parameters ()
-      :precondition (and (ready))
+      :precondition (and (ready) (not (total_failure)))
       :effect (and
+      	(cart_available)
       	(assign (theta_ddot) 
       		(/ 
       			(- (* (gravity) (/ (* (* 4 (* (theta) 57.29578)) (- 180 (* (theta) 57.29578))) (- 40500 (* (* (theta) 57.29578) (- 180 (* (theta) 57.29578))))) ) (* (/ (- 32400 (* 4 (* (* (theta) 57.29578) (* (theta) 57.29578)))) (+ 32400 (* (* (theta) 57.29578) (* (theta) 57.29578)))) (/ (+ (F) (* (* (m_pole) (l_pole)) (* (* (theta_dot) (theta_dot)) (/ (* (* 4 (* (theta) 57.29578)) (- 180 (* (theta) 57.29578))) (- 40500 (* (* (theta) 57.29578) (- 180 (* (theta) 57.29578))))) ) ) ) (+ (m_cart) (m_pole)) ) ) ) 
@@ -45,7 +47,7 @@
 
   (:process movement
     :parameters ()
-    :precondition (and (ready))
+    :precondition (and (ready) (not (total_failure)))
     :effect (and 
         (increase (x_dot) (* #t (x_ddot)) )
         (increase (theta_dot) (* #t (theta_ddot)) )
@@ -61,9 +63,12 @@
     :precondition (and 
     	(ready)
     	(= (F) 10)
+    	(cart_available)
+    	(not (total_failure))
 	)
     :effect (and 
       (assign (F) -10)
+      (not (cart_available))
   	) 
   )
 
@@ -72,9 +77,12 @@
     :precondition (and 
     	(ready)
     	(= (F) -10)
+    	(cart_available)
+    	(not (total_failure))
 	)
     :effect (and 
       (assign (F) 10)
+      (not (cart_available))
   	) 
   )
 
@@ -84,6 +92,7 @@
           (<= (theta) 0.20944)
           (>= (theta) -0.20944)
           (not (pole_position))
+          (not (total_failure))
       )
       :effect (and
           (pole_position)
@@ -96,6 +105,7 @@
           (or (>= (theta) 0.20944)
           (<= (theta) -0.20944))
           (pole_position)
+          (not (total_failure))
       )
       :effect (and
       	  (not (pole_position))
@@ -108,6 +118,18 @@
       :precondition (and
           (or (>= (x) 2.4)
           (<= (x) -2.4))
+          (not (total_failure))
+      )
+      :effect (and
+          (total_failure)
+      )
+  )
+
+  (:event time_limit_reached
+      :parameters ()
+      :precondition (and
+          (> (elapsed_time) (time_limit))
+          (not (total_failure))
       )
       :effect (and
           (total_failure)

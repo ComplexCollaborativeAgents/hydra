@@ -89,14 +89,16 @@ class CartpoleMetaModel():
                                 ('F', 10.0),
                                 ('inertia', 1.0),
                                 ('elapsed_time', 0.0),
-                                ('gravity', 9.81)]:
+                                ('gravity', 9.81),
+                                ('time_limit', 0.6)]:
             self.constant_numeric_fluents[fluent]=value
 
         for not_fluent in ['total_failure',
                            'pole_position']:
             self.constant_boolean_fluents[not_fluent]=False
 
-        for true_fluent in ['ready']:
+        for true_fluent in ['ready',
+                            'cart_available']:
             self.constant_boolean_fluents[true_fluent]=True
 
         self.metric = 'minimize(total-time)'
@@ -148,7 +150,7 @@ class CartpoleMetaModel():
         # Add goal
         pddl_problem.goal.append(['pole_position'])
         pddl_problem.goal.append(['not', ['total_failure']])
-        pddl_problem.goal.append(['>=', ['elapsed_time'], 0.5])
+        pddl_problem.goal.append(['=', ['elapsed_time'], ['time_limit']])
 
         return pddl_problem
 
