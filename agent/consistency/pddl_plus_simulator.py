@@ -253,7 +253,8 @@ class PddlPlusSimulator():
             else: # Boolean effects
                 if effect[0]=="not": # remove a fact
                     fluent_name = tuple(effect[1])
-                    state.boolean_fluents.remove(fluent_name)
+                    if fluent_name in state.boolean_fluents:
+                        state.boolean_fluents.remove(fluent_name)
                 else: # add a fact
                     fluent_name = tuple(effect)
                     state.boolean_fluents.add(fluent_name)
