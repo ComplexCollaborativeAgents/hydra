@@ -25,5 +25,5 @@ echo ""
 echo ""
 #./"${domain%%.*}"_planner -print
 
-time timeout $time_out ./"${domain%%.*}"_planner -m$memory -pi10000 -print -format:pddlvv
+time timeout $time_out ./"${domain%%.*}"_planner -m$memory -tl4.04 -pi10000 -print -format:pddlvv
 

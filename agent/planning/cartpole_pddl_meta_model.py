@@ -90,7 +90,7 @@ class CartpoleMetaModel():
                                 ('inertia', 1.0),
                                 ('elapsed_time', 0.0),
                                 ('gravity', 9.81),
-                                ('time_limit', 0.6)]:
+                                ('time_limit', 4.0)]:
             self.constant_numeric_fluents[fluent]=value
 
         for not_fluent in ['total_failure',
