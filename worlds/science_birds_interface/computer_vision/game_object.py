@@ -1,4 +1,4 @@
-from worlds.science_birds_interface.computer_vision.cv_utils import Rectangle
+from computer_vision.cv_utils import Rectangle
 from enum import Enum
 
 class GameObjectType(Enum):
@@ -6,7 +6,7 @@ class GameObjectType(Enum):
     GROUND = 'ground'
     HILL = 'hill'
     SLING = 'slingshot'
-    REDBIRD = 'redbird'
+    REDBIRD = 'redBird'
     YELLOWBIRD = 'yellowBird'
     BLUEBIRD = 'blueBird'
     BLACKBIRD = 'blackBird'

@@ -20,12 +20,9 @@ from utils.state import State, Action, World
 #import shapely.geometry as geo
 import logging
 
-fh = logging.FileHandler("hydra.log",mode='a')
-formatter = logging.Formatter('%(name)s - %(levelname)s - %(message)s')
-fh.setFormatter(formatter)
+
+logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("Science Birds")
-logger.setLevel(logging.INFO)
-logger.addHandler(fh)
 
 class SBState(State):
     """Current State of Science Birds"""
@@ -141,8 +138,7 @@ class ScienceBirds(World):
         cmd = 'cp {}/data/science_birds/config/{} {}/linux/config.xml'.format(str(settings.ROOT_PATH), config, settings.SCIENCE_BIRDS_BIN_DIR)
         subprocess.run(cmd, shell=True)
 
-        cmd2 = ' cd {} && {}{}'.format(settings.SCIENCE_BIRDS_BIN_DIR + "/linux/", 'xvfb-run ' if settings.HEADLESS else '',
-                             settings.SCIENCE_BIRDS_SERVER_CMD)
+        cmd2 = 'cd {} && {} {} > game_playing_interface.log'.format(settings.SCIENCE_BIRDS_BIN_DIR + "/linux/", settings.SCIENCE_BIRDS_SERVER_CMD, '--headless' if settings.HEADLESS else '')
         self.SB_server_process = subprocess.Popen(cmd2,
                                                   stdout=subprocess.PIPE, stderr=subprocess.STDOUT,shell=True,
                                                   start_new_session=True
@@ -200,6 +196,7 @@ class ScienceBirds(World):
     def act(self,action):
         '''returns the new current state and reward'''
         if isinstance(action,SBShoot):
+            logger.info("Executing action")
             self.history.append(action)
             prev_score = self.sb_client.get_current_score()
 
@@ -211,6 +208,7 @@ class ScienceBirds(World):
                 assert False
             reward =  self.sb_client.get_current_score() - prev_score
             self.get_current_state()
+            logger.info("Action executed ref_pt ({},{}) action ({},{}) reward {} len(intermediate_states) {}".format(action.ref_x, action.ref_y, action.dx, action.dy,reward,len(self.intermediate_states)))
             return self.cur_state, reward
         elif isinstance(action,SBLoadLevel):
             self.init_selected_level(action.level)
@@ -219,6 +217,8 @@ class ScienceBirds(World):
         else:
             assert False
 
+
+
 #    @func_timeout.func_set_timeout(2)
     def get_current_state(self):
         """
@@ -226,11 +226,14 @@ class ScienceBirds(World):
         """
         image = None
         time.sleep(0.1)
+        self.cur_game_window = self.sb_client.get_game_state()
+        if self.cur_game_window != ac.GameState.PLAYING: # if you aren't playing you can't get ground truth anymore
+            return SBState(None,None,self.cur_game_window)
+
         if settings.SCREENSHOT:
             image, ground_truth = self.sb_client.get_ground_truth_with_screenshot()
         else:
             ground_truth = self.sb_client.get_ground_truth_without_screenshot()
-        self.cur_game_window = self.sb_client.get_game_state()
         self.cur_state = SBState(ground_truth,image,self.cur_game_window)
         return self.cur_state
 

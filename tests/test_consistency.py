@@ -55,7 +55,7 @@ def test_multiple_numeric_fluent_inconsistent():
     simulation_trace = test_utils.simulate_plan_trace(plan, problem, domain, DEFAULT_DELTA_T)
     # Assert new timed state sequence is different from the original timed state sequence
     diff_list = diff_traces(timed_state_seq, simulation_trace)
-    logger.info("\n".join(diff_list))
+    logging.info("\n".join(diff_list))
     assert len(diff_list)>0
 
     # Create a un-timed state sequence, to simulate how the SB observations would look like.
@@ -92,7 +92,7 @@ def test_all_bird_numeric_fluent_inconsistent():
 
     # Assert new timed state sequence is different from the original timed state sequence
     diff_list = diff_traces(simulation_trace, modified_simulation_trace)
-    logger.info("\n".join(diff_list))
+    logging.info("\n".join(diff_list))
     assert len(diff_list)>0
 
     # Create a un-timed state sequence, to simulate how the SB observations would look like.
