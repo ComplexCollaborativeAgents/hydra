@@ -1,9 +1,9 @@
 import matplotlib
-
+from utils.point2D import Point2D
 from agent.consistency import pddl_plus_simulator as simulator
 from agent.consistency.observation import ScienceBirdsObservation
 from agent.perception.perception import *
-
+from agent.planning.pddl_plus import *
 from agent.planning.pddl_meta_model import MetaModel
 from tests import test_utils
 
@@ -65,7 +65,7 @@ class NumericFluentsConsistencyEstimator(ConsistencyEstimator):
 
     ''' Specify which fluents to check, and the size of the observed sequence prefix to consider.
     This is because we acknowledge that later in the observations, our model is less accurate. '''
-    def __init__(self, fluent_names, obs_prefix=7, discount_factor=0.7):
+    def __init__(self, fluent_names, obs_prefix=100, discount_factor=0.25, consistency_threshold = 20):
         self.fluent_names = []
         for fluent_name in fluent_names:
             if isinstance(fluent_name,list):
@@ -75,19 +75,35 @@ class NumericFluentsConsistencyEstimator(ConsistencyEstimator):
 
         self.discount_factor = discount_factor
         self.obs_prefix = obs_prefix
+        self.consistency_threshold = consistency_threshold
 
     ''' Returns a value indicating the estimated consistency. '''
     def estimate_consistency(self, simulation_trace: list, state_seq: list, delta_t: float = 0.05):
+        # Only consider states with some info regarding the relevant fluents
+        states_with_info = []
+        for state in state_seq:
+            has_info=False
+            for fluent_name in self.fluent_names:
+                if fluent_name in state:
+                    has_info=True
+                    break
+            if has_info:
+                states_with_info.append(state)
+        state_seq = states_with_info
+
+        # Compute consistency of every observed state
         consistency_per_state = self.compute_consistency_per_state(simulation_trace, state_seq, delta_t)
+
+        # Aggregate the consistency
         discount = 1.0
         max_error = 0
         for i, consistency in enumerate(consistency_per_state):
             if i>self.obs_prefix:
                 break
-
-            weighted_error = consistency*discount
-            if max_error < weighted_error:
-                max_error = weighted_error
+            if consistency>self.consistency_threshold:
+                weighted_error = consistency*discount
+                if max_error < weighted_error:
+                    max_error = weighted_error
 
             discount = discount*self.discount_factor
 
@@ -157,9 +173,10 @@ class NumericFluentsConsistencyEstimator(ConsistencyEstimator):
 
 ''' Checks consistency by considering the location of the birds '''
 class BirdLocationConsistencyEstimator():
-    def __init__(self, unique_prefix_size = 3,discount_factor=0.9):
+    def __init__(self, unique_prefix_size = 100,discount_factor=0.9, consistency_threshold = 20):
         self.unique_prefix_size=unique_prefix_size
         self.discount_factor = discount_factor
+        self.consistency_threshold = consistency_threshold
 
     ''' Estimate consitency by considering the location of the birds in the observed state seq '''
     def estimate_consistency(self, simulation_trace: list, state_seq: list, delta_t: float = 0.05):
@@ -176,19 +193,9 @@ class BirdLocationConsistencyEstimator():
             fluent_names.append(('x_bird', bird))
             fluent_names.append(('y_bird', bird))
 
-        # Only consider states with some info regarding the relevant fluents
-        states_with_info = []
-        for state in state_seq:
-            has_info=False
-            for fluent_name in fluent_names:
-                if fluent_name in state:
-                    has_info=True
-                    break
-            if has_info:
-                states_with_info.append(state)
-        state_seq = states_with_info
-
-        consistency_checker = NumericFluentsConsistencyEstimator(fluent_names, self.unique_prefix_size, self.discount_factor)
+        consistency_checker = NumericFluentsConsistencyEstimator(fluent_names, self.unique_prefix_size,
+                                                                 self.discount_factor,
+                                                                 consistency_threshold = self.consistency_threshold)
         return consistency_checker.estimate_consistency(simulation_trace, state_seq, delta_t)
 
 ''' A utility function for comparing (state, time) sequences. 

@@ -193,4 +193,5 @@ class PlannerStub():
     def get_plan_actions(self,count=0):
         pddl_state =self.meta_model.create_pddl_problem(self.sb_state).get_init_state()
         action_time = self.meta_model.angle_to_action_time(self.shoot_angle, pddl_state)
-        return [ ["dummy_action", self.shoot_angle, action_time]]
+        action_name = 'pa-twang %s' % pddl_state.get_active_bird()
+        return [ TimedAction(action_name, action_time) ]

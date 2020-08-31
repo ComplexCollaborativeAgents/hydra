@@ -4,28 +4,24 @@ from agent.hydra_agent import *
 from agent.planning.model_manipulator import ManipulateInitNumericFluent
 from agent.planning.planner import *
 from agent.perception.perception import *
+import tests.test_utils as test_utils
+from tests.test_utils import create_logger
 
-fh = logging.FileHandler("hydra.log",mode='w')
-formatter = logging.Formatter('%(name)s - %(levelname)s - %(message)s')
-fh.setFormatter(formatter)
-logger = logging.getLogger("test_consistency")
-logger.setLevel(logging.INFO)
-logger.addHandler(fh)
+logger = create_logger("test_consistency")
+
+DATA_DIR = path.join(settings.ROOT_PATH, 'data')
+TEST_DATA_DIR = path.join(DATA_DIR, 'science_birds', 'tests')
+TEMP_TEST_DATA_DIR = path.join(TEST_DATA_DIR, 'temp')
+PROBLEM_FILE = path.join(DATA_DIR, "sb_prob_l1.pddl")
+DOMAIN_FILE = path.join(DATA_DIR, "sb_domain_l1.pddl")
+PLAN_FILE = path.join(DATA_DIR, "docker_plan_trace_l1.txt")
 
 PRECISION = 1
-DATA_DIR = path.join(settings.ROOT_PATH, 'data')
-TEMP_DIR = path.join(settings.ROOT_PATH, 'data') # todo: not ideal that this is just the DATA
-TEST_DATA_DIR = path.join(settings.ROOT_PATH, 'data', 'science_birds', 'tests')
-
 Y_BIRD_FLUENT = ('y_bird', 'redbird_0')
 X_BIRD_FLUENT = ('x_bird', 'redbird_0')
 DELTA_T = 0.05
 GRAVITY_CHANGE = -50
 GRAVITY = "gravity"
-
-PROBLEM_FILE = path.join(DATA_DIR, "sb_prob_l1.pddl")
-DOMAIN_FILE = path.join(DATA_DIR, "sb_domain_l1.pddl")
-PLAN_FILE = path.join(DATA_DIR, "docker_plan_trace_l1.txt")
 
 ''' Helper function: loads plan, problem, and domain used to evaluate consistency checker'''
 def _load_plan_problem_domain():
@@ -116,23 +112,28 @@ def launch_science_birds():
 ''' Run Hydra, collect observations, check for consistency '''
 # @pytest.mark.skipif(True, reason="Modified planner fails on basic levels")
 def test_consistency_in_agent(launch_science_birds):
+    settings.SB_SIM_SPEED = 5
+    settings.SB_GT_FREQ = 1
     save_obs = True
 
+    # Launch SB and play a level
     env = launch_science_birds
     hydra = HydraAgent(env)
     hydra.run_next_action()
     our_observation = hydra.find_last_obs()
 
+    # Save the observation file for debug and for the offline test
     if save_obs:
         obs_output_file = path.join(TEST_DATA_DIR, "obs_test_consistency_in_agent.p")
     else:
-        obs_output_file = path.join(TEMP_DIR, "obs_test_consistency_in_agent.p")  # For debug
+        obs_output_file = path.join(TEMP_TEST_DATA_DIR, "obs_test_consistency_in_agent.p")
 
     pickle.dump(our_observation, open(obs_output_file, "wb")) #*** uncomment if needed for debugging ***
 
     plt.interactive(True)
-    fig = test_utils.plot_observation(our_observation)
-    fig = test_utils.plot_expected_trace_for_obs(hydra.meta_model, our_observation, ax=fig)
+    _, fig = plt.subplots()
+    test_utils.plot_observation(our_observation, ax=fig)
+    test_utils.plot_expected_trace_for_obs(hydra.meta_model, our_observation, ax=fig)
 
     # Check consistent with correct model
     consistency_estimator = BirdLocationConsistencyEstimator()
@@ -143,6 +144,8 @@ def test_consistency_in_agent(launch_science_birds):
     bad_meta_model = MetaModel()
     bad_meta_model.constant_numeric_fluents["gravity_factor"] = gravity_factor/2
     bad_consistency = check_obs_consistency(our_observation, bad_meta_model, consistency_estimator)
+    test_utils.plot_observation(our_observation, ax=fig)
+    test_utils.plot_expected_trace_for_obs(bad_meta_model, our_observation, ax=fig)
 
     assert good_consistency < bad_consistency
 
@@ -150,24 +153,93 @@ def test_consistency_in_agent(launch_science_birds):
 ''' Run Hydra, collect observations, check for consistency '''
 # @pytest.mark.skipif(True, reason="Modified planner fails on basic levels")
 def test_consistency_in_agent_offline():
-    plot_obs_vs_exp = False
+    plot_exp_vs_obs = False
+
     obs_output_file = path.join(TEST_DATA_DIR, "obs_test_consistency_in_agent.p")
     our_observation = pickle.load(open(obs_output_file, "rb"))
     meta_model = MetaModel()
 
-    if plot_obs_vs_exp:
-        plt.interactive(True)
-        fig = test_utils.plot_observation(our_observation)
-        fig = test_utils.plot_expected_trace_for_obs(meta_model, our_observation, ax=fig)
+    # Uncomment for debug:
+    # plt.interactive(True)
+    # _, fig = plt.subplots()
+    # fig = test_utils.plot_observation(our_observation, ax=fig)
+    # fig = test_utils.plot_expected_trace_for_obs(meta_model, our_observation, ax=fig)
 
     # Check consistent with correct model
     consistency_estimator = BirdLocationConsistencyEstimator()
-    good_consistency = check_obs_consistency(our_observation, meta_model, consistency_estimator)
+    good_consistency = check_obs_consistency(our_observation, meta_model, consistency_estimator, plot_obs_vs_exp=plot_exp_vs_obs)
 
     # Check consistent with incorrect model
-    gravity_factor = meta_model.constant_numeric_fluents["gravity_factor"]
     bad_meta_model = MetaModel()
+    gravity_factor = meta_model.constant_numeric_fluents["gravity_factor"]
     bad_meta_model.constant_numeric_fluents["gravity_factor"] = gravity_factor/2
-    bad_consistency = check_obs_consistency(our_observation, bad_meta_model, consistency_estimator)
+    bad_consistency = check_obs_consistency(our_observation, bad_meta_model, consistency_estimator, plot_obs_vs_exp=plot_exp_vs_obs)
 
     assert good_consistency < bad_consistency
+
+''' Run Hydra, collect observations, check for consistency '''
+# @pytest.mark.skipif(True, reason="Modified planner fails on basic levels")
+def test_bad_shot_consistency(launch_science_birds):
+    settings.SB_SIM_SPEED = 5
+    settings.SB_GT_FREQ = 1
+    plot_me = False
+    save_obs = True
+
+    env = launch_science_birds
+    hydra = HydraAgent(env)
+    angle = 75
+    hydra.planner = PlannerStub(angle)
+    hydra.run_next_action()
+    meta_model = hydra.meta_model
+    our_observation = hydra.find_last_obs()
+
+    # Save the observation file for debug and for the offline test
+    if save_obs:
+        obs_output_file = path.join(TEST_DATA_DIR, "test_bad_shot_consistency_obs.p")
+    else:
+        obs_output_file = path.join(TEMP_TEST_DATA_DIR, "test_bad_shot_consistency_obs.p")
+    pickle.dump(our_observation, open(obs_output_file, "wb"))  # *** uncomment if needed for debugging ***
+
+    # For debug purposes
+    # plt.interactive(True)
+    # _, fig = plt.subplots()
+    # fig = test_utils.plot_observation(our_observation, ax = fig)
+    # fig = test_utils.plot_expected_trace_for_obs(hydra.meta_model, our_observation, ax=fig)
+
+    # Check consistent with correct model
+    consistency_estimator = BirdLocationConsistencyEstimator()
+    consistency = check_obs_consistency(our_observation,meta_model, consistency_estimator, plot_obs_vs_exp=plot_me)
+
+    # Check consistent with incorrect model
+    good_gravity_factor = meta_model.constant_numeric_fluents["gravity_factor"]
+
+    bad_meta_model = MetaModel()
+    bad_meta_model.constant_numeric_fluents["gravity_factor"] = good_gravity_factor/2
+    bad_consistency = check_obs_consistency(our_observation, bad_meta_model, consistency_estimator, plot_obs_vs_exp=plot_me)
+
+    assert bad_consistency>consistency
+
+def test_offline_bad_shot():
+    plot_me = False
+    meta_model = MetaModel()
+    obs_output_file = path.join(TEST_DATA_DIR, "test_bad_shot_consistency_obs.p")
+    our_observation = pickle.load(open(obs_output_file, "rb")) #*** uncomment if needed for debugging ***
+
+    # For debug
+    # plt.interactive(True)
+    # _, fig = plt.subplots()
+    # test_utils.plot_observation(our_observation, ax=fig)
+    # fig = test_utils.plot_expected_trace_for_obs(meta_model, our_observation, ax=fig)
+
+    # Check consistent with correct model
+    consistency_estimator = BirdLocationConsistencyEstimator()
+    consistency = check_obs_consistency(our_observation, meta_model, consistency_estimator, plot_obs_vs_exp=plot_me)
+
+    # Check consistent with incorrect model
+    good_gravity_factor = MetaModel().constant_numeric_fluents["gravity_factor"]
+
+    bad_meta_model = MetaModel()
+    bad_meta_model.constant_numeric_fluents["gravity_factor"] = good_gravity_factor/2
+    bad_consistency = check_obs_consistency(our_observation, bad_meta_model, consistency_estimator, plot_obs_vs_exp=plot_me)
+
+    assert bad_consistency>consistency

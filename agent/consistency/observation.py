@@ -23,7 +23,14 @@ class ScienceBirdsObservation:
         perception = Perception()
         for intermediate_state in self.intermediate_states:
             if isinstance(intermediate_state, SBState):
-                intermediate_state = perception.process_sb_state(intermediate_state)
+                # intermediate_state = perception.process_sb_state(intermediate_state)
+
+                an_intermediate_state = perception.process_sb_state(intermediate_state)
+                pddl = meta_model.create_pddl_state(an_intermediate_state)
+                if len(pddl.get_birds())==0: # TODO: MATT LOOK HERE JULY 22, 2020
+                    an_intermediate_state = perception.process_sb_state(intermediate_state)
+                intermediate_state = an_intermediate_state
+
             observed_state_seq.append(meta_model.create_pddl_state(intermediate_state))
         return observed_state_seq
 
