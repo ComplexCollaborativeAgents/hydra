@@ -16,3 +16,4 @@ dependencies:
   - scikit-learn
   - pandas
   - func_timeout
+  - gym

@@ -8,8 +8,8 @@ HEADLESS = True
 SCREENSHOT = False
 DEBUG = False
 
-PLANNER_MEMORY_LIMIT = 10 # memory limit for UPMurphi (in MB)
-DELTA_T = 0.025 # time discretisation for UPMurphi
+PLANNER_MEMORY_LIMIT = 50 # memory limit for UPMurphi (in MB)
+DELTA_T = 0.02 # time discretisation for UPMurphi
 TIMEOUT = 30 # timeout for the planning phase (in seconds)
 
 OS_ROOT_PATH = path.abspath(os.sep)
@@ -25,6 +25,7 @@ SB_GT_FREQ = int(30/SB_SIM_SPEED)
 SCIENCE_BIRDS_SERVER_CMD = 'java -jar {}'.format(path.join(SCIENCE_BIRDS_BIN_DIR, 'linux','game_playing_interface.jar'))
 
 PLANNING_DOCKER_PATH = path.join(ROOT_PATH, 'agent', 'planning', 'docker_scripts')
+CARTPOLE_PLANNING_DOCKER_PATH = path.join(ROOT_PATH, 'agent', 'planning', 'cartpole_docker_scripts')
 VAL_DOCKER_PATH = path.join(ROOT_PATH, 'agent', 'planning', 'val_scripts')
 
 sc_json_config =  [{
