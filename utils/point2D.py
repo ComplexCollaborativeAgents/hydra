@@ -1,5 +1,6 @@
 from math import hypot
 
+
 class Point2D:
     '''point on a 2d Euclidean plane'''
 

@@ -7,6 +7,7 @@ import json
 import logging
 import numpy as np
 from PIL import Image
+import sys
 import time
 import os
 
@@ -84,8 +85,13 @@ class AgentClient:
         self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         # self.server_socket.settimeout(100)
         self._buffer = bytearray()
-        self._logger = logging.getLogger("AgentClient")
+
         self._extra_args = kwargs
+        if "logger" in kwargs:
+            self._logger = kwargs['logger']
+        else:
+            self._logger = logging.getLogger('Agent Client')
+
         logging.getLogger().setLevel(logging.INFO)
     def _read_raw_from_buff(self, size):
         """Read a specific number of bytes from server_socket"""
@@ -124,7 +130,7 @@ class AgentClient:
     def connect_to_server(self):
         try:
             self.server_socket.connect((self.server_host, self.server_port))
-            self._logger.debug(
+            self._logger.info(
                 'Client connected to server on port: %d',
                 self.server_port
             )
@@ -140,7 +146,7 @@ class AgentClient:
     def disconnect_from_server(self):
         try:
             self.server_socket.close()
-            self._logger.debug('Client disconnected from server.')
+            self._logger.info('Client disconnected from server.')
         except socket.error as e:
             self._logger.exception(
                 'Client failed to disconnect from server.'
@@ -153,7 +159,7 @@ class AgentClient:
     # REQUESTS
     def configure(self, agent_id):
         """Send configure message to server"""
-        self._logger.debug("Sending configure request")
+        self._logger.info("Sending configure request")
         self._send_command(
             RequestCodes.Configure,
             "IB",
@@ -162,26 +168,26 @@ class AgentClient:
         )
 
         (round_number, limit, levels) = self._read_from_buff("BBB")
-        self._logger.debug(
+        self._logger.info(
             'Received configuration: Round = %d, time_limit=%d, levels = %d',
             round_number, limit, levels
         )
         return (round_number, limit, levels)
 
     def ready_for_new_set(self):
-        self._logger.debug("Ready for new data set with appropriate agent.")
+        self._logger.info("Ready for new data set with appropriate agent.")
         self._send_command(RequestCodes.ReadyForNewSet)
         (time_limit, interaction_limit, n_levels, attempts_per_level, mode, seq_or_set, allowNoveltyInfo) = self._read_from_buff("IIIIBBB")
         return (time_limit, interaction_limit, n_levels, attempts_per_level, mode, seq_or_set, allowNoveltyInfo)
 
     def report_novelty_likelihood(self,report_novelty_likelihood, non_novelty_likelihood):
-        self._logger.debug("report novelty likelihood")
+        self._logger.info("report novelty likelihood")
         self._send_command(RequestCodes.ReportNoveltyLikelihood,"ff",report_novelty_likelihood, non_novelty_likelihood)
         response = self._read_from_buff("B")[0]
         return response
 
     def report_novelty_description(self,novelty_description):
-        self._logger.debug("report novelty description")
+        self._logger.info("report novelty description")
         encoded_description = novelty_description.encode('utf-8')
         msg_length = len(encoded_description)
         self._send_command(RequestCodes.ReportNoveltyDescription,"I"+str(msg_length)+"s", msg_length, encoded_description)
@@ -189,10 +195,10 @@ class AgentClient:
         return response
 
     def set_game_simulation_speed(self, simulation_speed):
-        self._logger.debug("Sending set simulation speed request")
+        self._logger.info("Sending set simulation speed request")
         self._send_command(RequestCodes.SetGameSimulationSpeed, "I", simulation_speed)
         response = self._read_from_buff("B")[0]
-        self._logger.debug("Simulation speed is set to %d", simulation_speed)
+        self._logger.info("Simulation speed is set to %d", simulation_speed)
         return response
 
     def read_image_from_stream(self):
@@ -216,9 +222,10 @@ class AgentClient:
             read_bytes += byte_buffer_length
 
         rgb_image = Image.frombytes("RGB", (width, height), image_bytes)  # check if  PIL is needed
-        # rgb_image.save(os.path.join('./', 'test'+str(id)), format='png')
+        # TODO: Remove after Debug
+        # rgb_image.save(os.path.join('./', 'test'), format='png')
 
-        print('Received screenshot')
+        self._logger.info('Received screenshot')
 
         img = np.array(rgb_image)
         # Convert RGB to BGR
@@ -244,13 +251,13 @@ class AgentClient:
 
     def do_screenshot(self):
         """Request screenshot from server"""
-        self._logger.debug("Sending screenshot request")
+        self._logger.info("Sending screenshot request")
         self._send_command(RequestCodes.DoScreenShot)
         return self.read_image_from_stream()
 
     def get_game_state(self):
         """Retrieve game state"""
-        self._logger.debug("Sending gamestate request")
+        self._logger.info("Sending gamestate request")
         self._send_command(RequestCodes.GetState)
         state = GameState(self._read_from_buff("B")[0])
         self._logger.info("Got gamestate = %s", state)
@@ -260,18 +267,18 @@ class AgentClient:
         """Load a specific level"""
         if level_number < 1:
             level_number = 1
-        self._logger.debug("Sending loadLevel request")
+        self._logger.info("Sending loadLevel request")
         self._send_command(RequestCodes.LoadLevel, "I", level_number)
         response = self._read_from_buff("B")[0]
-        self._logger.debug('Received loadLevel')
+        self._logger.info('Received loadLevel')
         return response
 
     def load_next_available_level(self):
         """Load the next available level"""
-        self._logger.debug("Sending load next available level request")
+        self._logger.info("Sending load next available level request")
         self._send_command(RequestCodes.LoadNextAvailableLevel)
         level = self._read_from_buff("I")[0]
-        self._logger.debug('Received load next available level')
+        self._logger.info('Received load next available level')
         return level
 
     def get_novelty_info(self):
@@ -280,11 +287,6 @@ class AgentClient:
         novelty_info = self._read_from_buff("I")[0]
         self._logger.info("novelty existence is %d ", novelty_info)
         return novelty_info
-
-    def restart_level(self):
-        """Request to restart level"""
-        self._send_command(RequestCodes.RestartLevel)
-        return self._read_from_buff("B")[0]
 
     def shoot_and_record_ground_truth(self, fx, fy, dx, dy, t1, t2, gt_frequency):
         """ Request to execute a shot and record ground truth every gt_frequency frames
@@ -316,9 +318,16 @@ class AgentClient:
                 gt_images.append(im)
             gt_jsons.append(gt)
         self._logger.info("received %d ground truth frames ", ground_truths_count)
-        print("--- %s seconds ---" % (time.time() - start_time))
+        self._logger.info("--- %s seconds ---", (time.time() - start_time))
         return gt_jsons
 
+
+
+
+    def restart_level(self):
+        """Request to restart level"""
+        self._send_command(RequestCodes.RestartLevel)
+        return self._read_from_buff("B")[0]
 
     def shoot(self, fx, fy, dx, dy, t1, t2, isPolar):
         code = RequestCodes.Pshoot if isPolar else RequestCodes.Cshoot
@@ -345,10 +354,10 @@ class AgentClient:
         return self._read_from_buff("I")[0]
 
     def get_number_of_levels(self):
-        self._logger.debug("Requesting number of levels")
+        self._logger.info("Requesting number of levels")
         self._send_command(RequestCodes.GetNoOfLevels)
         levels = self._read_from_buff("I")[0]
-        self._logger.debug("Number of Levels = %d", levels)
+        self._logger.info("Number of Levels = %d", levels)
         return levels
 
     def get_current_level(self):
@@ -364,28 +373,29 @@ class AgentClient:
         return self._read_from_buff("B")[0]
 
     def get_ground_truth_with_screenshot(self):
-        self._logger.debug("sending get_ground_truth_with_screenshot request")
+        self._logger.info("sending get_ground_truth_with_screenshot request")
         self._send_command(RequestCodes.GetGroundTruthWithScreenshot)
         gt = self.read_ground_truth_from_stream()
         im = self.read_image_from_stream()
         return (im, gt)
 
     def get_ground_truth_without_screenshot(self):
-        self._logger.debug("sending get_ground_truth_without_screenshot request")
+        self._logger.info("sending get_ground_truth_without_screenshot request")
         self._send_command(RequestCodes.GetGroundTruthWithoutScreenshot)
         return self.read_ground_truth_from_stream()
 
     def get_noisy_ground_truth_with_screenshot(self):
-        self._logger.debug("sending get_noisy_ground_truth_with_screenshot request")
+        self._logger.info("sending get_noisy_ground_truth_with_screenshot request")
         self._send_command(RequestCodes.GetNoisyGroundTruthWithScreenshot)
         gt = self.read_ground_truth_from_stream()
         im = self.read_image_from_stream()
         return (im, gt)
 
     def get_noisy_ground_truth_without_screenshot(self):
-        self._logger.debug("sending get_noisy_ground_truth_without_screenshot request")
+        self._logger.info("sending get_noisy_ground_truth_without_screenshot request")
         self._send_command(RequestCodes.GetNoisyGroundTruthWithoutScreenshot)
-        return self.read_ground_truth_from_stream()
+        gt = self.read_ground_truth_from_stream()
+        return gt
 
 
 if __name__ == "__main__":

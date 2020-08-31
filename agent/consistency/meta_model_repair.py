@@ -107,8 +107,8 @@ class GreedyBestFirstSearchMetaModelRepair(MetaModelRepair):
 
         # If found a useful consistency - apply it to the current meta model
         if base_consistency>incumbent_consistency:
-            logger.debug("Found a useful repair! %s,\n consistency gain=%.2f" % (str(incumbent_repair),
-                                                                                 base_consistency-incumbent_consistency))
+            logging.debug("Found a useful repair! %s,\n consistency gain=%.2f" % (str(incumbent_repair),
+                                                                                  base_consistency - incumbent_consistency))
             self._do_change(incumbent_repair)
         return incumbent_repair
 

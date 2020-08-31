@@ -5,11 +5,9 @@ before_script:
   - source activate hydra
   - pip install .
   - apt-get update
-  - apt-get -y install xvfb
 
 test:
   script:
-    - tar -xzvf bin/ScienceBirds_Linux.tar.gz -C bin/
-    - tar -xzvf data/science_birds/ANU_Levels.tar.gz -C data/science_birds/
-    - cp -r data/science_birds/Levels/novelty_level_0 bin/sciencebirds_linux/sciencebirds_linux_Data/StreamingAssets/Levels/
-    - python -m pytest
+    - unzip -o bin/linux.zip -d ./bin
+    - export PYTHONPATH=".:./worlds/science_birds_interface/"
+    - python -m pytest tests/test_science_birds.py

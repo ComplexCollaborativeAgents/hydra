@@ -21,14 +21,14 @@ GRAVITY_FACTOR = "gravity_factor"
 #################### System tests ########################
 @pytest.fixture(scope="module")
 def launch_science_birds_level_01():
-    logger.info("Starting ScienceBirds")
+    logging.info("Starting ScienceBirds")
     cmd = 'cp {}/data/science_birds/level-04.xml {}/00001.xml'.format(str(settings.ROOT_PATH), str(settings.SCIENCE_BIRDS_LEVELS_DIR))
     subprocess.run(cmd, shell=True)
 
     env = sb.ScienceBirds(None,launch=True,config='test_consistency_config.xml')
     yield env
     env.kill()
-    logger.info("Ending ScienceBirds")
+    logging.info("Ending ScienceBirds")
 
 ''' Adjusts game speed and ground truth frequency to obtain more observations'''
 def _adjust_game_speed():
@@ -53,7 +53,7 @@ def test_repair_gravity_in_agent(launch_science_birds_level_01):
 
     # Inject fault and run the agent
     _inject_fault_to_meta_model(hydra.meta_model, GRAVITY_FACTOR)
-    logger.info("Run agent, iteration 0")
+    logging.info("Run agent, iteration 0")
     hydra.run_next_action()  # enough actions to play a level
 
     # Store observations
@@ -84,7 +84,7 @@ def test_repair_gravity_in_agent(launch_science_birds_level_01):
             matplotlib.pyplot.close()
 
         if observation.reward>0:
-            logger.info("Reward ! (%.2f), iteration %d" % (observation.reward, iteration))
+            logging.info("Reward ! (%.2f), iteration %d" % (observation.reward, iteration))
             obs_with_rewards = obs_with_rewards+1
             # No need to fix the model - we're winning! #TODO: This is an assumption: better to replace this with a good novelty detection mechanism
         else:
@@ -92,13 +92,13 @@ def test_repair_gravity_in_agent(launch_science_birds_level_01):
             meta_model_repair = GreedyBestFirstSearchMetaModelRepair(fluents_to_repair, consistency_checker, repair_deltas,
                                                                      consistency_threshold=desired_precision)
             repair = meta_model_repair.repair(meta_model, observation, delta_t=DEFAULT_DELTA_T)
-            logger.info("Repair done (%s), iteration %d" % (repair,iteration))
+            logging.info("Repair done (%s), iteration %d" % (repair, iteration))
             consistency_after = check_obs_consistency(observation, meta_model, consistency_checker, delta_t=DEFAULT_DELTA_T)
             assert consistency >= consistency_after # TODO: This actually may fail, because current model may be best, but we look for a different one
 
         # Run agent with repaired model
         iteration = iteration+1
-        logger.info("Run agent, iteration %d" % iteration)
+        logging.info("Run agent, iteration %d" % iteration)
         hydra.run_next_action()  # enough actions to play a level
 
     assert obs_with_rewards>2 # Should at least win twice TODO: Ideally, this will check if we won both levels

@@ -7,12 +7,8 @@ from agent.consistency.consistency_estimator import *
 from worlds.science_birds_interface.client.agent_client import GameState
 from agent.planning.pddl_meta_model import *
 
-fh = logging.FileHandler("hydra.log",mode='w')
-formatter = logging.Formatter('%(name)s - %(levelname)s - %(message)s')
-fh.setFormatter(formatter)
-logger = logging.getLogger("hydra_agent")
-logger.setLevel(logging.INFO)
-logger.addHandler(fh)
+logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger("Hydra Agent")
 
 class HydraAgent():
     '''
@@ -20,7 +16,7 @@ class HydraAgent():
     '''
 
     def __init__(self,env=None):
-        logger.info("[hydra_agent_server] :: Agent Created")
+        logger.info("Agent Created")
         self.env = env # agent always has a pointer to its environment
         if env is not None:
             env.sb_client.set_game_simulation_speed(settings.SB_SIM_SPEED)
@@ -34,11 +30,11 @@ class HydraAgent():
 
     ''' Runs the agent. Returns False if the evaluation has not ended, and True if it has ended.'''
     def main_loop(self,max_actions=1000):
-        logger.info("[hydra_agent_server] :: Entering main loop")
-        logger.info("[hydra_agent_server] :: Delta t = {}".format(str(settings.DELTA_T)))
-        logger.info("[hydra_agent_server] :: Simulation speed = {}\n\n".format(str(settings.SB_SIM_SPEED)))
-        logger.info("[hydra_agent_server] :: Planner memory limit = {}".format(str(settings.PLANNER_MEMORY_LIMIT)))
-        logger.info("[hydra_agent_server] :: Planner timeout = {}s\n\n".format(str(settings.TIMEOUT)))
+        logger.info("Entering main loop")
+        logger.info("Delta t = {}".format(str(settings.DELTA_T)))
+        logger.info("Simulation speed = {}\n\n".format(str(settings.SB_SIM_SPEED)))
+        logger.info(" Planner memory limit = {}".format(str(settings.PLANNER_MEMORY_LIMIT)))
+        logger.info("Planner timeout = {}s\n\n".format(str(settings.TIMEOUT)))
         t = 0
 
 
@@ -54,23 +50,23 @@ class HydraAgent():
                 observation.state = processed_state
 
                 if processed_state and self.consistency_checker.is_consistent(processed_state):
-                    logger.info("[hydra_agent_server] :: Invoking Planner".format())
+                    logger.info("Invoking Planner".format())
                     orig_plan_time = time.perf_counter()
                     plan = self.planner.make_plan(processed_state, 0)
                     cumulative_plan_time += (time.perf_counter() - orig_plan_time)
-                    logger.info("[hydra_agent_server] :: Original problem planning time: " + str((time.perf_counter() - orig_plan_time)))
+                    logger.info("Original problem planning time: " + str((time.perf_counter() - orig_plan_time)))
                     if len(plan) == 0 or plan[0].action_name == "out of memory":
-                        logger.info("[hydra_agent_server] :: Invoking Planner on a Simplified Problem {}".format('timeout' if len(plan)==0 else 'out of memory'))
+                        logger.info("Invoking Planner on a Simplified Problem {}".format('timeout' if len(plan) == 0 else 'out of memory'))
                         simple_plan_time = time.perf_counter()
                         plan = self.planner.make_plan(processed_state, 2)
                         cumulative_plan_time += (time.perf_counter() - simple_plan_time)
-                        logger.info("[hydra_agent_server] :: Simplified problem planning time: " + str((time.perf_counter() - simple_plan_time)))
+                        logger.info("Simplified problem planning time: " + str((time.perf_counter() - simple_plan_time)))
                         if len(plan) == 0 or plan[0].action_name == "out of memory": # TODO FIX THIS
                             plan = []
                             plan.append(self.__get_default_action(processed_state))
 
                     timed_action = plan[0]
-                    logger.info("[hydra_agent_server] :: Taking action: {}".format(str(timed_action.action_name)))
+                    logger.info("Taking action: {}".format(str(timed_action.action_name)))
                     sb_action = self.meta_model.create_sb_action(timed_action, processed_state)
                     raw_state, reward = self.env.act(sb_action)
                     observation.reward = reward
@@ -91,7 +87,7 @@ class HydraAgent():
                 self.completed_levels.append(True)
                 logger.info("[hydra_agent_server] :: Level {} Complete - WIN".format(self.current_level))
                 logger.info("[hydra_agent_server] :: Cumulative planning time only = {}".format(str(cumulative_plan_time)))
-                logger.info("[hydra_agent_server] :: Planning effort percentage = {}\n".format(str( (cumulative_plan_time/(time.perf_counter() - overall_plan_time)) )))
+                logger.info("[hydra_agent_server] :: Planning effort percentage = {}\n".format(str((cumulative_plan_time / (time.perf_counter() - overall_plan_time)))))
                 logger.info("[hydra_agent_server] :: Overall time to attempt level {} = {}\n\n".format(self.current_level, str((time.perf_counter() - overall_plan_time))))
                 cumulative_plan_time = 0
                 overall_plan_time = time.perf_counter()
@@ -103,7 +99,7 @@ class HydraAgent():
                 self.completed_levels.append(False)
                 logger.info("[hydra_agent_server] :: Level {} complete - LOSS".format(self.current_level))
                 logger.info("[hydra_agent_server] :: Cumulative planning time only = {}".format(str(cumulative_plan_time)))
-                logger.info("[hydra_agent_server] :: Planning effort percentage = {}\n".format(str((cumulative_plan_time/(time.perf_counter() - overall_plan_time)))))
+                logger.info("[hydra_agent_server] :: Planning effort percentage = {}\n".format(str((cumulative_plan_time / (time.perf_counter() - overall_plan_time)))))
                 logger.info("[hydra_agent_server] :: Overall time to attempt level {} = {}\n\n".format(self.current_level, str((time.perf_counter() - overall_plan_time))))
                 cumulative_plan_time = 0
                 overall_plan_time = time.perf_counter()

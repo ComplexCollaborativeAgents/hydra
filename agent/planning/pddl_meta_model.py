@@ -9,37 +9,28 @@ from utils.point2D import Point2D
 import worlds.science_birds as SB
 from agent.perception.perception import Perception
 
-fh = logging.FileHandler("hydra.log",mode='w')
-formatter = logging.Formatter('%(asctime)-15s %(name)s - %(levelname)s - %(message)s')
-fh.setFormatter(formatter)
-logger = logging.getLogger("pddl_meta_model")
-logger.setLevel(logging.INFO)
-logger.addHandler(fh)
-
-
-
 
 ''' Utility functions '''
 def get_x_coordinate(obj):
-    return round(abs(obj[1]['bbox'].bounds[2] + obj[1]['bbox'].bounds[0]) / 2)
+    return round(abs(obj[1]['polygon'].bounds[2] + obj[1]['polygon'].bounds[0]) / 2)
 def get_y_coordinate(obj, groundOffset):
-    return abs(round(abs(obj[1]['bbox'].bounds[1] + obj[1]['bbox'].bounds[3]) / 2) - groundOffset)
+    return abs(round(abs(obj[1]['polygon'].bounds[1] + obj[1]['polygon'].bounds[3]) / 2) - groundOffset)
 
 # TODO: See how to merge the two functions below with the two above
 def get_slingshot_x(slingshot):
-    return round((slingshot[1]['bbox'].bounds[0] + slingshot[1]['bbox'].bounds[2]) / 2) - 0 # TODO: Why this minus zero
+    return round((slingshot[1]['polygon'].bounds[0] + slingshot[1]['polygon'].bounds[2]) / 2) - 0 # TODO: Why this minus zero
 def get_slingshot_y(groundOffset, slingshot):
-    return round(abs(((slingshot[1]['bbox'].bounds[1] + slingshot[1]['bbox'].bounds[3]) / 2) - groundOffset) - 0)
+    return round(abs(((slingshot[1]['polygon'].bounds[1] + slingshot[1]['polygon'].bounds[3]) / 2) - groundOffset) - 0)
 def get_scale(slingshot):
     # sling.width + sling.height
-    return abs(round(slingshot[1]['bbox'].bounds[0] - slingshot[1]['bbox'].bounds[2])) + round(abs(slingshot[1]['bbox'].bounds[1] - slingshot[1]['bbox'].bounds[3]))
+    return abs(round(slingshot[1]['polygon'].bounds[0] - slingshot[1]['polygon'].bounds[2])) + round(abs(slingshot[1]['polygon'].bounds[1] - slingshot[1]['polygon'].bounds[3]))
 
 def get_radius(obj):
-    return round((abs(obj[1]['bbox'].bounds[2] - obj[1]['bbox'].bounds[0]) / 2) * 0.9)
+    return round((abs(obj[1]['polygon'].bounds[2] - obj[1]['polygon'].bounds[0]) / 2) * 0.9)
 def get_height(obj):
-    return abs(obj[1]['bbox'].bounds[3] - obj[1]['bbox'].bounds[1])
+    return abs(obj[1]['polygon'].bounds[3] - obj[1]['polygon'].bounds[1])
 def get_width(obj):
-    return abs(obj[1]['bbox'].bounds[2] - obj[1]['bbox'].bounds[0])
+    return abs(obj[1]['polygon'].bounds[2] - obj[1]['polygon'].bounds[0])
 
 ''' Returns the location of the closest object to aim for '''
 def get_closest_object_xy(pddl_problem : PddlPlusProblem):
@@ -84,7 +75,7 @@ def estimate_launch_angle(slingshot, targetPoint, meta_model):
     X_OFFSET = 0.45
     Y_OFFSET = 0.6
 
-    ground_offset = slingshot[1]['bbox'].bounds[3]
+    ground_offset = slingshot[1]['polygon'].bounds[3]
 
     scale = get_scale(slingshot)
 
@@ -545,7 +536,7 @@ class MetaModel():
 
     ''' Get the ground offset '''
     def get_ground_offset(self, slingshot):
-        return slingshot[1]['bbox'].bounds[3]
+        return slingshot[1]['polygon'].bounds[3]
 
     ''' Translate the given observed SBState to a PddlPlusState object. 
     This is designed to handle intermediate state observed during execution '''

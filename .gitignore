@@ -1,5 +1,6 @@
 .DS_store
 bin/sciencebirds_linux
+bin/linux/
 *.wbproj
 
 #Settings

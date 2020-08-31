@@ -4,7 +4,7 @@ from os import path
 
 # Create your own local_settings.py file in this directory if you want
 # to override this variable and not run headless
-HEADLESS = False
+HEADLESS = True
 SCREENSHOT = False
 DEBUG = False
 
@@ -22,7 +22,7 @@ SB_GT_FREQ = int(30/SB_SIM_SPEED)
 
 
 
-SCIENCE_BIRDS_SERVER_CMD = 'java -jar {} > game_planing_interface.log'.format(path.join(SCIENCE_BIRDS_BIN_DIR, 'linux','game_playing_interface.jar'))
+SCIENCE_BIRDS_SERVER_CMD = 'java -jar {}'.format(path.join(SCIENCE_BIRDS_BIN_DIR, 'linux','game_playing_interface.jar'))
 
 PLANNING_DOCKER_PATH = path.join(ROOT_PATH, 'agent', 'planning', 'docker_scripts')
 VAL_DOCKER_PATH = path.join(ROOT_PATH, 'agent', 'planning', 'val_scripts')

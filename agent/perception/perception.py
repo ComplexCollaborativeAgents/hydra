@@ -1,6 +1,7 @@
-from shapely.geometry import box
+from shapely.geometry import box, Polygon
 
 import worlds.science_birds as sb
+from computer_vision.game_object import GameObject
 from worlds.science_birds_interface.computer_vision.GroundTruthReader import GroundTruthReader
 import settings
 import json
@@ -9,43 +10,17 @@ import logging
 import pickle
 from utils.state import State, Action, World
 
+
 from worlds.science_birds import SBState
 
-fh = logging.FileHandler("hydra.log",mode='w')
-formatter = logging.Formatter('%(name)s - %(levelname)s - %(message)s')
-fh.setFormatter(formatter)
-logger = logging.getLogger("perception")
-logger.setLevel(logging.INFO)
-logger.addHandler(fh)
+logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
 
 class Perception():
     def __init__(self):
         '''Taken from naive_agent_groundtruth'''
-        f = open(settings.SB_INIT_COLOR_MAP, 'r')
-        result = json.load(f)
-        self.look_up_matrix = np.zeros((len(result), 256))
-        self.look_up_obj_type = np.zeros(len(result)).astype(str)
-        obj_number = 0
-        for d in result:
-            if 'effects_21' in d['type']:
-                obj_name = 'Platform'
-            elif 'effects_34' in d['type']:
-                obj_name = 'TNT'
-            elif 'ice' in d['type']:
-                obj_name = 'Ice'
-            elif 'wood' in d['type']:
-                obj_name = 'Wood'
-            elif 'stone' in d['type']:
-                obj_name = 'Stone'
-            else:
-                obj_name = d['type'][:-2]
-            obj_color_map = d['colormap']
-            self.look_up_obj_type[obj_number] = obj_name
-            for pair in obj_color_map:
-                self.look_up_matrix[obj_number][int(pair['x'])] = pair['y']
-            obj_number += 1
-        # normalise the look_up_matrix
-        self.look_up_matrix = self.look_up_matrix / np.sqrt((self.look_up_matrix ** 2).sum(1)).reshape(-1, 1)
+        self.model = np.loadtxt("{}/data/science_birds/perception/model".format(settings.ROOT_PATH), delimiter=",")
+        self.target_class = list(map(lambda x: x.replace("\n", ""), open('{}/data/science_birds/perception/target_class'.format(settings.ROOT_PATH)).readlines()))
+
 
     def process_state(self, state): # TODO: This may need to be removed
         if isinstance(state,sb.SBState):
@@ -54,11 +29,14 @@ class Perception():
 
 # Output: {0: {'type': 'redBird', 'bbox': <shapely.geometry.polygon.Polygon object at 0x112145b10>}, 1: {'type': 'slingshot', 'bbox': <shapely.geometry.polygon.Polygon object at 0x112145590>}, 2: {'type': 'wood', 'bbox': <shapely.geometry.polygon.Polygon object at 0x1120f4690>}, 3: {'type': 'wood', 'bbox': <shapely.geometry.polygon.Polygon object at 0x1120f4510>}, 4: {'type': 'pig', 'bbox': <shapely.geometry.polygon.Polygon object at 0x1120f4450>}}
     def process_sb_state(self,state):
-        try:
-            vision = GroundTruthReader(state.objects,self.look_up_matrix,self.look_up_obj_type)
-        except:
-            logger.info("perception failed on state: {}".format(state))
-            return None
+        vision = GroundTruthReader(state.objects, self.model, self.target_class)
+
+        # try:
+        #     vision = GroundTruthReader(state.objects,self.model,self.target_class)
+        # except Exception as e:
+        #     logger.info ("perception exception: {}".format(e.__str__()))
+        #     logger.info("perception failed on state: {}".format(state))
+        #     return None
         sling = vision.find_slingshot_mbr()[0]
         sling.width, sling.height = sling.height, sling.width # ScienceBirds reverses width and height
 
@@ -74,9 +52,12 @@ class Perception():
         new_objs = {}
         for bird_type in bird_types:
             for obj in vision.allObj[bird_type]:
+                obj: GameObject
+                poly = Polygon([(i[0], i[1]) for i in obj.vertices])
                 new_objs[id] = {'type': bird_type,
-                                'bbox': box(obj.top_left[0], obj.top_left[1],
-                                            obj.bottom_right[0], obj.bottom_right[1])}
+#                                'bbox': box(obj.top_left[0], obj.top_left[1],
+#                                            obj.bottom_right[0], obj.bottom_right[1])
+                                'polygon':poly}
                 id += 1
 
         for type, objs in vision.allObj.items():
@@ -84,9 +65,13 @@ class Perception():
                 continue
 
             for obj in objs:
+                obj: GameObject
+                poly = Polygon([(i[0], i[1]) for i in obj.vertices])
                 new_objs[id] = {'type':type,
-                                'bbox':box(obj.top_left[0],obj.top_left[1],
-                                            obj.bottom_right[0],obj.bottom_right[1])}
+                                #'bbox':box(obj.top_left[0],obj.top_left[1],
+                                #            obj.bottom_right[0],obj.bottom_right[1]),
+                                'polygon':poly
+                                }
                 if type == 'unknown':
                     for state_obj in state.objects:
                         if 'vertices' in state_obj and obj.vertices == state_obj['vertices']:
