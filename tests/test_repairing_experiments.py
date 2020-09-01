@@ -67,13 +67,14 @@ def _run_experiment(hydra, experiment_name, max_iterations = 10):
     finally:
         results_file.close()
 
-
+@pytest.mark.skip("Have not migrated to 0.3.6 yet")
 def test_set_of_levels_no_repair(launch_science_birds_with_all_levels):
     env = launch_science_birds_with_all_levels
     hydra = HydraAgent(env)
     max_iterations = 10
     _run_experiment(hydra, "no_repair-%d" % max_iterations, max_iterations=max_iterations)
 
+@pytest.mark.skip("Have not migrated to 0.3.6 yet")
 def test_set_of_levels_repair_no_fault(launch_science_birds_with_all_levels):
     env = launch_science_birds_with_all_levels
     hydra = RepairingHydraAgent(env)
@@ -85,6 +86,7 @@ def test_set_of_levels_repair_no_fault(launch_science_birds_with_all_levels):
 def _inject_fault_to_meta_model(meta_model : MetaModel, fluent_to_change = GRAVITY_FACTOR):
     meta_model.constant_numeric_fluents[fluent_to_change] = 6.0
 
+@pytest.mark.skip("Have not migrated to 0.3.6 yet")
 def test_set_of_levels_repair_with_fault(launch_science_birds_with_all_levels):
     env = launch_science_birds_with_all_levels
     hydra = RepairingHydraAgent(env)
@@ -92,6 +94,7 @@ def test_set_of_levels_repair_with_fault(launch_science_birds_with_all_levels):
     max_iterations = 10
     _run_experiment(hydra, "with_repair_bad_gravity-%d" % max_iterations, max_iterations=max_iterations)
 
+@pytest.mark.skip("Have not migrated to 0.3.6 yet")
 def test_set_of_levels_no_repair_with_fault(launch_science_birds_with_all_levels):
     env = launch_science_birds_with_all_levels
     hydra = HydraAgent(env)

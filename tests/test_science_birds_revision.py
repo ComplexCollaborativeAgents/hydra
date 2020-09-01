@@ -22,6 +22,7 @@ from agent.planning.pddl_meta_model import *
 def launch_science_birds():
     print("starting")
     #remove config files
+    #Change this to no longer copy files around
     cmd = 'cp {}/data/science_birds/level-15.xml {}/00001.xml'.format(str(settings.ROOT_PATH), str(settings.SCIENCE_BIRDS_LEVELS_DIR))
     subprocess.run(cmd, shell=True)
     cmd = 'cp {}/data/science_birds/level-15-novel-bird.xml {}/../../../novelty_level_2/type6/Levels/00001.xml'.format(str(settings.ROOT_PATH), str(settings.SCIENCE_BIRDS_LEVELS_DIR))
@@ -33,7 +34,7 @@ def launch_science_birds():
     print("teardown tests")
     env.kill()
 
-@pytest.mark.skipif(settings.HEADLESS==True, reason="headless does not work in docker")
+@pytest.mark.skip("Unsure what the first revision test problems should be.")
 def test_science_birds_agent(launch_science_birds):
     env = launch_science_birds
     env.sb_client.set_game_simulation_speed(settings.SB_SIM_SPEED)

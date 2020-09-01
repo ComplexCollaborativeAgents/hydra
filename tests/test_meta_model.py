@@ -3,11 +3,13 @@ import os.path
 from agent.planning.pddl_meta_model import *
 from agent.planning.pddl_plus import *
 from worlds.science_birds import *
+import pytest
 
 DATA_DIR = path.join(settings.ROOT_PATH, 'data')
 DATA_TESTS_DIR = path.join(DATA_DIR, 'science_birds', 'tests')
 
 ''' Check creating SBAction and PDDL+ timed action  '''
+@pytest.mark.skip("obs_test_meta_model.p was created by an older version of science birds and therefore is not consistent with current system")
 def test_action_creation():
     observation = pickle.load(open(os.path.join(DATA_TESTS_DIR, "obs_test_meta_model.p"), "rb"))
     meta_model = MetaModel()
@@ -34,6 +36,7 @@ def test_action_creation():
     assert abs(sb_action.dy - sb_action2.dy) < 1.5
 
 ''' Check conversion from angle to time is correct '''
+@pytest.mark.skip("Have not migrated to 0.3.6 yet")
 def test_action_angle_conversion():
     observation = pickle.load(open(os.path.join(DATA_TESTS_DIR, "obs_test_meta_model.p"), "rb"))
 

@@ -10,4 +10,4 @@ test:
   script:
     - unzip -o bin/linux.zip -d ./bin
     - export PYTHONPATH=".:./worlds/science_birds_interface/"
-    - python -m pytest tests/test_science_birds.py
+    - python -m pytest
