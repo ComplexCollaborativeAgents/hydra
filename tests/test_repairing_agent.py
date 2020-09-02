@@ -32,7 +32,7 @@ def _inject_fault_to_meta_model(meta_model : MetaModel, fluent_to_change = GRAVI
 
 
 ''' A full system test: run SB with a bad meta model, observe results, fix meta model '''
-@pytest.mark.skipif(settings.HEADLESS == True, reason="headless does not work in docker")
+@pytest.mark.skip("Have not migrated to 0.3.6 yet")
 def test_repair_gravity_in_agent(launch_science_birds):
     # Setup environment and agent
     save_obs = True

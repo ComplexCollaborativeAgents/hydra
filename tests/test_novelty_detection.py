@@ -16,15 +16,8 @@ import subprocess
 import agent.perception.perception as perception
 from agent.hydra_agent import HydraAgent
 
-@pytest.fixture(scope="module")
-def launch_science_birds():
-    print("starting")
-    env = sb.ScienceBirds(None,launch=True,config='test_novelty_config.xml') #run a single novelty problem
-    yield env
-    print("teardown tests")
-    env.kill()
 
-@pytest.mark.skipif(settings.HEADLESS==True, reason="headless does not work in docker")
+@pytest.mark.skip("Generate observations for novelty and non-novelty traces for UPenn")
 def test_test_harness(launch_science_birds):
     env = launch_science_birds
     hydra = HydraAgent(env)

@@ -24,9 +24,8 @@ def launch_science_birds():
     print("teardown tests")
     env.kill()
 
-@pytest.mark.skipif(settings.HEADLESS==True, reason="headless does not work in docker")
+@pytest.mark.skip("This test is for ensuring we are good to go for the evaluation. Not right now")
 def test_test_harness(launch_science_birds):
     env = launch_science_birds
-    env.sb_client.set_game_simulation_speed(5) #run at max speed as we are just testing all the API calls
     hydra = HydraAgent(env)
     hydra.main_loop(5)  # enough actions to play the first two levels

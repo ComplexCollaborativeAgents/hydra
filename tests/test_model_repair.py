@@ -17,6 +17,7 @@ GRAVITY_FACTOR = "gravity_factor"
 @pytest.fixture(scope="module")
 def launch_science_birds_level_01():
     logger.info("Starting ScienceBirds")
+    # MEK: This should be updated to no longer copying files over and just loading from the new directory as is done in test_science_birds
     cmd = 'cp {}/data/science_birds/level-04.xml {}/00001.xml'.format(str(settings.ROOT_PATH), str(settings.SCIENCE_BIRDS_LEVELS_DIR))
     subprocess.run(cmd, shell=True)
 
@@ -36,7 +37,7 @@ def _inject_fault_to_meta_model(meta_model : MetaModel, fluent_to_change = GRAVI
 
 ''' A full system test: run SB with a bad metnka model, observe results, fix meta model '''
 
-@pytest.mark.skip()
+@pytest.mark.skip("Currently updating to 0.3.6 version does not work")
 def test_repair_gravity_in_agent(launch_science_birds_level_01):
     # Constants
     save_obs = True # Set this to true to create a new observation file for test_repair_gravity_offline()

@@ -25,12 +25,12 @@ logger = logging.getLogger("TestSB")
 def launch_science_birds():
     logger.info("starting")
     # There is a new method where you can specify a level directory,
-    cmd = 'cp {}/data/science_birds/level-14.xml {}/00001.xml'.format(str(settings.ROOT_PATH), str(settings.SCIENCE_BIRDS_LEVELS_DIR))
-    subprocess.run(cmd, shell=True)
-    cmd = 'cp {}/data/science_birds/level-15.xml {}/00002.xml'.format(str(settings.ROOT_PATH), str(settings.SCIENCE_BIRDS_LEVELS_DIR))
-    subprocess.run(cmd, shell=True)
-    cmd = 'cp {}/data/science_birds/level-16.xml {}/00003.xml'.format(str(settings.ROOT_PATH), str(settings.SCIENCE_BIRDS_LEVELS_DIR))
-    subprocess.run(cmd, shell=True)
+    # cmd = 'cp {}/data/science_birds/level-14.xml {}/00001.xml'.format(str(settings.ROOT_PATH), str(settings.SCIENCE_BIRDS_LEVELS_DIR))
+    # subprocess.run(cmd, shell=True)
+    # cmd = 'cp {}/data/science_birds/level-15.xml {}/00002.xml'.format(str(settings.ROOT_PATH), str(settings.SCIENCE_BIRDS_LEVELS_DIR))
+    # subprocess.run(cmd, shell=True)
+    # cmd = 'cp {}/data/science_birds/level-16.xml {}/00003.xml'.format(str(settings.ROOT_PATH), str(settings.SCIENCE_BIRDS_LEVELS_DIR))
+    # subprocess.run(cmd, shell=True)
     env = sb.ScienceBirds(None,launch=True,config='test_config.xml')
     yield env
     env.kill()

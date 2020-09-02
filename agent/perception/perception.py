@@ -1,7 +1,7 @@
 from shapely.geometry import box, Polygon
 
 import worlds.science_birds as sb
-from computer_vision.game_object import GameObject
+from worlds.science_birds_interface.computer_vision.game_object import GameObject
 from worlds.science_birds_interface.computer_vision.GroundTruthReader import GroundTruthReader
 import settings
 import json
