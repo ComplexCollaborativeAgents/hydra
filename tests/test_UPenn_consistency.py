@@ -1,7 +1,7 @@
 import worlds.science_birds as sb
 import pytest
 from agent.consistency.observation import ScienceBirdsObservation
-from agent.consistency.anomaly_detector import *
+from agent.consistency.focused_anomaly_detector import *
 from os import path
 
 NON_NOVEL_OBS_DIR = path.join(settings.ROOT_PATH, 'data','science_birds','consistency','dynamics','non_novel')
