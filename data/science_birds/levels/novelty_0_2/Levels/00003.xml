@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-16"?>
+<!-- Two red birds, three pigs each on two stacked rectangular blocks - wood ice and stone, close and medium distance to the slingshot; a bounce shot is required to kill two pigs in one go in order to solve the level -->
+<Level width ="2">
+<Camera x="0" y="2" minWidth="20" maxWidth="30">
+<Score highScore ="40000">
+<Birds>
+<Bird type="BirdRed"/>
+<Bird type="BirdRed"/>
+</Birds>
+<Slingshot x="-8" y="-2.5">
+<GameObjects>
+
+<Pig type="BasicBig" material="" x="0.365" y="-2.6" rotation="0" />
+<Block type="RectFat" material="ice" x="0.365" y="-2.8" rotation="0" />
+<Block type="RectFat" material="ice" x="0.365" y="-3.0" rotation="0" />
+
+<Pig type="BasicBig" material="" x="3.365" y="-2.6" rotation="0" />
+<Block type="RectFat" material="wood" x="3.365" y="-2.8" rotation="0" />
+<Block type="RectFat" material="wood" x="3.365" y="-3.0" rotation="0" />
+
+<Pig type="BasicBig" material="" x="6.5" y="-2.6" rotation="0" />
+<Block type="RectFat" material="stone" x="6.5" y="-2.8" rotation="0" />
+<Block type="RectFat" material="stone" x="6.5" y="-3.0" rotation="0" />
+</GameObjects>
+</Level>
