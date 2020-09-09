@@ -23,3 +23,11 @@ def test_test_harness(launch_science_birds):
     hydra = HydraAgent(env)
     hydra.main_loop()  # enough actions to play the first two levels
     assert hydra.consistency_checker.novelty_likelihood == 1
+
+# This is just focused on level 1 novelty detecting unknown objects
+# This function will generate observations for each level
+if __name__ == '__main__':
+    env = sb.ScienceBirds(None,launch=True,config='test_novelty_detection.xml')
+    hydra = HydraAgent(env)
+    hydra.main_loop()
+#    assert hydra.consistency_checker.novelty_likelihood == 1

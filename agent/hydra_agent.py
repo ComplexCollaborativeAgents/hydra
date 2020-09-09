@@ -187,7 +187,10 @@ class HydraAgent():
     def __get_default_action(self, state : ProcessedSBState):
         problem = self.meta_model.create_pddl_problem(state)
         pddl_state = PddlPlusState(problem.init)
-        active_bird = pddl_state.get_active_bird()
+        try:
+            active_bird = pddl_state.get_active_bird()
+        except:
+            active_bird = None
         default_angle = 20.0
         default_time = self.meta_model.angle_to_action_time(default_angle, pddl_state)
         return TimedAction("pa-twang %s" % active_bird, default_time)
