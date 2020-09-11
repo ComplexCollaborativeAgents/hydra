@@ -138,7 +138,11 @@ class ScienceBirds(World):
         cmd = 'cp {}/data/science_birds/config/{} {}/linux/config.xml'.format(str(settings.ROOT_PATH), config, settings.SCIENCE_BIRDS_BIN_DIR)
         subprocess.run(cmd, shell=True)
 
-        cmd2 = 'cd {} && {} {} > game_playing_interface.log'.format(settings.SCIENCE_BIRDS_BIN_DIR + "/linux/", settings.SCIENCE_BIRDS_SERVER_CMD, '--headless' if settings.HEADLESS else '')
+        cmd2 = 'cd {} && {} {} {} > game_playing_interface.log'.format(settings.SCIENCE_BIRDS_BIN_DIR + "/linux/",
+                                                                       settings.SCIENCE_BIRDS_SERVER_CMD,
+                                                                       '--headless' if settings.HEADLESS else '',
+                                                                       '--dev' if settings.SB_DEV_MODE else '')
+        print('launching java birds : {}'.format(cmd2))
         self.SB_server_process = subprocess.Popen(cmd2,
                                                   stdout=subprocess.PIPE, stderr=subprocess.STDOUT,shell=True,
                                                   start_new_session=True
@@ -204,8 +208,8 @@ class ScienceBirds(World):
             self.intermediate_states = self.sb_client.shoot_and_record_ground_truth(action.ref_x, action.ref_y, action.dx, action.dy, 0, action.tap, settings.SB_GT_FREQ)
             self.intermediate_states = [SBState(intermediate_state, None, None) for intermediate_state in self.intermediate_states]
             time.sleep(2 / settings.SB_SIM_SPEED)
-            if len(self.intermediate_states) < 3: # we should get some intermediate states
-                assert False
+#            if len(self.intermediate_states) < 3: # we should get some intermediate states
+#                assert False
             reward =  self.sb_client.get_current_score() - prev_score
             self.get_current_state()
             logger.info("Action executed ref_pt ({},{}) action ({},{}) reward {} len(intermediate_states) {}".format(action.ref_x, action.ref_y, action.dx, action.dy,reward,len(self.intermediate_states)))

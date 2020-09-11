@@ -119,6 +119,7 @@ class HydraAgent():
             (time.perf_counter() - self.overall_plan_time))))
         cumulative_plan_time = 0
         overall_plan_time = time.perf_counter()
+        self.perception.new_level = True
         self.current_level = self.env.sb_client.load_next_available_level()
         # time.sleep(1)
         self.novelty_existence = self.env.sb_client.get_novelty_info()
@@ -136,6 +137,7 @@ class HydraAgent():
         self.cumulative_plan_time = 0
         self.overall_plan_time = time.perf_counter()
         self.current_level = self.env.sb_client.load_next_available_level()
+        self.perception.new_level = True
         # time.sleep(1)
         self.novelty_existence = self.env.sb_client.get_novelty_info()
         time.sleep(2 / settings.SB_SIM_SPEED)
@@ -160,7 +162,7 @@ class HydraAgent():
                 self.cumulative_plan_time += (time.perf_counter() - simple_plan_time)
                 logger.info("[hydra_agent_server] :: Simplified problem planning time: " + str(
                     (time.perf_counter() - simple_plan_time)))
-                if len(plan) == 0 or plan[0].action_name == "out of memory":  # TODO FIX THIS
+                if  len(plan) == 0 or plan[0].action_name == "out of memory":  # TODO FIX THIS
                     plan = []
                     plan.append(self.__get_default_action(processed_state))
 

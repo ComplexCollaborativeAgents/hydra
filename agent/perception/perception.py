@@ -12,7 +12,7 @@ from utils.state import State, Action, World
 
 
 from worlds.science_birds import SBState
-
+import csv
 logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
 
 class Perception():
@@ -20,6 +20,11 @@ class Perception():
         '''Taken from naive_agent_groundtruth'''
         self.model = np.loadtxt("{}/data/science_birds/perception/model".format(settings.ROOT_PATH), delimiter=",")
         self.target_class = list(map(lambda x: x.replace("\n", ""), open('{}/data/science_birds/perception/target_class'.format(settings.ROOT_PATH)).readlines()))
+        self.new_level = True
+        self.writer = csv.DictWriter(open('object_class.csv','w'), fieldnames=classification_cols())
+        self.writer.writeheader()
+
+
 
 
     def process_state(self, state): # TODO: This may need to be removed
@@ -27,9 +32,17 @@ class Perception():
             return self.process_sb_state(state)
         return state
 
+
+
 # Output: {0: {'type': 'redBird', 'bbox': <shapely.geometry.polygon.Polygon object at 0x112145b10>}, 1: {'type': 'slingshot', 'bbox': <shapely.geometry.polygon.Polygon object at 0x112145590>}, 2: {'type': 'wood', 'bbox': <shapely.geometry.polygon.Polygon object at 0x1120f4690>}, 3: {'type': 'wood', 'bbox': <shapely.geometry.polygon.Polygon object at 0x1120f4510>}, 4: {'type': 'pig', 'bbox': <shapely.geometry.polygon.Polygon object at 0x1120f4450>}}
     def process_sb_state(self,state):
         vision = GroundTruthReader(state.objects, self.model, self.target_class)
+
+        if self.new_level:
+            for obj in vision.alljson:
+                if 'coordinates' in obj['geometry']:
+                    self.writer.writerow(self.obj_dictionary(obj))
+            self.new_level = False
 
         # try:
         #     vision = GroundTruthReader(state.objects,self.model,self.target_class)
@@ -88,6 +101,24 @@ class Perception():
             right structures'''
         return dictionary
 
+    def obj_dictionary(self,obj):
+        colors = np.zeros(256)
+        row = {}
+        row['class'] = obj['properties']['label']
+        row['num_vertices'] = len(obj['geometry']['coordinates'][0]) #just exterior
+        poly = Polygon(obj['geometry']['coordinates'][0])
+        row['area'] = poly.area
+        for color_pair in obj['properties']['colormap']:
+            colors[color_pair['color']]=color_pair['percent']
+        for color in range(0,256):
+            row['color{}'.format(color)] = colors[color]
+        return row
+
+def classification_cols():
+    colormap = ['color{}'.format(x) for x in range(0, 256)]
+    cols = ['class', 'num_vertices',  'area']
+    cols.extend(colormap)
+    return cols
 
 ''' A Science bird after it was processed by the perception module '''
 class ProcessedSBState(State):
@@ -111,3 +142,5 @@ class ProcessedSBState(State):
 
     def load_from_serialized_state(level_filename):
         return pickle.load(open(level_filename, 'rb'))
+
+

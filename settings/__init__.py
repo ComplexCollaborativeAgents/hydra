@@ -7,6 +7,8 @@ from os import path
 HEADLESS = True
 SCREENSHOT = False
 DEBUG = False
+NO_PLANNING = False
+SB_DEV_MODE = True
 
 PLANNER_MEMORY_LIMIT = 50 # memory limit for UPMurphi (in MB)
 DELTA_T = 0.02 # time discretisation for UPMurphi
