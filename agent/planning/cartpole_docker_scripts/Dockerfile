@@ -1,8 +1,9 @@
 FROM ubuntu:latest
 
+RUN apt-get update && apt-get upgrade -y
+
 RUN /bin/bash -c "echo 'deb http://archive.ubuntu.com/ubuntu trusty-backports main restricted universe multiverse' >> /etc/apt/sources.list"
 RUN apt update
-RUN apt-get update && apt-get upgrade -y
 RUN apt install -y -t trusty-backports flex=2.5.39-8~ubuntu14.04.1
 RUN apt-mark hold flex
 
