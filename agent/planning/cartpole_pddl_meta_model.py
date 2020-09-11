@@ -64,7 +64,7 @@ class PddlObjectType():
                 pddl_state.numeric_fluents[fluent_name]=value
 
 
-class CartpoleMetaModel():
+class CartPoleMetaModel():
 
     ''' Sets the default meta-model'''
     def __init__(self):
@@ -90,7 +90,7 @@ class CartpoleMetaModel():
                                 ('inertia', 1.0),
                                 ('elapsed_time', 0.0),
                                 ('gravity', 9.81),
-                                ('time_limit', 4.0)]:
+                                ('time_limit', 1.0)]:
             self.constant_numeric_fluents[fluent]=value
 
         for not_fluent in ['total_failure',
@@ -114,6 +114,8 @@ class CartpoleMetaModel():
         pddl_problem.objects = []
         pddl_problem.init = []
         pddl_problem.goal = []
+
+        pddl_problem.objects.append(['dummy_obj', 'dummy'])
 
         obs_theta = round(observation_array[2], 5)
         obs_theta_dot = round(observation_array[3], 5)
@@ -154,43 +156,43 @@ class CartpoleMetaModel():
 
         return pddl_problem
 
-    # ''' Translate the given observed SBState to a PddlPlusState object.
-    # This is designed to handle intermediate state observed during execution '''
-    # def create_pddl_state(self, sb_state: ProcessedSBState):
-    #     pddl_state = PddlPlusState()
-    #
-    #     # A dictionary with global problem parameters
-    #     state_params = dict()
-    #     state_params["has_platform"] = False
-    #     state_params["has_block"] = False
-    #     state_params["bird_index"] = 0
-    #     # Above line redundant since we're storing the slingshot also, but it seems easier to store it also to save computations of the offset everytime we use it.
-    #     state_params["pigs"] = set()
-    #     state_params["birds"] = set()
-    #     state_params["initial_state"] = False  # This marks that SBState describes the initial state. Used for setting the bird's location in the slingshot's location. TODO: Reconsider this design choice
-    #
-    #     # Add objects to problem
-    #     for obj in sb_state.objects.items():
-    #         # Get type
-    #         type_str = obj[1]['type']
-    #         if 'bird' in type_str.lower():
-    #             type = self.object_types["bird"]
-    #         else:
-    #             if type_str in self.object_types:
-    #                 type = self.object_types[type_str]
-    #             else:
-    #                 logger.info("Unknown object type: %s" % type_str)
-    #                 # TODO Handle unknown objects in some way (Error? default object?)
-    #                 continue
-    #
-    #         # Add object of this type to the problem
-    #         type.add_object_to_state(pddl_state, obj, state_params)
-    #
-    #     return pddl_state
-    #
-    # ''' Creates a PDDL+ domain object for the given SB state
-    # Current implementation simply copies an existing domain file '''
-    # def create_pddl_domain(self, sb_State: ProcessedSBState):
-    #     domain_file = "%s/cartpole_domain.pddl" % str(settings.PLANNING_DOCKER_PATH)
-    #     domain_parser = PddlDomainParser()
-    #     return domain_parser.parse_pddl_domain(domain_file)
+    ''' Translate the given observed SBState to a PddlPlusState object.
+    This is designed to handle intermediate state observed during execution '''
+    def create_pddl_state(self, observations_array):
+        pddl_state = PddlPlusState()
+
+        # A dictionary with global problem parameters
+        state_params = dict()
+
+        obs_theta = round(observations_array[2], 5)
+        obs_theta_dot = round(observations_array[3], 5)
+        obs_x = round(observations_array[0], 5)
+        obs_x_dot = round(observations_array[1], 5)
+
+        state_params["x"] = obs_x
+        state_params["x_dot"] = obs_x_dot
+        state_params["theta"] = obs_theta
+        state_params["theta_dot"] = obs_theta_dot
+
+        for sp_key, sp_value in state_params:
+            pddl_state[sp_key] = sp_value
+
+        return pddl_state
+
+    ''' Creates a PDDL+ domain object for the given SB state
+    Current implementation simply copies an existing domain file '''
+    def create_pddl_domain(self, sb_State: ProcessedSBState):
+        domain_file = "%s/cartpole_domain.pddl" % str(settings.CARTPOLE_PLANNING_DOCKER_PATH)
+        domain_parser = PddlDomainParser()
+        return domain_parser.parse_pddl_domain(domain_file)
+
+    ''' Create a PDDL+ TimedAction object from an SB action and state '''
+    def create_timed_action(self, action, time_step):
+        if (action==1):
+            action_name = "move_cart_right"
+        else:
+            action_name = "move_cart_left"
+
+        action_time = time_step * 0.02
+
+        return TimedAction(action_name, action_time)

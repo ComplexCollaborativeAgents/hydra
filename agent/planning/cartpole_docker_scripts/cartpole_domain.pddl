@@ -2,7 +2,7 @@
 
   (:requirements :typing :durative-actions :disjunctive-preconditions :duration-inequalities :fluents :time :negative-preconditions :timed-initial-literals )
 
-  (:types cart )
+  (:types dummy )
 
   (:predicates
     (total_failure) (pole_position) (ready) (cart_available)
@@ -23,35 +23,32 @@
 
 
   (:event set_force
-      :parameters ()
+      :parameters (?d - dummy)
       :precondition (and (ready) (not (total_failure)))
       :effect (and
       	(cart_available)
-      	(assign (theta_ddot) 
-      		(/ 
-      			(- (* (gravity) (/ (* (* 4 (* (theta) 57.29578)) (- 180 (* (theta) 57.29578))) (- 40500 (* (* (theta) 57.29578) (- 180 (* (theta) 57.29578))))) ) (* (/ (- 32400 (* 4 (* (* (theta) 57.29578) (* (theta) 57.29578)))) (+ 32400 (* (* (theta) 57.29578) (* (theta) 57.29578)))) (/ (+ (F) (* (* (m_pole) (l_pole)) (* (* (theta_dot) (theta_dot)) (/ (* (* 4 (* (theta) 57.29578)) (- 180 (* (theta) 57.29578))) (- 40500 (* (* (theta) 57.29578) (- 180 (* (theta) 57.29578))))) ) ) ) (+ (m_cart) (m_pole)) ) ) ) 
-
-      			(* (l_pole) (- (/ 4.0 3.0) (/ (* (m_pole) (* (/ (- 32400 (* 4 (* (* (theta) 57.29578) (* (theta) 57.29578)))) (+ 32400 (* (* (theta) 57.29578) (* (theta) 57.29578)))) (/ (- 32400 (* 4 (* (* (theta) 57.29578) (* (theta) 57.29578)))) (+ 32400 (* (* (theta) 57.29578) (* (theta) 57.29578)))) )) (+ (m_cart) (m_pole)) ) ) ) 
+      	(assign (theta_ddot)
+      		(/
+      			(- (* (gravity) (/ (* (* 4 (* (theta) 57.29578)) (- 180 (* (theta) 57.29578))) (- 40500 (* (* (theta) 57.29578) (- 180 (* (theta) 57.29578))))) ) (* (/ (- 32400 (* 4 (* (* (theta) 57.29578) (* (theta) 57.29578)))) (+ 32400 (* (* (theta) 57.29578) (* (theta) 57.29578)))) (/ (+ (F) (* (* (m_pole) (l_pole)) (* (* (theta_dot) (theta_dot)) (/ (* (* 4 (* (theta) 57.29578)) (- 180 (* (theta) 57.29578))) (- 40500 (* (* (theta) 57.29578) (- 180 (* (theta) 57.29578))))) ) ) ) (+ (m_cart) (m_pole)) ) ) )
+      			(* (l_pole) (- (/ 4.0 3.0) (/ (* (m_pole) (* (/ (- 32400 (* 4 (* (* (theta) 57.29578) (* (theta) 57.29578)))) (+ 32400 (* (* (theta) 57.29578) (* (theta) 57.29578)))) (/ (- 32400 (* 4 (* (* (theta) 57.29578) (* (theta) 57.29578)))) (+ 32400 (* (* (theta) 57.29578) (* (theta) 57.29578)))) )) (+ (m_cart) (m_pole)) ) ) )
   			)
       	)
-
-      	(assign (x_ddot) 
+      	(assign (x_ddot)
       		(- 
       			(/ (+ (F) (* (* (m_pole) (l_pole)) (* (* (theta_dot) (theta_dot)) (/ (* (* 4 (* (theta) 57.29578)) (- 180 (* (theta) 57.29578))) (- 40500 (* (* (theta) 57.29578) (- 180 (* (theta) 57.29578))))) ) ) ) (+ (m_cart) (m_pole)) ) 
-
-      			(/ (* (* (m_pole) (l_pole)) (* (theta_ddot) (/ (- 32400 (* 4 (* (* (theta) 57.29578) (* (theta) 57.29578)))) (+ 32400 (* (* (theta) 57.29578) (* (theta) 57.29578)))) )) (+ (m_cart) (m_pole)) ) 
+      			(/ (* (* (m_pole) (l_pole)) (* (theta_ddot) (/ (- 32400 (* 4 (* (* (theta) 57.29578) (* (theta) 57.29578)))) (+ 32400 (* (* (theta) 57.29578) (* (theta) 57.29578)))) )) (+ (m_cart) (m_pole)) )
   			)
       	)
       )
   )
 
   (:process movement
-    :parameters ()
+    :parameters (?d - dummy)
     :precondition (and (ready) (not (total_failure)))
     :effect (and 
         (increase (x_dot) (* #t (x_ddot)) )
-        (increase (theta_dot) (* #t (theta_ddot)) )
         (increase (x) (* #t (x_dot)) )
+        (increase (theta_dot) (* #t (theta_ddot)) )
         (increase (theta) (* #t (theta_dot)))
         (increase (elapsed_time) (* #t 1) )
     )
@@ -59,7 +56,7 @@
 
 
   (:action move_cart_left
-    :parameters ()
+    :parameters (?d - dummy)
     :precondition (and 
     	(ready)
     	(= (F) 10)
@@ -73,7 +70,7 @@
   )
 
   (:action move_cart_right
-    :parameters ()
+    :parameters (?d - dummy)
     :precondition (and 
     	(ready)
     	(= (F) -10)
@@ -87,10 +84,10 @@
   )
 
   (:event entered_goal_region
-      :parameters ()
+      :parameters (?d - dummy)
       :precondition (and
-          (<= (theta) 0.20944)
-          (>= (theta) -0.20944)
+          (<= (theta) 0.20)
+          (>= (theta) -0.20)
           (not (pole_position))
           (not (total_failure))
       )
@@ -100,10 +97,10 @@
   )
 
   (:event exited_goal_region
-      :parameters ()
+      :parameters (?d - dummy)
       :precondition (and
-          (or (>= (theta) 0.20944)
-          (<= (theta) -0.20944))
+          (or (>= (theta) 0.20)
+          (<= (theta) -0.20))
           (pole_position)
           (not (total_failure))
       )
@@ -114,7 +111,7 @@
   )
 
   (:event cart_out_of_bounds
-      :parameters ()
+      :parameters (?d - dummy)
       :precondition (and
           (or (>= (x) 2.4)
           (<= (x) -2.4))
@@ -126,7 +123,7 @@
   )
 
   (:event time_limit_reached
-      :parameters ()
+      :parameters (?d - dummy)
       :precondition (and
           (> (elapsed_time) (time_limit))
           (not (total_failure))

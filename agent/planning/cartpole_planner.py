@@ -11,14 +11,15 @@ from agent.planning.pddl_plus import *
 from agent.planning.cartpole_pddl_meta_model import *
 import datetime
 import time
+import copy
 
-class CartpolePlanner():
+class CartPolePlanner():
     domain_file = None
     problem = None # current state of the world
     SB_OFFSET = 1
 
 
-    def __init__(self, meta_model = CartpoleMetaModel()):
+    def __init__(self, meta_model = CartPoleMetaModel()):
         self.meta_model = meta_model
         self.current_problem_prefix = None
 
@@ -119,11 +120,11 @@ class CartpolePlanner():
                     action_angle_time = (line.split(':')[1].split('[')[0].replace('(', '').replace(')', '').strip(),
                                          float(str(lines_list[i+1].split('f:')[1].split(',')[0])),
                                          float(line.split(':')[0].replace('; ','')))
-                    print (str(action_angle_time) + "\n")
+                    # print (str(action_angle_time) + "\n")
 
-                    action_name = "move_right"
+                    action_name = "move_cart_right"
                     if action_angle_time[1] == -10:
-                        action_name = "move_left"
+                        action_name = "move_cart_left"
 
                     plan_actions.append(TimedAction(action_name, action_angle_time[2]))
                 if "syntax error" in line:
@@ -131,6 +132,30 @@ class CartpolePlanner():
                     break
 
         return  plan_actions
+
+        ''' Parses the given plan trace file and outputs the plan '''
+
+    def extract_state_values_from_trace(self, plane_trace_file: str):
+        plan_values = []
+        lines_list2 = open(plane_trace_file).readlines()
+        with open(plane_trace_file) as plan_trace_file:
+            for ix, linex in enumerate(plan_trace_file):
+                # print(str(i) + " =====> " + str(line))
+                if " time passing " in linex:
+                    copy_line = copy.copy(lines_list2[ix + 1])
+                    copy_line2 = copy.copy(lines_list2[ix + 1])
+                    copy_line3 = copy.copy(lines_list2[ix + 1])
+                    copy_line4 = copy.copy(lines_list2[ix + 1])
+
+                    state_values = (float(str(copy_line.split('x:')[1].split(',')[0])),
+                                    float(str(copy_line2.split('x_do_t:')[1].split(',')[0])),
+                                    float(str(copy_line3.split('theta:')[1].split(',')[0])),
+                                    float(str(copy_line4.split('theta_do_t:')[1].split(',')[0])),
+                                    (float(linex.split(':')[0].split('[')[0].replace(';', '').strip())+0.02))
+                    # print (str(state_values) + "\n")
+                    plan_values.append(state_values)
+
+        return plan_values
 
     def run_val(self):
 

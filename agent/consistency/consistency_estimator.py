@@ -8,7 +8,7 @@ from agent.planning.pddl_meta_model import MetaModel
 from tests import test_utils
 
 # Defaults
-DEFAULT_DELTA_T = 0.05
+DEFAULT_DELTA_T = 0.02
 DEFAULT_PLOT_OBS_VS_EXP = False
 
 '''
@@ -18,7 +18,7 @@ class ConsistencyEstimator:
     ''' The first parameter is a list of (state,time) pairs, the second is just a list of states.
      Returns a positive number  that represents the possible consistency between the sequences,
      where zero means fully consistent. '''
-    def estimate_consistency(self, timed_state_seq: list, state_seq: list, delta_t: float = 0.05):
+    def estimate_consistency(self, timed_state_seq: list, state_seq: list, delta_t: float = DEFAULT_DELTA_T):
         raise NotImplementedError()
 
 ''' Checks consistency by considering the value of a single numeric fluent '''
@@ -34,7 +34,7 @@ class SingleNumericFluentConsistencyEstimator(ConsistencyEstimator):
     aiming to minimize its distance from the fitted piecewise-linear interpolation. 
     Returns a value representing how cons
     '''
-    def estimate_consistency(self, simulation_trace: list, state_seq: list, delta_t: float = 0.05):
+    def estimate_consistency(self, simulation_trace: list, state_seq: list, delta_t: float = DEFAULT_DELTA_T):
 
         # Fit a piecewise linear function based on the timed state sequence
         t_values = list()
@@ -78,7 +78,7 @@ class NumericFluentsConsistencyEstimator(ConsistencyEstimator):
         self.consistency_threshold = consistency_threshold
 
     ''' Returns a value indicating the estimated consistency. '''
-    def estimate_consistency(self, simulation_trace: list, state_seq: list, delta_t: float = 0.05):
+    def estimate_consistency(self, simulation_trace: list, state_seq: list, delta_t: float = DEFAULT_DELTA_T):
         # Only consider states with some info regarding the relevant fluents
         states_with_info = []
         for state in state_seq:
@@ -114,7 +114,7 @@ class NumericFluentsConsistencyEstimator(ConsistencyEstimator):
     Current implementation ignores order, and just looks for the best time for each state in the state_seq, 
     and ignore cases where the fluent is not in the un-timed state seqq aiming to minimize its distance from the fitted piecewise-linear interpolation. 
     '''
-    def compute_consistency_per_state(self, expected_state_seq: list, observed_states: list, delta_t: float = 0.05):
+    def compute_consistency_per_state(self, expected_state_seq: list, observed_states: list, delta_t: float = DEFAULT_DELTA_T):
         t_values, fluent_to_expected_values = self._fit_expected_values(expected_state_seq, delta_t=delta_t)
         consistency_per_state = []
         for i, state in enumerate(observed_states):
@@ -179,7 +179,7 @@ class BirdLocationConsistencyEstimator():
         self.consistency_threshold = consistency_threshold
 
     ''' Estimate consitency by considering the location of the birds in the observed state seq '''
-    def estimate_consistency(self, simulation_trace: list, state_seq: list, delta_t: float = 0.05):
+    def estimate_consistency(self, simulation_trace: list, state_seq: list, delta_t: float = DEFAULT_DELTA_T):
         # Get birds
         birds = set()
         for [state, _,_] in simulation_trace:
@@ -197,6 +197,31 @@ class BirdLocationConsistencyEstimator():
                                                                  self.discount_factor,
                                                                  consistency_threshold = self.consistency_threshold)
         return consistency_checker.estimate_consistency(simulation_trace, state_seq, delta_t)
+
+
+''' Checks consistency by considering the location of the birds '''
+class CartpoleConsistencyEstimator():
+    def __init__(self, unique_prefix_size = 100,discount_factor=0.9, consistency_threshold = 20):
+        self.unique_prefix_size=unique_prefix_size
+        self.discount_factor = discount_factor
+        self.consistency_threshold = consistency_threshold
+
+    ''' Estimate consitency by considering the location of the birds in the observed state seq '''
+    def estimate_consistency(self, simulation_trace: list, state_seq: list, delta_t: float = DEFAULT_DELTA_T):
+
+        fluent_names = []
+        fluent_names.append(('x'))
+        fluent_names.append(('x_dot'))
+        fluent_names.append(('theta'))
+        fluent_names.append(('theta_dot'))
+
+        consistency_checker = NumericFluentsConsistencyEstimator(fluent_names, self.unique_prefix_size,
+                                                                 self.discount_factor,
+                                                                 consistency_threshold = self.consistency_threshold)
+        return consistency_checker.estimate_consistency(simulation_trace, state_seq, delta_t)
+
+
+
 
 ''' A utility function for comparing (state, time) sequences. 
 It outputs a list of differences between the sequences. '''
@@ -236,9 +261,9 @@ def diff_pddl_states(state1, state2):
     return diff_list
 
 ''' Checks if an observation is consisten with a given meta model'''
-def check_obs_consistency(observation: ScienceBirdsObservation,
-                          meta_model: MetaModel,
-                          consistency_checker = BirdLocationConsistencyEstimator(),
+def check_obs_consistency(observation,
+                          meta_model,
+                          consistency_checker,
                           delta_t : float = DEFAULT_DELTA_T,
                           plot_obs_vs_exp = DEFAULT_PLOT_OBS_VS_EXP):
     if plot_obs_vs_exp:
