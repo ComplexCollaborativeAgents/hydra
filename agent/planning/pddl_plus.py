@@ -371,7 +371,7 @@ class PddlPlusGrounder():
     ''' Recursive method to find all bindings '''
     def __recursive_get_possible_bindings(self, parameters, problem, binding, bindings):
         for object in problem.objects:
-            if len(object)>1 and "dummy" in object[0]:
+            if len(object)>1 and self.no_dummy_objects and "dummy" in object[0]:
                 continue
             if self.__can_bind(parameters[0], object):
                 assert parameters[0][0].startswith("?")

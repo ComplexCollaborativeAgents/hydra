@@ -36,7 +36,7 @@ class PddlPlusSimulator():
     def simulate(self, plan_to_simulate: PddlPlusPlan, problem: PddlPlusProblem, domain: PddlPlusDomain, delta_t:float, max_t:float = 1000):
         self.problem = problem
         # Ground the domain
-        grounder = PddlPlusGrounder(no_dummy_objects=True)
+        grounder = PddlPlusGrounder(no_dummy_objects=False)
         self.domain = grounder.ground_domain(domain, problem)
 
         print ("\n\nGROUNDED DOMAIN: \n")
