@@ -11,6 +11,13 @@ TI_STATE = 0 # Index in a trace_item for the state
 TI_T = 1 # Index in a trace_item for the time
 TI_WORLD_CHANGES = 2 # Index in a trace_item for the list of actions, processes, and events
 
+
+''' Error thrown when the simulator tries to simulate a plan that is inconsistent (e.g., try to perform an action without its preconditions satisfied)'''
+class InconsistentPlanError(ValueError):
+    def __init__(self, error_msg:str):
+        super().__init__(error_msg)
+
+
 ''' A simplistic, probably not complete and sound, simulator for PDDL+ processes
  TODO: Replace this with a call to VAL. '''
 class PddlPlusSimulator():
@@ -198,7 +205,7 @@ class PddlPlusSimulator():
             action = action.ground(binding)
 
         if self.preconditions_hold(state,action.preconditions)==False:
-            raise ValueError("Action preconditions are not satisfied") # No effects if preconditions do not hold
+            raise InconsistentPlanError("Action preconditions are not satisfied") # No effects if preconditions do not hold
         self.apply_effects(state, action.effects)
 
     ''' Fire a given event at the given state. If binding is not None, we first ground the action with the binding'''
@@ -223,7 +230,7 @@ class PddlPlusSimulator():
             action = action.ground(binding)
 
         if self.preconditions_hold(state, action.preconditions) == False:
-            raise ValueError("Action %s preconditions are not satisfied" % action.name)  # No effects if preconditions do not hold
+            raise InconsistentPlanError("Action %s preconditions are not satisfied" % action.name)  # No effects if preconditions do not hold
         return self.compute_effects(state, action.effects)
 
     ''' Compute the impact of firing a given event at the given state. If binding is not None, we first ground the action with the binding'''
