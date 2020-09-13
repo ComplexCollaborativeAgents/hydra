@@ -77,8 +77,12 @@ class CartPoleObservation:
     ''' Returns a PDDL+ plan object with a single action that is the action that was performed '''
     def get_pddl_plan(self, meta_model: CartPoleMetaModel = CartPoleMetaModel):
         pddl_plan = PddlPlusPlan()
+        previous_action_name = "move_cart_right dummy_obj" # TODO: Better to get the default side from the meta model, but also better to discuss design
         for ix in range(len(self.actions)):
-            pddl_plan.append(meta_model.create_timed_action(self.actions[ix], ix))
+            timed_action = meta_model.create_timed_action(self.actions[ix], ix)
+            if timed_action.action_name!=previous_action_name:
+                pddl_plan.append(timed_action)
+                previous_action_name = timed_action.action_name
             # print("\n\nOBSERVATION ACTIONS: ")
             # print(ix, " - ", self.actions[ix])
         return pddl_plan

@@ -122,9 +122,9 @@ class CartPolePlanner():
                                          float(line.split(':')[0].replace('; ','')))
                     # print (str(action_angle_time) + "\n")
 
-                    action_name = "move_cart_right"
+                    action_name = "move_cart_right dummy_obj"
                     if action_angle_time[1] == -10:
-                        action_name = "move_cart_left"
+                        action_name = "move_cart_left dummy_obj"
 
                     plan_actions.append(TimedAction(action_name, action_angle_time[2]))
                 if "syntax error" in line:

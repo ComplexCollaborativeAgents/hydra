@@ -174,8 +174,8 @@ class CartPoleMetaModel():
         state_params["theta"] = obs_theta
         state_params["theta_dot"] = obs_theta_dot
 
-        for sp_key, sp_value in state_params:
-            pddl_state[sp_key] = sp_value
+        for sp_key in state_params:
+            pddl_state.numeric_fluents[sp_key] = state_params[sp_key]
 
         return pddl_state
 
@@ -189,10 +189,11 @@ class CartPoleMetaModel():
     ''' Create a PDDL+ TimedAction object from an SB action and state '''
     def create_timed_action(self, action, time_step):
         if (action==1):
-            action_name = "move_cart_right"
+            action_name = "move_cart_right dummy_obj"
         else:
-            action_name = "move_cart_left"
+            action_name = "move_cart_left dummy_obj"
 
         action_time = time_step * 0.02
 
         return TimedAction(action_name, action_time)
+

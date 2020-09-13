@@ -210,10 +210,10 @@ class CartpoleConsistencyEstimator():
     def estimate_consistency(self, simulation_trace: list, state_seq: list, delta_t: float = DEFAULT_DELTA_T):
 
         fluent_names = []
-        fluent_names.append(('x'))
-        fluent_names.append(('x_dot'))
-        fluent_names.append(('theta'))
-        fluent_names.append(('theta_dot'))
+        fluent_names.append(('x',))
+        fluent_names.append(('x_dot',))
+        fluent_names.append(('theta',))
+        fluent_names.append(('theta_dot',))
 
         consistency_checker = NumericFluentsConsistencyEstimator(fluent_names, self.unique_prefix_size,
                                                                  self.discount_factor,

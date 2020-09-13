@@ -42,7 +42,7 @@ class GymHydraAgent:
         while True:
             self.env.render()
             time.sleep(0.1)
-            action = 1 if plan[itt].action_name == "move_cart_right" else 0
+            action = 1 if plan[itt].action_name == "move_cart_right dummy_obj" else 0
             cartpole_obs.actions.append(action)
             cartpole_obs.states.append(self.observation)
             self.observation, reward, done, info = self.env.step(action)

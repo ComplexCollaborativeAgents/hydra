@@ -39,19 +39,19 @@ class PddlPlusSimulator():
         grounder = PddlPlusGrounder(no_dummy_objects=False)
         self.domain = grounder.ground_domain(domain, problem)
 
-        print ("\n\nGROUNDED DOMAIN: \n")
-        print (self.domain.name)
-        print (self.domain.types)
-        print (self.domain.predicates)
-        print (self.domain.functions)
-        for pro in self.domain.processes:
-            pro.print_info()
-        print ("")
-        for ev in self.domain.events:
-            ev.print_info()
-        print ("")
-        for ac in self.domain.actions:
-            ac.print_info()
+        # print ("\n\nGROUNDED DOMAIN: \n")
+        # print (self.domain.name)
+        # print (self.domain.types)
+        # print (self.domain.predicates)
+        # print (self.domain.functions)
+        # for pro in self.domain.processes:
+        #     pro.print_info()
+        # print ("")
+        # for ev in self.domain.events:
+        #     ev.print_info()
+        # print ("")
+        # for ac in self.domain.actions:
+        #     ac.print_info()
 
         state = PddlPlusState(problem.init)
         t = 0.0

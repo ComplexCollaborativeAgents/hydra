@@ -278,7 +278,7 @@ class PddlPlusState():
 
 ''' Class responsible for all groundings'''
 class PddlPlusGrounder():
-    def __init__(self, no_dummy_objects = True):
+    def __init__(self, no_dummy_objects = False):
         self.no_dummy_objects = no_dummy_objects
 
     ''' Recursively ground the given element with the given binding '''
