@@ -70,7 +70,6 @@ class NumericFluentsConsistencyEstimator(ConsistencyEstimator):
         for fluent_name in fluent_names:
             if isinstance(fluent_name,list):
                 fluent_name = tuple(fluent_name) # Need a hashable object, to turn it to tuples. TODO: Change all fluent names to tuples
-            assert isinstance(fluent_name,tuple)
             self.fluent_names.append(fluent_name)
 
         self.discount_factor = discount_factor
@@ -201,7 +200,7 @@ class BirdLocationConsistencyEstimator():
 
 ''' Checks consistency by considering the location of the birds '''
 class CartpoleConsistencyEstimator():
-    def __init__(self, unique_prefix_size = 100,discount_factor=0.9, consistency_threshold = 20):
+    def __init__(self, unique_prefix_size = 100,discount_factor=0.9, consistency_threshold = 0.01):
         self.unique_prefix_size=unique_prefix_size
         self.discount_factor = discount_factor
         self.consistency_threshold = consistency_threshold

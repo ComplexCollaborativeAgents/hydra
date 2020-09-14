@@ -70,6 +70,8 @@ class PddlPlusSimulator():
         for acts in plan:
             print (acts.action_name, " at ", acts.start_at)
 
+        if len(plan)==0:
+            raise ValueError("Plan is empty")
         next_timed_action  = plan.pop(0)
         # print("\n\nNEXT TIMED ACTION: ", next_timed_action.action_name, " at ", next_timed_action.start_at)
 

@@ -175,7 +175,7 @@ class CartPoleMetaModel():
         state_params["theta_dot"] = obs_theta_dot
 
         for sp_key in state_params:
-            pddl_state.numeric_fluents[sp_key] = state_params[sp_key]
+            pddl_state.numeric_fluents[tuple([sp_key])] = state_params[sp_key]
 
         return pddl_state
 
