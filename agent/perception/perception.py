@@ -9,7 +9,7 @@ import numpy as np
 import logging
 import pickle
 from utils.state import State, Action, World
-
+import sklearn.linear_model as lm
 
 from worlds.science_birds import SBState
 import csv
@@ -20,6 +20,8 @@ class Perception():
         '''Taken from naive_agent_groundtruth'''
         self.model = np.loadtxt("{}/data/science_birds/perception/model".format(settings.ROOT_PATH), delimiter=",")
         self.target_class = list(map(lambda x: x.replace("\n", ""), open('{}/data/science_birds/perception/target_class'.format(settings.ROOT_PATH)).readlines()))
+        self.logreg = pickle.load(open('{}/data/science_birds/perception/logreg.p'.format(settings.ROOT_PATH),'rb'))
+        self.threshold = settings.SB_CLASSIFICATION_THRESHOLD
         self.new_level = True
         self.writer = csv.DictWriter(open('object_class.csv','w'), fieldnames=classification_cols())
         if settings.DEBUG:
@@ -33,8 +35,45 @@ class Perception():
             return self.process_sb_state(state)
         return state
 
-
-
+    def type_to_class(self, type):
+        classes = {'bird_black_1': 'blackBird',
+                   'bird_black_2': 'blackBird',
+                   'bird_white_1': 'birdWhite',
+                   'bird_white_2': 'birdWhite',
+                   'bird_yellow_1': 'yellowBird',
+                   'bird_yellow_2': 'yellowBird',
+                   'bird_blue_1': 'blueBird',
+                   'bird_blue_2': 'blueBird',
+                   'bird_red_1': 'redBird',
+                   'bird_red_2': 'redBird',
+                   'platform': 'hill',
+                   'ice_triang_1': 'ice', 'ice_square_hole_1': 'ice', 'ice_triang_hole_1': 'ice',
+                   'ice_rect_small_1': 'ice',
+                   'ice_square_small_1': 'ice', 'ice_rect_tiny_1': 'ice', 'ice_rect_big_1': 'ice',
+                   'ice_rect_fat_1': 'ice',
+                   'ice_rect_medium_1': 'ice', 'ice_circle_1': 'ice', 'ice_square_tiny_1': 'ice',
+                   'ice_circle_small_1': 'ice',
+                   'wood_rect_big_1': 'wood', 'wood_rect_tiny_1': 'wood', 'wood_rect_tiny_2': 'wood',
+                   'wood_circle_small_1': 'wood',
+                   'wood_square_hole_1': 'wood', 'wood_rect_small_1': 'wood', 'wood_square_small_1': 'wood',
+                   'wood_triang_hole_1': 'wood', 'wood_circle_1': 'wood', 'wood_rect_medium_1': 'wood',
+                   'wood_square_tiny_1': 'wood', 'wood_square_small_2': 'wood', 'wood_rect_fat_1': 'wood',
+                   'wood_triang_1': 'wood',
+                   'stone_rect_fat_1': 'stone', 'stone_rect_medium_1': 'stone', 'stone_circle_1': 'stone',
+                   'stone_square_small_1': 'stone', 'stone_rect_small_1': 'stone', 'stone_rect_big_1': 'stone',
+                   'stone_square_tiny_2': 'stone',
+                   'stone_square_hole_1': 'stone', 'stone_rect_tiny_1': 'stone', 'stone_triang_1': 'stone',
+                   'stone_triang_2': 'stone', 'stone_square_small_2': 'stone',
+                   'stone_circle_small_1': 'stone', 'stone_square_tiny_1': 'stone', 'stone_triang_hole_1': 'stone',
+                   'stone_triang_hole_2': 'stone',
+                   'pig_basic_medium_3': 'pig', 'pig_basic_medium_1': 'pig', 'pig_basic_small_1': 'pig',
+                   'Slingshot': 'slingshot', 'TNT': 'TNT'}
+        if type in classes:
+            return classes[type]
+        else:
+            assert 'novel' in type
+            return type
+        
 # Output: {0: {'type': 'redBird', 'bbox': <shapely.geometry.polygon.Polygon object at 0x112145b10>}, 1: {'type': 'slingshot', 'bbox': <shapely.geometry.polygon.Polygon object at 0x112145590>}, 2: {'type': 'wood', 'bbox': <shapely.geometry.polygon.Polygon object at 0x1120f4690>}, 3: {'type': 'wood', 'bbox': <shapely.geometry.polygon.Polygon object at 0x1120f4510>}, 4: {'type': 'pig', 'bbox': <shapely.geometry.polygon.Polygon object at 0x1120f4450>}}
     def process_sb_state(self,state):
         vision = GroundTruthReader(state.objects, self.model, self.target_class)
@@ -95,6 +134,17 @@ class Perception():
 
         return ProcessedSBState(state, new_objs, vision.find_slingshot_mbr()[0])
 
+    #Translate to features is only false in testing.
+    def classify_obj(self,obj_json,translate_to_features=True):
+        prediction = self.logreg.predict_proba([self.obj_features(obj_json) if translate_to_features else obj_json])
+        pred_type = self.logreg.classes_[prediction[0].argmax()]
+        probability = max(prediction[0])
+        if probability > self.threshold:
+            return pred_type
+        else:
+            return 'unknown'
+
+
     def add_qsrs_to_input(self,dictionary):
         '''augments symbolic input with qualitative spatial relationships and returns
             a dictionary.
@@ -115,11 +165,22 @@ class Perception():
             row['color{}'.format(color)] = colors[color]
         return row
 
+    def obj_features(self, obj, no_class=True):
+        dict = self.obj_dictionary(obj)
+        ret = [dict[col] for col in classification_cols()]
+        if no_class:
+            return ret[1:]
+        else:
+            return ret
+
 def classification_cols():
     colormap = ['color{}'.format(x) for x in range(0, 256)]
     cols = ['class', 'num_vertices',  'area']
     cols.extend(colormap)
     return cols
+
+
+
 
 ''' A Science bird after it was processed by the perception module '''
 class ProcessedSBState(State):
