@@ -57,7 +57,7 @@ def test_repair_gravity_in_cartpole_agent(launch_cartpole_sample_level):
     consistency_checker = CartpoleConsistencyEstimator()
     fluents_to_repair = [GRAVITY,]
     repair_deltas = [1.0, ]
-    desired_precision = 2
+    desired_precision = 0.01
     iteration = 0
     obs_with_rewards = 0
     meta_model = cartpole_hydra.meta_model
