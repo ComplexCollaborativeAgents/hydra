@@ -27,7 +27,7 @@ def test_test_harness(launch_science_birds):
 # This is just focused on level 1 novelty detecting unknown objects
 # This function will generate observations for each level
 if __name__ == '__main__':
-    env = sb.ScienceBirds(None,launch=True,config='count_unknown_object.xml')
+    env = sb.ScienceBirds(None,launch=True,config='all_level_1_novelties.xml')
     hydra = HydraAgent(env)
     hydra.main_loop()
     env.kill()

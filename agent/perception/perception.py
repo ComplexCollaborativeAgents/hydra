@@ -22,7 +22,8 @@ class Perception():
         self.target_class = list(map(lambda x: x.replace("\n", ""), open('{}/data/science_birds/perception/target_class'.format(settings.ROOT_PATH)).readlines()))
         self.new_level = True
         self.writer = csv.DictWriter(open('object_class.csv','w'), fieldnames=classification_cols())
-        self.writer.writeheader()
+        if settings.DEBUG:
+            self.writer.writeheader()
 
 
 
@@ -38,7 +39,7 @@ class Perception():
     def process_sb_state(self,state):
         vision = GroundTruthReader(state.objects, self.model, self.target_class)
 
-        if self.new_level:
+        if self.new_level and settings.DEBUG:
             for obj in vision.alljson:
                 if 'coordinates' in obj['geometry']:
                     self.writer.writerow(self.obj_dictionary(obj))
