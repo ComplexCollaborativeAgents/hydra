@@ -111,23 +111,25 @@ def test_repair_gravity_offline():
     observation = pickle.load(open(obs_output_file, "rb"))
 
     # Verify correct model is more consistent
-    meta_model = MetaModel()
-    good_consistency = check_obs_consistency(observation, meta_model, delta_t=DEFAULT_DELTA_T,plot_obs_vs_exp=False)
+    meta_model = CartPoleMetaModel()
+    consistency_checker = CartpoleConsistencyEstimator()
+    good_consistency = check_obs_consistency(observation, meta_model, consistency_checker, delta_t=DEFAULT_DELTA_T)
 
-    _inject_fault_to_meta_model(meta_model)
-    bad_consistency = check_obs_consistency(observation, meta_model, delta_t=DEFAULT_DELTA_T,plot_obs_vs_exp=False)
+    _inject_fault_to_meta_model(meta_model, GRAVITY)
+
+    bad_consistency = check_obs_consistency(observation, meta_model, consistency_checker, delta_t=DEFAULT_DELTA_T)
 
     assert bad_consistency > good_consistency
 
     # Repair model
     fluents_to_repair = [GRAVITY,]
     repair_deltas = [1.0,]
-    desired_precision = 20
-    consistency_checker = BirdLocationConsistencyEstimator()
+    desired_precision = 0.01
     meta_model_repair = GreedyBestFirstSearchMetaModelRepair(fluents_to_repair, consistency_checker, repair_deltas,
                                                              consistency_threshold=desired_precision)
+
     meta_model_repair.repair(meta_model, observation, delta_t=DEFAULT_DELTA_T)
-    repaired_consistency = check_obs_consistency(observation, meta_model, delta_t=DEFAULT_DELTA_T)
+    repaired_consistency = check_obs_consistency(observation, meta_model, consistency_checker, delta_t=DEFAULT_DELTA_T)
     assert bad_consistency > repaired_consistency
 
 
