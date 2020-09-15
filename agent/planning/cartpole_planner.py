@@ -131,6 +131,10 @@ class CartPolePlanner():
                     plan_actions.append(TimedAction("syntax error", 0.0))
                     break
 
+                if "0 goals found" in line:
+
+                    break
+
         return  plan_actions
 
         ''' Parses the given plan trace file and outputs the plan '''

@@ -6,6 +6,7 @@ import time
 import numpy as np
 import settings
 import matplotlib.pyplot as plt
+import random
 
 class GymHydraAgent:
     def __init__(self, env, starting_seed=False):
@@ -22,7 +23,7 @@ class GymHydraAgent:
     def run(self, debug_info=False, max_actions=1000):
 
         plan = self.cartpole_planner.make_plan(self.observation, 0)
-
+        # print("\n\nPLAN LENGTH: ", len(plan))
         if debug_info:
             print ("\nINITIAL STATE: ", self.observation)
             print("GYM INITIAL STATE: ", self.env.state)
@@ -37,11 +38,12 @@ class GymHydraAgent:
 
         full_plan_trace = []
         # full_plan_trace.append(initial_state_exec)
+        emergency_plan = False
 
         itt = 0
         while True:
             self.env.render()
-            time.sleep(0.1)
+            time.sleep(0.05)
             action = 1 if plan[itt].action_name == "move_cart_right dummy_obj" else 0
             cartpole_obs.actions.append(action)
             cartpole_obs.states.append(self.observation)
@@ -66,8 +68,19 @@ class GymHydraAgent:
                 self.env.close()
                 break
 
-            if (itt == 40):
+            if (itt >= 40):
+
+                emergency_plan = False
+
+                temp_plan = copy.copy(plan)
+
                 plan = self.cartpole_planner.make_plan(self.observation, 0)
+                if (len(plan)) == 0:
+                    emergency_plan = True
+                    plan = temp_plan
+                    print("\n\nempty plan, reusing extra actions from previous plan...\n")
+                    continue
+                    # plan = self.cartpole_planner.make_plan(self.observation, 0)
                 state_values_list = (self.cartpole_planner.extract_state_values_from_trace("%s/docker_plan_trace.txt" % str(settings.CARTPOLE_PLANNING_DOCKER_PATH)))
                 itt = 0
 

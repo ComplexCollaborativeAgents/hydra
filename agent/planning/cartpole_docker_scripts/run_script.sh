@@ -10,7 +10,7 @@ echo $domain
 
 # while IFS= read -r line; do echo $line; done < $domain
 
-time ../../bin/upmc $domain $problem --custom $delta_t 7 7 --force
+time ../../bin/upmc $domain $problem --custom $delta_t 4 10 --force
 
 echo ""
 echo ""

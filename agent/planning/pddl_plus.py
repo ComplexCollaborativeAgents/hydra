@@ -107,7 +107,7 @@ class PddlPlusDomain():
 
     def get_action(self,action_name):
         for action in self.actions:
-            print ("COMPARE: ", action.name, " vs ", action_name)
+            # print ("COMPARE: ", action.name, " vs ", action_name)
             if action.name==action_name:
                 return action
         print ("\nNO MATCHING ACTIONS IN LIST:", self.actions)

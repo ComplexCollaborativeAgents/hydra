@@ -66,9 +66,9 @@ class PddlPlusSimulator():
         current_state = state.clone()
         plan = PddlPlusPlan(plan_to_simulate) # Clone the given plan
 
-        print("\n\nACTIONS IN COPIED PLAN")
-        for acts in plan:
-            print (acts.action_name, " at ", acts.start_at)
+        # print("\n\nACTIONS IN COPIED PLAN")
+        # for acts in plan:
+        #     print (acts.action_name, " at ", acts.start_at)
 
         if len(plan)==0:
             raise ValueError("Plan is empty")
@@ -86,10 +86,10 @@ class PddlPlusSimulator():
         still_active = True
         while still_active and t<max_t:
             # If we reached the time in which the next action should be applied, apply it
-            print ("TIME = ", t)
+            # print ("TIME = ", t)
             if next_timed_action is not None and next_timed_action.start_at<=t:
                 # Get the WorldChange object for the action to perform
-                print ("APPLIED TIMED ACTION: ", next_timed_action.action_name)
+                # print ("APPLIED TIMED ACTION: ", next_timed_action.action_name, " at time = ", next_timed_action.start_at, "/", t)
                 world_change = self.domain.get_action(next_timed_action.action_name)
                 new_effects = self.compute_apply_action(current_state, world_change)
                 world_changes_at_t.append(world_change)
