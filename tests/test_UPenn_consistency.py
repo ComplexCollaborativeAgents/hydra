@@ -11,13 +11,13 @@ import pytest
 from os import path
 
 # Constants for ScienceBirds
-CP_NON_NOVEL_OBS_DIR = path.join(settings.ROOT_PATH, 'data', 'cartpole', 'consistency', 'dynamics', 'non_novel')
-CP_NOVEL_OBS_DIR = path.join(settings.ROOT_PATH, 'data', 'cartpole', 'consistency', 'dynamics', 'novel')
+CP_NON_NOVEL_OBS_DIR = path.join(settings.ROOT_PATH, 'data', 'cartpole', 'consistency', 'non_novel')
+CP_NOVEL_OBS_DIR = path.join(settings.ROOT_PATH, 'data', 'cartpole', 'consistency',  'novel')
 
 CP_NON_NOVEL_OBS_FILE_NAME = 'CartPole-v1-non-novel_%d.p'
 CP_NOVEL_OBS_FILE_NAME = 'CartPole-v1-novel_%d.p'
-CP_NON_NOVEL_OBS = 1
-CP_NOVEL_OBS = 3
+CP_NON_NOVEL_OBS = 10
+CP_NOVEL_OBS = 10
 
 
 # Constants for ScienceBirds
@@ -29,25 +29,25 @@ SB_NOVEL_TESTS = ['novelty_2_6_level_15_new_bird_obs.p', 'novelty_2_7_level_15_n
 
 def test_UPenn_consistency_cartpole():
     '''
-    verify that we can identify novelty for observations of novel problems, and that we don't for non-novel-problems
+    verify that we can identify novelty for observations of novel problems, and that we don't for non_novel-problems
     '''
     detector = FocusedAnomalyDetector(threshold = 0.3)
     for i in range(CP_NON_NOVEL_OBS):
         obs_output_file = path.join(CP_NON_NOVEL_OBS_DIR, CP_NON_NOVEL_OBS_FILE_NAME % i)  # For debug
         obs = pickle.load(open(obs_output_file, "rb"))
         novelties = detector.detect(obs)
-        assert (len(novelties) == 0)
+        assert (len(novelties) == 0) # "Non-novel level considered novel (false positive)"
 
     for i in range (CP_NOVEL_OBS):
         obs_output_file = path.join(CP_NOVEL_OBS_DIR, CP_NOVEL_OBS_FILE_NAME % i)  # For debug
         obs = pickle.load(open(obs_output_file, "rb"))
         novelties = detector.detect(obs)
-        assert(len(novelties)>0)
+        assert(len(novelties)>0) # "Novelty not detected (false negative)"
 
 @pytest.mark.skip("Skipping science birds for now")
 def test_UPenn_consistency_science_birds():
     '''
-    verify that we can identify novelty for observations of novel problems, and that we don't for non-novel-problems
+    verify that we can identify novelty for observations of novel problems, and that we don't for non_novel-problems
     '''
     detector = FocusedAnomalyDetector(threshold = 0.3)
     for ob_file in SB_NON_NOVEL_TESTS:
@@ -62,7 +62,7 @@ def test_UPenn_consistency_science_birds():
         assert(len(novelties)>0)
 
 # Data generation methods - NOT TESTS
-@pytest.mark.skipif(False, "Generates data for  test_UPenn_consistency_cartpole() - not a real test")
+# @pytest.mark.skip("Generates data for  test_UPenn_consistency_cartpole() - not a real test")
 def test_generate_data_for_cartpole():
     import gym
     import agent.gym_hydra_agent
@@ -72,14 +72,17 @@ def test_generate_data_for_cartpole():
     env = gym.make("CartPole-v1")
     cartpole_hydra = agent.gym_hydra_agent.GymHydraAgent(env)
 
-    # Create non-novel obs
+    # Create non_novel obs
     for i in range(CP_NON_NOVEL_OBS):
         cartpole_hydra.observation = cartpole_hydra.env.reset()
         cartpole_hydra.run()  # enough actions to play a level
         if save_obs:
             observation = cartpole_hydra.find_last_obs()
-            obs_output_file = path.join(CP_NON_NOVEL_OBS_DIR, CP_NON_NOVEL_OBS_FILE_NAME % i)  # For debug
-            pickle.dump(observation, open(obs_output_file, "wb"))  # For debug
+            obs_output_file_name = path.join(CP_NON_NOVEL_OBS_DIR, CP_NON_NOVEL_OBS_FILE_NAME % i)
+            obs_output_file = open(obs_output_file_name, "wb")
+            pickle.dump(observation, obs_output_file)
+            obs_output_file.close()
+        print("Created non-novel instance %d" % i)
 
     # Create novel obs
     cartpole_hydra.meta_model.constant_numeric_fluents["gravity"] = 19 # Fault injevtion
@@ -89,7 +92,9 @@ def test_generate_data_for_cartpole():
 
         if save_obs:
             observation = cartpole_hydra.find_last_obs()
-            obs_output_file = path.join(CP_NOVEL_OBS_DIR, CP_NOVEL_OBS_FILE_NAME % i)  # For debug
-            pickle.dump(observation, open(obs_output_file, "wb"))  # For debug
-
+            obs_output_file_name = path.join(CP_NOVEL_OBS_DIR, CP_NOVEL_OBS_FILE_NAME % i)  # For debug
+            obs_output_file = open(obs_output_file_name, "wb")
+            pickle.dump(observation, obs_output_file)
+            obs_output_file.close()
+        print("Created novel instance %d" % i)
     assert(True, "Data generated successfully")
