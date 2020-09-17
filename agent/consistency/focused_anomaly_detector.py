@@ -1,10 +1,9 @@
 from typing import List
-from agent.consistency.observation import *
-from worlds.science_birds import SBState
+
 
 ''' A property of an object in a state'''
 class ObsElement:
-    def __init__(self, state:SBState, object_id, property:str):
+    def __init__(self, state, object_id, property:str):
         self.state = state
         self.object_id = object_id
         self.property = property
@@ -20,7 +19,7 @@ class FocusedAnomalyDetector():
     def __init__(self,threshold):
         self.threshold = threshold # only anamolies that exceed this threshold are returned
 
-    def detect(self, observation: ScienceBirdsObservation):
+    def detect(self, observation):
         anomaly_to_confidence = dict()
         # Here will be a code that fills the dictionary
         return anomaly_to_confidence

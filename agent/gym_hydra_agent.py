@@ -1,8 +1,9 @@
 from agent.consistency.model_formulation import ConsistencyChecker
 from agent.planning.cartpole_planner import CartPolePlanner
 from agent.planning.cartpole_pddl_meta_model import *
-from agent.consistency.observation import *
+from agent.consistency.observation import CartPoleObservation
 import time
+import copy
 import numpy as np
 import settings
 import matplotlib.pyplot as plt

@@ -1,13 +1,7 @@
-import copy
 import math
-from agent.perception.perception import ProcessedSBState
 from agent.planning.pddlplus_parser import *
 import settings
 import logging
-
-from utils.point2D import Point2D
-import worlds.science_birds as SB
-from agent.perception.perception import Perception
 
 fh = logging.FileHandler("cartpole_hydra.log",mode='w')
 formatter = logging.Formatter('%(asctime)-15s %(name)s - %(levelname)s - %(message)s')
@@ -181,12 +175,12 @@ class CartPoleMetaModel():
 
     ''' Creates a PDDL+ domain object for the given SB state
     Current implementation simply copies an existing domain file '''
-    def create_pddl_domain(self, sb_State: ProcessedSBState):
+    def create_pddl_domain(self, state):
         domain_file = "%s/cartpole_domain.pddl" % str(settings.CARTPOLE_PLANNING_DOCKER_PATH)
         domain_parser = PddlDomainParser()
         return domain_parser.parse_pddl_domain(domain_file)
 
-    ''' Create a PDDL+ TimedAction object from an SB action and state '''
+    ''' Create a PDDL+ TimedAction object from a world action and state '''
     def create_timed_action(self, action, time_step):
         if (action==1):
             action_name = "move_cart_right dummy_obj"
