@@ -83,8 +83,8 @@ class GroundTruthReader:
         self.alljson = []
         json = json[0]['features']
         for j in json:
-            if j['properties']['label'] != 'Platform':
-                self.alljson.append(j)
+             if True or j['properties']['label'] != 'Platform':
+                 self.alljson.append(j)
 
         self._parseJsonToGameObject()
 

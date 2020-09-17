@@ -35,44 +35,6 @@ class Perception():
             return self.process_sb_state(state)
         return state
 
-    def type_to_class(self, type):
-        classes = {'bird_black_1': 'blackBird',
-                   'bird_black_2': 'blackBird',
-                   'bird_white_1': 'birdWhite',
-                   'bird_white_2': 'birdWhite',
-                   'bird_yellow_1': 'yellowBird',
-                   'bird_yellow_2': 'yellowBird',
-                   'bird_blue_1': 'blueBird',
-                   'bird_blue_2': 'blueBird',
-                   'bird_red_1': 'redBird',
-                   'bird_red_2': 'redBird',
-                   'platform': 'hill',
-                   'ice_triang_1': 'ice', 'ice_square_hole_1': 'ice', 'ice_triang_hole_1': 'ice',
-                   'ice_rect_small_1': 'ice',
-                   'ice_square_small_1': 'ice', 'ice_rect_tiny_1': 'ice', 'ice_rect_big_1': 'ice',
-                   'ice_rect_fat_1': 'ice',
-                   'ice_rect_medium_1': 'ice', 'ice_circle_1': 'ice', 'ice_square_tiny_1': 'ice',
-                   'ice_circle_small_1': 'ice',
-                   'wood_rect_big_1': 'wood', 'wood_rect_tiny_1': 'wood', 'wood_rect_tiny_2': 'wood',
-                   'wood_circle_small_1': 'wood',
-                   'wood_square_hole_1': 'wood', 'wood_rect_small_1': 'wood', 'wood_square_small_1': 'wood',
-                   'wood_triang_hole_1': 'wood', 'wood_circle_1': 'wood', 'wood_rect_medium_1': 'wood',
-                   'wood_square_tiny_1': 'wood', 'wood_square_small_2': 'wood', 'wood_rect_fat_1': 'wood',
-                   'wood_triang_1': 'wood',
-                   'stone_rect_fat_1': 'stone', 'stone_rect_medium_1': 'stone', 'stone_circle_1': 'stone',
-                   'stone_square_small_1': 'stone', 'stone_rect_small_1': 'stone', 'stone_rect_big_1': 'stone',
-                   'stone_square_tiny_2': 'stone',
-                   'stone_square_hole_1': 'stone', 'stone_rect_tiny_1': 'stone', 'stone_triang_1': 'stone',
-                   'stone_triang_2': 'stone', 'stone_square_small_2': 'stone',
-                   'stone_circle_small_1': 'stone', 'stone_square_tiny_1': 'stone', 'stone_triang_hole_1': 'stone',
-                   'stone_triang_hole_2': 'stone',
-                   'pig_basic_medium_3': 'pig', 'pig_basic_medium_1': 'pig', 'pig_basic_small_1': 'pig',
-                   'Slingshot': 'slingshot', 'TNT': 'TNT'}
-        if type in classes:
-            return classes[type]
-        else:
-            assert 'novel' in type
-            return type
         
 # Output: {0: {'type': 'redBird', 'bbox': <shapely.geometry.polygon.Polygon object at 0x112145b10>}, 1: {'type': 'slingshot', 'bbox': <shapely.geometry.polygon.Polygon object at 0x112145590>}, 2: {'type': 'wood', 'bbox': <shapely.geometry.polygon.Polygon object at 0x1120f4690>}, 3: {'type': 'wood', 'bbox': <shapely.geometry.polygon.Polygon object at 0x1120f4510>}, 4: {'type': 'pig', 'bbox': <shapely.geometry.polygon.Polygon object at 0x1120f4450>}}
     def process_sb_state(self,state):
@@ -94,45 +56,97 @@ class Perception():
         sling.width, sling.height = sling.height, sling.width # ScienceBirds reverses width and height
 
 
-        # Birds get the smallest IDs. This helps a bit to track the birds TODO: Discuss a better approach
-        bird_types = []
-        for type, objs in vision.allObj.items():
-            if "bird" in type.lower():
-                bird_types.append(type)
-        bird_types = sorted(bird_types)
 
-        id = 0
         new_objs = {}
-        for bird_type in bird_types:
-            for obj in vision.allObj[bird_type]:
-                obj: GameObject
-                poly = Polygon([(i[0], i[1]) for i in obj.vertices])
-                new_objs[id] = {'type': bird_type,
-#                                'bbox': box(obj.top_left[0], obj.top_left[1],
-#                                            obj.bottom_right[0], obj.bottom_right[1])
-                                'polygon':poly}
-                id += 1
-
-        for type, objs in vision.allObj.items():
-            if type in bird_types:
-                continue
-
-            for obj in objs:
-                obj: GameObject
-                poly = Polygon([(i[0], i[1]) for i in obj.vertices])
-                new_objs[id] = {'type':type,
-                                #'bbox':box(obj.top_left[0],obj.top_left[1],
-                                #            obj.bottom_right[0],obj.bottom_right[1]),
-                                'polygon':poly
-                                }
+        platforms = []
+        for obj in vision.alljson:
+            if obj['properties']['label'] == 'Slingshot':
+                new_obj ={'type':'slingshot',
+                          'polygon':Polygon(obj['geometry']['coordinates'][0])}
+                new_objs[obj['properties']['id']] = new_obj
+            elif obj['geometry'] and obj['geometry']['type'] != 'MultiPoint': #if it is not the ground or a trajectory
+                type = self.classify_obj(obj)
+                new_obj = {'type':type,
+                            'polygon':Polygon(obj['geometry']['coordinates'][0])}
                 if type == 'unknown':
-                    for state_obj in state.objects:
-                        if 'vertices' in state_obj and obj.vertices == state_obj['vertices']:
-                            new_objs[id]['colormap'] = state_obj['colormap']
-                    assert 'colormap' in new_objs[id].keys()
-                id+=1
+                    new_obj['colormap']=obj['properties']['colormap']
+                if type == 'platform':
+                    new_obj['id'] = obj['properties']['id']
+                    platforms.append(new_obj)
+                else:
+                    new_objs[obj['properties']['id']] = new_obj
+
+        for platform in self.merge_platforms(platforms):
+            new_objs[platform['id']] = platform
+
+        # bird_types = []
+        # for type, objs in vision.allObj.items():
+        #     if "bird" in type.lower():
+        #         bird_types.append(type)
+        # bird_types = sorted(bird_types)
+#         id = 0
+#         new_objs = {}
+#         for bird_type in bird_types:
+#             for obj in vision.allObj[bird_type]:
+#                 obj: GameObject
+#                 poly = Polygon([(i[0], i[1]) for i in obj.vertices])
+#                 new_objs[id] = {'type': bird_type,
+# #                                'bbox': box(obj.top_left[0], obj.top_left[1],
+# #                                            obj.bottom_right[0], obj.bottom_right[1])
+#                                 'polygon':poly}
+#                 id += 1
+#
+#         for type, objs in vision.allObj.items():
+#             if type in bird_types:
+#                 continue
+#
+#             for obj in objs:
+#                 obj: GameObject
+#                 poly = Polygon([(i[0], i[1]) for i in obj.vertices])
+#                 new_objs[id] = {'type':type,
+#                                 #'bbox':box(obj.top_left[0],obj.top_left[1],
+#                                 #            obj.bottom_right[0],obj.bottom_right[1]),
+#                                 'polygon':poly
+#                                 }
+#                 if type == 'unknown':
+#                     for state_obj in state.objects:
+#                         if 'vertices' in state_obj and obj.vertices == state_obj['vertices']:
+#                             new_objs[id]['colormap'] = state_obj['colormap']
+#                     assert 'colormap' in new_objs[id].keys()
+#                 id+=1
 
         return ProcessedSBState(state, new_objs, vision.find_slingshot_mbr()[0])
+
+    def merge_platforms(self,platforms):
+        '''
+        merge all platforms that are touching one another into a single object
+        return a list of platforms
+        '''
+        ids = [k['id'] for k in platforms]
+        touches = dict((id,[]) for id in ids)
+
+        for plat_1 in platforms:
+            for plat_2 in platforms:
+                if plat_1['id'] != plat_2['id'] and plat_1['polygon'].intersects(plat_2['polygon']):
+                    touches[plat_1['id']].append(plat_2)
+
+        ret = []
+        open_list = []
+        for plat in platforms:
+            poly = plat['polygon']
+            if plat['id'] not in ids:
+                continue
+            ids.remove(plat['id'])
+            open_list = touches[plat['id']]
+            while open_list:
+                plat_2 = open_list.pop(0)
+                if plat_2['id'] in ids:
+                    poly = poly.union(plat_2['polygon'])
+                    ids.remove(plat_2['id'])
+                    open_list.extend(touches[plat_2['id']])
+            ret.append({'id':plat['id'],'polygon':poly,'type':'platform'})
+        return ret
+
 
     #Translate to features is only false in testing.
     def classify_obj(self,obj_json,translate_to_features=True):

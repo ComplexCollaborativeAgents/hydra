@@ -6,6 +6,7 @@ from sklearn.model_selection import train_test_split
 import sklearn.linear_model as lm
 import settings
 import os
+import utils.assess_classification as ac
 
 def test_classifier():
     p = perception.Perception()
@@ -13,7 +14,7 @@ def test_classifier():
         reader = csv.DictReader(csvfile)
         for row in reader:
             data = [row[col] for col in perception.classification_cols()]
-            type = p.type_to_class(data[0])
+            type = ac.type_to_class(data[0])
             features = [float(i) for i in data[1:]]
             classification = p.classify_obj(features,translate_to_features=False)
             if 'novel' not in type:
