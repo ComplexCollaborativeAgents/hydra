@@ -9,6 +9,8 @@ from utils.point2D import Point2D
 import worlds.science_birds as SB
 from agent.perception.perception import Perception
 
+logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger("pddl_meta_model")
 
 ''' Utility functions '''
 def get_x_coordinate(obj):
