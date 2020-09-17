@@ -62,7 +62,7 @@ def test_UPenn_consistency_science_birds():
         assert(len(novelties)>0)
 
 # Data generation methods - NOT TESTS
-# @pytest.mark.skip("Generates data for  test_UPenn_consistency_cartpole() - not a real test")
+@pytest.mark.skip("Generates data for  test_UPenn_consistency_cartpole() - not a real test")
 def test_generate_data_for_cartpole():
     import gym
     import agent.gym_hydra_agent
