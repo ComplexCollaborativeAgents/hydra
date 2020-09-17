@@ -40,7 +40,7 @@ def get_closest_object_xy(pddl_problem : PddlPlusProblem):
     target_pigs = state.get_pigs()
     closest_obj_x = None
     closest_obj_y = None
-    assert len(target_pigs) > 0
+    #assert len(target_pigs) > 0
     for pig in target_pigs:
         x_pig = state[('x_pig', pig)]
         y_pig = state[('y_pig', pig)]

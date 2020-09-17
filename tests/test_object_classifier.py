@@ -12,6 +12,7 @@ def test_classifier():
     p = perception.Perception()
     with open(os.path.join(settings.ROOT_PATH,'data/science_birds/perception/object_class_level_1.csv'), 'r') as csvfile:
         reader = csv.DictReader(csvfile)
+        errors = []
         for row in reader:
             data = [row[col] for col in perception.classification_cols()]
             type = ac.type_to_class(data[0])
@@ -20,7 +21,8 @@ def test_classifier():
             if 'novel' not in type:
                 assert type == classification
             elif 'novel' in type:
-                assert classification == 'unknown'
+                if classification != 'unknown':
+                    errors.append([type, classification])
             else:
                 assert False
     assert True

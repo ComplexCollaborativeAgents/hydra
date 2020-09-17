@@ -142,7 +142,8 @@ def test_classifier(logreg,file = os.path.join(settings.ROOT_PATH,'data/science_
 
 if __name__ == '__main__':
     import pickle
-#   logreg = pickle.load(open('{}/data/science_birds/perception/logreg.p'.format(settings.ROOT_PATH), 'rb'))
+#    logreg = pickle.load(open('{}/data/science_birds/perception/logreg.p'.format(settings.ROOT_PATH), 'rb'))
     logreg = train_classifier()
     probs, errors = test_classifier(logreg)
+
     pickle.dump(logreg,open('{}/data/science_birds/perception/logreg.p'.format(settings.ROOT_PATH), 'wb'))
