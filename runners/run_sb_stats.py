@@ -22,7 +22,7 @@ STATS_PATH = pathlib.Path(__file__).parent / 'stats.json'
 
 NOVELTY = 0
 TYPE = 1
-SAMPLES = 2
+SAMPLES = 200
 
 def extract_levels(source, destination=None):
     ''' Extract ANU levels. '''
@@ -44,6 +44,8 @@ def prepare_config(config_template, config_path, levels):
     tree = ET.parse(config_template)
     xpath = './trials/trial/game_level_set'
     level_set = tree.getroot().find(xpath)
+    level_set.set('time_limit', '40000')
+    level_set.set('total_interaction_limit', '1000')
 
     for child in list(level_set):
         level_set.remove(child)
@@ -79,7 +81,7 @@ def run_hydra(config):
         env = sb.ScienceBirds(None, launch=True, config=config)
         yield env
         hydra = HydraAgent(env)
-        hydra.main_loop()
+        hydra.main_loop(max_actions=10000)
     finally:
         env.kill()
 
@@ -151,6 +153,6 @@ def run_sb_stats():
 
 
 if __name__ == '__main__':
-    random.seed(2)
+    random.seed(0)
     run_sb_stats()
 
