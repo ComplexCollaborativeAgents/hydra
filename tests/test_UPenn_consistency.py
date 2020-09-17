@@ -16,8 +16,8 @@ CP_NOVEL_OBS_DIR = path.join(settings.ROOT_PATH, 'data', 'cartpole', 'consistenc
 
 CP_NON_NOVEL_OBS_FILE_NAME = 'CartPole-v1-non-novel_%d.p'
 CP_NOVEL_OBS_FILE_NAME = 'CartPole-v1-novel_%d.p'
-CP_NON_NOVEL_OBS = 10
-CP_NOVEL_OBS = 10
+CP_NON_NOVEL_OBS = 3
+CP_NOVEL_OBS = 3
 
 
 # Constants for ScienceBirds
