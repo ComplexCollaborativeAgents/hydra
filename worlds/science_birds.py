@@ -93,7 +93,7 @@ class ScienceBirds(World):
         self.SB_server_process = None
         if launch:
             self.launch_SB(config)
-            time.sleep(1)
+            time.sleep(5)
         self.create_interface(sel_level)
 
 
