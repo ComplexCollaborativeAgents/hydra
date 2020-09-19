@@ -135,13 +135,15 @@ class ScienceBirds(World):
         # time.sleep(4)
         # Popen is necessary as we have to run it in the background
 
-        cmd = 'cp {}/data/science_birds/config/{} {}/linux/config.xml'.format(str(settings.ROOT_PATH), config, settings.SCIENCE_BIRDS_BIN_DIR)
-        subprocess.run(cmd, shell=True)
+#        cmd = 'cp {}/data/science_birds/config/{} {}/linux/config.xml'.format(str(settings.ROOT_PATH), config, settings.SCIENCE_BIRDS_BIN_DIR)
+#        subprocess.run(cmd, shell=True)
 
-        cmd2 = 'cd {} && {} {} {} > game_playing_interface.log'.format(settings.SCIENCE_BIRDS_BIN_DIR + "/linux/",
+        cmd2 = 'cd {} && {} {} {} {} > game_playing_interface.log'.format(settings.SCIENCE_BIRDS_BIN_DIR + "/linux/",
                                                                        settings.SCIENCE_BIRDS_SERVER_CMD,
+                                                                       '--config-path {}'.format(os.path.join(settings.ROOT_PATH,'data','science_birds','config',config)) if config else '',
                                                                        '--headless' if settings.HEADLESS else '',
-                                                                       '--dev' if settings.SB_DEV_MODE else '')
+                                                                       '--dev' if settings.SB_DEV_MODE else ''
+                                                                       )
         print('launching java birds : {}'.format(cmd2))
         self.SB_server_process = subprocess.Popen(cmd2,
                                                   stdout=subprocess.PIPE, stderr=subprocess.STDOUT,shell=True,
@@ -205,7 +207,7 @@ class ScienceBirds(World):
             prev_score = self.sb_client.get_current_score()
 
             # This blocks until the scene is static. Currently asking for every 10th frame, but it should be parameterized to sim_speed.
-            self.intermediate_states = self.sb_client.shoot_and_record_ground_truth(action.ref_x, action.ref_y, action.dx, action.dy, 0, action.tap, settings.SB_GT_FREQ)
+            self.intermediate_states = self.sb_client.shoot_and_record_ground_truth(action.ref_x+action.dx, action.ref_y+action.dy, 0, action.tap, settings.SB_GT_FREQ)
             self.intermediate_states = [SBState(intermediate_state, None, None) for intermediate_state in self.intermediate_states]
             time.sleep(2 / settings.SB_SIM_SPEED)
 #            if len(self.intermediate_states) < 3: # we should get some intermediate states
@@ -229,7 +231,7 @@ class ScienceBirds(World):
         side effects to set the current game status and sling objects on the environment
         """
         image = None
-        time.sleep(0.1)
+        time.sleep(0.1) #As of 0.3.7 we should not need sleeps
         self.cur_game_window = self.sb_client.get_game_state()
         if self.cur_game_window != ac.GameState.PLAYING: # if you aren't playing you can't get ground truth anymore
             return SBState(None,None,self.cur_game_window)
