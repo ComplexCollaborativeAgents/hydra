@@ -14,13 +14,20 @@ import cv2
 import json
 from computer_vision.game_object import GameObject, GameObjectType
 from computer_vision.cv_utils import Rectangle
+import logging
+from  shapely.geometry import Polygon
 
 class NotVaildStateError(Exception):
    """NotVaildStateError exceptions"""
    pass
 
+logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger("ground_truth")
+
+
+
 class GroundTruthReader:
-    def __init__(self,json, model, target_class):
+    def __init__(self,json, model, target_class,new_level=True):
 
         '''
         json : a list of json objects. the first element is int id, 2nd is png sreenshot
@@ -76,13 +83,14 @@ class GroundTruthReader:
         self.alljson = []
         json = json[0]['features']
         for j in json:
-            if j['properties']['label'] != 'Platform':
-                self.alljson.append(j)
+             if True or j['properties']['label'] != 'Platform':
+                 self.alljson.append(j)
 
         self._parseJsonToGameObject()
 
 #        if not self.is_vaild():
 #            raise NotVaildStateError('request new state')
+        self.new_level = new_level
 
 
     def is_vaild(self):
@@ -162,6 +170,7 @@ class GroundTruthReader:
                 pass
 
             else:
+                logger.info("class {},{}".format(obj_types[obj_num],max(predicts[:,obj_num])))
                 rect = self._getRect(j)
                 contours = j['geometry']['coordinates']
                 vertices = contours[0]
@@ -171,10 +180,12 @@ class GroundTruthReader:
                     self.allObj[self.type_transformer[obj_types[obj_num]]].append(game_object)
                 except:
                     self.allObj[self.type_transformer[obj_types[obj_num]]] = [game_object]
-
-
-
             obj_num += 1
+
+
+
+
+
 
     def _getRect(self,j):
         '''

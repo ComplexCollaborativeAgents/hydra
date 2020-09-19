@@ -35,6 +35,6 @@
 <Platform type="Platform" material="" x="4.3" y="3.0" />
 <Platform type="Platform" material="" x="4.3" y="3.5" />
 <Platform type="Platform" material="" x="4.3" y="4.0" />
-<Pig type="BasicBig" material="" x="6.5" y="-3.0" rotation="0" />
+<Pig type="BasicMedium" material="" x="6" y="-3.0" rotation="0" />
 </GameObjects>
 </Level>

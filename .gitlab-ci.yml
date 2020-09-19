@@ -9,5 +9,6 @@ before_script:
 test:
   script:
     - unzip -o bin/linux.zip -d ./bin
+    - tar -xvzf data/science_birds/perception/object_classification.tar.gz
     - export PYTHONPATH=".:./worlds/science_birds_interface/"
     - python -m pytest
