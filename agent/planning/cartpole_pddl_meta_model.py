@@ -90,11 +90,13 @@ class CartPoleMetaModel():
                                 ('inertia', 1.0),
                                 ('elapsed_time', 0.0),
                                 ('gravity', 9.81),
-                                ('time_limit', 1.0)]:
+                                ('time_limit', 1.0),
+                                # ('angle_limit', 0.20944),
+                                ('angle_limit', 0.20),
+                                ('x_limit', 2.4)]:
             self.constant_numeric_fluents[fluent]=value
 
-        for not_fluent in ['total_failure',
-                           'pole_position']:
+        for not_fluent in ['total_failure']:
             self.constant_boolean_fluents[not_fluent]=False
 
         for true_fluent in ['ready',
@@ -150,7 +152,7 @@ class CartPoleMetaModel():
         pddl_problem.init.append(['=', ['theta_ddot'], round(calc_theta_ddot, 5)])
 
         # Add goal
-        pddl_problem.goal.append(['pole_position'])
+        # pddl_problem.goal.append(['pole_position'])
         pddl_problem.goal.append(['not', ['total_failure']])
         pddl_problem.goal.append(['=', ['elapsed_time'], ['time_limit']])
 
