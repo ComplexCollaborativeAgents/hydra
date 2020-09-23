@@ -27,7 +27,8 @@ class Planner():
         The plan should be a list of actions that are either executable in the environment
         or invoking the RL agent
         '''
-
+        if settings.NO_PLANNING:
+            return []
         pddl = self.meta_model.create_pddl_problem(state)
         if prob_complexity==1:
             self.write_problem_file(self.meta_model.create_simplified_problem(pddl))

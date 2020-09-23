@@ -1,0 +1,149 @@
+import random
+import os
+import settings
+from agent.perception.perception import classification_cols
+from sklearn.metrics import classification_report, confusion_matrix
+from sklearn.model_selection import train_test_split
+import sklearn.linear_model as lm
+from sklearn import preprocessing
+import csv
+import pandas as pd
+
+
+header = \
+'''<evaluation>
+  <novelty_detection_measurement step="1" measure_in_training="False" measure_in_testing="False" />
+  <trials>
+    <trial id="0" number_of_executions="1" checkpoint_time_limit="200" checkpoint_interaction_limit="200" notify_novelty="False">
+      <game_level_set mode="training" time_limit="1200" total_interaction_limit="500000" attempt_limit_per_level="1" allow_level_selection="False">'''
+
+footer = \
+'''
+      </game_level_set>
+    </trial>
+  </trials>
+</evaluation>'''
+
+
+
+def generate_config_files(name = './count_unknown_object.xml',
+         levels_rel_path = 'Levels/novelty_level_0/type2/Levels/'):
+    strs = []
+    probs = os.listdir(os.path.join(settings.SCIENCE_BIRDS_BIN_DIR,'linux',levels_rel_path))
+    for prob in probs:
+        strs.append('\n<game_levels level_path = "./{}{}" />'.format(
+            levels_rel_path,
+            prob))
+
+    with open(name,'w') as f:
+        f.writelines(header)
+        f.writelines(strs)
+        f.writelines(footer)
+    print(strs)
+
+def prune_log_files():
+    directory = os.path.join(settings.ROOT_PATH,'data','science_birds','consistency','objects')
+    for x in os.listdir(directory):
+        str = []
+        with open(os.path.join(directory,x),'r') as file:
+            str = file.readlines()
+        with open(os.path.join(directory,'{}.csv'.format(x)),'w') as file:
+            for line in str:
+                if line.find(' class ') > 0:
+                    file.write(line[line.find(' class ')+7:])
+
+count = 0
+
+
+def type_to_class(type):
+    classes = {'bird_black_1': 'blackBird',
+               'bird_black_2': 'blackBird',
+               'bird_white_1': 'birdWhite',
+               'bird_white_2': 'birdWhite',
+               'bird_yellow_1': 'yellowBird',
+               'bird_yellow_2': 'yellowBird',
+               'bird_blue_1': 'blueBird',
+               'bird_blue_2': 'blueBird',
+               'bird_red_1': 'redBird',
+               'bird_red_2': 'redBird',
+               'platform': 'hill',
+               'ice_triang_1': 'ice', 'ice_square_hole_1': 'ice', 'ice_triang_hole_1': 'ice',
+               'ice_rect_small_1': 'ice',
+               'ice_square_small_1': 'ice', 'ice_rect_tiny_1': 'ice', 'ice_rect_big_1': 'ice',
+               'ice_rect_fat_1': 'ice',
+               'ice_rect_medium_1': 'ice', 'ice_circle_1': 'ice', 'ice_square_tiny_1': 'ice',
+               'ice_circle_small_1': 'ice',
+               'wood_rect_big_1': 'wood', 'wood_rect_tiny_1': 'wood', 'wood_rect_tiny_2': 'wood',
+               'wood_circle_small_1': 'wood',
+               'wood_square_hole_1': 'wood', 'wood_rect_small_1': 'wood', 'wood_square_small_1': 'wood',
+               'wood_triang_hole_1': 'wood', 'wood_circle_1': 'wood', 'wood_rect_medium_1': 'wood',
+               'wood_square_tiny_1': 'wood', 'wood_square_small_2': 'wood', 'wood_rect_fat_1': 'wood',
+               'wood_triang_1': 'wood',
+               'stone_rect_fat_1': 'stone', 'stone_rect_medium_1': 'stone', 'stone_circle_1': 'stone',
+               'stone_square_small_1': 'stone', 'stone_rect_small_1': 'stone', 'stone_rect_big_1': 'stone',
+               'stone_square_tiny_2': 'stone',
+               'stone_square_hole_1': 'stone', 'stone_rect_tiny_1': 'stone', 'stone_triang_1': 'stone',
+               'stone_triang_2': 'stone', 'stone_square_small_2': 'stone',
+               'stone_circle_small_1': 'stone', 'stone_square_tiny_1': 'stone', 'stone_triang_hole_1': 'stone',
+               'stone_triang_hole_2': 'stone',
+               'pig_basic_medium_3': 'pig', 'pig_basic_medium_1': 'pig', 'pig_basic_small_1': 'pig',
+               'Slingshot': 'slingshot', 'TNT': 'TNT','Platform':'platform'}
+    if type in classes:
+        return classes[type]
+    else:
+        print(type)
+        assert 'novel' in type
+        return type
+
+
+def train_classifier(file=os.path.join(settings.ROOT_PATH,'data/science_birds/perception/object_class_level_0.csv')):
+    reader = csv.DictReader(open(file, 'r'), classification_cols())
+    df = pd.read_csv(file)
+    print(len(df.iloc[:, 0]))
+    y = [type_to_class(x) for x in df.iloc[:, 0]]
+    x = df.iloc[:, 1:]
+    x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.1)
+    logreg = lm.LogisticRegression(max_iter=500000,multi_class='ovr')
+    logreg.fit(x_train, y_train)
+    predictions = logreg.predict(x_test)
+    print(classification_report(y_test, predictions))
+    return logreg
+# probably need some preprocessing
+
+def test_classifier(logreg,file = os.path.join(settings.ROOT_PATH,'data/science_birds/perception/object_class_level_1.csv')):
+    reader = csv.DictReader(open(file, 'r'), classification_cols())
+    df = pd.read_csv(file)
+    print(len(df.iloc[:, 0]))
+    y = [type_to_class(x) for x in df.iloc[:, 0]]
+    x = df.iloc[:, 1:]
+    probs  = {}
+    errors = []
+    for type in y:
+        probs[type] = []
+    for row in df.to_numpy():
+        type = type_to_class(row[0])
+        prediction = logreg.predict_proba([row[1:]])
+        pred_type = logreg.classes_[prediction[0].argmax()]
+        probability = max(prediction[0])
+        if type == pred_type:
+            probs[type].append(probability)
+        elif 'novel' in type:
+            probs[type].append({'type':type,'prediction':pred_type,'probability':probability})
+        else:
+            errors.append({'type':type,'prediction':pred_type,'probability':probability})
+    print(len(errors))
+    for key,value in probs.items():
+        if 'novel' in key:
+            p = [v['probability'] for v in value]
+            probs[key] = [max(p),sum(p)/len(p)]
+        else:
+            probs[key] = [min(value) , sum(value)/len(value)]
+    return probs,errors
+
+if __name__ == '__main__':
+    import pickle
+#    logreg = pickle.load(open('{}/data/science_birds/perception/logreg.p'.format(settings.ROOT_PATH), 'rb'))
+    logreg = train_classifier()
+    probs, errors = test_classifier(logreg)
+
+    pickle.dump(logreg,open('{}/data/science_birds/perception/logreg.p'.format(settings.ROOT_PATH), 'wb'))
