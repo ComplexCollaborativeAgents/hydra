@@ -85,7 +85,8 @@ def test_generate_data_for_cartpole():
         print("Created non-novel instance %d" % i)
 
     # Create novel obs
-    cartpole_hydra.meta_model.constant_numeric_fluents["gravity"] = 19 # Fault injevtion
+    # cartpole_hydra.meta_model.constant_numeric_fluents["gravity"] = 19 # Fault injevtion
+    env.gravity=19
     for i in range (CP_NOVEL_OBS):
         cartpole_hydra.observation = cartpole_hydra.env.reset()
         cartpole_hydra.run()  # enough actions to play a level

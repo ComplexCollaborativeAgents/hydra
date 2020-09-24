@@ -45,20 +45,23 @@ class GymHydraAgent:
         while True:
             self.env.render()
             time.sleep(0.05)
-            action = 1 if plan[itt].action_name == "move_cart_right dummy_obj" else 0
+            if itt<len(plan):
+                action = 1 if plan[itt].action_name == "move_cart_right dummy_obj" else 0
+            else:
+                action = random.randint(0,1) # Choose random action if plan failed
             cartpole_obs.actions.append(action)
             cartpole_obs.states.append(self.observation)
             self.observation, reward, done, info = self.env.step(action)
             cartpole_obs.rewards.append(reward)
 
-            full_plan_trace.append(state_values_list[itt])
+            # full_plan_trace.append(state_values_list[itt])
 
             # cartpole_obs.states.append(self.observation)
             if debug_info:
                 print ("\nSTEP: ", n_steps, str(n_steps*0.02)+"s")
                 print (action)
                 print (self.observation)
-                print (full_plan_trace[-1])
+                # print (full_plan_trace[-1])
                 print ("REWARD:", reward)
                 print (done)
 
@@ -85,7 +88,7 @@ class GymHydraAgent:
                 state_values_list = (self.cartpole_planner.extract_state_values_from_trace("%s/docker_plan_trace.txt" % str(settings.CARTPOLE_PLANNING_DOCKER_PATH)))
                 itt = 0
 
-        full_plan_trace.insert(0, initial_state_exec)
+        # full_plan_trace.insert(0, initial_state_exec)
 
         # DOES NOT INCLUDE THE FINAL STATE (i.e. GOAL STATE)
         self.observations_list.append(cartpole_obs)
@@ -94,7 +97,7 @@ class GymHydraAgent:
             print (cartpole_obs.states)
             print (cartpole_obs.actions)
             print (sum(cartpole_obs.rewards))
-            self.plot_plan_vs_execution(full_plan_trace, cartpole_obs, n_steps)
+            # self.plot_plan_vs_execution(full_plan_trace, cartpole_obs, n_steps)
 
     def reset_with_seed(self):
         self.env.state = self.env.np_random.uniform(low=0.02, high=0.02, size=(4,))
