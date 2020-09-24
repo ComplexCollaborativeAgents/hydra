@@ -62,7 +62,7 @@ def test_UPenn_consistency_science_birds():
         assert(len(novelties)>0)
 
 # Data generation methods - NOT TESTS
-@pytest.mark.skip("Generates data for  test_UPenn_consistency_cartpole() - not a real test")
+# @pytest.mark.skip("Generates data for  test_UPenn_consistency_cartpole() - not a real test")
 def test_generate_data_for_cartpole():
     import gym
     import agent.gym_hydra_agent
@@ -86,7 +86,7 @@ def test_generate_data_for_cartpole():
 
     # Create novel obs
     # cartpole_hydra.meta_model.constant_numeric_fluents["gravity"] = 19 # Fault injevtion
-    env.gravity=19
+    env.env.gravity=19
     for i in range (CP_NOVEL_OBS):
         cartpole_hydra.observation = cartpole_hydra.env.reset()
         cartpole_hydra.run()  # enough actions to play a level
