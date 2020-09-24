@@ -5,10 +5,12 @@ import random
 import contextlib
 import csv
 import json
+import enum
 import time
 import xml.etree.ElementTree as ET
 
 import numpy
+from worlds.science_birds_interface.demo.naive_agent_groundtruth import ClientNaiveAgent
 
 import worlds.science_birds as sb
 from agent.hydra_agent import HydraAgent
@@ -20,9 +22,14 @@ SB_CONFIG_PATH = SB_DATA_PATH / 'config'
 ANU_LEVELS_PATH = SB_DATA_PATH / 'ANU_Levels.tar.gz'
 STATS_PATH = pathlib.Path(__file__).parent / 'stats.json'
 
+class AgentType(enum.Enum):
+    Hydra = 1
+    GroundTruth = 2
+
 NOVELTY = 0
-TYPE = 1
-SAMPLES = 200
+TYPE = 2
+SAMPLES = 1 # 185
+AGENT = AgentType.GroundTruth
 
 def extract_levels(source, destination=None):
     ''' Extract ANU levels. '''
@@ -75,18 +82,23 @@ def diff_directories(a, b):
 
 
 @contextlib.contextmanager
-def run_hydra(config):
+def run_agent(config, agent):
     ''' Run science birds and the hydra agent. '''
     try:
         env = sb.ScienceBirds(None, launch=True, config=config)
         yield env
-        hydra = HydraAgent(env)
-        hydra.main_loop(max_actions=10000)
+
+        if agent == AgentType.Hydra:
+            hydra = HydraAgent(env)
+            hydra.main_loop(max_actions=10000)
+        elif agent == AgentType.GroundTruth:
+            ground_truth = ClientNaiveAgent(env.id, env.sb_client)
+            ground_truth.run()
     finally:
         env.kill()
 
 
-def compute_stats(results_path):
+def compute_stats(results_path, agent):
     ''' Inspect evaluation directory from science birds and generate a stats dict. '''
     stats = {'levels': [], 'overall': None}
 
@@ -119,16 +131,19 @@ def compute_stats(results_path):
                 stats['levels'].append(level_stats)
 
     stats['overall'] = {'passed': passed, 'failed': failed,
-                        'avg_score': 0 if len(scores) == 0 else numpy.average(scores)}
+                        'avg_score': 0 if len(scores) == 0 else numpy.average(scores),
+                        'agent': agent.name}
 
     return stats
 
 
-def run_sb_stats():
+def run_sb_stats(extract=False):
     ''' Run science birds agent stats. '''
     config_name = 'stats_config.xml'
 
-    extracted = extract_levels(ANU_LEVELS_PATH)
+    extracted = SB_BIN_PATH
+    if extract:
+        extracted = extract_levels(ANU_LEVELS_PATH)
 
     levels = list(extracted.glob('Levels/novelty_level_{}/type{}/Levels/*.xml'.format(NOVELTY, TYPE)))
     levels = random.sample(levels, SAMPLES)
@@ -140,13 +155,13 @@ def run_sb_stats():
     pre_directories = glob_directories(SB_BIN_PATH, 'Agent*')
     post_directories = None
 
-    with run_hydra(config_name) as env:
+    with run_agent(config_name, AGENT) as env:
         post_directories = glob_directories(SB_BIN_PATH, 'Agent*')
 
     results = diff_directories(pre_directories, post_directories)
 
     if results is not None:
-        stats = compute_stats(results)
+        stats = compute_stats(results, AGENT)
 
         with open(STATS_PATH, 'w') as f:
             json.dump(stats, f, sort_keys=True, indent=4)
