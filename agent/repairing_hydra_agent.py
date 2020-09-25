@@ -1,6 +1,7 @@
 from agent.hydra_agent import HydraAgent
 from agent.consistency.meta_model_repair import *
-from agent.consistency.consistency_estimator import check_obs_consistency, BirdLocationConsistencyEstimator
+from agent.gym_hydra_agent import GymHydraAgent
+
 fh = logging.FileHandler("hydra.log",mode='w')
 formatter = logging.Formatter('%(name)s - %(levelname)s - %(message)s')
 fh.setFormatter(formatter)
@@ -8,11 +9,37 @@ logger = logging.getLogger("hydra_agent")
 logger.setLevel(logging.INFO)
 logger.addHandler(fh)
 
-class RepairingHydraAgent(HydraAgent):
-    '''
-    Probably needs to subclass for each domain. We will cross that bridge when we get there
-    '''
+from agent.planning.cartpole_pddl_meta_model import *
+from agent.consistency.cartpole_repair import *
 
+class RepairingGymHydraAgent(GymHydraAgent):
+    def __init__(self, env, starting_seed=False):
+        super().__init__(env, starting_seed)
+        self.consistency_checker = CartpoleConsistencyEstimator()
+        self.desired_precision = 0.01
+
+    ''' Checks if the meta model should be repaired based on the given observation. Note: can also consider past observations'''
+    def should_repair(self, observation):
+        if sum(observation.rewards)>195:
+            return False
+        else:
+            return True
+
+    def run(self, debug_info=False, max_actions=1000):
+        observation = self.find_last_obs()
+        if observation is not None:
+            # Initiate repair
+            if not self.should_repair(observation):
+                logger.info("No need to repair")
+                return
+            meta_model_repair = CartpoleRepair(self.consistency_checker, self.desired_precision)
+            repair, _ = meta_model_repair.repair(self.meta_model, observation, delta_t=DEFAULT_DELTA_T)
+
+        super().run(debug_info, max_actions)
+
+
+''' Repairing Hydra agent for the SB domain '''
+class RepairingHydraSBAgent(HydraAgent):
     def __init__(self,env=None):
         super().__init__(env)
 

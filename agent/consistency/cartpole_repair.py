@@ -23,14 +23,15 @@ class CartpoleConsistencyEstimator(MetaModelBasedConsistencyEstimator):
 
 ''' Repairs Cartpole constants '''
 class CartpoleRepair(MetaModelRepair):
-    def __init__(self, consistency_checker, repair_deltas, consistency_threshold):
-        self.fluents_to_repair = ["m_cart", "friction_cart", 'l_pole', 'm_pole', 'friction_pole', 'F', 'inertia','gravity']
-        self.repair_deltas = [0.5, 0.5, 0.25, 0.1, 0.2, 1.0, 1.0]
+    def __init__(self, consistency_checker, consistency_threshold):
+        meta_model = CartPoleMetaModel()
+        self.fluents_to_repair = meta_model.repairable_constants
+        self.repair_deltas = meta_model.repair_deltas
         self.meta_model_repair = GreedyBestFirstSearchMetaModelRepair(self.fluents_to_repair,
                                                                       consistency_checker,
-                                                                      repair_deltas,
+                                                                      self.repair_deltas,
                                                                       consistency_threshold)
 
-        ''' Repair the given domain and plan such that the given plan's expected outcome matches the observed outcome'''
-        def repair(self, pddl_meta_model, observation, delta_t=1.0):
-            return self.meta_model_repair.repair(pddl_meta_model, observation, delta_t)
+    ''' Repair the given domain and plan such that the given plan's expected outcome matches the observed outcome'''
+    def repair(self, pddl_meta_model, observation, delta_t=1.0):
+        return self.meta_model_repair.repair(pddl_meta_model, observation, delta_t)

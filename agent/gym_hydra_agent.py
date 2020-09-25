@@ -108,7 +108,10 @@ class GymHydraAgent:
         return np.array(self.env.state)
 
     def find_last_obs(self):
-        return self.observations_list[-1]
+        if len(self.observations_list)==0:
+            return None
+        else:
+            return self.observations_list[-1]
 
     def plot_plan_vs_execution(self, plan_vals, exec_vals : CartPoleObservation, steps):
 

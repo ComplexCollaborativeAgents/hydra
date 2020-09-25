@@ -1,5 +1,5 @@
 import settings
-from agent.repairing_hydra_agent import RepairingHydraAgent
+from agent.repairing_hydra_agent import RepairingHydraSBAgent
 from agent.hydra_agent import HydraAgent
 import pytest
 from agent.planning.pddl_meta_model import *
@@ -77,7 +77,7 @@ def test_set_of_levels_no_repair(launch_science_birds_with_all_levels):
 @pytest.mark.skip("Have not migrated to 0.3.6 yet")
 def test_set_of_levels_repair_no_fault(launch_science_birds_with_all_levels):
     env = launch_science_birds_with_all_levels
-    hydra = RepairingHydraAgent(env)
+    hydra = RepairingHydraSBAgent(env)
     max_iterations = 10
     _run_experiment(hydra, "with_repair-%d" % max_iterations, max_iterations=max_iterations)
 
@@ -89,7 +89,7 @@ def _inject_fault_to_meta_model(meta_model : MetaModel, fluent_to_change = GRAVI
 @pytest.mark.skip("Have not migrated to 0.3.6 yet")
 def test_set_of_levels_repair_with_fault(launch_science_birds_with_all_levels):
     env = launch_science_birds_with_all_levels
-    hydra = RepairingHydraAgent(env)
+    hydra = RepairingHydraSBAgent(env)
     _inject_fault_to_meta_model(hydra.meta_model, GRAVITY_FACTOR)
     max_iterations = 10
     _run_experiment(hydra, "with_repair_bad_gravity-%d" % max_iterations, max_iterations=max_iterations)

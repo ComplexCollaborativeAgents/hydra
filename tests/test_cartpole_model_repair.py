@@ -14,7 +14,6 @@ TEST_DATA_DIR = path.join(DATA_DIR, 'science_birds', 'tests')
 GRAVITY = "gravity"
 
 
-#################### System tests ########################
 @pytest.fixture(scope="module")
 def launch_cartpole_sample_level():
     logger.info("Starting CartPole")
@@ -169,7 +168,6 @@ def test_repair_bad_gravity_in_gym(launch_cartpole_sample_level):
     iteration = 0
     obs_with_rewards = 0
     meta_model = cartpole_hydra.meta_model
-
     while iteration<3:
         observation = cartpole_hydra.find_last_obs()
 

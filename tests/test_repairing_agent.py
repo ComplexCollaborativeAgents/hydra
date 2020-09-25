@@ -1,7 +1,9 @@
 import settings
-from agent.repairing_hydra_agent import RepairingHydraAgent
+from agent.repairing_hydra_agent import RepairingHydraSBAgent,RepairingGymHydraAgent
+from agent.gym_hydra_agent import *
 import pytest
 from agent.planning.pddl_meta_model import *
+import gym
 import subprocess
 import worlds.science_birds as sb
 import pickle
@@ -27,13 +29,13 @@ def launch_science_birds():
     logger.info("Ending ScienceBirds")
 
 ''' Inject a fault to the agent's meta model '''
-def _inject_fault_to_meta_model(meta_model : MetaModel, fluent_to_change = GRAVITY_FACTOR):
+def _inject_fault_to_sb_meta_model(meta_model : MetaModel, fluent_to_change = GRAVITY_FACTOR):
     meta_model.constant_numeric_fluents[fluent_to_change] = 6.0
 
 
 ''' A full system test: run SB with a bad meta model, observe results, fix meta model '''
 @pytest.mark.skip("Have not migrated to 0.3.6 yet")
-def test_repair_gravity_in_agent(launch_science_birds):
+def test_repair_gravity_in_sb_agent(launch_science_birds):
     # Setup environment and agent
     save_obs = True
     plot_exp_vs_obs = True
@@ -42,10 +44,10 @@ def test_repair_gravity_in_agent(launch_science_birds):
     settings.SB_GT_FREQ =1
 
     env = launch_science_birds
-    hydra = RepairingHydraAgent(env)
+    hydra = RepairingHydraSBAgent(env)
 
     # Inject fault and run the agent
-    _inject_fault_to_meta_model(hydra.meta_model, GRAVITY_FACTOR)
+    _inject_fault_to_sb_meta_model(hydra.meta_model, GRAVITY_FACTOR)
 
     iteration = 0
     obs_with_rewards = 0
@@ -67,3 +69,73 @@ def test_repair_gravity_in_agent(launch_science_birds):
         iteration=iteration+1
 
     assert obs_with_rewards>0
+
+#### CARTPOLE TESTS ####
+@pytest.fixture(scope="module")
+def launch_cartpole():
+    logger.info("Starting CartPole")
+    env = gym.make("CartPole-v1")
+    yield env
+    # env.kill()
+    logger.info("Ending CartPole")
+
+''' Inject a fault to the cartpole environment '''
+def _inject_fault_to_carpole_env(env):
+    env.env.gravity=13
+
+
+''' A full system test: run SB with a bad meta model, observe results, fix meta model '''
+def test_repair_gravity_in_cartpole_agent(launch_cartpole):
+    # Setup environment and agent
+    save_obs = True
+
+    result_file = open(path.join(settings.ROOT_PATH,"tests", "repair_gravity_13.csv"),"w")
+    result_file.write("Agent\t Iteration\t Reward\n")
+
+    env = launch_cartpole
+    hydra = RepairingGymHydraAgent(env)
+    agent_name = "Repairing"
+
+    _inject_fault_to_carpole_env(env)
+
+    max_iterations = 4
+    iteration = 0
+    while iteration < max_iterations:
+        hydra.run()
+        observation = hydra.find_last_obs()
+        iteration_reward=sum(observation.rewards)
+        logger.info("Reward ! (%.2f), iteration %d" % (iteration_reward, iteration))
+
+        # Store observation for debug
+        if save_obs:
+            obs_output_file = path.join(TEST_DATA_DIR, "test_repair_gravity_in_cartpole_agent_obs_%d.p" % iteration)  # For debug
+            pickle.dump(observation, open(obs_output_file, "wb"))  # For debug
+            obs_output_file = path.join(TEST_DATA_DIR, "test_repair_gravity_in_cartpole_agent_obs_%d.mm" % iteration)  # For debug
+            pickle.dump(hydra.meta_model, open(obs_output_file, "wb"))  # For debug
+
+
+        result_file.write("%s\t %d\t %.2f\n" % (agent_name, iteration, iteration_reward))
+        result_file.flush()
+        iteration = iteration+1
+        hydra.observation = hydra.env.reset()
+
+
+    hydra = GymHydraAgent(env)
+    agent_name = "Vanilla"
+    iteration = 0
+    while iteration < max_iterations:
+        hydra.run()
+        observation = hydra.find_last_obs()
+        iteration_reward=sum(observation.rewards)
+        logger.info("Reward ! (%.2f), iteration %d" % (iteration_reward, iteration))
+
+        # Store observation for debug
+        if save_obs:
+            obs_output_file = path.join(TEST_DATA_DIR, "test_repair_gravity_in_cartpole_agent_obs_%d.p" % iteration)  # For debug
+            pickle.dump(observation, open(obs_output_file, "wb"))  # For debug
+
+        result_file.write("%s\t %d\t %.2f\n" % (agent_name, iteration, iteration_reward))
+        result_file.flush()
+        iteration = iteration+1
+
+    result_file.close()

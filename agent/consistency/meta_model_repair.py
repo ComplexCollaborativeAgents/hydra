@@ -142,7 +142,6 @@ class GreedyBestFirstSearchMetaModelRepair(MetaModelRepair):
         # Apply change
         self._do_change(repair)
 
-        consistency = 0
         try:
             expected_trace, plan = self.simulator.get_expected_trace(observation, self.current_meta_model, self.current_delta_t)
             observed_seq = observation.get_trace(self.current_meta_model)
