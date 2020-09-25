@@ -28,8 +28,8 @@ class AgentType(enum.Enum):
 
 NOVELTY = 0
 TYPE = 2
-SAMPLES = 1 # 185
-AGENT = AgentType.GroundTruth
+SAMPLES = 185
+AGENT = AgentType.Hydra
 
 def extract_levels(source, destination=None):
     ''' Extract ANU levels. '''
@@ -51,8 +51,8 @@ def prepare_config(config_template, config_path, levels):
     tree = ET.parse(config_template)
     xpath = './trials/trial/game_level_set'
     level_set = tree.getroot().find(xpath)
-    level_set.set('time_limit', '40000')
-    level_set.set('total_interaction_limit', '1000')
+    level_set.set('time_limit', '60000')
+    level_set.set('total_interaction_limit', '2000')
 
     for child in list(level_set):
         level_set.remove(child)

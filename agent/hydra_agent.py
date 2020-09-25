@@ -159,7 +159,7 @@ class HydraAgent():
         if processed_state and self.consistency_checker.is_consistent(processed_state):
             logger.info("[hydra_agent_server] :: Invoking Planner".format())
             orig_plan_time = time.perf_counter()
-            plan = self.planner.make_plan(processed_state, 0)
+            plan = self.planner.make_plan(processed_state, 1)
             self.cumulative_plan_time += (time.perf_counter() - orig_plan_time)
             logger.info("[hydra_agent_server] :: Original problem planning time: " + str(
                 (time.perf_counter() - orig_plan_time)))
@@ -196,6 +196,7 @@ class HydraAgent():
 
     ''' A default action taken by the Hydra agent if planning fails'''
     def __get_default_action(self, state : ProcessedSBState):
+        logger.info("[hydra_agent_server] :: __get_default_action")
         problem = self.meta_model.create_pddl_problem(state)
         pddl_state = PddlPlusState(problem.init)
         try:
