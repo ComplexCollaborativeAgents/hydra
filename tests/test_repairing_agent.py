@@ -9,6 +9,9 @@ import worlds.science_birds as sb
 import pickle
 import tests.test_utils as test_utils
 import os.path as path
+import time
+
+
 
 GRAVITY_FACTOR = "gravity_factor"
 DATA_DIR = path.join(settings.ROOT_PATH, 'data')
@@ -139,3 +142,125 @@ def test_repair_gravity_in_cartpole_agent(launch_cartpole):
         iteration = iteration+1
 
     result_file.close()
+
+
+
+''' Run a suite of experiments '''
+def test_repairing_gym_experiments():
+    # Setup environment and agent
+    save_obs = True
+
+    result_file = open(path.join(settings.ROOT_PATH, "tests", "repair_gravity5-10.csv"), "w")
+    result_file.write("FaultType\tAgent\t Iteration\t Reward\t Runtime\n")
+
+
+    gravity_values = [5,6,7,8,9,10,11,12,13,14,15]
+    for gravity in gravity_values:
+        env =  gym.make("CartPole-v1")
+        env.env.gravity=gravity
+        fault_type = "gravity-%d" % gravity
+        _run_experiment(env, fault_type, result_file)
+
+    result_file.close()
+
+def _run_experiment(env, fault_type, result_file):
+    max_iterations = 2
+
+    agent_name = "Repairing"
+    hydra = RepairingGymHydraAgent(env)
+    iteration = 0
+    while iteration < max_iterations:
+        start_time = time.time()
+        hydra.run()
+        runtime = time.time()-start_time
+        observation = hydra.find_last_obs()
+        iteration_reward = sum(observation.rewards)
+        logger.info("Reward ! (%.2f), iteration %d" % (iteration_reward, iteration))
+
+        result_file.write("%s\t %s\t %d\t %.2f\t %.2f\n" % (fault_type, agent_name, iteration, iteration_reward, runtime))
+        result_file.flush()
+        iteration = iteration + 1
+        hydra.observation = hydra.env.reset()
+
+    agent_name = "Vanilla"
+    hydra = GymHydraAgent(env)
+    iteration = 0
+    while iteration < max_iterations:
+        start_time = time.time()
+        hydra.run()
+        runtime = time.time()-start_time
+        observation = hydra.find_last_obs()
+        iteration_reward = sum(observation.rewards)
+        logger.info("Reward ! (%.2f), iteration %d" % (iteration_reward, iteration))
+        result_file.write("%s\t %s\t %d\t %.2f\t %.2f\n" % (fault_type, agent_name, iteration, iteration_reward, runtime))
+        result_file.flush()
+        iteration = iteration + 1
+        hydra.observation = hydra.env.reset()
+
+
+
+
+
+''' Run a suite of experiments '''
+def test_repairing_gym_experiments2():
+    # Setup environment and agent
+    save_obs = True
+
+    result_file = open(path.join(settings.ROOT_PATH, "tests", "repair_gravity-all.csv"), "w")
+    result_file.write("Gravity\tRepair params\tAgent\t Iteration\t Reward\t Runtime\n")
+
+
+    gravity_values = [5,6,7,8,9,10,11,12,13,14,15]
+    repairable_constants = ('gravity', 'm_cart', 'friction_cart', 'l_pole', 'm_pole',)
+    repair_deltas = (1.0, 0.5, 0.5, 0.25, 0.1, 0.2, 1.0,)
+    for gravity in gravity_values:
+        env =  gym.make("CartPole-v1")
+        env.env.gravity=gravity
+        for i in range(1,len(repairable_constants)):
+            exp_name = "%d\t %d" % (gravity, i)
+
+            baseline_agent = GymHydraAgent(env)
+            repairing_agent = RepairingGymHydraAgent(env)
+            repairing_agent.meta_model.repairable_constants = repairable_constants[:i]
+            repairing_agent.meta_model.repair_deltas = repair_deltas[:i]
+
+            _run_experiment2(baseline_agent, repairing_agent, exp_name, result_file)
+
+    result_file.close()
+
+def _run_experiment2(baseline_agent, repairing_agent, experiment_type, result_file):
+    max_iterations = 2
+
+    agent_name = "Repairing"
+    hydra = repairing_agent
+    iteration = 0
+    while iteration < max_iterations:
+        start_time = time.time()
+        hydra.run()
+        runtime = time.time()-start_time
+        observation = hydra.find_last_obs()
+        iteration_reward = sum(observation.rewards)
+        logger.info("Reward ! (%.2f), iteration %d" % (iteration_reward, iteration))
+
+        result_file.write("%s\t %s\t %d\t %.2f\t %.2f\n" % (experiment_type, agent_name, iteration, iteration_reward, runtime))
+        result_file.flush()
+        iteration = iteration + 1
+        hydra.observation = hydra.env.reset()
+
+    agent_name = "Vanilla"
+    hydra = baseline_agent
+    iteration = 0
+    while iteration < max_iterations:
+        start_time = time.time()
+        hydra.run()
+        runtime = time.time()-start_time
+        observation = hydra.find_last_obs()
+        iteration_reward = sum(observation.rewards)
+        logger.info("Reward ! (%.2f), iteration %d" % (iteration_reward, iteration))
+        result_file.write("%s\t %s\t %d\t %.2f\t %.2f\n" % (experiment_type, agent_name, iteration, iteration_reward, runtime))
+        result_file.flush()
+        iteration = iteration + 1
+        hydra.observation = hydra.env.reset()
+
+
+

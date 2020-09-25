@@ -146,9 +146,10 @@ class GreedyBestFirstSearchMetaModelRepair(MetaModelRepair):
             expected_trace, plan = self.simulator.get_expected_trace(observation, self.current_meta_model, self.current_delta_t)
             observed_seq = observation.get_trace(self.current_meta_model)
             consistency = self.consistency_estimator.estimate_consistency(expected_trace, observed_seq)
-        except InconsistentPlanError: # Sometimes the repair makes the executed plan be inconsistent, e.g., its preconditions are not satisfied
+        except InconsistentPlanError: # Sometimes the repair makes the executed plan be inconsistent #TODO: Discuss this
             consistency = PLAN_FAILED_CONSISTENCY_VALUE
-
+        except ZeroDivisionError: # Sometimes the repair causes the simulator to reach zero division #TODO: Discuss this
+            consistency = PLAN_FAILED_CONSISTENCY_VALUE
         self._undo_change(repair)
         return  consistency
 

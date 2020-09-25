@@ -69,9 +69,10 @@ class CartPoleMetaModel():
         self.constant_boolean_fluents = dict()
 
         # Constants to repair
-        self.repairable_constants = ('m_cart', 'friction_cart', 'l_pole', 'm_pole', 'gravity', )
-        self.repair_deltas = (0.5, 0.5, 0.25, 0.1, 0.2, 1.0, 1.0)
-
+        # self.repairable_constants = ('m_cart', 'friction_cart', 'l_pole', 'm_pole', 'gravity', )
+        # self.repair_deltas = (0.5, 0.5, 0.25, 0.1, 0.2, 1.0, 1.0)
+        self.repairable_constants = ('gravity', )
+        self.repair_deltas = (1.0, )
         for (fluent, value) in [
                                 # ('x', 0),
                                 # ('x_dot', 0),
