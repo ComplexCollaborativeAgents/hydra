@@ -61,6 +61,8 @@ class HydraAgent():
                 self.handle_request_novelty_likelihood()
             elif raw_state.game_state.value == GameState.NEWTRIAL.value:
                 self.handle_new_trial()
+            elif raw_state.game_state.value == GameState.MAIN_MENU.value:
+                self.handle_main_menu()
             else:
                 logger.info("[hydra_agent_server] :: Unexpected state.game_state.value {}".format(raw_state.game_state.value))
                 assert False
@@ -68,6 +70,11 @@ class HydraAgent():
 
             self.observations.append(observation)
         return False
+
+    def handle_main_menu(self):
+        logger.info("unexpected main menu page, reload the level : %s" % self.current_level)
+        self.current_level = self.env.sb_client.load_next_available_level()
+#        self.novelty_existence = self.env.sb_client.get_novelty_info()
 
     ''' Handle what happens when the agent receives a NEWTRIAL request'''
     def handle_new_trial(self):
@@ -85,11 +92,13 @@ class HydraAgent():
     def handle_request_novelty_likelihood(self):
         logger.info("[hydra_agent_server] :: Requesting Novelty Likelihood {}".format(
             self.consistency_checker.novelty_likelihood))
-        # Require report novelty likelihood and then playing can be resumedconda env update -f environment.yml
-        # dummy likelihoods:
         novelty_likelihood = self.consistency_checker.novelty_likelihood
         non_novelty_likelihood = 1 - novelty_likelihood
-        self.env.sb_client.report_novelty_likelihood(novelty_likelihood, non_novelty_likelihood)
+        #placeholders for novelty information
+        ids = {1,-2,-398879789}
+        novelty_level = 0
+        novelty_description = ""
+        self.env.sb_client.report_novelty_likelihood(novelty_likelihood, non_novelty_likelihood,ids,novelty_level,novelty_description)
 
     ''' Handle what happens when the agent receives a EVALUATION_TERMINATED request'''
     def handle_evaluation_terminated(self):
@@ -119,6 +128,7 @@ class HydraAgent():
             (time.perf_counter() - self.overall_plan_time))))
         cumulative_plan_time = 0
         overall_plan_time = time.perf_counter()
+        self.perception.new_level = True
         self.current_level = self.env.sb_client.load_next_available_level()
         # time.sleep(1)
         self.novelty_existence = self.env.sb_client.get_novelty_info()
@@ -136,6 +146,7 @@ class HydraAgent():
         self.cumulative_plan_time = 0
         self.overall_plan_time = time.perf_counter()
         self.current_level = self.env.sb_client.load_next_available_level()
+        self.perception.new_level = True
         # time.sleep(1)
         self.novelty_existence = self.env.sb_client.get_novelty_info()
         time.sleep(2 / settings.SB_SIM_SPEED)
@@ -160,7 +171,7 @@ class HydraAgent():
                 self.cumulative_plan_time += (time.perf_counter() - simple_plan_time)
                 logger.info("[hydra_agent_server] :: Simplified problem planning time: " + str(
                     (time.perf_counter() - simple_plan_time)))
-                if len(plan) == 0 or plan[0].action_name == "out of memory":  # TODO FIX THIS
+                if  len(plan) == 0 or plan[0].action_name == "out of memory":  # TODO FIX THIS
                     plan = []
                     plan.append(self.__get_default_action(processed_state))
 
@@ -187,7 +198,10 @@ class HydraAgent():
     def __get_default_action(self, state : ProcessedSBState):
         problem = self.meta_model.create_pddl_problem(state)
         pddl_state = PddlPlusState(problem.init)
-        active_bird = pddl_state.get_active_bird()
+        try:
+            active_bird = pddl_state.get_active_bird()
+        except:
+            active_bird = None
         default_angle = 20.0
         default_time = self.meta_model.angle_to_action_time(default_angle, pddl_state)
         return TimedAction("pa-twang %s" % active_bird, default_time)

@@ -9,6 +9,8 @@ from utils.point2D import Point2D
 import worlds.science_birds as SB
 from agent.perception.perception import Perception
 
+logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger("pddl_meta_model")
 
 ''' Utility functions '''
 def get_x_coordinate(obj):
@@ -38,7 +40,7 @@ def get_closest_object_xy(pddl_problem : PddlPlusProblem):
     target_pigs = state.get_pigs()
     closest_obj_x = None
     closest_obj_y = None
-    assert len(target_pigs) > 0
+    #assert len(target_pigs) > 0
     for pig in target_pigs:
         x_pig = state[('x_pig', pig)]
         y_pig = state[('y_pig', pig)]
@@ -279,8 +281,8 @@ class PlatformType(PddlObjectType):
         obj_attributes["x_platform"] = get_x_coordinate(obj)
         obj_attributes["y_platform"] = get_y_coordinate(obj, problem_params["groundOffset"])
 
-        obj_attributes["platform_height"] = get_height(obj) * 1.1
-        obj_attributes["platform_width"] = get_width(obj) * 1.1
+        obj_attributes["platform_height"] = get_height(obj) # Previous versions had a 10% dialation
+        obj_attributes["platform_width"] = get_width(obj)
         return obj_attributes
 
     def _compute_obj_attributes(self, obj, problem_params: dict):
@@ -396,7 +398,7 @@ class MetaModel():
         self.object_types["ice"] = IceType()
         self.object_types["stone"] = StoneType()
         self.object_types["TNT"] = TNTType()
-        self.object_types["hill"] = PlatformType()
+        self.object_types["platform"] = PlatformType()
         self.object_types["slingshot"] = SlingshotType()
         self.object_types["unknown"] = UnknownType()
 

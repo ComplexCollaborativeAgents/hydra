@@ -180,9 +180,16 @@ class AgentClient:
         (time_limit, interaction_limit, n_levels, attempts_per_level, mode, seq_or_set, allowNoveltyInfo) = self._read_from_buff("IIIIBBB")
         return (time_limit, interaction_limit, n_levels, attempts_per_level, mode, seq_or_set, allowNoveltyInfo)
 
-    def report_novelty_likelihood(self,report_novelty_likelihood, non_novelty_likelihood):
+    def report_novelty_likelihood(self,report_novelty_likelihood, non_novelty_likelihood, id_array, novelty_level, novelty_description):
         self._logger.info("report novelty likelihood")
-        self._send_command(RequestCodes.ReportNoveltyLikelihood,"ff",report_novelty_likelihood, non_novelty_likelihood)
+
+        id_array_length = len(id_array)
+        encoded_description = novelty_description.encode('utf-8')
+        des_bytearray = bytearray()
+        des_bytearray.extend(encoded_description)
+        msg_length = len(des_bytearray)
+
+        self._send_command(RequestCodes.ReportNoveltyLikelihood,"ffi"+str(id_array_length)+"iii"+str(msg_length)+"s",report_novelty_likelihood, non_novelty_likelihood,id_array_length,*id_array,novelty_level,msg_length,des_bytearray)
         response = self._read_from_buff("B")[0]
         return response
 
@@ -288,7 +295,7 @@ class AgentClient:
         self._logger.info("novelty existence is %d ", novelty_info)
         return novelty_info
 
-    def shoot_and_record_ground_truth(self, fx, fy, dx, dy, t1, t2, gt_frequency):
+    def shoot_and_record_ground_truth(self, fx, fy, t1, t2, gt_frequency):
         """ Request to execute a shot and record ground truth every gt_frequency frames
             Note: number of frames will be dependent on the set game simulation and gt_frequency
             the slower the game is -> more frequent ground truth snapshots are possible and vice verta.
@@ -297,7 +304,7 @@ class AgentClient:
 
         code = RequestCodes.GTshoot
         should_read_images = False # for now turned off completely on the server and SB, in case needed - ask
-        self._send_command(code, "iiiiiii", fx, fy, dx, dy, t1, t2, gt_frequency)
+        self._send_command(code, "iiiii", fx, fy, t1, t2, gt_frequency)
 
         # read how many ground truths to expect
         ground_truths_count_bytes = self._read_from_buff("I")[0]
@@ -329,14 +336,14 @@ class AgentClient:
         self._send_command(RequestCodes.RestartLevel)
         return self._read_from_buff("B")[0]
 
-    def shoot(self, fx, fy, dx, dy, t1, t2, isPolar):
+    def shoot(self, fx, fy, t1, t2, isPolar):
         code = RequestCodes.Pshoot if isPolar else RequestCodes.Cshoot
-        self._send_command(code, "iiiiii", fx, fy, dx, dy, t1, t2)
+        self._send_command(code, "iiii", fx, fy, t1, t2)
         return self._read_from_buff("B")[0]
 
-    def fast_shoot(self, fx, fy, dx, dy, t1, t2, isPolar):
+    def fast_shoot(self, fx, fy, t1, t2, isPolar):
         code = RequestCodes.PFastshoot if isPolar else RequestCodes.CFastshoot
-        self._send_command(code, "iiiiii", fx, fy, dx, dy, t1, t2)
+        self._send_command(code, "iiii", fx, fy, t1, t2)
         return self._read_from_buff("B")[0]
 
     def get_all_level_scores(self):

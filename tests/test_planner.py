@@ -26,3 +26,8 @@ def test_planner():
     assert os.stat("%s/docker_validation_trace.txt" % settings.VAL_DOCKER_PATH).st_size > 0
 
     assert len(actions) > 0
+
+if __name__ == '__main__':
+    planner = pl.Planner()
+    actions = planner.get_plan_actions()
+    assert len(actions) > 0
