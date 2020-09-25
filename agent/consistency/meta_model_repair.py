@@ -1,9 +1,11 @@
-from agent.consistency.pddl_plus_simulator import PddlPlusSimulator
+from agent.consistency.pddl_plus_simulator import *
 from agent.consistency.consistency_estimator import *
 from agent.planning.pddl_meta_model import *
 import heapq
 
 logger = logging.getLogger("meta_model_repair")
+
+PLAN_FAILED_CONSISTENCY_VALUE = 1000 # A constant representing the inconsistency value of a meta model in which the executed plan is inconsistent
 
 ''' An abstract class intended to repair a given PDDL+ meta model until it matches the observed behavior '''
 class MetaModelRepair(): # TODO: Remove this class
@@ -140,11 +142,16 @@ class GreedyBestFirstSearchMetaModelRepair(MetaModelRepair):
         # Apply change
         self._do_change(repair)
 
-        expected_trace, plan = self.simulator.get_expected_trace(observation, self.current_meta_model, self.current_delta_t)
-        observed_seq = observation.get_trace(self.current_meta_model)
+        consistency = 0
+        try:
+            expected_trace, plan = self.simulator.get_expected_trace(observation, self.current_meta_model, self.current_delta_t)
+            observed_seq = observation.get_trace(self.current_meta_model)
+            consistency = self.consistency_estimator.estimate_consistency(expected_trace, observed_seq)
+        except InconsistentPlanError: # Sometimes the repair makes the executed plan be inconsistent, e.g., its preconditions are not satisfied
+            consistency = PLAN_FAILED_CONSISTENCY_VALUE
 
         self._undo_change(repair)
-        return self.consistency_estimator.estimate_consistency(expected_trace, observed_seq)
+        return  consistency
 
     def _do_change(self, change : dict):
         for i, change_to_fluent in enumerate(change):

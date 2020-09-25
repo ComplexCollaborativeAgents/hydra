@@ -107,8 +107,10 @@ class PddlPlusDomain():
 
     def get_action(self,action_name):
         for action in self.actions:
+            # print ("COMPARE: ", action.name, " vs ", action_name)
             if action.name==action_name:
                 return action
+        print ("\nNO MATCHING ACTIONS IN LIST:", self.actions)
         return None
 
 '''
@@ -276,7 +278,7 @@ class PddlPlusState():
 
 ''' Class responsible for all groundings'''
 class PddlPlusGrounder():
-    def __init__(self, no_dummy_objects = True):
+    def __init__(self, no_dummy_objects = False):
         self.no_dummy_objects = no_dummy_objects
 
     ''' Recursively ground the given element with the given binding '''
@@ -369,7 +371,7 @@ class PddlPlusGrounder():
     ''' Recursive method to find all bindings '''
     def __recursive_get_possible_bindings(self, parameters, problem, binding, bindings):
         for object in problem.objects:
-            if len(object)>1 and "dummy" in object[0]:
+            if len(object)>1 and self.no_dummy_objects and "dummy" in object[0]:
                 continue
             if self.__can_bind(parameters[0], object):
                 assert parameters[0][0].startswith("?")
