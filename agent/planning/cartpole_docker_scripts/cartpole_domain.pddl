@@ -5,7 +5,7 @@
   (:types dummy )
 
   (:predicates
-    (total_failure) (pole_position) (ready) (cart_available)
+    (total_failure) (ready) (cart_available)
   )
 
   (:functions
@@ -13,7 +13,7 @@
     (theta) (theta_dot) (theta_ddot)
     (l_pole) (m_pole) (friction_pole)
     (gravity) (F) (elapsed_time) (inertia)
-    (time_limit)
+    (time_limit) (angle_limit) (x_limit)
   )
 
 
@@ -83,29 +83,29 @@
   	) 
   )
 
-  (:event entered_goal_region
-      :parameters (?d - dummy)
-      :precondition (and
-          (<= (theta) 0.20)
-          (>= (theta) -0.20)
-          (not (pole_position))
-          (not (total_failure))
-      )
-      :effect (and
-          (pole_position)
-      )
-  )
+  ; (:event entered_goal_region
+  ;     :parameters (?d - dummy)
+  ;     :precondition (and
+  ;         (<= (theta) (angle_limit))
+  ;         (>= (theta) (- 0.0 (angle_limit)) )
+  ;         (not (pole_position))
+  ;         (not (total_failure))
+  ;     )
+  ;     :effect (and
+  ;         (pole_position)
+  ;     )
+  ; )
 
   (:event exited_goal_region
       :parameters (?d - dummy)
       :precondition (and
-          (or (>= (theta) 0.20)
-          (<= (theta) -0.20))
-          (pole_position)
+          (or (>= (theta) (angle_limit))
+          (<= (theta) (- 0.0 (angle_limit))) )
+          ; (pole_position)
           (not (total_failure))
       )
       :effect (and
-      	  (not (pole_position))
+      	  ; (not (pole_position))
           (total_failure)
       )
   )
@@ -113,8 +113,8 @@
   (:event cart_out_of_bounds
       :parameters (?d - dummy)
       :precondition (and
-          (or (>= (x) 2.4)
-          (<= (x) -2.4))
+          (or (>= (x) (x_limit))
+          (<= (x) (- 0.0 (x_limit))) )
           (not (total_failure))
       )
       :effect (and

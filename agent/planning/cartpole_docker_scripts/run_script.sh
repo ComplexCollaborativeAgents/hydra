@@ -5,6 +5,7 @@ problem=$2
 memory=$3
 delta_t=$4
 time_out=$5
+dfs_limit=$6
 
 echo $domain
 
@@ -25,5 +26,5 @@ echo ""
 echo ""
 #./"${domain%%.*}"_planner -print
 
-time timeout $time_out ./"${domain%%.*}"_planner -m$memory -tl1.04 -pi10000 -print -format:pddlvv
+time timeout $time_out ./"${domain%%.*}"_planner -m$memory -tl$dfs_limit -pi10000 -print -format:pddlvv
 

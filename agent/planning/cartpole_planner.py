@@ -69,8 +69,9 @@ class CartPolePlanner():
         out_file.close()
 
         docker_plan_time = time.perf_counter()
+        # print ("\n\n Running planner with parameters - Memory limit:", str(settings.PLANNER_MEMORY_LIMIT), "Delta T: ", str(settings.DELTA_T), "Timeout: ", (str(settings.TIMEOUT)+"s"), "Max plan length: ", str(self.meta_model.constant_numeric_fluents['time_limit']))
         completed_process = subprocess.run(('docker', 'run', '--rm', 'upm_from_dockerfile', 'cartpole_domain.pddl',
-                                            'cartpole_prob.pddl', str(settings.PLANNER_MEMORY_LIMIT), str(settings.DELTA_T), (str(settings.TIMEOUT)+"s"),
+                                            'cartpole_prob.pddl', str(settings.PLANNER_MEMORY_LIMIT), str(settings.DELTA_T), (str(settings.TIMEOUT)+"s"), str(math.ceil(self.meta_model.constant_numeric_fluents['time_limit'])),
                                             '>', 'docker_plan_trace.txt'), capture_output=True)
         completed_docker_plan_time = (time.perf_counter() - docker_plan_time)
         out_file = open("docker_plan_trace.txt", "wb")

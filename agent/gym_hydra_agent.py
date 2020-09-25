@@ -22,7 +22,8 @@ class GymHydraAgent:
         self.observations_list = []
 
     def run(self, debug_info=False, max_actions=1000):
-
+        self.meta_model.constant_numeric_fluents['time_limit'] = 4.0
+        print("TIME_LIMIT", self.meta_model.constant_numeric_fluents['time_limit'])
         plan = self.cartpole_planner.make_plan(self.observation, 0)
         # print("\n\nPLAN LENGTH: ", len(plan))
         if debug_info:
@@ -69,15 +70,17 @@ class GymHydraAgent:
             itt += 1
 
             if done or n_steps >= 201:
+                print ("\n\nFINISHED\nSCORE: ", sum(cartpole_obs.rewards))
                 self.env.close()
                 break
 
             if (itt >= 40):
-
+                print (n_steps)
                 emergency_plan = False
 
                 temp_plan = copy.copy(plan)
-
+                self.meta_model.constant_numeric_fluents['time_limit'] = round((4.0 - ((n_steps-1)*0.02)), 2)
+                print("\nIntermediate time_limit = ", self.meta_model.constant_numeric_fluents['time_limit'])
                 plan = self.cartpole_planner.make_plan(self.observation, 0)
                 if (len(plan)) == 0:
                     emergency_plan = True
@@ -134,6 +137,7 @@ class GymHydraAgent:
         plt.plot(np.arange(1,steps,1), exec_xs, label='exec')
         plt.plot(np.arange(1,steps,1), plan_xs, label='plan')
         plt.xlabel('steps')
+        plt.xticks(np.arange(0, steps, 40))
         plt.ylabel('values')
         plt.legend()
         plt.show()
@@ -142,6 +146,7 @@ class GymHydraAgent:
         plt.plot(np.arange(1, steps, 1), exec_x_dots, label='exec')
         plt.plot(np.arange(1, steps, 1), plan_x_dots, label='plan')
         plt.xlabel('steps')
+        plt.xticks(np.arange(0, steps, 40))
         plt.ylabel('values')
         plt.legend()
         plt.show()
@@ -150,6 +155,7 @@ class GymHydraAgent:
         plt.plot(np.arange(1, steps, 1), exec_thetas, label='exec')
         plt.plot(np.arange(1, steps, 1), plan_thetas, label='plan')
         plt.xlabel('steps')
+        plt.xticks(np.arange(0, steps, 40))
         plt.ylabel('values')
         plt.legend()
         plt.show()
@@ -158,6 +164,7 @@ class GymHydraAgent:
         plt.plot(np.arange(1, steps, 1), exec_theta_dots, label='exec')
         plt.plot(np.arange(1, steps, 1), plan_theta_dots, label='plan')
         plt.xlabel('steps')
+        plt.xticks(np.arange(0, steps, 40))
         plt.ylabel('values')
         plt.legend()
         plt.show()
