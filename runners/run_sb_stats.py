@@ -20,7 +20,7 @@ SB_DATA_PATH = pathlib.Path(settings.ROOT_PATH) / 'data' / 'science_birds'
 SB_BIN_PATH = pathlib.Path(settings.SCIENCE_BIRDS_BIN_DIR) / 'linux'
 SB_CONFIG_PATH = SB_DATA_PATH / 'config'
 ANU_LEVELS_PATH = SB_DATA_PATH / 'ANU_Levels.tar.gz'
-STATS_PATH = pathlib.Path(__file__).parent / 'stats.json'
+STATS_PATH = (pathlib.Path(__file__).parent / 'stats.json').absolute()
 
 class AgentType(enum.Enum):
     Hydra = 1

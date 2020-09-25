@@ -11,7 +11,7 @@ NO_PLANNING = False
 SB_DEV_MODE = True
 
 PLANNER_MEMORY_LIMIT = 50 # memory limit for UPMurphi (in MB)
-DELTA_T = 0.005 # time discretisation for UPMurphi
+DELTA_T = 0.05 # time discretisation for UPMurphi
 TIMEOUT = 60 # timeout for the planning phase (in seconds)
 
 OS_ROOT_PATH = path.abspath(os.sep)
