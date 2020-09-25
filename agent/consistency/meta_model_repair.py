@@ -12,8 +12,8 @@ class MetaModelRepair(): # TODO: Remove this class
 
     ''' Repair the given domain and plan such that the given plan's expected outcome matches the observed outcome'''
     def repair(self,
-               pddl_meta_model: MetaModel,
-               observation: ScienceBirdsObservation, delta_t=1.0):
+               pddl_meta_model,
+               observation, delta_t=1.0):
 
         simulator = PddlPlusSimulator()
         sb_state = observation.state
@@ -73,7 +73,7 @@ class GreedyBestFirstSearchMetaModelRepair(MetaModelRepair):
     ''' Repair the given domain and plan such that the given plan's expected outcome matches the observed outcome'''
     def repair(self,
                pddl_meta_model: MetaModel,
-               observation: ScienceBirdsObservation, delta_t=1.0):
+               observation, delta_t=1.0):
 
         self.current_delta_t = delta_t
         self.current_meta_model = pddl_meta_model

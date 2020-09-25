@@ -1,11 +1,12 @@
 import matplotlib
 from utils.point2D import Point2D
-from agent.consistency import pddl_plus_simulator as simulator
+from agent.consistency.pddl_plus_simulator import *
 from agent.consistency.observation import ScienceBirdsObservation
 from agent.perception.perception import *
 from agent.planning.pddl_plus import *
 from agent.planning.pddl_meta_model import MetaModel
 from tests import test_utils
+
 
 # Defaults
 DEFAULT_DELTA_T = 0.02
@@ -21,47 +22,24 @@ class ConsistencyEstimator:
     def estimate_consistency(self, timed_state_seq: list, state_seq: list, delta_t: float = DEFAULT_DELTA_T):
         raise NotImplementedError()
 
-''' Checks consistency by considering the value of a single numeric fluent '''
-class SingleNumericFluentConsistencyEstimator(ConsistencyEstimator):
-    def __init__(self, fluent_name):
-        if isinstance(fluent_name,list):
-            self.fluent_name = tuple(fluent_name)
-        else:
-            self.fluent_name = fluent_name
 
-    ''' The first parameter is a list of (state,time) pairs, the second is just a list of states '''
-    ''' Current implementation ignores order, and just looks for the best time for each state in the state_seq, 
-    aiming to minimize its distance from the fitted piecewise-linear interpolation. 
-    Returns a value representing how cons
-    '''
-    def estimate_consistency(self, simulation_trace: list, state_seq: list, delta_t: float = DEFAULT_DELTA_T):
+''' A consistency estimator that is based on checking the consistency of the observation with an available meta model'''
+class MetaModelBasedConsistencyEstimator(ConsistencyEstimator):
+    PLAN_FAILED_CONSISTENCY_VALUE = 1000  # A constant representing the inconsistency value of a meta model in which the executed plan is inconsistent
 
-        # Fit a piecewise linear function based on the timed state sequence
-        t_values = list()
-        fluent_values = list()
-        for (state, t,_) in simulation_trace:
-            value = float(state[self.fluent_name])
-            t_values.append(t)
-            fluent_values.append(value)
-
-        all_t_values = np.arange(0,t_values[-1],delta_t)
-        consistent_fluent_values = np.interp(all_t_values, t_values, fluent_values)
-
-        assert len(consistent_fluent_values==len(all_t_values))
-
-        max_error = 0
-        for state in state_seq:
-            fluent_value = float(state[self.fluent_name])
-            error = min([abs(fluent_value-consistent_fluent_values[i])
-                          for i in range(len(all_t_values))])
-            if max_error<error:
-                max_error = error
-
-        return max_error
+    ''' Computes the consistency of a given observation w.r.t the given meta model using the given simulator '''
+    def compute_consistency(self, observation, meta_model, simulator : PddlPlusSimulator, delta_t):
+        try:
+            expected_trace, plan = simulator.get_expected_trace(observation, meta_model, delta_t)
+            observed_seq = observation.get_trace(meta_model)
+            consistency = self.estimate_consistency(expected_trace, observed_seq)
+        except InconsistentPlanError: # Sometimes the repair makes the executed plan be inconsistent, e.g., its preconditions are not satisfied
+            consistency = MetaModelBasedConsistencyEstimator.PLAN_FAILED_CONSISTENCY_VALUE
+        return  consistency
 
 
 ''' Checks consistency by considering the value of a set of numeric fluents '''
-class NumericFluentsConsistencyEstimator(ConsistencyEstimator):
+class NumericFluentsConsistencyEstimator(MetaModelBasedConsistencyEstimator):
 
     ''' Specify which fluents to check, and the size of the observed sequence prefix to consider.
     This is because we acknowledge that later in the observations, our model is less accurate. '''
@@ -171,7 +149,7 @@ class NumericFluentsConsistencyEstimator(ConsistencyEstimator):
 
 
 ''' Checks consistency by considering the location of the birds '''
-class BirdLocationConsistencyEstimator():
+class BirdLocationConsistencyEstimator(MetaModelBasedConsistencyEstimator):
     def __init__(self, unique_prefix_size = 100,discount_factor=0.9, consistency_threshold = 20):
         self.unique_prefix_size=unique_prefix_size
         self.discount_factor = discount_factor
@@ -196,29 +174,6 @@ class BirdLocationConsistencyEstimator():
                                                                  self.discount_factor,
                                                                  consistency_threshold = self.consistency_threshold)
         return consistency_checker.estimate_consistency(simulation_trace, state_seq, delta_t)
-
-
-''' Checks consistency by considering the location of the birds '''
-class CartpoleConsistencyEstimator():
-    def __init__(self, unique_prefix_size = 100,discount_factor=0.9, consistency_threshold = 0.01):
-        self.unique_prefix_size=unique_prefix_size
-        self.discount_factor = discount_factor
-        self.consistency_threshold = consistency_threshold
-
-    ''' Estimate consitency by considering the location of the birds in the observed state seq '''
-    def estimate_consistency(self, simulation_trace: list, state_seq: list, delta_t: float = DEFAULT_DELTA_T):
-
-        fluent_names = []
-        fluent_names.append(('x',))
-        fluent_names.append(('x_dot',))
-        fluent_names.append(('theta',))
-        fluent_names.append(('theta_dot',))
-
-        consistency_checker = NumericFluentsConsistencyEstimator(fluent_names, self.unique_prefix_size,
-                                                                 self.discount_factor,
-                                                                 consistency_threshold = self.consistency_threshold)
-        return consistency_checker.estimate_consistency(simulation_trace, state_seq, delta_t)
-
 
 
 
@@ -262,7 +217,7 @@ def diff_pddl_states(state1, state2):
 ''' Checks if an observation is consisten with a given meta model'''
 def check_obs_consistency(observation,
                           meta_model,
-                          consistency_checker,
+                          consistency_checker : MetaModelBasedConsistencyEstimator,
                           delta_t : float = DEFAULT_DELTA_T,
                           plot_obs_vs_exp = DEFAULT_PLOT_OBS_VS_EXP):
     if plot_obs_vs_exp:
@@ -270,6 +225,4 @@ def check_obs_consistency(observation,
         plot_axes = test_utils.plot_observation(observation)
         test_utils.plot_expected_trace_for_obs(meta_model, observation, ax=plot_axes)
 
-    expected_trace, plan = simulator.get_expected_trace(observation, meta_model, delta_t=delta_t)
-    observed_seq = observation.get_trace(meta_model)
-    return consistency_checker.estimate_consistency(expected_trace, observed_seq, delta_t=delta_t)
+    return consistency_checker.compute_consistency(observation, meta_model, PddlPlusSimulator(),delta_t)

@@ -5,6 +5,7 @@ from agent.planning.cartpole_pddl_meta_model import CartPoleMetaModel
 from agent.planning.simple_planner import *
 from agent.consistency.consistency_estimator import check_obs_consistency, DEFAULT_DELTA_T
 import matplotlib.pyplot
+from agent.consistency.cartpole_repair import CartpoleConsistencyEstimator
 import gym
 logger = test_utils.create_logger("test_model_repair")
 
@@ -133,24 +134,72 @@ def test_repair_gravity_offline():
     assert bad_consistency > repaired_consistency
 
 
-# ''' A full system test: run SB with a bad meta model, observe results, fix meta model '''
-# @pytest.mark.skipif(settings.HEADLESS == True, reason="headless does not work in docker")
-# def test_debug(launch_science_birds_level_01):
-#     # Setup environment and agent
-#     _adjust_game_speed()
-#     env = launch_science_birds_level_01
-#     hydra = HydraAgent(env)
-#
-#
-#     hydra.planner = PlannerStub(45, hydra.meta_model)
-#     hydra.run_next_action()  # enough actions to play a level
-#
-#     # Store observations
-#     observation = hydra.find_last_obs()
-#     obs_output_file = path.join(TEST_DATA_DIR, "obs_debug.p")  # For debug
-#     pickle.dump(observation, open(obs_output_file, "wb"))  # For debug
-#
-#     matplotlib.interactive(True)  # For debug
-#     fig = test_utils.plot_observation(observation)  # For debug
-#     test_utils.plot_expected_trace_for_obs(hydra.meta_model, observation, ax=fig)
-#     matplotlib.pyplot.close()
+
+''' Inject a fault to the agent's meta model '''
+def _inject_fault_to_gym(env):
+    env.env.gravity = 13
+
+# @pytest.mark.skip()
+def test_repair_bad_gravity_in_gym(launch_cartpole_sample_level):
+    save_obs = True # Set this to true to create a new observation file for an offline test
+
+    # Setup environment and agent
+    env = launch_cartpole_sample_level
+    cartpole_hydra = GymHydraAgent(env)
+
+
+    # Inject fault and run the agent
+    _inject_fault_to_gym(env)
+    logger.info("Run agent, iteration 0")
+
+    cartpole_hydra.run()
+    # Store observations
+    if save_obs:
+        observation = cartpole_hydra.find_last_obs()
+        obs_output_file = path.join(TEST_DATA_DIR, "obs_test_repair_bad_gravity_in_gym.p")  # For debug
+        pickle.dump(observation, open(obs_output_file, "wb"))  # For debug
+
+    # Start repair loop
+    consistency_checker = CartpoleConsistencyEstimator()
+
+
+    fluents_to_repair = [GRAVITY,]
+    repair_deltas = [1.0, ]
+    desired_precision = 0.01
+    iteration = 0
+    obs_with_rewards = 0
+    meta_model = cartpole_hydra.meta_model
+
+    while iteration<3:
+        observation = cartpole_hydra.find_last_obs()
+
+        # Store observation for debug
+        obs_output_file = path.join(DATA_DIR, "obs_test_repair_bad_gravity_in_gym_%d.p" % iteration)  # For debug
+        pickle.dump(observation, open(obs_output_file, "wb"))  # For debug
+
+        logger.info("Reward ! (%.2f), iteration %d" % (sum(observation.rewards), iteration))
+        logger.info("Actions ! (%.2f), iteration %d" % (len(observation.actions), iteration))
+        logger.info("States ! (%.2f), iteration %d" % (len(observation.states), iteration))
+
+        if sum(observation.rewards)>195:
+            logger.info("Finished with correct reward...")
+            obs_with_rewards = obs_with_rewards+1
+            break
+            # No need to fix the model - we're winning! #TODO: This is an assumption: better to replace this with a good novelty detection mechanism
+        else:
+            consistency = check_obs_consistency(observation, meta_model, consistency_checker, delta_t=DEFAULT_DELTA_T)
+            meta_model_repair = GreedyBestFirstSearchMetaModelRepair(fluents_to_repair, consistency_checker, repair_deltas,
+                                                                     consistency_threshold=desired_precision)
+            repair, _ = meta_model_repair.repair(meta_model, observation, delta_t=DEFAULT_DELTA_T)
+            logger.info("Repair done (%s), iteration %d" % (repair,iteration))
+            consistency_after = check_obs_consistency(observation, meta_model, consistency_checker, delta_t=DEFAULT_DELTA_T)
+            assert consistency >= consistency_after # TODO: This actually may fail, because current model may be best, but we look for a different one
+
+        # Run agent with repaired model
+        iteration = iteration+1
+        logger.info("Run agent, iteration %d" % iteration)
+
+        cartpole_hydra.observation = cartpole_hydra.env.reset()
+        cartpole_hydra.run()  # enough actions to play a level
+
+    assert obs_with_rewards>0 # Should at least win twice TODO: Ideally, this will check if we won both levels
