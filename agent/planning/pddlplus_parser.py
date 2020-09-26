@@ -20,6 +20,18 @@ class PddlPlusWorldChange():
         self.preconditions = list()
         self.effects = list()
 
+    def print_info(self):
+        print ("\n\nNAME:", self.name)
+        print ("TYPE:", self.type)
+        print ("\tPARAMS: ", end=" ")
+        for par in self.parameters:
+            print ("(", par, ")", end=" ")
+        print ("\n\tPRECOND: ", end=" ")
+        for prec in self.preconditions:
+            print ("(", prec, ")", end=" ")
+        print ("\n\tEFFECTS: ", end=" ")
+        for eff in self.effects:
+            print ("(", eff, ")", end=" ")
 
 
 '''
@@ -285,6 +297,21 @@ class PddlDomainParser():
                 elif element[0] == ":action":
                     action = self.parse_world_change(element, WorldChangeTypes.action)
                     domain.actions.append(action)
+
+        # print ("\n\nDOMAINNNNN: \n")
+        # print (domain.name)
+        # print (domain.types)
+        # print (domain.predicates)
+        # print (domain.functions)
+        # for pro in domain.processes:
+        #     pro.print_info()
+        # print ("")
+        # for ev in domain.events:
+        #     ev.print_info()
+        # print ("")
+        # for ac in domain.actions:
+        #     ac.print_info()
+
         return domain
 
 

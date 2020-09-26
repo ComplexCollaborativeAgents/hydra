@@ -10,7 +10,7 @@ echo $domain
 
 # while IFS= read -r line; do echo $line; done < $domain
 
-time ../../bin/upmc $domain $problem --custom $delta_t 7 7 --force
+time ../../bin/upmc $domain $problem --custom $delta_t 4 10 --force
 
 echo ""
 echo ""
@@ -25,5 +25,5 @@ echo ""
 echo ""
 #./"${domain%%.*}"_planner -print
 
-time timeout $time_out ./"${domain%%.*}"_planner -m$memory -tl4.04 -pi10000 -print -format:pddlvv
+time timeout $time_out ./"${domain%%.*}"_planner -m$memory -tl1.04 -pi10000 -print -format:pddlvv
 

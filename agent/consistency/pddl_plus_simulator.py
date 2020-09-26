@@ -11,6 +11,13 @@ TI_STATE = 0 # Index in a trace_item for the state
 TI_T = 1 # Index in a trace_item for the time
 TI_WORLD_CHANGES = 2 # Index in a trace_item for the list of actions, processes, and events
 
+
+''' Error thrown when the simulator tries to simulate a plan that is inconsistent (e.g., try to perform an action without its preconditions satisfied)'''
+class InconsistentPlanError(ValueError):
+    def __init__(self, error_msg:str):
+        super().__init__(error_msg)
+
+
 ''' A simplistic, probably not complete and sound, simulator for PDDL+ processes
  TODO: Replace this with a call to VAL. '''
 class PddlPlusSimulator():
@@ -36,15 +43,37 @@ class PddlPlusSimulator():
     def simulate(self, plan_to_simulate: PddlPlusPlan, problem: PddlPlusProblem, domain: PddlPlusDomain, delta_t:float, max_t:float = 1000):
         self.problem = problem
         # Ground the domain
-        grounder = PddlPlusGrounder(no_dummy_objects=True)
+        grounder = PddlPlusGrounder(no_dummy_objects=False)
         self.domain = grounder.ground_domain(domain, problem)
+
+        # print ("\n\nGROUNDED DOMAIN: \n")
+        # print (self.domain.name)
+        # print (self.domain.types)
+        # print (self.domain.predicates)
+        # print (self.domain.functions)
+        # for pro in self.domain.processes:
+        #     pro.print_info()
+        # print ("")
+        # for ev in self.domain.events:
+        #     ev.print_info()
+        # print ("")
+        # for ac in self.domain.actions:
+        #     ac.print_info()
 
         state = PddlPlusState(problem.init)
         t = 0.0
         trace = []
         current_state = state.clone()
         plan = PddlPlusPlan(plan_to_simulate) # Clone the given plan
+
+        # print("\n\nACTIONS IN COPIED PLAN")
+        # for acts in plan:
+        #     print (acts.action_name, " at ", acts.start_at)
+
+        if len(plan)==0:
+            raise ValueError("Plan is empty")
         next_timed_action  = plan.pop(0)
+        # print("\n\nNEXT TIMED ACTION: ", next_timed_action.action_name, " at ", next_timed_action.start_at)
 
         # Create the first trace_item
         trace_item = [None, None, None]
@@ -57,8 +86,10 @@ class PddlPlusSimulator():
         still_active = True
         while still_active and t<max_t:
             # If we reached the time in which the next action should be applied, apply it
+            # print ("TIME = ", t)
             if next_timed_action is not None and next_timed_action.start_at<=t:
                 # Get the WorldChange object for the action to perform
+                # print ("APPLIED TIMED ACTION: ", next_timed_action.action_name, " at time = ", next_timed_action.start_at, "/", t)
                 world_change = self.domain.get_action(next_timed_action.action_name)
                 new_effects = self.compute_apply_action(current_state, world_change)
                 world_changes_at_t.append(world_change)
@@ -117,11 +148,21 @@ class PddlPlusSimulator():
 
 
     ''' Simulate the trace of a given action in a given state according to the given meta model'''
-    def simulate_observed_action(self, sb_state: SB.SBState, sb_action: SB.SBAction, meta_model: MetaModel, delta_t : float):
-        problem = meta_model.create_pddl_problem(sb_state)
-        domain = meta_model.create_pddl_domain(sb_state)
+    def simulate_observed_action(self, game_state, game_action, game_meta_model, delta_t : float):
+        problem = game_meta_model.create_pddl_problem(game_state)
+        domain = game_meta_model.create_pddl_domain(game_state)
         plan = PddlPlusPlan()
-        plan.append(meta_model.create_timed_action(sb_action, sb_state))
+        plan.append(game_meta_model.create_timed_action(game_action, game_state))
+        (_, _, trace) = self.simulate(plan, problem, domain, delta_t)
+        return trace
+
+    ''' Simulate the trace of a given action in a given state according to the given meta model'''
+    def simulate_observed_plan(self, game_states, game_actions, game_meta_model, delta_t : float):
+        problem = game_meta_model.create_pddl_problem(game_states[0])
+        domain = game_meta_model.create_pddl_domain(game_states[0])
+        plan = PddlPlusPlan()
+        for ix in enumerate(game_actions):
+            plan.append(game_meta_model.create_timed_action(game_actions[ix], ix))
         (_, _, trace) = self.simulate(plan, problem, domain, delta_t)
         return trace
 
@@ -166,7 +207,7 @@ class PddlPlusSimulator():
             action = action.ground(binding)
 
         if self.preconditions_hold(state,action.preconditions)==False:
-            raise ValueError("Action preconditions are not satisfied") # No effects if preconditions do not hold
+            raise InconsistentPlanError("Action preconditions are not satisfied") # No effects if preconditions do not hold
         self.apply_effects(state, action.effects)
 
     ''' Fire a given event at the given state. If binding is not None, we first ground the action with the binding'''
@@ -191,7 +232,7 @@ class PddlPlusSimulator():
             action = action.ground(binding)
 
         if self.preconditions_hold(state, action.preconditions) == False:
-            raise ValueError("Action %s preconditions are not satisfied" % action.name)  # No effects if preconditions do not hold
+            raise InconsistentPlanError("Action %s preconditions are not satisfied" % action.name)  # No effects if preconditions do not hold
         return self.compute_effects(state, action.effects)
 
     ''' Compute the impact of firing a given event at the given state. If binding is not None, we first ground the action with the binding'''
@@ -318,16 +359,21 @@ class PddlPlusSimulator():
             return False
 
     ''' Simulate the observed action in the observed state according to the given meta model '''
-    def get_expected_trace(self, observation : ScienceBirdsObservation, meta_model : MetaModel, delta_t = 0.05):
-        problem = meta_model.create_pddl_problem(observation.state)
-        domain = meta_model.create_pddl_domain(observation.state)
+    def get_expected_trace(self, observation, meta_model, delta_t = 0.05):
+        problem = meta_model.create_pddl_problem(observation.get_initial_state())
+        domain = meta_model.create_pddl_domain(observation.get_initial_state())
         plan = observation.get_pddl_plan(meta_model)
+
+        # print("\n\nACTIONS IN PLAN")
+        # for acts in plan:
+        #     print (acts.action_name, " at ", acts.start_at)
+
         (_,_,trace,) = self.simulate(plan, problem, domain, delta_t=delta_t)
         return trace, plan
 
 
 ''' Simulate the observed action in the observed state according to the given meta model '''
-def get_expected_trace(observation : ScienceBirdsObservation, meta_model : MetaModel, delta_t = 0.05):
+def get_expected_trace(observation, meta_model, delta_t = 0.05):
     return PddlPlusSimulator().get_expected_trace(observation, meta_model, delta_t)
 
 ''' Helper function: simulate the given plan, on the given problem and domain.  '''

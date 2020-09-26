@@ -1,3 +1,8 @@
+import sys
+import settings
+import os.path
+sys.path.append(os.path.join(settings.ROOT_PATH, "worlds", "science_birds_interface"))
+
 from shapely.geometry import box, Polygon
 
 import worlds.science_birds as sb
