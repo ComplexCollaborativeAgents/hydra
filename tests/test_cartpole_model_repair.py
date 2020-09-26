@@ -3,9 +3,10 @@ from agent.consistency.meta_model_repair import *
 from agent.gym_hydra_agent import GymHydraAgent
 from agent.planning.cartpole_pddl_meta_model import CartPoleMetaModel
 from agent.planning.simple_planner import *
-from agent.consistency.consistency_estimator import check_obs_consistency, DEFAULT_DELTA_T
+from agent.consistency.consistency_estimator import check_obs_consistency, DEFAULT_DELTA_T, CartpoleConsistencyEstimator
 import matplotlib.pyplot
 import gym
+import tests.test_utils as test_utils
 logger = test_utils.create_logger("test_model_repair")
 
 DATA_DIR = path.join(settings.ROOT_PATH, 'data')
@@ -29,7 +30,7 @@ def _inject_fault_to_meta_model(meta_model : CartPoleMetaModel, fluent_to_change
 
 ''' A full system test: run SB with a bad metnka model, observe results, fix meta model '''
 
-# @pytest.mark.skip()
+@pytest.mark.skip()
 def test_repair_gravity_in_cartpole_agent(launch_cartpole_sample_level):
     # Constants
     save_obs = True # Set this to true to create a new observation file for test_repair_gravity_offline()

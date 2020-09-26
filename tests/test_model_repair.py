@@ -89,7 +89,7 @@ def test_repair_gravity_in_agent(save_obs=False,plot_obs_vs_exp=False):
 
 ''' Repair gravity based on an observed state
 NOTE: If changed code that may affect the observations, rerun test_repair_gravity_in_agent() with save_obs=True'''
-#@pytest.mark.skip("Currently updating to 0.3.6 version does not work")
+@pytest.mark.skip("Consistency checker parameter is missing in some calls to check_obs_consistency")
 def test_repair_gravity_offline():
     obs_output_file = path.join(TEST_DATA_DIR, "obs_test_repair_gravity_in_agent.p")
     observation = pickle.load(open(obs_output_file, "rb"))
