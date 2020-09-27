@@ -128,13 +128,17 @@ class GreedyBestFirstSearchMetaModelRepair(MetaModelRepair):
         new_repairs = []
         for i, fluent in enumerate(self.fluents_to_repair):
             if repair[i] >= 0:
-                new_repair = list(repair)
-                new_repair[i] = new_repair[i] + self.deltas[i]
-                new_repairs.append(new_repair)
+                change_to_fluent = repair[i] + self.deltas[i]
+                if self.current_meta_model.constant_numeric_fluents[self.fluents_to_repair[i]] + change_to_fluent >= 0: # Don't allow negative fluents TODO: Discuss
+                    new_repair = list(repair)
+                    new_repair[i] = change_to_fluent
+                    new_repairs.append(new_repair)
             if repair[i] <= 0:  # Note: if repair has zero for the current fluent, add both +delta and -delta states to open
-                new_repair = list(repair)
-                new_repair[i] = new_repair[i] - self.deltas[i]
-                new_repairs.append(new_repair)
+                change_to_fluent = repair[i] - self.deltas[i]
+                if self.current_meta_model.constant_numeric_fluents[self.fluents_to_repair[i]] + change_to_fluent >= 0: # Don't allow negative fluents TODO: Discuss
+                    new_repair = list(repair)
+                    new_repair[i] = change_to_fluent
+                    new_repairs.append(new_repair)
         return new_repairs
 
     ''' Computes the consistency score for the given delta state'''
