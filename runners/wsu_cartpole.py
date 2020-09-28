@@ -10,5 +10,6 @@ def main():
     dispatcher = WSUDispatcher(observer, config_file=str(WSU_CARTPOLE), debug=True, printout=True)
     dispatcher.run()
 
+
 if __name__ == '__main__':
     main()

@@ -13,6 +13,9 @@ class WSUObserver:
         if self.log is None:
             self.log = logger
 
+    def set_possible_answers(self, possible_answers):
+        self.possible_answers = possible_answers
+
     def experiment_start(self):
         """This function is called when this TA2 has connected to a TA1 and is ready to begin
         the experiment.
