@@ -52,7 +52,7 @@ class GymCartpoleDispatcher:
                     time.sleep(0.05)
 
                 label, _, _ = self.delegate.testing_instance(feature_vector=features, novelty_indicator=False)
-
+                self.log.debug("Received label={}".format(label))
                 action = self.label_to_action(label)
                 observation, reward, done, _ = env.step(action)
                 rewards.append(reward)
