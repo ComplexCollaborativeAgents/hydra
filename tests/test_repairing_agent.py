@@ -163,53 +163,15 @@ def test_repairing_gym_experiments():
 
     result_file.close()
 
-def _run_experiment(env, fault_type, result_file):
-    max_iterations = 2
-
-    agent_name = "Repairing"
-    hydra = RepairingGymHydraAgent(env)
-    iteration = 0
-    while iteration < max_iterations:
-        start_time = time.time()
-        hydra.run()
-        runtime = time.time()-start_time
-        observation = hydra.find_last_obs()
-        iteration_reward = sum(observation.rewards)
-        logger.info("Reward ! (%.2f), iteration %d" % (iteration_reward, iteration))
-
-        result_file.write("%s\t %s\t %d\t %.2f\t %.2f\n" % (fault_type, agent_name, iteration, iteration_reward, runtime))
-        result_file.flush()
-        iteration = iteration + 1
-        hydra.observation = hydra.env.reset()
-
-    agent_name = "Vanilla"
-    hydra = GymHydraAgent(env)
-    iteration = 0
-    while iteration < max_iterations:
-        start_time = time.time()
-        hydra.run()
-        runtime = time.time()-start_time
-        observation = hydra.find_last_obs()
-        iteration_reward = sum(observation.rewards)
-        logger.info("Reward ! (%.2f), iteration %d" % (iteration_reward, iteration))
-        result_file.write("%s\t %s\t %d\t %.2f\t %.2f\n" % (fault_type, agent_name, iteration, iteration_reward, runtime))
-        result_file.flush()
-        iteration = iteration + 1
-        hydra.observation = hydra.env.reset()
-
-
-
-
-
 ''' Run a suite of experiments '''
-def test_repairing_gym_experiments2():
+def test_repairing_gym_experiments():
     # Setup environment and agent
     save_obs = True
 
-    result_file = open(path.join(settings.ROOT_PATH, "tests", "repair_gravity-all.csv"), "w")
-    result_file.write("Gravity\tRepair params\tAgent\t Iteration\t Reward\t Runtime\n")
+    result_file = open(path.join(settings.ROOT_PATH, "tests", "repair_gravity-all-big.csv"), "w")
+    result_file.write("Gravity\t Repair params\t Run\t Agent\t Iteration\t Reward\t Runtime\n")
 
-
+    max_iterations = 5
     gravity_values = [5,6,7,8,9,10,11,12,13,14,15]
     repairable_constants = ('gravity', 'm_cart', 'friction_cart', 'l_pole', 'm_pole',)
     repair_deltas = (1.0, 0.5, 0.5, 0.25, 0.1, 0.2, 1.0,)
@@ -217,22 +179,22 @@ def test_repairing_gym_experiments2():
         env =  gym.make("CartPole-v1")
         env.env.gravity=gravity
         for i in range(1,len(repairable_constants)):
-            exp_name = "%d\t %d" % (gravity, i)
+            for j in range(max_iterations):
+                exp_name = "%d\t %d\t %d" % (gravity, i,j)
 
-            baseline_agent = GymHydraAgent(env)
-            repairing_agent = RepairingGymHydraAgent(env)
-            repairing_agent.meta_model.repairable_constants = repairable_constants[:i]
-            repairing_agent.meta_model.repair_deltas = repair_deltas[:i]
+                repairing_agent = RepairingGymHydraAgent(env)
+                repairing_agent.meta_model.repairable_constants = repairable_constants[:i]
+                repairing_agent.meta_model.repair_deltas = repair_deltas[:i]
 
-            _run_experiment2(baseline_agent, repairing_agent, exp_name, result_file)
+                _run_experiment(repairing_agent, exp_name, result_file)
 
     result_file.close()
 
-def _run_experiment2(baseline_agent, repairing_agent, experiment_type, result_file):
-    max_iterations = 2
-
+''' Run the given experiment type and output results to the results file '''
+def _run_experiment(agent, experiment_type, result_file):
+    max_iterations = 3
     agent_name = "Repairing"
-    hydra = repairing_agent
+    hydra = agent
     iteration = 0
     while iteration < max_iterations:
         start_time = time.time()
@@ -247,20 +209,33 @@ def _run_experiment2(baseline_agent, repairing_agent, experiment_type, result_fi
         iteration = iteration + 1
         hydra.observation = hydra.env.reset()
 
-    agent_name = "Vanilla"
-    hydra = baseline_agent
-    iteration = 0
-    while iteration < max_iterations:
-        start_time = time.time()
-        hydra.run()
-        runtime = time.time()-start_time
-        observation = hydra.find_last_obs()
-        iteration_reward = sum(observation.rewards)
-        logger.info("Reward ! (%.2f), iteration %d" % (iteration_reward, iteration))
-        result_file.write("%s\t %s\t %d\t %.2f\t %.2f\n" % (experiment_type, agent_name, iteration, iteration_reward, runtime))
-        result_file.flush()
-        iteration = iteration + 1
-        hydra.observation = hydra.env.reset()
+def test_repairing_multiple_gym_params():
+    nominal = dict()
+    nominal['gravity'] = 9.81
+    nominal['force_mag'] = 10.0
+    nominal['length'] = 0.5
+    nominal['masscart'] = 1.0
+    nominal['masspole'] = 0.1
+    nominal['polemass_length'] = 0.05
+    nominal['x_threshold'] = 2.4
+    nominal['theta_threshold_radians'] = 0.20943951023931953
 
+    fault_cardinalities = [0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5]
 
+    result_file = open(path.join(settings.ROOT_PATH, "tests", "repair_all-big.csv"), "w")
+    result_file.write("Fluent\t Value\t Run\t Agent\t Iteration\t Reward\t Runtime\n")
 
+    max_iterations = 5
+    faulty_fluents = nominal.keys()
+    for faulty_fluent in faulty_fluents:
+        for fault_cardinality in fault_cardinalities:
+            faulty_value = nominal[faulty_fluent] * fault_cardinality
+            for i in range(max_iterations):
+                env =  gym.make("CartPole-v1")
+                env.env.__setattr__(faulty_fluent, faulty_value)
+                exp_name = "%s\t %s\t %s" % (faulty_fluent, fault_cardinality,i)
+
+                repairing_agent = RepairingGymHydraAgent(env)
+                _run_experiment(repairing_agent, exp_name, result_file)
+
+                result_file.close()
