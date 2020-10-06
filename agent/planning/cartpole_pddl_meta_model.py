@@ -68,6 +68,12 @@ class CartPoleMetaModel():
         self.constant_numeric_fluents = dict()
         self.constant_boolean_fluents = dict()
 
+        # Constants to repair
+        # self.repairable_constants = ('m_cart', 'friction_cart', 'l_pole', 'm_pole', 'gravity', )
+        # self.repair_deltas = (0.5, 0.5, 0.25, 0.1, 0.2, 1.0, 1.0)
+        self.repairable_constants = ('m_cart', 'l_pole', 'm_pole', 'force_mag', 'gravity', 'angle_limit', 'x_limit')
+        self.repair_deltas = (1.0, 0.1, 0.1, 1.0, 1.0, 0.1, 0.1)
+
         for (fluent, value) in [
                                 # ('x', 0),
                                 # ('x_dot', 0),
@@ -80,15 +86,17 @@ class CartPoleMetaModel():
                                 ('l_pole', 0.5),
                                 ('m_pole', 0.1),
                                 ('friction_pole', 0.0),
-                                ('F', 10.0),
+                                ('force_mag', 10.0),
                                 ('inertia', 1.0),
                                 ('elapsed_time', 0.0),
                                 ('gravity', 9.81),
-                                ('time_limit', 1.0)]:
+                                ('time_limit', 1.0),
+                                # ('angle_limit', 0.20944),
+                                ('angle_limit', 0.20),
+                                ('x_limit', 2.4)]:
             self.constant_numeric_fluents[fluent]=value
 
-        for not_fluent in ['total_failure',
-                           'pole_position']:
+        for not_fluent in ['total_failure']:
             self.constant_boolean_fluents[not_fluent]=False
 
         for true_fluent in ['ready',
@@ -135,8 +143,9 @@ class CartPoleMetaModel():
         pddl_problem.init.append(['=', ['x_dot'], obs_x_dot])
         pddl_problem.init.append(['=', ['theta'], obs_theta])
         pddl_problem.init.append(['=', ['theta_dot'], obs_theta_dot])
+        pddl_problem.init.append(['=', ['F'], self.constant_numeric_fluents['force_mag']])
 
-        calc_temp = (self.constant_numeric_fluents['F'] + (self.constant_numeric_fluents['m_pole'] * self.constant_numeric_fluents['l_pole']) * obs_theta_dot ** 2 * math.sin(obs_theta)) / (self.constant_numeric_fluents['m_cart'] + self.constant_numeric_fluents['m_pole'])
+        calc_temp = (self.constant_numeric_fluents['force_mag'] + (self.constant_numeric_fluents['m_pole'] * self.constant_numeric_fluents['l_pole']) * obs_theta_dot ** 2 * math.sin(obs_theta)) / (self.constant_numeric_fluents['m_cart'] + self.constant_numeric_fluents['m_pole'])
         calc_theta_ddot = (self.constant_numeric_fluents['gravity'] * math.sin(obs_theta) - math.cos(obs_theta) * calc_temp) / (self.constant_numeric_fluents['l_pole'] * (4.0 / 3.0 - self.constant_numeric_fluents['m_pole'] * math.cos(obs_theta) ** 2 / (self.constant_numeric_fluents['m_cart'] + self.constant_numeric_fluents['m_pole'])))
         calc_x_ddot = calc_temp - (self.constant_numeric_fluents['m_pole'] * self.constant_numeric_fluents['l_pole']) * calc_theta_ddot * math.cos(obs_theta) / (self.constant_numeric_fluents['m_cart'] + self.constant_numeric_fluents['m_pole'])
 
@@ -144,7 +153,7 @@ class CartPoleMetaModel():
         pddl_problem.init.append(['=', ['theta_ddot'], round(calc_theta_ddot, 5)])
 
         # Add goal
-        pddl_problem.goal.append(['pole_position'])
+        # pddl_problem.goal.append(['pole_position'])
         pddl_problem.goal.append(['not', ['total_failure']])
         pddl_problem.goal.append(['=', ['elapsed_time'], ['time_limit']])
 

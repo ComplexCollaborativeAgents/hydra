@@ -12,8 +12,8 @@ class MetaModelRepair(): # TODO: Remove this class
 
     ''' Repair the given domain and plan such that the given plan's expected outcome matches the observed outcome'''
     def repair(self,
-               pddl_meta_model: MetaModel,
-               observation: ScienceBirdsObservation, delta_t=1.0):
+               pddl_meta_model,
+               observation, delta_t=1.0):
 
         simulator = PddlPlusSimulator()
         sb_state = observation.state
@@ -73,7 +73,7 @@ class GreedyBestFirstSearchMetaModelRepair(MetaModelRepair):
     ''' Repair the given domain and plan such that the given plan's expected outcome matches the observed outcome'''
     def repair(self,
                pddl_meta_model: MetaModel,
-               observation: ScienceBirdsObservation, delta_t=1.0):
+               observation, delta_t=1.0):
 
         self.current_delta_t = delta_t
         self.current_meta_model = pddl_meta_model
@@ -128,13 +128,17 @@ class GreedyBestFirstSearchMetaModelRepair(MetaModelRepair):
         new_repairs = []
         for i, fluent in enumerate(self.fluents_to_repair):
             if repair[i] >= 0:
-                new_repair = list(repair)
-                new_repair[i] = new_repair[i] + self.deltas[i]
-                new_repairs.append(new_repair)
+                change_to_fluent = repair[i] + self.deltas[i]
+                if self.current_meta_model.constant_numeric_fluents[self.fluents_to_repair[i]] + change_to_fluent >= 0: # Don't allow negative fluents TODO: Discuss
+                    new_repair = list(repair)
+                    new_repair[i] = change_to_fluent
+                    new_repairs.append(new_repair)
             if repair[i] <= 0:  # Note: if repair has zero for the current fluent, add both +delta and -delta states to open
-                new_repair = list(repair)
-                new_repair[i] = new_repair[i] - self.deltas[i]
-                new_repairs.append(new_repair)
+                change_to_fluent = repair[i] - self.deltas[i]
+                if self.current_meta_model.constant_numeric_fluents[self.fluents_to_repair[i]] + change_to_fluent >= 0: # Don't allow negative fluents TODO: Discuss
+                    new_repair = list(repair)
+                    new_repair[i] = change_to_fluent
+                    new_repairs.append(new_repair)
         return new_repairs
 
     ''' Computes the consistency score for the given delta state'''
@@ -142,14 +146,14 @@ class GreedyBestFirstSearchMetaModelRepair(MetaModelRepair):
         # Apply change
         self._do_change(repair)
 
-        consistency = 0
         try:
             expected_trace, plan = self.simulator.get_expected_trace(observation, self.current_meta_model, self.current_delta_t)
             observed_seq = observation.get_trace(self.current_meta_model)
             consistency = self.consistency_estimator.estimate_consistency(expected_trace, observed_seq)
-        except InconsistentPlanError: # Sometimes the repair makes the executed plan be inconsistent, e.g., its preconditions are not satisfied
+        except InconsistentPlanError: # Sometimes the repair makes the executed plan be inconsistent #TODO: Discuss this
             consistency = PLAN_FAILED_CONSISTENCY_VALUE
-
+        except ZeroDivisionError: # Sometimes the repair causes the simulator to reach zero division #TODO: Discuss this
+            consistency = PLAN_FAILED_CONSISTENCY_VALUE
         self._undo_change(repair)
         return  consistency
 

@@ -392,6 +392,9 @@ class TimedAction():
         self.action_name = action_name
         self.start_at = start_at
 
+    def __str__(self):
+        return "t=%s, %s" % (self.start_at, self.action_name)
+
 ''' Just a list of timed actions '''
 class PddlPlusPlan(list):
     def __init__(self, actions: list = list()):
