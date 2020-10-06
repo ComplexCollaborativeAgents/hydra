@@ -227,7 +227,7 @@ def _run_experiment(agent, experiment_type, result_file, agent_name = "Repairing
     iteration = 0
     while iteration < max_iterations:
         start_time = time.time()
-        hydra.run()
+        hydra.run(True)
         runtime = time.time()-start_time
         observation = hydra.find_last_obs()
         iteration_reward = sum(observation.rewards)
@@ -275,3 +275,7 @@ def _run_repairing_experiment(env_param, fluent_name, injected_faults = [0.5, 0.
             _run_experiment(repairing_agent, exp_name, result_file, agent_name="Repairing")
 
     result_file.close()
+
+
+def test_oracle_repair_force_5():
+    _run_oracle_experiment("force_mag", "force_mag", injected_faults=[0.5])
