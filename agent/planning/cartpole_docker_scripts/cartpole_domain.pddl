@@ -9,11 +9,11 @@
   )
 
   (:functions
-    (x) (x_dot) (x_ddot) (m_cart) (friction_cart) 
+    (x) (x_dot) (x_ddot) (m_cart) (friction_cart)
     (theta) (theta_dot) (theta_ddot)
     (l_pole) (m_pole) (friction_pole)
     (gravity) (F) (elapsed_time) (inertia)
-    (time_limit) (angle_limit) (x_limit)
+    (time_limit) (angle_limit) (x_limit) (force_mag)
   )
 
 
@@ -34,8 +34,8 @@
   			)
       	)
       	(assign (x_ddot)
-      		(- 
-      			(/ (+ (F) (* (* (m_pole) (l_pole)) (* (* (theta_dot) (theta_dot)) (/ (* (* 4 (* (theta) 57.29578)) (- 180 (* (theta) 57.29578))) (- 40500 (* (* (theta) 57.29578) (- 180 (* (theta) 57.29578))))) ) ) ) (+ (m_cart) (m_pole)) ) 
+      		(-
+      			(/ (+ (F) (* (* (m_pole) (l_pole)) (* (* (theta_dot) (theta_dot)) (/ (* (* 4 (* (theta) 57.29578)) (- 180 (* (theta) 57.29578))) (- 40500 (* (* (theta) 57.29578) (- 180 (* (theta) 57.29578))))) ) ) ) (+ (m_cart) (m_pole)) )
       			(/ (* (* (m_pole) (l_pole)) (* (theta_ddot) (/ (- 32400 (* 4 (* (* (theta) 57.29578) (* (theta) 57.29578)))) (+ 32400 (* (* (theta) 57.29578) (* (theta) 57.29578)))) )) (+ (m_cart) (m_pole)) )
   			)
       	)
@@ -45,7 +45,7 @@
   (:process movement
     :parameters (?d - dummy)
     :precondition (and (ready) (not (total_failure)))
-    :effect (and 
+    :effect (and
         (increase (x_dot) (* #t (x_ddot)) )
         (increase (x) (* #t (x_dot)) )
         (increase (theta_dot) (* #t (theta_ddot)) )
@@ -57,30 +57,30 @@
 
   (:action move_cart_left
     :parameters (?d - dummy)
-    :precondition (and 
+    :precondition (and
     	(ready)
-    	(= (F) 10)
+    	(= (F) (force_mag))
     	(cart_available)
     	(not (total_failure))
 	)
-    :effect (and 
-      (assign (F) -10)
+    :effect (and
+      (assign (F) (- 0.0 (force_mag)))
       (not (cart_available))
-  	) 
+  	)
   )
 
   (:action move_cart_right
     :parameters (?d - dummy)
-    :precondition (and 
+    :precondition (and
     	(ready)
-    	(= (F) -10)
+    	(= (F) (- 0.0 (force_mag)))
     	(cart_available)
     	(not (total_failure))
 	)
-    :effect (and 
-      (assign (F) 10)
+    :effect (and
+      (assign (F) (force_mag))
       (not (cart_available))
-  	) 
+  	)
   )
 
   ; (:event entered_goal_region

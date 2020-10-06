@@ -71,7 +71,7 @@ class CartPoleMetaModel():
         # Constants to repair
         # self.repairable_constants = ('m_cart', 'friction_cart', 'l_pole', 'm_pole', 'gravity', )
         # self.repair_deltas = (0.5, 0.5, 0.25, 0.1, 0.2, 1.0, 1.0)
-        self.repairable_constants = ('m_cart', 'l_pole', 'm_pole', 'F', 'gravity', 'angle_limit', 'x_limit')
+        self.repairable_constants = ('m_cart', 'l_pole', 'm_pole', 'force_mag', 'gravity', 'angle_limit', 'x_limit')
         self.repair_deltas = (1.0, 0.1, 0.1, 1.0, 1.0, 0.1, 0.1)
 
         for (fluent, value) in [
@@ -86,7 +86,7 @@ class CartPoleMetaModel():
                                 ('l_pole', 0.5),
                                 ('m_pole', 0.1),
                                 ('friction_pole', 0.0),
-                                ('F', 10.0),
+                                ('force_mag', 10.0),
                                 ('inertia', 1.0),
                                 ('elapsed_time', 0.0),
                                 ('gravity', 9.81),
@@ -143,8 +143,9 @@ class CartPoleMetaModel():
         pddl_problem.init.append(['=', ['x_dot'], obs_x_dot])
         pddl_problem.init.append(['=', ['theta'], obs_theta])
         pddl_problem.init.append(['=', ['theta_dot'], obs_theta_dot])
+        pddl_problem.init.append(['=', ['F'], self.constant_numeric_fluents['force_mag']])
 
-        calc_temp = (self.constant_numeric_fluents['F'] + (self.constant_numeric_fluents['m_pole'] * self.constant_numeric_fluents['l_pole']) * obs_theta_dot ** 2 * math.sin(obs_theta)) / (self.constant_numeric_fluents['m_cart'] + self.constant_numeric_fluents['m_pole'])
+        calc_temp = (self.constant_numeric_fluents['force_mag'] + (self.constant_numeric_fluents['m_pole'] * self.constant_numeric_fluents['l_pole']) * obs_theta_dot ** 2 * math.sin(obs_theta)) / (self.constant_numeric_fluents['m_cart'] + self.constant_numeric_fluents['m_pole'])
         calc_theta_ddot = (self.constant_numeric_fluents['gravity'] * math.sin(obs_theta) - math.cos(obs_theta) * calc_temp) / (self.constant_numeric_fluents['l_pole'] * (4.0 / 3.0 - self.constant_numeric_fluents['m_pole'] * math.cos(obs_theta) ** 2 / (self.constant_numeric_fluents['m_cart'] + self.constant_numeric_fluents['m_pole'])))
         calc_x_ddot = calc_temp - (self.constant_numeric_fluents['m_pole'] * self.constant_numeric_fluents['l_pole']) * calc_theta_ddot * math.cos(obs_theta) / (self.constant_numeric_fluents['m_cart'] + self.constant_numeric_fluents['m_pole'])
 
