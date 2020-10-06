@@ -124,7 +124,7 @@ class CartPolePlanner():
                     # print (str(action_angle_time) + "\n")
 
                     action_name = "move_cart_right dummy_obj"
-                    if action_angle_time[1] == -10:
+                    if action_angle_time[1] != self.meta_model.constant_numeric_fluents['force_mag']:
                         action_name = "move_cart_left dummy_obj"
 
                     plan_actions.append(TimedAction(action_name, action_angle_time[2]))
