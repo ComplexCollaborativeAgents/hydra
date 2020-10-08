@@ -33,10 +33,10 @@ class HydraAgent():
     ''' Runs the agent. Returns False if the evaluation has not ended, and True if it has ended.'''
     def main_loop(self,max_actions=1000):
         logger.info("[hydra_agent_server] :: Entering main loop")
-        logger.info("[hydra_agent_server] :: Delta t = {}".format(str(settings.DELTA_T)))
+        logger.info("[hydra_agent_server] :: Delta t = {}".format(str(settings.SB_DELTA_T)))
         logger.info("[hydra_agent_server] :: Simulation speed = {}\n\n".format(str(settings.SB_SIM_SPEED)))
-        logger.info("[hydra_agent_server] :: Planner memory limit = {}".format(str(settings.PLANNER_MEMORY_LIMIT)))
-        logger.info("[hydra_agent_server] :: Planner timeout = {}s\n\n".format(str(settings.TIMEOUT)))
+        logger.info("[hydra_agent_server] :: Planner memory limit = {}".format(str(settings.SB_PLANNER_MEMORY_LIMIT)))
+        logger.info("[hydra_agent_server] :: Planner timeout = {}s\n\n".format(str(settings.SB_TIMEOUT)))
         t = 0
 
 

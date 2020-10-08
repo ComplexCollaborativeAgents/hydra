@@ -10,9 +10,13 @@ DEBUG = False
 NO_PLANNING = False
 SB_DEV_MODE = True
 
-PLANNER_MEMORY_LIMIT = 50 # memory limit for UPMurphi (in MB)
-DELTA_T = 0.05 # time discretisation for UPMurphi
-TIMEOUT = 60 # timeout for the planning phase (in seconds)
+SB_PLANNER_MEMORY_LIMIT = 50 # memory limit for UPMurphi (in MB)
+SB_DELTA_T = 0.05 # time discretisation for UPMurphi
+SB_TIMEOUT = 60 # timeout for the planning phase (in seconds)
+
+CP_PLANNER_MEMORY_LIMIT = 50 # memory limit for UPMurphi (in MB)
+CP_DELTA_T = 0.02 # time discretisation for UPMurphi
+CP_TIMEOUT = 60 # timeout for the planning phase (in seconds)
 
 OS_ROOT_PATH = path.abspath(os.sep)
 ROOT_PATH = path.join(path.dirname(path.dirname(path.abspath(__file__))))

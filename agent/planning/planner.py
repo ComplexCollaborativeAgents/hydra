@@ -70,7 +70,7 @@ class Planner():
 
         docker_plan_time = time.perf_counter()
         completed_process = subprocess.run(('docker', 'run', '--rm', 'upm_from_dockerfile', 'sb_domain.pddl',
-                                            'sb_prob.pddl', str(settings.PLANNER_MEMORY_LIMIT), str(settings.DELTA_T), (str(settings.TIMEOUT)+"s"),
+                                            'sb_prob.pddl', str(settings.SB_PLANNER_MEMORY_LIMIT), str(settings.SB_DELTA_T), (str(settings.SB_TIMEOUT)+"s"),
                                             '>', 'docker_plan_trace.txt'), capture_output=True)
         completed_docker_plan_time = (time.perf_counter() - docker_plan_time)
         out_file = open("docker_plan_trace.txt", "wb")
