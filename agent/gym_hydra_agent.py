@@ -33,13 +33,12 @@ class GymHydraAgent:
         n_steps = 1
         cartpole_obs = CartPoleObservation()
 
-        state_values_list = []
-        initial_state_exec = (self.observation[0], self.observation[1], self.observation[2], self.observation[3], 0.00)
-        state_values_list = (self.cartpole_planner.extract_state_values_from_trace("%s/docker_plan_trace.txt" % str(settings.CARTPOLE_PLANNING_DOCKER_PATH)))
-        # state_values_list.insert(0, initial_state_exec)
-
-        full_plan_trace = []
-        # full_plan_trace.append(initial_state_exec)
+        if debug_info:
+            initial_state_exec = (self.observation[0], self.observation[1], self.observation[2], self.observation[3], 0.00)
+            state_values_list = (self.cartpole_planner.extract_state_values_from_trace("%s/docker_plan_trace.txt" % str(settings.CARTPOLE_PLANNING_DOCKER_PATH)))
+            # state_values_list.insert(0, initial_state_exec)
+            full_plan_trace = []
+            # full_plan_trace.append(initial_state_exec)
         emergency_plan = False
 
         itt = 0
@@ -55,10 +54,9 @@ class GymHydraAgent:
             self.observation, reward, done, info = self.env.step(action)
             cartpole_obs.rewards.append(reward)
 
-            full_plan_trace.append(state_values_list[itt])
-
             # cartpole_obs.states.append(self.observation)
             if debug_info:
+                full_plan_trace.append(state_values_list[itt])
                 print ("\nSTEP: ", n_steps, str(n_steps*0.02)+"s")
                 print (action)
                 print (self.observation)
@@ -88,10 +86,14 @@ class GymHydraAgent:
                     print("\n\nempty plan, reusing extra actions from previous plan...\n")
                     continue
                     # plan = self.cartpole_planner.make_plan(self.observation, 0)
-                state_values_list = (self.cartpole_planner.extract_state_values_from_trace("%s/docker_plan_trace.txt" % str(settings.CARTPOLE_PLANNING_DOCKER_PATH)))
+
+                if debug_info:
+                    state_values_list = (self.cartpole_planner.extract_state_values_from_trace("%s/docker_plan_trace.txt" % str(settings.CARTPOLE_PLANNING_DOCKER_PATH)))
+
                 itt = 0
 
-        full_plan_trace.insert(0, initial_state_exec)
+        if debug_info:
+            full_plan_trace.insert(0, initial_state_exec)
 
         # DOES NOT INCLUDE THE FINAL STATE (i.e. GOAL STATE)
         self.observations_list.append(cartpole_obs)

@@ -227,7 +227,7 @@ def _run_experiment(agent, experiment_type, result_file, agent_name = "Repairing
     iteration = 0
     while iteration < max_iterations:
         start_time = time.time()
-        hydra.run(True)
+        hydra.run(False)
         runtime = time.time()-start_time
         observation = hydra.find_last_obs()
         iteration_reward = sum(observation.rewards)
