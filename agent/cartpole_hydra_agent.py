@@ -20,18 +20,27 @@ class CartpoleHydraAgent:
         self.novelty_likelihood = 0.0
         self.observations_list = []
         self.debug_info = False
+        self.replan_idx = 40
+
+        self.plan_idx = 0
+        self.steps = 0
+        self.plan = None
+
+    def reset(self):
+        self.steps = 0
         self.plan_idx = 0
         self.plan = None
-        self.replan_idx = 20
 
     def testing_instance(self, feature_vector: dict, novelty_indicator: bool = None) -> \
-            (dict, bool, int):
+            (dict, float, int, dict):
 
         observation = self.feature_vector_to_observation(feature_vector)
         if self.plan is None:
+            self.meta_model.constant_numeric_fluents['time_limit'] = 4.0
             self.plan = self.cartpole_planner.make_plan(observation, 0)
 
         if self.plan_idx >= self.replan_idx:
+            self.meta_model.constant_numeric_fluents['time_limit'] = round((4.0 - ((self.steps - 1) * 0.02)), 2)
             new_plan = self.cartpole_planner.make_plan(observation, 0)
             if len(new_plan) != 0:
                 self.plan = new_plan
@@ -43,14 +52,18 @@ class CartpoleHydraAgent:
 
         # todo: store observations
         self.plan_idx += 1
+        self.steps += 1
+
         label = self.action_to_label(action)
-        novelty = False
+        novelty_probability = 0.0
         novelty_type = 0
-        return label, novelty, novelty_type
+        novelty_characterization = dict()
+        return label, novelty_probability, novelty_type, novelty_characterization
 
     @staticmethod
     def feature_vector_to_observation(feature_vector: dict) -> np.ndarray:
         features = ['cart_position', 'cart_velocity', 'pole_angle', 'pole_angular_velocity']
+        print(feature_vector)
         return np.array([feature_vector[f] for f in features])
 
     @staticmethod
@@ -64,12 +77,17 @@ class CartpoleHydraAgentObserver(WSUObserver):
         super().__init__()
         self.agent = None
 
-    def testing_episode_start(self, episode_number: int):
-        super().testing_episode_start(episode_number)
+    def trial_start(self, trial_number: int, novelty_description: dict):
+        super().trial_start(trial_number, novelty_description)
         self.agent = CartpoleHydraAgent()
 
+    def testing_episode_start(self, episode_number: int):
+        super().testing_episode_start(episode_number)
+        self.agent.reset()
+
     def testing_instance(self, feature_vector: dict, novelty_indicator: bool = None) -> \
-            (dict, bool, int):
+            (dict, float, int, dict):
         super().testing_instance(feature_vector, novelty_indicator)
-        action, novelty, novelty_type = self.agent.testing_instance(feature_vector, novelty_indicator)
-        return action, novelty, novelty_type
+        action, novelty_probability, novelty_type, novelty_characterization = \
+            self.agent.testing_instance(feature_vector, novelty_indicator)
+        return action, novelty_probability, novelty_type, novelty_characterization
