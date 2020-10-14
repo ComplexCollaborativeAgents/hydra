@@ -266,7 +266,7 @@ class WSUDispatcher(TA2Logic):
                          kwargs.get('logfile', 'wsu-log.txt'))
         self.delegate = delegate
         self.delegate.set_logger(self.log)
-        self.end_training_early = False
+        self.end_training_early = True
         self.end_experiment_early = False
 
     def experiment_start(self):
