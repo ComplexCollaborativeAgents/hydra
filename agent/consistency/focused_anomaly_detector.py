@@ -30,7 +30,7 @@ class FocusedAnomalyDetector():
     def detect(self, observation):
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         anomaly_to_confidence = dict()
-        model = torch.load('model/model_training_agent.pkl', map_location= device)  ## change the map location to cuda if using a cuda machine
+        model = torch.load('model/model_training_agent.pkl', map_location= device) 
         prediction_obj = Trainer(model)
         anomaly_count = 10      ## increase this if you want a more conservative detection
         property = np.asarray(["Cart_Position", "Cart_Velocity","Pole_Angle","Pole_Angular_Velocity"])
