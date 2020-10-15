@@ -17,4 +17,4 @@ dependencies:
   - pandas
   - func_timeout
   - gym
-  - torch
+  - pytorch
