@@ -32,14 +32,16 @@ def test_UPenn_consistency_cartpole():
     '''
     verify that we can identify novelty for observations of novel problems, and that we don't for non_novel-problems
     '''
-    detector = FocusedAnomalyDetector(threshold = 0.3)
+    detector = FocusedAnomalyDetector(threshold = [0.012, 0.012, 0.006, 0.009])
     for i in range(CP_NON_NOVEL_OBS):
+
         obs_output_file = path.join(CP_NON_NOVEL_OBS_DIR, CP_NON_NOVEL_OBS_FILE_NAME % i)  # For debug
         obs = pickle.load(open(obs_output_file, "rb"))
         novelties = detector.detect(obs)
         assert (len(novelties) == 0) # "Non-novel level considered novel (false positive)"
 
     for i in range (CP_NOVEL_OBS):
+        print("novelty")
         obs_output_file = path.join(CP_NOVEL_OBS_DIR, CP_NOVEL_OBS_FILE_NAME % i)  # For debug
         obs = pickle.load(open(obs_output_file, "rb"))
         novelties = detector.detect(obs)

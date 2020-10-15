@@ -20,5 +20,7 @@ dependencies:
   - python-dateutil=2.8.1
   - psutil
   - pytz
+  - pytorch
   - pip:
       - pika==1.1.0
+

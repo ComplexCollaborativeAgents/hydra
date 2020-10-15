@@ -1,6 +1,6 @@
 import gym
 
-from agent.cartpole_hydra_agent import CartpoleHydraAgentObserver
+from agent.cartpole_hydra_agent import CartpoleHydraAgentObserver, RepairingCartpoleHydraAgent
 from agent.gym_hydra_agent import GymHydraAgent
 from worlds.gym_cartpole_dispatcher import GymCartpoleDispatcher
 
@@ -12,7 +12,7 @@ def start_gym_interface():
 
 
 def start_wsu_interface():
-    observer = CartpoleHydraAgentObserver()
+    observer = CartpoleHydraAgentObserver(agent_type=RepairingCartpoleHydraAgent)
     env = GymCartpoleDispatcher(observer, render=True)
     env.run()
 

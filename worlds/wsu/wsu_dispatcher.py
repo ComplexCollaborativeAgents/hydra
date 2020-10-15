@@ -42,7 +42,8 @@ class WSUObserver:
         self.log.info('Training Episode Start: #{}'.format(episode_number))
         return
 
-    def training_instance(self, feature_vector: dict, feature_label: dict) -> (dict, bool, int):
+    def training_instance(self, feature_vector: dict, feature_label: dict) ->  \
+            (dict, float, int, dict):
         """Process a training
 
         Parameters
@@ -58,10 +59,10 @@ class WSUObserver:
 
         Returns
         -------
-        dict, bool, int
+        dict, float, int, dict
             A dictionary of your label prediction of the format {'action': label}.  This is
                 strictly enforced and the incorrect format will result in an exception being thrown.
-            A boolean as to whether agent detects novelty.
+            A float of the probability of there being novelty.
             Integer representing the predicted novelty level.
         """
         self.log.debug('Training Instance: feature_vector={}  feature_label={}'.format(
@@ -70,10 +71,11 @@ class WSUObserver:
             self.possible_answers.append(copy.deepcopy(feature_label))
 
         label_prediction = random.choice(self.possible_answers)
-        novelty_detected = False
+        novelty_probability = random.random()
         novelty = 0
+        novelty_characterization = dict()
 
-        return label_prediction, novelty_detected, novelty
+        return label_prediction, novelty_probability, novelty, novelty_characterization
 
     def training_performance(self, performance: float):
         """Provides the current performance on training after each instance.
@@ -146,15 +148,18 @@ class WSUObserver:
         self.log.info('Testing Start')
         return
 
-    def trial_start(self, trial_number: int):
+    def trial_start(self, trial_number: int, novelty_description: dict):
         """This is called at the start of a trial with the current 0-based number.
 
         Parameters
         ----------
         trial_number : int
             This is the 0-based trial number in the novelty group.
+        novelty_description : dict
+            A dictionary that will have a description of the trial's novelty.
         """
-        self.log.info('Trial Start: #{}'.format(trial_number))
+        self.log.info('Trial Start: #{}  novelty_desc: {}'.format(trial_number,
+                                                                  str(novelty_description)))
         return
 
     def testing_episode_start(self, episode_number: int):
@@ -170,7 +175,7 @@ class WSUObserver:
         return
 
     def testing_instance(self, feature_vector: dict, novelty_indicator: bool = None) -> \
-            (dict, bool, int):
+            (dict, float, int, dict):
         """Evaluate a testing instance.  Returns the predicted label or action, if you believe
         this episode is novel, and what novelty level you beleive it to be.
 
@@ -187,21 +192,23 @@ class WSUObserver:
 
         Returns
         -------
-        dict, bool, int
+        dict, float, int, dict
             A dictionary of your label prediction of the format {'action': label}.  This is
                 strictly enforced and the incorrect format will result in an exception being thrown.
-            A boolean as to whether agent detects novelty.
+            A float of the probability of there being novelty.
             Integer representing the predicted novelty level.
+            A JSON-valid dict characterizing the novelty.
         """
         self.log.debug('Testing Instance: feature_vector={}, novelty_indicator={}'.format(
             feature_vector, novelty_indicator))
 
         # Return dummy random choices, but should be determined by trained model
         label_prediction = random.choice(self.possible_answers)
-        novelty_detected = random.choice([True, False])
+        novelty_probability = random.random()
         novelty = random.choice(list(range(4)))
+        novelty_characterization = dict()
 
-        return label_prediction, novelty_detected, novelty
+        return label_prediction, novelty_probability, novelty, novelty_characterization
 
     def testing_performance(self, performance: float):
         """Provides the current performance on training after each instance.
@@ -259,6 +266,8 @@ class WSUDispatcher(TA2Logic):
                          kwargs.get('logfile', 'wsu-log.txt'))
         self.delegate = delegate
         self.delegate.set_logger(self.log)
+        self.end_training_early = True
+        self.end_experiment_early = False
 
     def experiment_start(self):
         self.delegate.experiment_start()
@@ -269,7 +278,7 @@ class WSUDispatcher(TA2Logic):
     def training_episode_start(self, episode_number: int):
         self.delegate.training_episode_start(episode_number)
 
-    def training_instance(self, feature_vector: dict, feature_label: dict) -> (dict, bool, int):
+    def training_instance(self, feature_vector: dict, feature_label: dict) -> (dict, float, int, dict):
         return self.delegate.training_instance(feature_vector, feature_label)
 
     def training_performance(self, performance: float):
@@ -296,14 +305,14 @@ class WSUDispatcher(TA2Logic):
     def testing_start(self):
         self.delegate.testing_start()
 
-    def trial_start(self, trial_number: int):
-        self.delegate.trial_start(trial_number)
+    def trial_start(self, trial_number: int, novelty_description: dict):
+        self.delegate.trial_start(trial_number, novelty_description)
 
     def testing_episode_start(self, episode_number: int):
         self.delegate.testing_episode_start(episode_number)
 
     def testing_instance(self, feature_vector: dict, novelty_indicator: bool = None) -> \
-            (dict, bool, int):
+            (dict, float, int, dict):
         return self.delegate.testing_instance(feature_vector, novelty_indicator)
 
     def testing_performance(self, performance: float):
