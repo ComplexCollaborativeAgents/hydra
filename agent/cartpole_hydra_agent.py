@@ -4,6 +4,7 @@ from agent.consistency.meta_model_repair import *
 from agent.planning.cartpole_planner import CartPolePlanner
 from agent.planning.cartpole_pddl_meta_model import *
 from agent.consistency.observation import CartPoleObservation
+from agent.consistency.consistency_estimator import DEFAULT_DELTA_T
 import time
 import copy
 import numpy as np
