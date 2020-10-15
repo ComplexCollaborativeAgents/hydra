@@ -1,4 +1,5 @@
 from agent.consistency.cartpole_repair import CartpoleConsistencyEstimator, CartpoleRepair
+from agent.consistency.focused_anomaly_detector import FocusedAnomalyDetector
 from agent.consistency.model_formulation import ConsistencyChecker
 from agent.consistency.meta_model_repair import *
 from agent.planning.cartpole_planner import CartPolePlanner
@@ -87,11 +88,17 @@ class RepairingCartpoleHydraAgent(CartpoleHydraAgent):
         self.consistency_checker = CartpoleConsistencyEstimator()
         self.desired_precision = 0.01
         self.repair_threshold = 0.975 # 195/200
+        self.has_repaired = False
+        self.detector = FocusedAnomalyDetector(threshold=[0.012, 0.012, 0.006, 0.009])
 
     def episode_end(self, performance: float):
-        if performance < self.repair_threshold:
+        novelties = self.detector.detect(self.current_observation)
+        print("novelties", novelties)
+        if (self.has_repaired and performance < self.repair_threshold) or \
+                ((not self.has_repaired) and len(novelties) != 0):
             meta_model_repair = CartpoleRepair(self.consistency_checker, self.desired_precision)
             repair, _ = meta_model_repair.repair(self.meta_model, self.current_observation, delta_t=DEFAULT_DELTA_T)
+            self.has_repaired = True
         super().episode_end(performance)
 
 

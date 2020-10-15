@@ -1,6 +1,6 @@
 from typing import List
 
-
+import os
 import torch
 import numpy as np
 from prediction_trainer import Trainer
@@ -8,6 +8,7 @@ from sklearn.metrics import mean_squared_error
 
 import pdb
 import matplotlib.pyplot as plt
+import settings
 
 ''' A property of an object in a state'''
 class ObsElement:
@@ -30,7 +31,7 @@ class FocusedAnomalyDetector():
     def detect(self, observation):
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         anomaly_to_confidence = dict()
-        model = torch.load('model/model_training_agent.pkl', map_location= device) 
+        model = torch.load(os.path.join(settings.ROOT_PATH,'model', 'model_training_agent.pkl'), map_location= device)
         prediction_obj = Trainer(model)
         anomaly_count = 10      ## increase this if you want a more conservative detection
         property = np.asarray(["Cart_Position", "Cart_Velocity","Pole_Angle","Pole_Angular_Velocity"])
