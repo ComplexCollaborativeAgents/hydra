@@ -31,14 +31,16 @@ def test_UPenn_consistency_cartpole():
     '''
     verify that we can identify novelty for observations of novel problems, and that we don't for non_novel-problems
     '''
-    detector = FocusedAnomalyDetector(threshold = 0.3)
+    detector = FocusedAnomalyDetector(threshold = [0.004, 0.004, 0.002, 0.003])
     for i in range(CP_NON_NOVEL_OBS):
+
         obs_output_file = path.join(CP_NON_NOVEL_OBS_DIR, CP_NON_NOVEL_OBS_FILE_NAME % i)  # For debug
         obs = pickle.load(open(obs_output_file, "rb"))
         novelties = detector.detect(obs)
         assert (len(novelties) == 0) # "Non-novel level considered novel (false positive)"
 
     for i in range (CP_NOVEL_OBS):
+        print("novelty")
         obs_output_file = path.join(CP_NOVEL_OBS_DIR, CP_NOVEL_OBS_FILE_NAME % i)  # For debug
         obs = pickle.load(open(obs_output_file, "rb"))
         novelties = detector.detect(obs)
@@ -63,39 +65,39 @@ def test_UPenn_consistency_science_birds():
 
 # Data generation methods - NOT TESTS
 # @pytest.mark.skip("Generates data for  test_UPenn_consistency_cartpole() - not a real test")
-def test_generate_data_for_cartpole():
-    import gym
-    import agent.gym_hydra_agent
-
-    save_obs = True
-
-    env = gym.make("CartPole-v1")
-    cartpole_hydra = agent.gym_hydra_agent.GymHydraAgent(env)
-
-    # Create non_novel obs
-    for i in range(CP_NON_NOVEL_OBS):
-        cartpole_hydra.observation = cartpole_hydra.env.reset()
-        cartpole_hydra.run()  # enough actions to play a level
-        if save_obs:
-            observation = cartpole_hydra.find_last_obs()
-            obs_output_file_name = path.join(CP_NON_NOVEL_OBS_DIR, CP_NON_NOVEL_OBS_FILE_NAME % i)
-            obs_output_file = open(obs_output_file_name, "wb")
-            pickle.dump(observation, obs_output_file)
-            obs_output_file.close()
-        print("Created non-novel instance %d" % i)
-
-    # Create novel obs
-    # cartpole_hydra.meta_model.constant_numeric_fluents["gravity"] = 19 # Fault injevtion
-    env.env.gravity=19
-    for i in range (CP_NOVEL_OBS):
-        cartpole_hydra.observation = cartpole_hydra.env.reset()
-        cartpole_hydra.run()  # enough actions to play a level
-
-        if save_obs:
-            observation = cartpole_hydra.find_last_obs()
-            obs_output_file_name = path.join(CP_NOVEL_OBS_DIR, CP_NOVEL_OBS_FILE_NAME % i)  # For debug
-            obs_output_file = open(obs_output_file_name, "wb")
-            pickle.dump(observation, obs_output_file)
-            obs_output_file.close()
-        print("Created novel instance %d" % i)
-    assert(True, "Data generated successfully")
+# def test_generate_data_for_cartpole():
+#     import gym
+#     import agent.gym_hydra_agent
+#
+#     save_obs = True
+#
+#     env = gym.make("CartPole-v1")
+#     cartpole_hydra = agent.gym_hydra_agent.GymHydraAgent(env)
+#
+#     # Create non_novel obs
+#     for i in range(CP_NON_NOVEL_OBS):
+#         cartpole_hydra.observation = cartpole_hydra.env.reset()
+#         cartpole_hydra.run()  # enough actions to play a level
+#         if save_obs:
+#             observation = cartpole_hydra.find_last_obs()
+#             obs_output_file_name = path.join(CP_NON_NOVEL_OBS_DIR, CP_NON_NOVEL_OBS_FILE_NAME % i)
+#             obs_output_file = open(obs_output_file_name, "wb")
+#             pickle.dump(observation, obs_output_file)
+#             obs_output_file.close()
+#         print("Created non-novel instance %d" % i)
+#
+#     # Create novel obs
+#     # cartpole_hydra.meta_model.constant_numeric_fluents["gravity"] = 19 # Fault injevtion
+#     env.env.gravity=19
+#     for i in range (CP_NOVEL_OBS):
+#         cartpole_hydra.observation = cartpole_hydra.env.reset()
+#         cartpole_hydra.run()  # enough actions to play a level
+#
+#         if save_obs:
+#             observation = cartpole_hydra.find_last_obs()
+#             obs_output_file_name = path.join(CP_NOVEL_OBS_DIR, CP_NOVEL_OBS_FILE_NAME % i)  # For debug
+#             obs_output_file = open(obs_output_file_name, "wb")
+#             pickle.dump(observation, obs_output_file)
+#             obs_output_file.close()
+#         print("Created novel instance %d" % i)
+#     assert(True, "Data generated successfully")
