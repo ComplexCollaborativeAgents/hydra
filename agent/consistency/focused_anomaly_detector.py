@@ -28,8 +28,9 @@ class FocusedAnomalyDetector():
         self.threshold = threshold # only anamolies that exceed this threshold are returned
 
     def detect(self, observation):
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         anomaly_to_confidence = dict()
-        model = torch.load('model/model_training_agent.pkl')
+        model = torch.load('model/model_training_agent.pkl', map_location= device)  ## change the map location to cuda if using a cuda machine
         prediction_obj = Trainer(model)
         anomaly_count = 10      ## increase this if you want a more conservative detection
         property = np.asarray(["Cart_Position", "Cart_Velocity","Pole_Angle","Pole_Angular_Velocity"])
@@ -60,7 +61,7 @@ class FocusedAnomalyDetector():
                 anomaly_element = ObsElement(state,None,prop)
                 anomaly_list.append(anomaly_element)
                 next_anomly_idx = i+1
-                ##
+
                 if len(anomaly_list) == anomaly_count:  ## returns if we have 10/anomaly_count contiguous anomalies
                     break
 
