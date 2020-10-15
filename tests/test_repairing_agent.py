@@ -246,7 +246,7 @@ def _run_oracle_experiment(env_param, fluent_name, injected_faults = [0.5, 0.6, 
     max_iterations = 5
     for fault_factor in injected_faults:
         env_param_value = env_nominal_value * fault_factor
-        fluent_value = env_param_value
+        fluent_value = round(env_param_value,5) # TODO: Think about this more. This seems to be due to the planner misbehaving with too many decimal points
 
         for i in range(max_iterations):
             env = gym.make("CartPole-v1")
