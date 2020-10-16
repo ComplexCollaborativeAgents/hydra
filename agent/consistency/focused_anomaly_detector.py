@@ -30,7 +30,7 @@ class FocusedAnomalyDetector():
 
     def detect(self, observation):
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        anomaly_to_confidence = dict()
+        anomalies = list()
         model = torch.load(os.path.join(settings.ROOT_PATH,'model', 'model_training_agent.pkl'), map_location= device)
         prediction_obj = Trainer(model)
         anomaly_count = 10      ## increase this if you want a more conservative detection
@@ -46,14 +46,14 @@ class FocusedAnomalyDetector():
             next_state_pred = prediction_obj.predict(np.array(np.reshape(state,(1,-1))),action)
             current_delta = np.abs(observation.states[i+1] - next_state_pred.cpu().numpy()[0])
             delta.append(current_delta)
-
-            if (np.mean(np.array(delta),axis = 0) > np.array(self.threshold)).any():
+            anomaly_prob = np.mean(np.array(delta),axis = 0)
+            if (anomaly_prob > np.array(self.threshold)).any():
 
                 if next_anomly_idx < i: ## this checks if the anomalies are contiguous
                     anomaly_list = []
 
                 ## computes which state properties are affected by the novelty
-                property_idx = np.greater(np.mean(np.array(delta),axis = 0), np.array(self.threshold))
+                property_idx = np.greater(anomaly_prob, np.array(self.threshold))
                 property_type = property[property_idx]
                 prop = property_type[0] + " "
                 for j in range(len(property_type) -1):
@@ -64,10 +64,7 @@ class FocusedAnomalyDetector():
                 next_anomly_idx = i+1
 
                 if len(anomaly_list) == anomaly_count:  ## returns if we have 10/anomaly_count contiguous anomalies
+                    anomalies.append(FocusedAnomaly(anomaly_list))  # TODO: Replace 1.0 with some funciton of anomaly_prob
                     break
 
-        anomalies = FocusedAnomaly(anomaly_list)
-
-
-        # return anomaly_to_confidence
-        return anomalies.obs_elements
+        return anomalies

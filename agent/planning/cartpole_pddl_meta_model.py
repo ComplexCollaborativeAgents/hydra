@@ -59,6 +59,7 @@ class PddlObjectType():
 
 
 class CartPoleMetaModel():
+    PLANNER_PRECISION = 4 # how many decimal points the planner can handle correctly
 
     ''' Sets the default meta-model'''
     def __init__(self):
@@ -69,8 +70,6 @@ class CartPoleMetaModel():
         self.constant_boolean_fluents = dict()
 
         # Constants to repair
-        # self.repairable_constants = ('m_cart', 'friction_cart', 'l_pole', 'm_pole', 'gravity', )
-        # self.repair_deltas = (0.5, 0.5, 0.25, 0.1, 0.2, 1.0, 1.0)
         self.repairable_constants = ('m_cart', 'l_pole', 'm_pole', 'force_mag', 'gravity', 'angle_limit', 'x_limit')
         self.repair_deltas = (1.0, 0.1, 0.1, 1.0, 1.0, 0.1, 0.1)
 
@@ -130,7 +129,8 @@ class CartPoleMetaModel():
 
         # Add constants fluents
         for numeric_fluent in self.constant_numeric_fluents:
-            pddl_problem.init.append(['=', [numeric_fluent], self.constant_numeric_fluents[numeric_fluent]])
+            pddl_problem.init.append(['=', [numeric_fluent], round(self.constant_numeric_fluents[numeric_fluent],
+                                                                   CartPoleMetaModel.PLANNER_PRECISION)]) # TODO
         for boolean_fluent in self.constant_boolean_fluents:
             if self.constant_boolean_fluents[boolean_fluent]:
                 pddl_problem.init.append([boolean_fluent])

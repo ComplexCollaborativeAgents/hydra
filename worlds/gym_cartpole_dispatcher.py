@@ -39,7 +39,7 @@ class GymCartpoleDispatcher:
         self.delegate.experiment_end()
 
     def __run_trial(self, episodes: int = 5, steps: int = 200):
-        env = self.__make_environment()
+        env = self._make_environment()
         for episode in range(episodes):
             self.delegate.testing_episode_start(episode)
             rewards = []
@@ -65,7 +65,7 @@ class GymCartpoleDispatcher:
             self.delegate.testing_episode_end(performance)
         env.close()
 
-    def __make_environment(self):
+    def _make_environment(self):
         env = gym.make(self.model_id)
         # env.env.force_mag = 8
         return env
