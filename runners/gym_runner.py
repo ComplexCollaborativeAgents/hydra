@@ -13,7 +13,7 @@ def start_gym_interface():
 
 def start_wsu_interface():
     observer = CartpoleHydraAgentObserver(agent_type=RepairingCartpoleHydraAgent)
-    env = GymCartpoleDispatcher(observer, render=True)
+    env = GymCartpoleDispatcher(observer, render=False)
     env.run()
 
 
