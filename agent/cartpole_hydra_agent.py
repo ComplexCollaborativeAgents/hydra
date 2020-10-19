@@ -21,6 +21,7 @@ class CartpoleHydraAgent:
         self.consistency_checker = ConsistencyChecker()
         self.meta_model = CartPoleMetaModel()
         self.cartpole_planner = CartPolePlanner(self.meta_model)
+        self.log = logging.getLogger(__name__).getChild('CartpoleHydraAgent')
 
         self.observations_list = []
         self.replan_idx = 40
@@ -33,6 +34,7 @@ class CartpoleHydraAgent:
         self.steps = 0
         self.plan = None
         self.current_observation = CartPoleObservation()
+        self.last_performance = 0.0
 
     def episode_end(self, performance: float):
         self.steps = 0
@@ -40,6 +42,7 @@ class CartpoleHydraAgent:
         self.plan = None
         self.observations_list.append(self.current_observation)
         self.current_observation = CartPoleObservation()
+        self.last_performance = performance # Records the last performance value, to show impact
 
     def testing_instance(self, feature_vector: dict, novelty_indicator: bool = None) -> \
             (dict, float, int, dict):
@@ -92,13 +95,39 @@ class RepairingCartpoleHydraAgent(CartpoleHydraAgent):
         self.detector = FocusedAnomalyDetector(threshold=[0.012, 0.012, 0.006, 0.009])
 
     def episode_end(self, performance: float):
-        novelties = self.detector.detect(self.current_observation)
-        print("novelties", novelties)
+        novelties = []
+        try:
+            novelties = self.detector.detect(self.current_observation)
+        except Exception:
+            pass
+
+        self.log.info("%d Novelties detected" % len(novelties))
         if (self.has_repaired and performance < self.repair_threshold) or \
                 ((not self.has_repaired) and len(novelties) != 0):
-            meta_model_repair = CartpoleRepair(self.consistency_checker, self.desired_precision)
-            repair, _ = meta_model_repair.repair(self.meta_model, self.current_observation, delta_t=DEFAULT_DELTA_T)
-            self.has_repaired = True
+
+            # If this is the first detection of novelty, record the characterization # TODO: Rethink this, it is a hack
+            if self.has_repaired==False:
+                self.log.info("%d Novelties detected" % len(novelties))
+
+                characterization = dict()
+                for focused_anomaly in novelties:
+                    # Set the novelty characterization
+                    for obs_element in focused_anomaly.obs_elements:
+                        if obs_element.property is not None and len(obs_element.property)>0:
+                            novelty_properties = obs_element.property.strip().split(" ")
+                            for novel_property in novelty_properties:
+                                characterization[novel_property] = "Abnormal state attribute"
+
+                self.novelty_probability = 1.0 # TODO:  Replace this with a real prob. estimate
+                self.novelty_characterization = characterization
+
+            try:
+                meta_model_repair = CartpoleRepair(self.consistency_checker, self.desired_precision)
+                repair, _ = meta_model_repair.repair(self.meta_model, self.current_observation, delta_t=DEFAULT_DELTA_T)
+                self.log.info("Repaired meta model (repair string: %s)" % repair)
+                self.has_repaired = True
+            except Exception:
+                pass
         super().episode_end(performance)
 
 
@@ -121,4 +150,7 @@ class CartpoleHydraAgentObserver(WSUObserver):
         super().testing_instance(feature_vector, novelty_indicator)
         action, novelty_probability, novelty_type, novelty_characterization = \
             self.agent.testing_instance(feature_vector, novelty_indicator)
+        self.log.debug("Testing instance: sending action={}, novelty_probability={}, novelty_type={}, novelty_characterization={}".format(
+            action, novelty_probability, novelty_type, novelty_characterization
+        ))
         return action, novelty_probability, novelty_type, novelty_characterization

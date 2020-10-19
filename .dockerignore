@@ -4,4 +4,4 @@
 **/__pycache__/
 **/*.py[cod]
 **/bin/
-**/tests/
+**/.git/
