@@ -6,6 +6,7 @@ from agent.hydra_agent import HydraAgent
 def main():
     settings.DEBUG=True
     settings.SB_DEV_MODE=False
+    settings.NO_PLANNING=True
     env = sb.ScienceBirds(None,launch=True,config='all_level_0_novelties.xml')
     hydra = HydraAgent(env)
     hydra.main_loop()

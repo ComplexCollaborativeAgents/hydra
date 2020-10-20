@@ -170,7 +170,7 @@ class GroundTruthReader:
                 pass
 
             else:
-                logger.info("class {},{}".format(obj_types[obj_num],max(predicts[:,obj_num])))
+#                logger.info("class {},{}".format(obj_types[obj_num],max(predicts[:,obj_num])))
                 rect = self._getRect(j)
                 contours = j['geometry']['coordinates']
                 vertices = contours[0]

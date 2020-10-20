@@ -1,4 +1,6 @@
 #from agent.policy_learning.sarsa import SarsaLearner
+import random
+
 from agent.consistency.model_formulation import ConsistencyChecker
 from agent.planning.planner import Planner
 import time
@@ -204,7 +206,7 @@ class HydraAgent():
             active_bird = pddl_state.get_active_bird()
         except:
             active_bird = None
-        default_angle = 20.0
+        default_angle = random.randint(pddl_state['angle'],pddl_state['max_angle'])
         default_time = self.meta_model.angle_to_action_time(default_angle, pddl_state)
         return TimedAction("pa-twang %s" % active_bird, default_time)
 

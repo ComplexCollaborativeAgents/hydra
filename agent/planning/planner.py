@@ -28,6 +28,7 @@ class Planner():
         or invoking the RL agent
         '''
         if settings.NO_PLANNING:
+            self.current_problem_prefix = datetime.datetime.now().strftime("%y%m%d_%H%M%S") # need a prefix for observations
             return []
         pddl = self.meta_model.create_pddl_problem(state)
         if prob_complexity==1:
