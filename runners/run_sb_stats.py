@@ -7,6 +7,7 @@ import csv
 import json
 import enum
 import time
+import collections
 import xml.etree.ElementTree as ET
 
 import numpy
@@ -98,6 +99,31 @@ def run_agent(config, agent):
         env.kill()
 
 
+def get_bird_count(level_path):
+    ''' Given the path to a level XML, return a dictionary with bird count per type of bird. '''
+    birds = collections.defaultdict(int)
+    birds_section = ''
+    with open(level_path, 'rb') as f:
+        content = f.read()
+        try:
+            content = content.decode('ascii')
+        except UnicodeError:
+            content = content.decode('utf-16-le')
+        start = content.find('<Birds>')
+        end = content.find('</Birds>')
+        birds_section = content[start:end+8]
+
+    try:
+        tree = ET.fromstring(birds_section)
+        for elem in tree:
+            if elem.tag == 'Bird':
+                bird_type = elem.attrib.get('type', None)
+                if bird_type is not None:
+                    birds[bird_type] += 1
+    except Exception:
+        pass
+    return birds
+
 def compute_stats(results_path, agent):
     ''' Inspect evaluation directory from science birds and generate a stats dict. '''
     stats = {'levels': [], 'overall': None}
@@ -105,6 +131,7 @@ def compute_stats(results_path, agent):
     passed = 0
     failed = 0
     scores = []
+    bird_scores = collections.defaultdict(lambda: {"passed": 0, "failed": 0})
 
     evaluation_data = list(results_path.glob('*_EvaluationData.csv'))
     if len(evaluation_data) == 1:
@@ -112,27 +139,35 @@ def compute_stats(results_path, agent):
         with open(evaluation_data) as f:
             data = csv.DictReader(f)
             for row in data:
+                level_path = row['levelName']
+                birds = get_bird_count(os.path.join(SB_BIN_PATH, level_path))
                 status = row['LevelStatus']
                 if 'Pass' in status:
                     passed += 1
+                    for bird in birds.keys():
+                        bird_scores[bird]['passed'] += 1
                 else:
                     failed += 1
+                    for bird in birds.keys():
+                        bird_scores[bird]['failed'] += 1
 
                 score = float(row['Score'])
                 scores.append(score)
 
-                level_stats = {'level': row['levelName'],
+                level_stats = {'level': level_path,
                                'score': score,
                                'status': status,
                                'birds_remaining': int(row['birdsRemaining']),
                                'birds_start': int(row['birdsAtStart']),
                                'pigs_remaining': int(row['pigsRemaining']),
-                               'pigs_start': int(row['pigsAtStart'])}
+                               'pigs_start': int(row['pigsAtStart']),
+                               'birds': birds}
                 stats['levels'].append(level_stats)
 
     stats['overall'] = {'passed': passed, 'failed': failed,
                         'avg_score': 0 if len(scores) == 0 else numpy.average(scores),
-                        'agent': agent.name}
+                        'agent': agent.name,
+                        'birds': bird_scores}
 
     return stats
 
