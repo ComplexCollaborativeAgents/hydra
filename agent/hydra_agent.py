@@ -175,6 +175,7 @@ class HydraAgent():
                     plan = []
                     plan.append(self.__get_default_action(processed_state))
 
+
             timed_action = plan[0]
             logger.info("[hydra_agent_server] :: Taking action: {}".format(str(timed_action.action_name)))
             sb_action = self.meta_model.create_sb_action(timed_action, processed_state)
