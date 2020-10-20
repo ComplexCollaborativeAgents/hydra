@@ -8,6 +8,7 @@ from shapely.geometry import box, Polygon
 import worlds.science_birds as sb
 from worlds.science_birds_interface.computer_vision.game_object import GameObject
 from worlds.science_birds_interface.computer_vision.GroundTruthReader import GroundTruthReader
+#import agent.consistency.observation
 import settings
 import json
 import numpy as np
@@ -33,7 +34,18 @@ class Perception():
             self.writer.writeheader()
 
 
-
+    def process_observation(self,ob):
+#        if isinstance(ob,agent.consistency.observation.ScienceBirdObservation):
+        if True:
+            processed_states = []
+            for state in ob.intermediate_states:
+                processed_state = self.process_sb_state(state)
+                for id, obj in processed_state.objects.items():
+                    obj['type'] = ob.state.type_in_state(id) if ob.state.type_in_state(id) else obj['type']
+                    processed_state.objects[id] = obj
+                processed_states.append(processed_state)
+            ob.intermediate_states=processed_states
+        return True
 
     def process_state(self, state): # TODO: This may need to be removed
         if isinstance(state,sb.SBState):
@@ -220,6 +232,11 @@ class ProcessedSBState(State):
 
     def serialize_current_state(self, level_filename):
         pickle.dump(self, open(level_filename, 'wb'))
+
+    def type_in_state(self,id):
+        if id in self.objects.keys():
+            return self.objects[id]['type']
+        return None
 
     def load_from_serialized_state(level_filename):
         return pickle.load(open(level_filename, 'rb'))

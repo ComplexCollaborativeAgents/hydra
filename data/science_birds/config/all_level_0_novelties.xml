@@ -3,7 +3,7 @@
   <trials>
     <trial id="0" number_of_executions="1" checkpoint_time_limit="200" checkpoint_interaction_limit="200" notify_novelty="False">
       <game_level_set mode="training" time_limit="1200" total_interaction_limit="500000" attempt_limit_per_level="1" allow_level_selection="False">
-<game_levels level_path = "./Levels/novelty_level_0/type2/Levels/00052_1_1_2_0.xml" />
+          <game_levels level_path = "./Levels/novelty_level_0/type2/Levels/00052_1_1_2_0.xml" />
 <game_levels level_path = "./Levels/novelty_level_0/type2/Levels/00051_1_1_2_0.xml" />
 <game_levels level_path = "./Levels/novelty_level_0/type2/Levels/00147_1_1_2_0.xml" />
 <game_levels level_path = "./Levels/novelty_level_0/type2/Levels/00132_1_1_2_0.xml" />
