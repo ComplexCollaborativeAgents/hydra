@@ -119,7 +119,7 @@ def estimate_launch_angle(slingshot, targetPoint, meta_model):
 
     # the target point cannot be reached
     if solution_existence_factor < 0:
-        print ('\n\nNO SOLUTION!\n\n')
+        logger.info('estimate launch angle: NO SOLUTION!')
         return 0.0, 90.0
 
     # solve cos theta from projectile equation
