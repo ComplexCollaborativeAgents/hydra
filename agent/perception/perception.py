@@ -230,6 +230,14 @@ class ProcessedSBState(State):
             ret['{}_{}'.format(obj['type'], key)] = (obj['bbox'].centroid.x, obj['bbox'].centroid.y)
         return ret
 
+    def novel_objects(self):
+        ''' Returns a list of the novel objects '''
+        ret = []
+        for key, obj in self.objects.items():
+            if obj['type'] is 'Unknown':
+                ret.append([key,obj])
+        return ret
+
     def serialize_current_state(self, level_filename):
         pickle.dump(self, open(level_filename, 'wb'))
 

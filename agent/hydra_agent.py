@@ -203,12 +203,17 @@ class HydraAgent():
         logger.info("[hydra_agent_server] :: __get_default_action")
         problem = self.meta_model.create_pddl_problem(state)
         pddl_state = PddlPlusState(problem.init)
+        unknown_objs = state.novel_objects()
+        if unknown_objs:
+            logger.info("unknown objects in {},{} : {}".format(self.current_level),
+                        self.planner.current_problem_prefix,unknown_objs.__str__())
         try:
             active_bird = pddl_state.get_active_bird()
         except:
             active_bird = None
-        default_angle = random.randint(pddl_state['angle'],pddl_state['max_angle'])
-        default_time = self.meta_model.angle_to_action_time(default_angle, pddl_state)
+        pig_x, pig_y = get_random_pig_xy(problem)
+        min_angle, max_angle = estimate_launch_angle(self.planner.meta_model.get_slingshot(state), Point2D(pig_x, pig_y), self.meta_model)
+        default_time = self.meta_model.angle_to_action_time((max_angle+min_angle)/2, pddl_state)
         return TimedAction("pa-twang %s" % active_bird, default_time)
 
     def set_env(self,env):

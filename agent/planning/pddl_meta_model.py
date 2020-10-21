@@ -39,7 +39,7 @@ def get_width(obj):
 ''' Returns the location of the closest object to aim for '''
 def get_random_pig_xy(pddl_problem : PddlPlusProblem):
     state = PddlPlusState(pddl_problem.init)
-    target_pigs = state.get_pigs()
+    target_pigs = list(state.get_pigs())
 
     pig = random.choice(target_pigs)
     random_pig_x = state[('x_pig', pig)]
