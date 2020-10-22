@@ -3,7 +3,7 @@ from agent.consistency.meta_model_repair import *
 from agent.gym_hydra_agent import GymHydraAgent
 from agent.planning.cartpole_pddl_meta_model import CartPoleMetaModel
 from agent.planning.simple_planner import *
-from agent.consistency.consistency_estimator import check_obs_consistency, DEFAULT_DELTA_T, CartpoleConsistencyEstimator
+from agent.consistency.consistency_estimator import check_obs_consistency, DEFAULT_DELTA_T
 import matplotlib.pyplot
 from agent.consistency.cartpole_repair import CartpoleConsistencyEstimator
 import gym
@@ -140,7 +140,7 @@ def test_repair_gravity_offline():
 def _inject_fault_to_gym(env):
     env.env.gravity = 13
 
-# @pytest.mark.skip()
+@pytest.mark.skip()
 def test_repair_bad_gravity_in_gym(launch_cartpole_sample_level):
     save_obs = True # Set this to true to create a new observation file for an offline test
 

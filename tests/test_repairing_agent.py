@@ -88,8 +88,8 @@ def launch_cartpole():
 def _inject_fault_to_carpole_env(env):
     env.env.gravity=13
 
-
 ''' A full system test: run SB with a bad meta model, observe results, fix meta model '''
+@pytest.mark.skip("Disabling tests that render cartpole.")
 def test_repair_gravity_in_cartpole_agent(launch_cartpole):
     # Setup environment and agent
     save_obs = True
@@ -125,6 +125,7 @@ def test_repair_gravity_in_cartpole_agent(launch_cartpole):
         hydra.observation = hydra.env.reset()
 
 ''' Run a suite of experiments '''
+@pytest.mark.skip("Disabling tests that render cartpole.")
 def test_repairing_gym_experiments():
     result_file = open(path.join(settings.ROOT_PATH, "tests", "repair_gravity-all-big.csv"), "w")
     result_file.write("Gravity\t Repair params\t Run\t Agent\t Iteration\t Reward\t Runtime\n")
@@ -149,6 +150,7 @@ def test_repairing_gym_experiments():
     result_file.close()
 
 ''' Run the Hydra agent with an oracle repair, i.e., modifying the meta_model params according to the injected fault'''
+@pytest.mark.skip("Disabling tests that render cartpole.")
 def test_model_robustness():
     env_param_to_fluent = dict()
     env_param_to_fluent['gravity'] = 'gravity'
@@ -164,6 +166,7 @@ def test_model_robustness():
         _run_oracle_experiment(env_param, fluent_name)
 
 ''' Run the Hydra agent with an oracle repair, i.e., modifying the meta_model params according to the injected fault'''
+@pytest.mark.skip("Disabling tests that render cartpole.")
 def test_model_repair():
     env_param_to_fluent = dict()
     env_param_to_fluent['gravity'] = 'gravity'
@@ -179,46 +182,60 @@ def test_model_repair():
         _run_repairing_experiment(env_param, fluent_name)
 
 
+@pytest.mark.skip("Disabling tests that render cartpole.")
 def test_oracle_force_mag():
     _run_oracle_experiment("force_mag", "force_mag")
 
+@pytest.mark.skip("Disabling tests that render cartpole.")
 def test_oracle_gravity():
     _run_oracle_experiment("gravity", "gravity")
 
+@pytest.mark.skip("Disabling tests that render cartpole.")
 def test_oracle_l_pole():
     _run_oracle_experiment("length", "l_pole")
 
+@pytest.mark.skip("Disabling tests that render cartpole.")
 def test_oracle_m_cart():
     _run_oracle_experiment("masscart", "m_cart")
 
+@pytest.mark.skip("Disabling tests that render cartpole.")
 def test_oracle_m_pole():
     _run_oracle_experiment("masspole", "m_pole")
 
+@pytest.mark.skip("Disabling tests that render cartpole.")
 def test_oracle_x_limit():
     _run_oracle_experiment("x_threshold", "x_limit")
 
+@pytest.mark.skip("Disabling tests that render cartpole.")
 def test_oracle_angle_limit():
     _run_oracle_experiment("angle_limit", "theta_threshold_radians")
 
 
+@pytest.mark.skip("Disabling tests that render cartpole.")
 def test_repairing_force_mag():
     _run_repairing_experiment("force_mag", "force_mag")
 
+@pytest.mark.skip("Disabling tests that render cartpole.")
 def test_repairing_gravity():
     _run_repairing_experiment("gravity", "gravity")
 
+@pytest.mark.skip("Disabling tests that render cartpole.")
 def test_repairing_l_pole():
     _run_repairing_experiment("length", "l_pole")
 
+@pytest.mark.skip("Disabling tests that render cartpole.")
 def test_repairing_m_cart():
     _run_oracle_experiment("masscart", "m_cart")
 
+@pytest.mark.skip("Disabling tests that render cartpole.")
 def test_repairing_m_pole():
     _run_repairing_experiment("masspole", "m_pole")
 
+@pytest.mark.skip("Disabling tests that render cartpole.")
 def test_repairing_x_limit():
     _run_repairing_experiment("x_threshold", "x_limit")
 
+@pytest.mark.skip("Disabling tests that render cartpole.")
 def test_repairing_angle_limit():
     _run_repairing_experiment("angle_limit", "theta_threshold_radians")
 
@@ -239,6 +256,7 @@ def _run_experiment(agent, experiment_type, result_file, agent_name = "Repairing
         result_file.flush()
         iteration = iteration + 1
         hydra.observation = hydra.env.reset()
+
 
 ''' Run the Hydra agent with an oracle repair, i.e., modifying the meta_model params according to the injected fault'''
 def _run_oracle_experiment(env_param, fluent_name, injected_faults = [0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5]):
@@ -278,7 +296,7 @@ def _run_repairing_experiment(env_param, fluent_name, injected_faults = [0.5, 0.
 
     result_file.close()
 
-
+@pytest.mark.skip("Disabling tests that render cartpole.")
 def test_oracle_repair_force_5():
     _run_oracle_experiment("force_mag", "force_mag", injected_faults=[0.5])
 
@@ -299,6 +317,7 @@ class FaultyGymCartpoleDispatcher(GymCartpoleDispatcher):
         return env
 
 ''' Run the Hydra agent with an oracle repair, i.e., modifying the meta_model params according to the injected fault'''
+@pytest.mark.skip("Skipping long-running task.")
 def test_model_repair_in_wsu():
     env_param_to_fluent = dict()
     env_param_to_fluent['gravity'] = 'gravity'
@@ -321,7 +340,7 @@ def test_model_repair_in_wsu():
             env_param_value = env_nominal_value * fault_factor
             for i in range(max_iterations):
                 observer = CartpoleHydraAgentObserver(agent_type=RepairingCartpoleHydraAgent)
-                env = FaultyGymCartpoleDispatcher(observer, render=True)
+                env = FaultyGymCartpoleDispatcher(observer, render=False)
                 env.inject_fault(env_param, env_param_value)
 
                 start_time = time.time()
@@ -335,7 +354,7 @@ def test_model_repair_in_wsu():
 
                 # No repair
                 observer = CartpoleHydraAgentObserver(agent_type=CartpoleHydraAgent)
-                env = FaultyGymCartpoleDispatcher(observer, render=True)
+                env = FaultyGymCartpoleDispatcher(observer, render=False)
                 env.inject_fault(env_param, env_param_value)
 
                 start_time = time.time()
@@ -358,7 +377,7 @@ def test_force_mag_repair_in_wsu_interface():
     # no_repair_performance = observer.agent.last_performance
 
     observer = CartpoleHydraAgentObserver(agent_type=RepairingCartpoleHydraAgent)
-    env = FaultyGymCartpoleDispatcher(observer, render=True)
+    env = FaultyGymCartpoleDispatcher(observer, render=False)
     env.inject_fault('force_mag', 8.0)
     env.run()
     repair_performance = observer.agent.last_performance
