@@ -3,7 +3,7 @@ import worlds.science_birds as sb
 from agent.hydra_agent import HydraAgent
 
 
-def main():
+def main(config='all_level_0_novelties.xml'):
     settings.DEBUG=True
     settings.SB_DEV_MODE=False
     settings.NO_PLANNING=True
@@ -12,4 +12,4 @@ def main():
     hydra.main_loop()
 
 if __name__ == '__main__':
-    main()
+    main('all_level_0_novelties.xml')
