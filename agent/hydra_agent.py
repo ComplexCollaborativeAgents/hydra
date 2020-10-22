@@ -1,4 +1,6 @@
 #from agent.policy_learning.sarsa import SarsaLearner
+import random
+
 from agent.consistency.model_formulation import ConsistencyChecker
 from agent.planning.planner import Planner
 import time
@@ -175,6 +177,7 @@ class HydraAgent():
                     plan = []
                     plan.append(self.__get_default_action(processed_state))
 
+
             timed_action = plan[0]
             logger.info("[hydra_agent_server] :: Taking action: {}".format(str(timed_action.action_name)))
             sb_action = self.meta_model.create_sb_action(timed_action, processed_state)
@@ -182,6 +185,7 @@ class HydraAgent():
             observation.reward = reward
             observation.action = sb_action
             observation.intermediate_states = list(self.env.intermediate_states)
+            self.perception.process_observation(observation)
             if settings.DEBUG:
                 observation.log_observation(self.planner.current_problem_prefix)
             logger.info("[hydra_agent_server] :: Reward {} Game State {}".format(reward, raw_state.game_state))
@@ -199,12 +203,17 @@ class HydraAgent():
         logger.info("[hydra_agent_server] :: __get_default_action")
         problem = self.meta_model.create_pddl_problem(state)
         pddl_state = PddlPlusState(problem.init)
+        unknown_objs = state.novel_objects()
+        if unknown_objs:
+            logger.info("unknown objects in {},{} : {}".format(self.current_level),
+                        self.planner.current_problem_prefix,unknown_objs.__str__())
         try:
             active_bird = pddl_state.get_active_bird()
         except:
             active_bird = None
-        default_angle = 20.0
-        default_time = self.meta_model.angle_to_action_time(default_angle, pddl_state)
+        pig_x, pig_y = get_random_pig_xy(problem)
+        min_angle, max_angle = estimate_launch_angle(self.planner.meta_model.get_slingshot(state), Point2D(pig_x, pig_y), self.meta_model)
+        default_time = self.meta_model.angle_to_action_time((max_angle+min_angle)/2, pddl_state)
         return TimedAction("pa-twang %s" % active_bird, default_time)
 
     def set_env(self,env):

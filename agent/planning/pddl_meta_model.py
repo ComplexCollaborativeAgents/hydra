@@ -4,6 +4,7 @@ from agent.perception.perception import ProcessedSBState
 from agent.planning.pddlplus_parser import *
 import settings
 import logging
+import random
 
 from utils.point2D import Point2D
 import worlds.science_birds as SB
@@ -33,6 +34,18 @@ def get_height(obj):
     return abs(obj[1]['polygon'].bounds[3] - obj[1]['polygon'].bounds[1])
 def get_width(obj):
     return abs(obj[1]['polygon'].bounds[2] - obj[1]['polygon'].bounds[0])
+
+
+''' Returns the location of the closest object to aim for '''
+def get_random_pig_xy(pddl_problem : PddlPlusProblem):
+    state = PddlPlusState(pddl_problem.init)
+    target_pigs = list(state.get_pigs())
+
+    pig = random.choice(target_pigs)
+    random_pig_x = state[('x_pig', pig)]
+    random_pig_y = state[('y_pig', pig)]
+
+    return random_pig_x, random_pig_y
 
 ''' Returns the location of the closest object to aim for '''
 def get_closest_object_xy(pddl_problem : PddlPlusProblem):
@@ -106,7 +119,7 @@ def estimate_launch_angle(slingshot, targetPoint, meta_model):
 
     # the target point cannot be reached
     if solution_existence_factor < 0:
-        print ('\n\nNO SOLUTION!\n\n')
+        logger.info('estimate launch angle: NO SOLUTION!')
         return 0.0, 90.0
 
     # solve cos theta from projectile equation

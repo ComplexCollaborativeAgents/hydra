@@ -1,4 +1,7 @@
 import sys
+
+from shapely.errors import TopologicalError
+
 import settings
 import os.path
 sys.path.append(os.path.join(settings.ROOT_PATH, "worlds", "science_birds_interface"))
@@ -8,6 +11,7 @@ from shapely.geometry import box, Polygon
 import worlds.science_birds as sb
 from worlds.science_birds_interface.computer_vision.game_object import GameObject
 from worlds.science_birds_interface.computer_vision.GroundTruthReader import GroundTruthReader
+#import agent.consistency.observation
 import settings
 import json
 import numpy as np
@@ -33,7 +37,18 @@ class Perception():
             self.writer.writeheader()
 
 
-
+    def process_observation(self,ob):
+#        if isinstance(ob,agent.consistency.observation.ScienceBirdObservation):
+        if True:
+            processed_states = []
+            for state in ob.intermediate_states:
+                processed_state = self.process_sb_state(state)
+                for id, obj in processed_state.objects.items():
+                    obj['type'] = ob.state.type_in_state(id) if ob.state.type_in_state(id) else obj['type']
+                    processed_state.objects[id] = obj
+                processed_states.append(processed_state)
+            ob.intermediate_states=processed_states
+        return True
 
     def process_state(self, state): # TODO: This may need to be removed
         if isinstance(state,sb.SBState):
@@ -137,19 +152,22 @@ class Perception():
 
         ret = []
         open_list = []
-        for plat in platforms:
-            poly = plat['polygon']
-            if plat['id'] not in ids:
-                continue
-            ids.remove(plat['id'])
-            open_list = touches[plat['id']]
-            while open_list:
-                plat_2 = open_list.pop(0)
-                if plat_2['id'] in ids:
-                    poly = poly.union(plat_2['polygon'])
-                    ids.remove(plat_2['id'])
-                    open_list.extend(touches[plat_2['id']])
-            ret.append({'id':plat['id'],'polygon':poly,'type':'platform'})
+        try:
+            for plat in platforms:
+                poly = plat['polygon']
+                if plat['id'] not in ids:
+                    continue
+                ids.remove(plat['id'])
+                open_list = touches[plat['id']]
+                while open_list:
+                    plat_2 = open_list.pop(0)
+                    if plat_2['id'] in ids:
+                        poly = poly.union(plat_2['polygon'])
+                        ids.remove(plat_2['id'])
+                        open_list.extend(touches[plat_2['id']])
+                ret.append({'id':plat['id'],'polygon':poly,'type':'platform'})
+        except TopologicalError:
+            logging.info("Ill-formed platform. Returning an empty list for the platforms")
         return ret
 
 
@@ -218,8 +236,21 @@ class ProcessedSBState(State):
             ret['{}_{}'.format(obj['type'], key)] = (obj['bbox'].centroid.x, obj['bbox'].centroid.y)
         return ret
 
+    def novel_objects(self):
+        ''' Returns a list of the novel objects '''
+        ret = []
+        for key, obj in self.objects.items():
+            if obj['type'] is 'Unknown':
+                ret.append([key,obj])
+        return ret
+
     def serialize_current_state(self, level_filename):
         pickle.dump(self, open(level_filename, 'wb'))
+
+    def type_in_state(self,id):
+        if id in self.objects.keys():
+            return self.objects[id]['type']
+        return None
 
     def load_from_serialized_state(level_filename):
         return pickle.load(open(level_filename, 'rb'))
