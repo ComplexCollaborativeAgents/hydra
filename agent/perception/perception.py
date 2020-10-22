@@ -1,4 +1,7 @@
 import sys
+
+from shapely.errors import TopologicalError
+
 import settings
 import os.path
 sys.path.append(os.path.join(settings.ROOT_PATH, "worlds", "science_birds_interface"))
@@ -149,19 +152,22 @@ class Perception():
 
         ret = []
         open_list = []
-        for plat in platforms:
-            poly = plat['polygon']
-            if plat['id'] not in ids:
-                continue
-            ids.remove(plat['id'])
-            open_list = touches[plat['id']]
-            while open_list:
-                plat_2 = open_list.pop(0)
-                if plat_2['id'] in ids:
-                    poly = poly.union(plat_2['polygon'])
-                    ids.remove(plat_2['id'])
-                    open_list.extend(touches[plat_2['id']])
-            ret.append({'id':plat['id'],'polygon':poly,'type':'platform'})
+        try:
+            for plat in platforms:
+                poly = plat['polygon']
+                if plat['id'] not in ids:
+                    continue
+                ids.remove(plat['id'])
+                open_list = touches[plat['id']]
+                while open_list:
+                    plat_2 = open_list.pop(0)
+                    if plat_2['id'] in ids:
+                        poly = poly.union(plat_2['polygon'])
+                        ids.remove(plat_2['id'])
+                        open_list.extend(touches[plat_2['id']])
+                ret.append({'id':plat['id'],'polygon':poly,'type':'platform'})
+        except TopologicalError:
+            logging.info("Ill-formed platform. Returning an empty list for the platforms")
         return ret
 
 
