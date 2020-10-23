@@ -21,7 +21,7 @@ SB_DATA_PATH = pathlib.Path(settings.ROOT_PATH) / 'data' / 'science_birds'
 SB_BIN_PATH = pathlib.Path(settings.SCIENCE_BIRDS_BIN_DIR) / 'linux'
 SB_CONFIG_PATH = SB_DATA_PATH / 'config'
 ANU_LEVELS_PATH = SB_DATA_PATH / 'ANU_Levels.tar.gz'
-STATS_PATH = (pathlib.Path(__file__).parent / 'stats.json').absolute()
+STATS_BASE_PATH = pathlib.Path(__file__).parent.absolute()
 
 class AgentType(enum.Enum):
     Hydra = 1
@@ -29,8 +29,8 @@ class AgentType(enum.Enum):
 
 NOVELTY = 0
 TYPE = 2
-SAMPLES = 185
-AGENT = AgentType.Hydra
+SAMPLES = 1
+AGENT = AgentType.GroundTruth
 
 def extract_levels(source, destination=None):
     ''' Extract ANU levels. '''
@@ -52,8 +52,8 @@ def prepare_config(config_template, config_path, levels):
     tree = ET.parse(config_template)
     xpath = './trials/trial/game_level_set'
     level_set = tree.getroot().find(xpath)
-    level_set.set('time_limit', '60000')
-    level_set.set('total_interaction_limit', '2000')
+    level_set.set('time_limit', '100000')
+    level_set.set('total_interaction_limit', '500000')
 
     for child in list(level_set):
         level_set.remove(child)
@@ -172,37 +172,47 @@ def compute_stats(results_path, agent):
     return stats
 
 
-def run_sb_stats(extract=False):
+def run_sb_stats(extract=False, seed=None):
     ''' Run science birds agent stats. '''
-    config_name = 'stats_config.xml'
+    novelties = {NOVELTY: [TYPE]}
+    run_performance_stats(novelties, AGENT, samples=SAMPLES)
 
-    extracted = SB_BIN_PATH
-    if extract:
-        extracted = extract_levels(ANU_LEVELS_PATH)
 
-    levels = list(extracted.glob('Levels/novelty_level_{}/type{}/Levels/*.xml'.format(NOVELTY, TYPE)))
-    levels = random.sample(levels, SAMPLES)
+def run_performance_stats(novelties: dict,
+                          agent: AgentType,
+                          seed: int = None,
+                          samples: int = SAMPLES,
+                          bin_path: pathlib.Path = SB_BIN_PATH,
+                          levels_path: pathlib.Path = SB_BIN_PATH,
+                          stats_base_path: pathlib.Path = STATS_BASE_PATH,
+                          template: pathlib.Path = SB_CONFIG_PATH / 'test_config.xml',
+                          config: pathlib.Path = SB_CONFIG_PATH / 'stats_config.xml'):
+    ''' Run science birds agent stats. '''
+    if seed is not None:
+        random.seed(seed)
 
-    template = SB_CONFIG_PATH / 'test_config.xml'
-    config = SB_CONFIG_PATH / config_name
-    prepare_config(template, config, levels)
+    for novelty, types in novelties.items():
+        for novelty_type in types:
+            pattern = 'Levels/novelty_level_{}/type{}/Levels/*.xml'.format(novelty, novelty_type)
+            levels = list(levels_path.glob(pattern))
+            levels = random.sample(levels, samples)
 
-    pre_directories = glob_directories(SB_BIN_PATH, 'Agent*')
-    post_directories = None
+            prepare_config(template, config, levels)
+            pre_directories = glob_directories(bin_path, 'Agent*')
+            post_directories = None
 
-    with run_agent(config_name, AGENT) as env:
-        post_directories = glob_directories(SB_BIN_PATH, 'Agent*')
+            with run_agent(config.name, AGENT) as env:
+                post_directories = glob_directories(SB_BIN_PATH, 'Agent*')
 
-    results = diff_directories(pre_directories, post_directories)
+            results = diff_directories(pre_directories, post_directories)
 
-    if results is not None:
-        stats = compute_stats(results, AGENT)
-
-        with open(STATS_PATH, 'w') as f:
-            json.dump(stats, f, sort_keys=True, indent=4)
+            if results is not None:
+                stats = compute_stats(results, agent)
+                filename = "stats_novelty{}_type{}.json".format(novelty, novelty_type)
+                with open(stats_base_path / filename, 'w') as f:
+                    json.dump(stats, f, sort_keys=True, indent=4)
 
 
 if __name__ == '__main__':
-    random.seed(0)
-    run_sb_stats()
+    run_sb_stats(seed=0)
 
