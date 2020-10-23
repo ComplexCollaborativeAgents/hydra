@@ -551,10 +551,12 @@ class MetaModel():
 
         # Add goal
         pigs = problem_params["pigs"]
-        assert len(pigs)>0
-        for pig in pigs:
-            pddl_problem.goal.append(['pig_dead', pig])
-
+        if len(pigs)==0:
+            logger.info("No pigs found, taking default shot.")
+            pddl_problem.goal.append(['pig_dead'])
+        else:
+            for pig in pigs:
+                pddl_problem.goal.append(['pig_dead', pig])
         return pddl_problem
 
     ''' Get the ground offset '''
