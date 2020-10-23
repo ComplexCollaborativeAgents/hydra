@@ -59,7 +59,7 @@ class PddlObjectType():
 
 
 class CartPoleMetaModel():
-    PLANNER_PRECISION = 4 # how many decimal points the planner can handle correctly
+    PLANNER_PRECISION = 5 # how many decimal points the planner can handle correctly
 
     ''' Sets the default meta-model'''
     def __init__(self):
@@ -139,18 +139,18 @@ class CartPoleMetaModel():
 
 
         # MAIN COMPONENTS: X and THETA + derivatives
-        pddl_problem.init.append(['=', ['x'], obs_x])
-        pddl_problem.init.append(['=', ['x_dot'], obs_x_dot])
-        pddl_problem.init.append(['=', ['theta'], obs_theta])
-        pddl_problem.init.append(['=', ['theta_dot'], obs_theta_dot])
-        pddl_problem.init.append(['=', ['F'], self.constant_numeric_fluents['force_mag']])
+        pddl_problem.init.append(['=', ['x'], round(obs_x,CartPoleMetaModel.PLANNER_PRECISION)])
+        pddl_problem.init.append(['=', ['x_dot'], round(obs_x_dot, CartPoleMetaModel.PLANNER_PRECISION)])
+        pddl_problem.init.append(['=', ['theta'], round(obs_theta, CartPoleMetaModel.PLANNER_PRECISION)])
+        pddl_problem.init.append(['=', ['theta_dot'], round(obs_theta_dot, CartPoleMetaModel.PLANNER_PRECISION)])
+        pddl_problem.init.append(['=', ['F'], round(self.constant_numeric_fluents['force_mag'], CartPoleMetaModel.PLANNER_PRECISION)])
 
         calc_temp = (self.constant_numeric_fluents['force_mag'] + (self.constant_numeric_fluents['m_pole'] * self.constant_numeric_fluents['l_pole']) * obs_theta_dot ** 2 * math.sin(obs_theta)) / (self.constant_numeric_fluents['m_cart'] + self.constant_numeric_fluents['m_pole'])
         calc_theta_ddot = (self.constant_numeric_fluents['gravity'] * math.sin(obs_theta) - math.cos(obs_theta) * calc_temp) / (self.constant_numeric_fluents['l_pole'] * (4.0 / 3.0 - self.constant_numeric_fluents['m_pole'] * math.cos(obs_theta) ** 2 / (self.constant_numeric_fluents['m_cart'] + self.constant_numeric_fluents['m_pole'])))
         calc_x_ddot = calc_temp - (self.constant_numeric_fluents['m_pole'] * self.constant_numeric_fluents['l_pole']) * calc_theta_ddot * math.cos(obs_theta) / (self.constant_numeric_fluents['m_cart'] + self.constant_numeric_fluents['m_pole'])
 
-        pddl_problem.init.append(['=', ['x_ddot'], round(calc_x_ddot, 5)])
-        pddl_problem.init.append(['=', ['theta_ddot'], round(calc_theta_ddot, 5)])
+        pddl_problem.init.append(['=', ['x_ddot'], round(calc_x_ddot, CartPoleMetaModel.PLANNER_PRECISION)])
+        pddl_problem.init.append(['=', ['theta_ddot'], round(calc_theta_ddot, CartPoleMetaModel.PLANNER_PRECISION)])
 
         # Add goal
         # pddl_problem.goal.append(['pole_position'])
