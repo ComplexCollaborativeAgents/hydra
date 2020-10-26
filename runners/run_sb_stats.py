@@ -27,12 +27,12 @@ STATS_BASE_PATH = pathlib.Path(__file__).parent.absolute()
 class AgentType(enum.Enum):
     RepairingHydra = 0
     Hydra = 1
-    GroundTruth = 2
+    Baseline = 2
 
 NOVELTY = 0
 TYPE = 2
 SAMPLES = 1
-AGENT = AgentType.GroundTruth
+AGENT = AgentType.Baseline
 
 def extract_levels(source, destination=None):
     ''' Extract ANU levels. '''
@@ -97,7 +97,7 @@ def run_agent(config, agent):
         elif agent == AgentType.RepairingHydra:
             hydra = RepairingHydraSBAgent(env)
             hydra.main_loop(max_actions=10000)
-        elif agent == AgentType.GroundTruth:
+        elif agent == AgentType.Baseline:
             ground_truth = ClientNaiveAgent(env.id, env.sb_client)
             ground_truth.run()
     finally:
@@ -180,11 +180,11 @@ def compute_stats(results_path, agent):
 def run_sb_stats(extract=False, seed=None):
     ''' Run science birds agent stats. '''
     novelties = {NOVELTY: [TYPE]}
-    run_performance_stats(novelties, AGENT, samples=SAMPLES)
+    run_performance_stats(novelties, agent_type=AGENT, seed=seed, samples=SAMPLES)
 
 
 def run_performance_stats(novelties: dict,
-                          agent: AgentType,
+                          agent_type: AgentType,
                           seed: int = None,
                           samples: int = SAMPLES,
                           bin_path: pathlib.Path = SB_BIN_PATH,
@@ -206,14 +206,14 @@ def run_performance_stats(novelties: dict,
             pre_directories = glob_directories(bin_path, 'Agent*')
             post_directories = None
 
-            with run_agent(config.name, agent) as env: # TODO: Typo?
+            with run_agent(config.name, agent_type) as env: # TODO: Typo?
                 post_directories = glob_directories(SB_BIN_PATH, 'Agent*')
 
             results = diff_directories(pre_directories, post_directories)
 
             if results is not None:
-                stats = compute_stats(results, agent)
-                filename = "stats_novelty{}_type{}.json".format(novelty, novelty_type)
+                stats = compute_stats(results, agent_type)
+                filename = "stats_novelty{}_type{}_agent{}.json".format(novelty, novelty_type, agent_type.name)
                 with open(stats_base_path / filename, 'w') as f:
                     json.dump(stats, f, sort_keys=True, indent=4)
 
