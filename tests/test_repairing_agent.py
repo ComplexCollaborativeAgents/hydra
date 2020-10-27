@@ -1,4 +1,3 @@
-import settings
 from agent.cartpole_hydra_agent import CartpoleHydraAgentObserver, RepairingCartpoleHydraAgent, CartpoleHydraAgent
 from agent.repairing_hydra_agent import RepairingHydraSBAgent,RepairingGymHydraAgent
 from agent.gym_hydra_agent import *
@@ -12,8 +11,7 @@ import tests.test_utils as test_utils
 import os.path as path
 import time
 
-from worlds.gym_cartpole_dispatcher import GymCartpoleDispatcher
-from worlds.wsu.wsu_dispatcher import WSUObserver
+from runners.gym_experiments_runner import FaultyGymCartpoleDispatcher
 
 GRAVITY_FACTOR = "gravity_factor"
 DATA_DIR = path.join(settings.ROOT_PATH, 'data')
@@ -300,21 +298,10 @@ def _run_repairing_experiment(env_param, fluent_name, injected_faults = [0.5, 0.
 def test_oracle_repair_force_5():
     _run_oracle_experiment("force_mag", "force_mag", injected_faults=[0.5])
 
-''' Subclass of GymCartpoleDispatcher that injects a fault '''
-class FaultyGymCartpoleDispatcher(GymCartpoleDispatcher):
-    def __init__(self, delegate: WSUObserver, model_id: str = 'CartPole-v1', render: bool = False):
-        super().__init__(delegate, model_id, render)
-        self.faults = dict() # a dictionary of env parameter to value
+def test_repair_force_8():
+    _run_repairing_experiment("force_mag", "force_mag", injected_faults=[0.8])
 
-    def inject_fault(self, env_parameter, env_value):
-        self.faults[env_parameter]=env_value
-
-    def _make_environment(self):
-        env = gym.make(self.model_id)
-        for env_param in self.faults:
-            env_param_value = self.faults[env_param]
-            env.env.__setattr__(env_param, env_param_value)
-        return env
+############### TESTS FOR WSU MODEL ########################################
 
 ''' Run the Hydra agent with an oracle repair, i.e., modifying the meta_model params according to the injected fault'''
 @pytest.mark.skip("Skipping long-running task.")
