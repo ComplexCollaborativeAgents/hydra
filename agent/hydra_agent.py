@@ -160,24 +160,20 @@ class HydraAgent():
         observation.state = processed_state
         if processed_state and self.consistency_checker.is_consistent(processed_state):
             logger.info("[hydra_agent_server] :: Invoking Planner".format())
-            orig_plan_time = time.perf_counter()
-            plan = self.planner.make_plan(processed_state, 1)
-            self.cumulative_plan_time += (time.perf_counter() - orig_plan_time)
-            logger.info("[hydra_agent_server] :: Original problem planning time: " + str(
-                (time.perf_counter() - orig_plan_time)))
-            if len(plan) == 0 or plan[0].action_name == "out of memory":
-                logger.info("[hydra_agent_server] :: Invoking Planner on a Simplified Problem {}".format(
-                    'timeout' if len(plan) == 0 else 'out of memory'))
-                simple_plan_time = time.perf_counter()
-                plan = self.planner.make_plan(processed_state, 2)
-                self.cumulative_plan_time += (time.perf_counter() - simple_plan_time)
-                logger.info("[hydra_agent_server] :: Simplified problem planning time: " + str(
-                    (time.perf_counter() - simple_plan_time)))
-                if  len(plan) == 0 or plan[0].action_name == "out of memory":  # TODO FIX THIS
-                    plan = []
-                    plan.append(self.__get_default_action(processed_state))
-
-
+            simplifications = settings.SB_PLANNER_SIMPLIFICATION_SEQUENCE.copy()
+            simplifications.reverse()
+            plan = []
+            while len(simplifications) > 0 and (len(plan) == 0 or plan[0].action_name == "out of memory"):
+                simplification = simplifications.pop()
+                start_time = time.perf_counter()
+                plan = self.planner.make_plan(processed_state, simplification)
+                plan_time = (time.perf_counter() - start_time)
+                self.cumulative_plan_time += plan_time
+                logger.info("[hydra_agent_server] :: Problem simplification {} planning time: {}".format(simplification,
+                                                                                          str(plan_time)))
+            if  len(plan) == 0 or plan[0].action_name == "out of memory":  # TODO FIX THIS
+                plan = []
+                plan.append(self.__get_default_action(processed_state))
             timed_action = plan[0]
             logger.info("[hydra_agent_server] :: Taking action: {}".format(str(timed_action.action_name)))
             sb_action = self.meta_model.create_sb_action(timed_action, processed_state)

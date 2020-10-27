@@ -1,0 +1,40 @@
+<evaluation>
+  <novelty_detection_measurement step="1" measure_in_training="False" measure_in_testing="False" />
+  <trials>
+    <trial id="0" number_of_executions="1" checkpoint_time_limit="200" checkpoint_interaction_limit="200" notify_novelty="False">
+      <game_level_set mode="training" time_limit="50000" total_interaction_limit="500000" attempt_limit_per_level="1" allow_level_selection="False">
+          <game_levels level_path = "./Levels/novelty_level_0/type2/Levels/00052_1_1_2_0.xml" />
+<game_levels level_path = "./Levels/novelty_level_0/type2/Levels/00051_1_1_2_0.xml" />
+<game_levels level_path = "./Levels/novelty_level_0/type2/Levels/00147_1_1_2_0.xml" />
+<game_levels level_path = "./Levels/novelty_level_0/type2/Levels/00132_1_1_2_0.xml" />
+<game_levels level_path = "./Levels/novelty_level_0/type2/Levels/00013_1_1_2_0.xml" />
+<game_levels level_path = "./Levels/novelty_level_0/type2/Levels/00108_1_1_2_0.xml" />
+<game_levels level_path = "./Levels/novelty_level_0/type2/Levels/00199_1_1_2_0.xml" />
+<game_levels level_path = "./Levels/novelty_level_0/type2/Levels/00124_1_1_2_0.xml" />
+<game_levels level_path = "./Levels/novelty_level_0/type2/Levels/00037_1_1_2_0.xml" />
+<game_levels level_path = "./Levels/novelty_level_0/type2/Levels/00177_1_1_2_0.xml" />
+<game_levels level_path = "./Levels/novelty_level_0/type2/Levels/00090_1_1_2_0.xml" />
+<game_levels level_path = "./Levels/novelty_level_0/type2/Levels/00016_1_1_2_0.xml" />
+<game_levels level_path = "./Levels/novelty_level_0/type2/Levels/00029_1_1_2_0.xml" />
+<game_levels level_path = "./Levels/novelty_level_0/type2/Levels/00179_1_1_2_0.xml" />
+<game_levels level_path = "./Levels/novelty_level_0/type2/Levels/00187_1_1_2_0.xml" />
+<game_levels level_path = "./Levels/novelty_level_0/type2/Levels/00149_1_1_2_0.xml" />
+<game_levels level_path = "./Levels/novelty_level_0/type2/Levels/00178_1_1_2_0.xml" />
+<game_levels level_path = "./Levels/novelty_level_0/type2/Levels/00164_1_1_2_0.xml" />
+<game_levels level_path = "./Levels/novelty_level_0/type2/Levels/00073_1_1_2_0.xml" />
+<game_levels level_path = "./Levels/novelty_level_0/type2/Levels/00018_1_1_2_0.xml" />
+<game_levels level_path = "./Levels/novelty_level_0/type2/Levels/00146_1_1_2_0.xml" />
+<game_levels level_path = "./Levels/novelty_level_0/type2/Levels/00131_1_1_2_0.xml" />
+<game_levels level_path = "./Levels/novelty_level_0/type2/Levels/00145_1_1_2_0.xml" />
+<game_levels level_path = "./Levels/novelty_level_0/type2/Levels/00121_1_1_2_0.xml" />
+<game_levels level_path = "./Levels/novelty_level_0/type2/Levels/00001_1_1_2_0.xml" />
+<game_levels level_path = "./Levels/novelty_level_0/type2/Levels/00148_1_1_2_0.xml" />
+<game_levels level_path = "./Levels/novelty_level_0/type2/Levels/00069_1_1_2_0.xml" />
+<game_levels level_path = "./Levels/novelty_level_0/type2/Levels/00106_1_1_2_0.xml" />
+<game_levels level_path = "./Levels/novelty_level_0/type2/Levels/00019_1_1_2_0.xml" />
+<game_levels level_path = "./Levels/novelty_level_0/type2/Levels/00071_1_1_2_0.xml" />
+<game_levels level_path = "./Levels/novelty_level_0/type2/Levels/00167_1_1_2_0.xml" />
+      </game_level_set>
+    </trial>
+  </trials>
+</evaluation>
