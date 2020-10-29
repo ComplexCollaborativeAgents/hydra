@@ -1,5 +1,8 @@
 import copy
+import queue
 import random
+import threading
+
 from worlds.wsu.objects.TA2_logic import TA2Logic
 
 
@@ -136,12 +139,6 @@ class WSUObserver:
         self.log.info('Load model from disk.')
         return
 
-    def novelty_start(self):
-        """This indicates the start of a series of trials at a novelty level/difficulty.
-        """
-        self.log.info('Novelty Space Start')
-        return
-
     def testing_start(self):
         """This is called before the trials in the novelty level/difficulty.
         """
@@ -243,16 +240,31 @@ class WSUObserver:
         self.log.info('Testing End')
         return
 
-    def novelty_end(self):
-        """This is called when we are done with a novelty level/difficulty.
-        """
-        self.log.info('Novelty Space End')
-        return
-
     def experiment_end(self):
         """This is called when the experiment is done.
         """
         self.log.info('Experiment End')
+        return
+
+
+class ThreadedProcessing(threading.Thread):
+    def __init__(self, callable, arguments: list, response_queue: queue.Queue):
+        threading.Thread.__init__(self)
+        self.callable = callable
+        self.arguments = arguments
+        self.response_queue = response_queue
+        self.is_done = False
+        return
+
+    def run(self):
+        """All work tasks should happen or be called from within this function.
+        """
+        result = self.callable(*self.arguments)
+        self.response_queue.put(('result', result))  # adding a tuple to avoid placing a None in the queue
+        return
+
+    def stop(self):
+        self.is_done = True
         return
 
 
@@ -263,73 +275,91 @@ class WSUDispatcher(TA2Logic):
                          kwargs.get('printout', False),
                          kwargs.get('debug', False),
                          kwargs.get('fulldebug', False),
-                         kwargs.get('logfile', 'wsu-log.txt'))
+                         kwargs.get('logfile', 'wsu-log.txt'),
+                         kwargs.get('no_testing', False),
+                         kwargs.get('just_one_trial', False),
+                         kwargs.get('ignore_secret', False))
         self.delegate = delegate
         self.delegate.set_logger(self.log)
         self.end_training_early = True
         self.end_experiment_early = False
 
+    def __do_processing(self, callable, arguments=None):
+        if arguments is None:
+            arguments = []
+        response_queue = queue.Queue()
+        response = None
+
+        threaded_work = ThreadedProcessing(callable=callable,
+                                           arguments=arguments,
+                                           response_queue=response_queue)
+        threaded_work.start()
+        while response is None:
+            try:
+                response = response_queue.get(block=True, timeout=5)
+                response = response
+            except queue.Empty:
+                self.process_amqp_events()
+
+        threaded_work.stop()
+        threaded_work.join()
+        return response[1]
+
     def experiment_start(self):
-        self.delegate.experiment_start()
+        self.__do_processing(self.delegate.experiment_start)
 
     def training_start(self):
-        self.delegate.training_start()
+        self.__do_processing(self.delegate.training_start)
 
     def training_episode_start(self, episode_number: int):
-        self.delegate.training_episode_start(episode_number)
+        self.__do_processing(self.delegate.training_episode_start, [episode_number])
 
     def training_instance(self, feature_vector: dict, feature_label: dict) -> (dict, float, int, dict):
-        return self.delegate.training_instance(feature_vector, feature_label)
+        return self.__do_processing(self.delegate.training_instance, [feature_vector, feature_label])
 
     def training_performance(self, performance: float):
-        self.delegate.training_performance(performance)
+        self.__do_processing(self.delegate.training_performance, [performance])
 
     def training_episode_end(self, performance: float):
-        self.delegate.training_episode_end(performance)
+        self.__do_processing(self.delegate.training_episode_end, [performance])
 
     def training_end(self):
-        self.delegate.training_end()
+        self.__do_processing(self.delegate.training_end)
 
     def train_model(self):
-        self.delegate.train_model()
+        self.__do_processing(self.delegate.train_model)
 
     def save_model(self, filename: str):
-        self.delegate.save_model(filename)
+        self.__do_processing(self.delegate.save_model, [filename])
 
     def reset_model(self, filename: str):
-        self.delegate.reset_model(filename)
-
-    def novelty_start(self):
-        self.delegate.novelty_start()
+        self.__do_processing(self.delegate.reset_model, [filename])
 
     def testing_start(self):
-        self.delegate.testing_start()
+        self.__do_processing(self.delegate.testing_start)
 
     def trial_start(self, trial_number: int, novelty_description: dict):
-        self.delegate.trial_start(trial_number, novelty_description)
+        self.__do_processing(self.delegate.trial_start, [trial_number, novelty_description])
 
     def testing_episode_start(self, episode_number: int):
-        self.delegate.testing_episode_start(episode_number)
+        self.__do_processing(self.delegate.testing_episode_start, [episode_number])
 
     def testing_instance(self, feature_vector: dict, novelty_indicator: bool = None) -> \
             (dict, float, int, dict):
-        return self.delegate.testing_instance(feature_vector, novelty_indicator)
+        return self.__do_processing(self.delegate.testing_instance, [feature_vector, novelty_indicator])
 
     def testing_performance(self, performance: float):
-        self.delegate.testing_performance(performance)
+        self.__do_processing(self.delegate.testing_performance, [performance])
 
     def testing_episode_end(self, performance: float):
-        self.delegate.testing_episode_end(performance)
+        self.__do_processing(self.delegate.testing_episode_end, [performance])
 
     def trial_end(self):
-        self.delegate.trial_end()
+        self.__do_processing(self.delegate.trial_end)
 
     def testing_end(self):
-        self.delegate.experiment_end()
-
-    def novelty_end(self):
-        self.delegate.novelty_end()
+        self.__do_processing(self.delegate.testing_end)
 
     def experiment_end(self):
-        self.delegate.experiment_end()
+        self.__do_processing(self.delegate.experiment_end)
 
