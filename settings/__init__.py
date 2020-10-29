@@ -12,8 +12,8 @@ SB_DEV_MODE = True
 
 SB_PLANNER_MEMORY_LIMIT = 50 # memory limit for UPMurphi (in MB)
 SB_DELTA_T = 0.05 # time discretisation for UPMurphi
-SB_TIMEOUT = 60 # timeout for the planning phase (in seconds)
-SB_PLANNER_SIMPLIFICATION_SEQUENCE = [1,2] # the order of problem simplications attempted to generate a plan
+SB_TIMEOUT = 30 # timeout for the planning phase (in seconds)
+SB_PLANNER_SIMPLIFICATION_SEQUENCE = [0,1] # the order of problem simplications attempted to generate a plan
 
 CP_PLANNER_MEMORY_LIMIT = 50 # memory limit for UPMurphi (in MB)
 CP_DELTA_T = 0.02 # time discretisation for UPMurphi
