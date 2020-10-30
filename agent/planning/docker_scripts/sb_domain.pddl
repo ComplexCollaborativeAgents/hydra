@@ -80,7 +80,7 @@
         :precondition (and
             (= (active_bird) (bird_id ?b))
             (bird_released ?b)
-            (or (>= (bounce_count ?b) 3) 
+            (or (>= (bounce_count ?b) 3)
                 (>= (x_bird ?b) 800)
             )
             (angle_adjusted)
@@ -146,7 +146,6 @@
             (assign (v_bird ?b) (* (v_bird ?b) 0.5))
             (assign (bounce_count ?b) (+ (bounce_count ?b) 1))
             )
-
     )
 
     (:event remove_unsupported_block
@@ -154,6 +153,8 @@
         :precondition (and
             (or  (<= (block_life ?bl_bottom) 0)
             (<= (block_stability ?bl_bottom) 0))
+            (> (block_life ?bl_top) 0)
+            (> (block_stability ?bl_top) 0)
             (<= (x_block ?bl_bottom) (+ (x_block ?bl_top) (/ (block_width ?bl_top) 2) ) )
             (>= (x_block ?bl_bottom) (- (x_block ?bl_top) (/ (block_width ?bl_top) 2) ) )
             (<= (y_block ?bl_bottom) (- (y_block ?bl_top) (/ (block_height ?bl_top) 2) ) )
@@ -221,6 +222,7 @@
     (:event remove_unsupported_pig
         :parameters (?bl_bottom - block ?p - pig)
         :precondition (and
+        	(not (pig_dead ?p))
             (or (< (block_life ?bl_bottom) 0)
             (<= (block_stability ?bl_bottom) 0))
             (<= (x_pig ?p) (+ (x_block ?bl_bottom) (/ (block_width ?bl_bottom) 2) ) )

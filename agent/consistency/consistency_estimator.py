@@ -218,6 +218,7 @@ def diff_pddl_states(state1, state2):
 def check_obs_consistency(observation,
                           meta_model,
                           consistency_checker : MetaModelBasedConsistencyEstimator,
+                          simulator : PddlPlusSimulator = PddlPlusSimulator(),
                           delta_t : float = DEFAULT_DELTA_T,
                           plot_obs_vs_exp = DEFAULT_PLOT_OBS_VS_EXP):
     if plot_obs_vs_exp:
@@ -225,4 +226,4 @@ def check_obs_consistency(observation,
         plot_axes = test_utils.plot_observation(observation)
         test_utils.plot_expected_trace_for_obs(meta_model, observation, ax=plot_axes)
 
-    return consistency_checker.compute_consistency(observation, meta_model, PddlPlusSimulator(),delta_t)
+    return consistency_checker.compute_consistency(observation, meta_model, simulator,delta_t)

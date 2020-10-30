@@ -270,7 +270,7 @@ class PddlPlusSimulator():
                 if self.__precondition_hold(state, precondition)==True:
                     return True
             return False
-        return self.__eval(single_precondition, state)
+        return self._eval(single_precondition, state)
 
     ''' Apply the specified effect ont he given state '''
     def apply_effects(self, state, effects, delta_t=-1):
@@ -280,7 +280,7 @@ class PddlPlusSimulator():
                 # Numeric fluent
                 fluent_name = tuple(effect[1])
                 old_value = float(state.numeric_fluents[fluent_name])
-                delta = self.__eval(effect[2], state, delta_t)
+                delta = self._eval(effect[2], state, delta_t)
                 if effect_type=="increase":
                     new_value = old_value+delta
                 elif effect_type=="decrease":
@@ -309,7 +309,7 @@ class PddlPlusSimulator():
             if effect_type in ("increase", "decrease", "assign"):
                 # Numeric fluent
                 fluent_name = tuple(effect[1])
-                delta = self.__eval(effect[2], state, delta_t)
+                delta = self._eval(effect[2], state, delta_t)
                 effect_list.append([effect_type, fluent_name, delta])
             else: # Boolean effects
                 effect_list.append(effect)
@@ -317,14 +317,14 @@ class PddlPlusSimulator():
         return effect_list
 
     ''' Evaluates a given expression using the fluents in the given state, and delta f, if needed'''
-    def __eval(self, element, state: PddlPlusState, delta_t: float = -1):
+    def _eval(self, element, state: PddlPlusState, delta_t: float = -1):
         if isinstance(element, list):
             if self.is_op(element[0]): # If element is an operator
                 assert len(element) == 3
 
                 op_name = element[0]
-                value1 = self.__eval(element[1], state, delta_t)
-                value2 = self.__eval(element[2], state, delta_t)
+                value1 = self._eval(element[1], state, delta_t)
+                value2 = self._eval(element[2], state, delta_t)
 
                 if op_name == "=":
                     op_name = "==" # We want comparison, not assignment

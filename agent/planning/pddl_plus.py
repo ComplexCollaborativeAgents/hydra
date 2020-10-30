@@ -297,11 +297,9 @@ class PddlPlusGrounder():
 
     def ground_world_change(self, world_change: PddlPlusWorldChange, binding: dict):
         grounded_world_change = PddlPlusWorldChange(world_change.type)
-        new_name = world_change.name
-        for parameter in world_change.parameters:
-            assert parameter[0] in binding  # Asserts all the parameters are bound
-            new_name = "%s %s" % (new_name, binding[parameter[0]])
-            # TODO: Chech that binding respects types.
+
+        new_name = "%s %s" % (world_change.name, " ".join([value for value in binding.values()]))
+
         grounded_world_change.name = new_name
 
         for precondition in world_change.preconditions:
