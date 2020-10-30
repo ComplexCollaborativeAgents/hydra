@@ -200,6 +200,9 @@ class WSUObserver:
             feature_vector, novelty_indicator))
 
         # Return dummy random choices, but should be determined by trained model
+        if len(self.possible_answers) == 0:
+            self.possible_answers = [{'action': 'right'}, {'action': 'left'}]
+
         label_prediction = random.choice(self.possible_answers)
         novelty_probability = random.random()
         novelty = random.choice(list(range(4)))
