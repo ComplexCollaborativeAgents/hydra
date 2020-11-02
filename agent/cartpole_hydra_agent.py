@@ -133,7 +133,7 @@ class RepairingCartpoleHydraAgent(CartpoleHydraAgent):
             except Exception:
                 pass
 
-        self.novelty_probability = novelty_likelihood
+        self.novelty_probability = max(self.novelty_probability, novelty_likelihood)
 
         super().episode_end(performance)
 
