@@ -8,6 +8,7 @@ from agent.consistency.observation import CartPoleObservation
 from agent.consistency.consistency_estimator import DEFAULT_DELTA_T
 import time
 import copy
+import json
 import numpy as np
 import settings
 import random
@@ -28,7 +29,8 @@ class CartpoleHydraAgent:
 
         self.novelty_probability = 0.0
         self.novelty_type = 0
-        self.novelty_characterization = dict()
+        self.novelty_characterization = {'novelty_probability_threshold': 0.5,
+                                         'novelty_characterization_description': ''}
 
         self.plan_idx = 0
         self.steps = 0
@@ -119,7 +121,7 @@ class RepairingCartpoleHydraAgent(CartpoleHydraAgent):
                                 characterization[novel_property] = "Abnormal state attribute"
 
                 self.novelty_probability = 1.0 # TODO:  Replace this with a real prob. estimate
-                self.novelty_characterization = characterization
+                self.novelty_characterization['novelty_characterization_description'] = json.dumps(characterization)
 
             try:
                 meta_model_repair = CartpoleRepair(self.consistency_checker, self.desired_precision)
