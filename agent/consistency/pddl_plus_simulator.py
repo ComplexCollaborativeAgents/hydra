@@ -326,9 +326,31 @@ class PddlPlusSimulator():
                 value1 = self.__eval(element[1], state, delta_t)
                 value2 = self.__eval(element[2], state, delta_t)
 
-                if op_name == "=":
-                    op_name = "==" # We want comparison, not assignment
-                return eval("%s%s%s" % (str(value1), op_name, str(value2)))
+                # assert(is_float(value1))
+                # assert(is_float(value2))
+
+                # Switch case
+                if op_name == "+":
+                    result = value1 + value2
+                elif op_name == "-":
+                    result = value1 - value2
+                elif op_name == "*":
+                    result = value1 * value2
+                elif op_name == "/":
+                    result = value1 / value2
+                elif op_name == ">":
+                    result = value1 > value2
+                elif op_name == "<":
+                    result = value1 < value2
+                elif op_name == "<=":
+                    result = value1 <= value2
+                elif op_name == ">=":
+                    result = value1 >= value2
+                elif op_name == "=":
+                    result = value1 == value2
+                else:
+                    result = eval("%s%s%s" % (str(value1), op_name, str(value2)))
+                return result
             else: # Else element is a fluent value
                 if len(element)==1: # This is a fluent
                     fluent_name = (element[0],) # Todo: understand why this hack is needed

@@ -37,15 +37,17 @@ def test_UPenn_consistency_cartpole():
 
         obs_output_file = path.join(CP_NON_NOVEL_OBS_DIR, CP_NON_NOVEL_OBS_FILE_NAME % i)  # For debug
         obs = pickle.load(open(obs_output_file, "rb"))
-        novelties = detector.detect(obs)
+        novelties, novelty_likelihood = detector.detect(obs)
         assert (len(novelties) == 0) # "Non-novel level considered novel (false positive)"
+        assert (novelty_likelihood<1)
 
     for i in range (CP_NOVEL_OBS):
         print("novelty")
         obs_output_file = path.join(CP_NOVEL_OBS_DIR, CP_NOVEL_OBS_FILE_NAME % i)  # For debug
         obs = pickle.load(open(obs_output_file, "rb"))
-        novelties = detector.detect(obs)
+        novelties, novelty_likelihood = detector.detect(obs)
         assert(len(novelties)>0) # "Novelty not detected (false negative)"
+        assert(novelty_likelihood==1.0)
 
 @pytest.mark.skip("Skipping science birds for now")
 def test_UPenn_consistency_science_birds():
@@ -56,13 +58,15 @@ def test_UPenn_consistency_science_birds():
     for ob_file in SB_NON_NOVEL_TESTS:
         #load file
         sb_ob : ScienceBirdsObservation = pickle.load(open(path.join(SB_NON_NOVEL_OBS_DIR, ob_file), "rb"))
-        novelties = detector.detect(sb_ob)
+        novelties, novelty_likelihood = detector.detect(sb_ob)
         assert(len(novelties)==0)
+        assert(novelty_likelihood<1)
 
     for ob_file in SB_NOVEL_TESTS:
         sb_ob : ScienceBirdsObservation = pickle.load(open(path.join(SB_NOVEL_OBS_DIR, ob_file), "rb"))
-        novelties = detector.detect(sb_ob)
+        novelties, novelty_likelihood = detector.detect(sb_ob)
         assert(len(novelties)>0)
+        assert(novelty_likelihood==1)
 
 # Data generation methods - NOT TESTS
 @pytest.mark.skip("Generates data for  test_UPenn_consistency_cartpole() - not a real test")

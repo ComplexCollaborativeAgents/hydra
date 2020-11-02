@@ -29,7 +29,7 @@ class CartpoleHydraAgent:
 
         self.novelty_probability = 0.0
         self.novelty_type = 0
-        self.novelty_characterization = {'novelty_probability_threshold': 0.5,
+        self.novelty_characterization = {'novelty_probability_threshold': 0.999999, # TODO: Re-think whether this makes sense,
                                          'novelty_characterization_description': ''}
 
         self.plan_idx = 0
@@ -98,8 +98,9 @@ class RepairingCartpoleHydraAgent(CartpoleHydraAgent):
 
     def episode_end(self, performance: float):
         novelties = []
+        novelty_likelihood=0.0
         try:
-            novelties = self.detector.detect(self.current_observation)
+            novelties, novelty_likelihood = self.detector.detect(self.current_observation)
         except Exception:
             pass
 
@@ -120,7 +121,8 @@ class RepairingCartpoleHydraAgent(CartpoleHydraAgent):
                             for novel_property in novelty_properties:
                                 characterization[novel_property] = "Abnormal state attribute"
 
-                self.novelty_probability = 1.0 # TODO:  Replace this with a real prob. estimate
+                if novelty_likelihood==0.0:
+                    novelty_likelihood = 1.0 # Novelty likelihood is zero when novelty detector says so, but we set this to novelty for some other reasons
                 self.novelty_characterization['novelty_characterization_description'] = json.dumps(characterization)
 
             try:
@@ -130,6 +132,9 @@ class RepairingCartpoleHydraAgent(CartpoleHydraAgent):
                 self.has_repaired = True
             except Exception:
                 pass
+
+        self.novelty_probability = novelty_likelihood
+
         super().episode_end(performance)
 
 
