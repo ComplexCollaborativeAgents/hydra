@@ -4,6 +4,7 @@
     (:predicates (bird_released ?b - bird) (pig_dead ?p - pig) (angle_adjusted) (block_explosive ?bl - block) (pig_killed))
     (:functions (x_bird ?b - bird) (y_bird ?b - bird) (v_bird ?b - bird) (vx_bird ?b - bird) (vy_bird ?b - bird) (m_bird ?b - bird) (bird_id ?b - bird) (bounce_count ?b - bird)
                 (gravity) (angle_rate) (angle) (active_bird) (ground_damper) (max_angle) (gravity_factor)
+                (base_life_wood_multiplier) (base_life_ice_multiplier) (base_life_stone_multiplier) (base_life_tnt_multiplier)
                 (x_pig ?p - pig) (y_pig ?p - pig) (pig_radius ?p - pig) (m_pig ?p - pig)
                 (x_platform ?pl - platform) (y_platform ?pl - platform) (platform_width ?pl - platform) (platform_height ?pl - platform)
                 (x_block ?bl - block) (y_block ?bl - block) (block_width ?bl - block) (block_height ?bl - block) (block_life ?bl - block) (block_mass ?bl - block) (block_stability ?bl - block)
@@ -139,14 +140,13 @@
             (<= (y_bird ?b) (+ (y_block ?bl) (/ (block_height ?bl) 2) ) )
         )
         :effect (and
-            (assign (block_stability ?bl) (- (block_stability ?bl) (v_bird ?b))        )
+            (assign (block_stability ?bl) (- (block_stability ?bl) (v_bird ?b)) )
             (assign (block_life ?bl) (- (block_life ?bl) (v_bird ?b)) )
             (assign (vy_bird ?b) (* (vy_bird ?b) 0.5))
             (assign (vx_bird ?b) (* (vx_bird ?b) 0.5))
             (assign (v_bird ?b) (* (v_bird ?b) 0.5))
             (assign (bounce_count ?b) (+ (bounce_count ?b) 1))
-            )
-
+        )
     )
 
     (:event remove_unsupported_block
@@ -154,6 +154,8 @@
         :precondition (and
             (or  (<= (block_life ?bl_bottom) 0)
             (<= (block_stability ?bl_bottom) 0))
+            (> (block_life ?bl_top) 0)
+            (> (block_stability ?bl_top) 0)
             (<= (x_block ?bl_bottom) (+ (x_block ?bl_top) (/ (block_width ?bl_top) 2) ) )
             (>= (x_block ?bl_bottom) (- (x_block ?bl_top) (/ (block_width ?bl_top) 2) ) )
             (<= (y_block ?bl_bottom) (- (y_block ?bl_top) (/ (block_height ?bl_top) 2) ) )
@@ -221,6 +223,7 @@
     (:event remove_unsupported_pig
         :parameters (?bl_bottom - block ?p - pig)
         :precondition (and
+        	(not (pig_dead ?p))
             (or (< (block_life ?bl_bottom) 0)
             (<= (block_stability ?bl_bottom) 0))
             (<= (x_pig ?p) (+ (x_block ?bl_bottom) (/ (block_width ?bl_bottom) 2) ) )
