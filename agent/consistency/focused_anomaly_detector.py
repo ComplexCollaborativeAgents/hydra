@@ -25,14 +25,14 @@ class FocusedAnomaly:
 
 ''' A superclass for a focused anomaly detector '''
 class FocusedAnomalyDetector():
-    def __init__(self,threshold):
+    def __init__(self,threshold=[0.004*3, 0.002*3, 0.0015*3, 0.002*3]):
         self.threshold = threshold # only anamolies that exceed this threshold are returned
 
     def detect(self, observation):
         EPSILON = 0.000001 # This is used for cases where the novelty threshold is zero, to avoid divide by zero.
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         anomalies = list()
-        model = torch.load(os.path.join(settings.ROOT_PATH,'model', 'model_training_agent.pkl'), map_location= device)
+        model = torch.load(os.path.join(settings.ROOT_PATH,'model', 'model_v1.pkl'), map_location= device)
         prediction_obj = Trainer(model)
         anomaly_count = 10      ## increase this if you want a more conservative detection
         property = np.asarray(["Cart_Position", "Cart_Velocity","Pole_Angle","Pole_Angular_Velocity"])

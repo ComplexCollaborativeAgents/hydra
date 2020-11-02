@@ -94,7 +94,7 @@ class RepairingCartpoleHydraAgent(CartpoleHydraAgent):
         self.desired_precision = 0.01
         self.repair_threshold = 0.975 # 195/200
         self.has_repaired = False
-        self.detector = FocusedAnomalyDetector(threshold=[0.012, 0.012, 0.006, 0.009])
+        self.detector = FocusedAnomalyDetector()
 
     def episode_end(self, performance: float):
         novelties = []
