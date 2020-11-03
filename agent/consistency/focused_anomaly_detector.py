@@ -83,5 +83,4 @@ class FocusedAnomalyDetector():
         # If the trajectory stopped with an anomaly, we also count it as an anomaly # TODO: Discuss this design choice
         if next_anomly_idx == len(observation.states) - 1 and len(anomaly_list)>0:
             anomalies.append(FocusedAnomaly(anomaly_list))
-        return anomalies
         return anomalies, novelty_likelihood
