@@ -77,6 +77,10 @@ class FocusedAnomalyDetector():
 
                 if len(anomaly_list) == anomaly_count:  ## returns if we have 10/anomaly_count contiguous anomalies
                     anomalies.append(FocusedAnomaly(anomaly_list))  # TODO: Replace 1.0 with some funciton of anomaly_prob
+                    anomaly_list.clear()
                     break
 
+        # If the trajectory stopped with an anomaly, we also count it as an anomaly # TODO: Discuss this design choice
+        if next_anomly_idx == len(observation.states) - 1 and len(anomaly_list)>0:
+            anomalies.append(FocusedAnomaly(anomaly_list))
         return anomalies, novelty_likelihood
