@@ -176,6 +176,45 @@ class BirdLocationConsistencyEstimator(MetaModelBasedConsistencyEstimator):
         return consistency_checker.estimate_consistency(simulation_trace, state_seq, delta_t)
 
 
+''' Checks consistency by considering the location of the birds '''
+
+
+class BlockNotDeadConsistencyEstimator(MetaModelBasedConsistencyEstimator):
+    BLOCK_NOT_DEAD = 100
+
+    ''' Estimate consitency by considering the location of the birds in the observed state seq '''
+    def estimate_consistency(self, simulation_trace: list, state_seq: list, delta_t: float = DEFAULT_DELTA_T):
+        last_state_in_obs = state_seq[-1]
+        live_blocks_in_obs = last_state_in_obs.get_blocks()
+        last_state_in_sim = simulation_trace[-1][0]
+        blocks_in_sim = last_state_in_sim.get_blocks()
+        # Make sure very block that is assumed to be dead in sim is indeed not alive in obs
+        for block in blocks_in_sim:
+            life_fluent = "block_life %s" % block
+            life_value = float(last_state_in_sim[life_fluent])
+            if life_value <= 0:
+                if block in live_blocks_in_obs:
+                    return BlockNotDeadConsistencyEstimator.BLOCK_NOT_DEAD
+        # TODO: Consider checking also the reverse condition
+
+        return 0
+
+
+''' All consistency estimators for SB '''
+class ScienceBirdsConsistencyEstimator(MetaModelBasedConsistencyEstimator):
+    def __init__(self):
+        self.consistency_estimators = list()
+        self.consistency_estimators.append(BirdLocationConsistencyEstimator())
+        self.consistency_estimators.append(BlockNotDeadConsistencyEstimator())
+
+    def estimate_consistency(self, simulation_trace: list, state_seq: list, delta_t: float = DEFAULT_DELTA_T):
+        max_inconsistency = 0
+        for consistency_estimator in self.consistency_estimators:
+            inconsistency = consistency_estimator.estimate_consistency(simulation_trace, state_seq, delta_t)
+            if inconsistency > max_inconsistency:
+                max_inconsistency = inconsistency
+
+        return max_inconsistency
 
 ''' A utility function for comparing (state, time) sequences. 
 It outputs a list of differences between the sequences. '''

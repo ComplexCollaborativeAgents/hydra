@@ -13,6 +13,14 @@ from agent.planning.pddl_meta_model import *
 logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("hydra_agent")
 
+# fh = logging.FileHandler("hydra_debug.log",mode='w')
+# logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
+# # fh.setFormatter(formatter)
+# logger = logging.getLogger("hydra_agent")
+# logger.setLevel(logging.INFO)
+# logger.addHandler(fh)
+
+
 class HydraAgent():
     '''
     Probably needs to subclass for each domain. We will cross that bridge when we get there
@@ -37,7 +45,7 @@ class HydraAgent():
     def main_loop(self,max_actions=1000):
         logger.info("[hydra_agent_server] :: Entering main loop")
         logger.info("[hydra_agent_server] :: Delta t = {}".format(str(settings.SB_DELTA_T)))
-        logger.info("[hydra_agent_server] :: Simulation speed = {}\n\n".format(str(settings.SB_SIM_SPEED)))
+        logger.info("[hydra_agent_server] :: Simulation speed = {}".format(str(settings.SB_SIM_SPEED)))
         logger.info("[hydra_agent_server] :: Planner memory limit = {}".format(str(settings.SB_PLANNER_MEMORY_LIMIT)))
         logger.info("[hydra_agent_server] :: Planner timeout = {}s\n\n".format(str(settings.SB_TIMEOUT)))
         t = 0

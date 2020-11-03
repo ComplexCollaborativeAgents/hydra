@@ -1,14 +1,16 @@
 from agent.hydra_agent import HydraAgent
 from agent.consistency.meta_model_repair import *
 from agent.gym_hydra_agent import GymHydraAgent
-import os.path as path
 
-fh = logging.FileHandler("hydra.log",mode='w')
-formatter = logging.Formatter('%(name)s - %(levelname)s - %(message)s')
-fh.setFormatter(formatter)
+# fh = logging.FileHandler("hydra_repair_debug.log",mode='w')
+# formatter = logging.Formatter('%(name)s - %(levelname)s - %(message)s')
+# fh.setFormatter(formatter)
+# logger = logging.getLogger("hydra_agent")
+# logger.setLevel(logging.INFO)
+# logger.addHandler(fh)
+
+logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("hydra_agent")
-logger.setLevel(logging.INFO)
-logger.addHandler(fh)
 
 from agent.planning.cartpole_pddl_meta_model import *
 from agent.consistency.cartpole_repair import *
@@ -51,7 +53,7 @@ class RepairingHydraSBAgent(HydraAgent):
     def __init__(self,env=None,agent_stats = dict()):
         super().__init__(env, agent_stats)
         self.debug_mode = True
-        self.consistency_estimator = BirdLocationConsistencyEstimator()
+        self.consistency_estimator = ScienceBirdsConsistencyEstimator()
 
         # Create meta_model_repair object
         self.desired_consistency = 25 # The consistency threshold for initiating repair
@@ -76,6 +78,7 @@ class RepairingHydraSBAgent(HydraAgent):
                 self.agent_stats["repair_time"] = 0
 
             # Check if we should repair
+            logger.info("checking for repair...")
             if self.should_repair(last_obs):
                 logger.info("Initiating repair...")
                 if self.debug_mode: # Print observation and meta model to allow debugging
@@ -96,14 +99,11 @@ class RepairingHydraSBAgent(HydraAgent):
 
                 repair_description = ["Repair %s, %.2f" % (fluent, repair[i])
                                       for i, fluent in enumerate(self.meta_model_repair.fluents_to_repair)]
-                logger.info("Repair done! Repair time %.2f, Consistency: %.2f, Repair:\n %s" % (repair_time, consistency, "\n".join(repair_description)))
+                logger.info("Repair done! Consistency: %.2f, Repair:\n %s" % (consistency, "\n".join(repair_description)))
 
 
         super().handle_game_playing(observation, raw_state)
 
     ''' Checks if the current model should be repaired'''
     def should_repair(self, observation: ScienceBirdsObservation):
-        if self.novelty_existence is not None and self.novelty_existence==False:
-            return False
-
         return check_obs_consistency(observation, self.meta_model, self.consistency_estimator) > self.desired_consistency
