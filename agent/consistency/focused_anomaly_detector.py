@@ -25,13 +25,14 @@ class FocusedAnomaly:
 
 ''' A superclass for a focused anomaly detector '''
 class FocusedAnomalyDetector():
-    def __init__(self,threshold):
+    def __init__(self,threshold=[0.004*3, 0.002*3, 0.0015*3, 0.002*3]):
         self.threshold = threshold # only anamolies that exceed this threshold are returned
 
     def detect(self, observation):
+        EPSILON = 0.000001 # This is used for cases where the novelty threshold is zero, to avoid divide by zero.
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         anomalies = list()
-        model = torch.load(os.path.join(settings.ROOT_PATH,'model', 'model_training_agent.pkl'), map_location= device)
+        model = torch.load(os.path.join(settings.ROOT_PATH,'model', 'model_v1.pkl'), map_location= device)
         prediction_obj = Trainer(model)
         anomaly_count = 10      ## increase this if you want a more conservative detection
         property = np.asarray(["Cart_Position", "Cart_Velocity","Pole_Angle","Pole_Angular_Velocity"])
@@ -39,6 +40,7 @@ class FocusedAnomalyDetector():
         anomaly_list = []
         delta = []
 
+        novelty_likelihood = 0.0
         for i in range(len(observation.states) - 1):
             state = observation.states[i]
             next_state = observation.states[i+1]
@@ -47,7 +49,17 @@ class FocusedAnomalyDetector():
             current_delta = np.abs(observation.states[i+1] - next_state_pred.cpu().numpy()[0])
             delta.append(current_delta)
             anomaly_prob = np.mean(np.array(delta),axis = 0)
+
+            # Update novelty prob
+            normalized_anomaly_scores = [min(1.0,1.0-(thresh-anomaly_score+EPSILON)/(thresh+EPSILON))
+                                         for (thresh, anomaly_score) in zip(self.threshold, anomaly_prob)]
+            anomaly_value = max(normalized_anomaly_scores)
+            if anomaly_value>novelty_likelihood:
+                novelty_likelihood = anomaly_value
+
+            # If novelty exceeded threshold, add it to the list of detected novelties
             if (anomaly_prob > np.array(self.threshold)).any():
+            # if anomaly_value >= 1: TODO: after code freeze, let's be bold and use this one :)
 
                 if next_anomly_idx < i: ## this checks if the anomalies are contiguous
                     anomaly_list = []
@@ -67,4 +79,4 @@ class FocusedAnomalyDetector():
                     anomalies.append(FocusedAnomaly(anomaly_list))  # TODO: Replace 1.0 with some funciton of anomaly_prob
                     break
 
-        return anomalies
+        return anomalies, novelty_likelihood

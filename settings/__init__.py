@@ -1,6 +1,7 @@
 import sys
 import os
 from os import path
+import shortuuid
 
 # Create your own local_settings.py file in this directory if you want
 # to override this variable and not run headless
@@ -33,6 +34,9 @@ SCIENCE_BIRDS_SERVER_CMD = 'java -jar {}'.format(path.join(SCIENCE_BIRDS_BIN_DIR
 PLANNING_DOCKER_PATH = path.join(ROOT_PATH, 'agent', 'planning', 'docker_scripts')
 CARTPOLE_PLANNING_DOCKER_PATH = path.join(ROOT_PATH, 'agent', 'planning', 'cartpole_docker_scripts')
 VAL_DOCKER_PATH = path.join(ROOT_PATH, 'agent', 'planning', 'val_scripts')
+
+HYDRA_INSTANCE_ID = shortuuid.uuid()
+TMP_FOLDER = path.join(os.sep, 'tmp')
 
 sc_json_config =  [{
     "host": "127.0.0.1",
