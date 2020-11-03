@@ -1,122 +1,128 @@
 '''
-    This module provides very basic capabilities for simulating PDDL+ domain behavior,
-    including actions, events, and processes.
+    This module provides enhancements to our basic PDDL+ simulator
 '''
-from agent.planning.pddl_meta_model import *
-from agent.consistency.observation import *
 from agent.consistency.pddl_plus_simulator import *
+
+
+''' Analyzes the domain to refine it, identifying inapplicable events '''
+class DomainRefiner:
+
+    ''' Collect fluents used in a given state '''
+    def find_state_fluents(state: PddlPlusState):
+        fluents = set()
+        fluents.update(state.boolean_fluents.keys())
+        fluents.update(state.numeric_fluents.keys())
+        return fluents
+
+    ''' Collects the list of fluents used in the set of effects'''
+    def add_fluents_from_effects(self, effects, fluents: set):
+        for effect in effects:
+            effect_type = effect[0]  # increase or decrease
+            if effect_type in ("increase", "decrease", "assign"):
+                # Numeric fluent
+                fluent_name = tuple(effect[1])
+                fluents.add(fluent_name)
+
+                # Fluents for a formula
+                self.add_fluents_from_formula(effect[2], fluents)
+
+            else:  # Boolean effects
+                if effect[0] == "not":  # remove a fact
+                    fluent_name = tuple(effect[1])
+                else:  # add a fact
+                    fluent_name = tuple(effect)
+                fluents.add(fluent_name)
+
+    ''' Adds all the fluents used in the given formula'''
+    def add_fluents_from_formula(self, formula, fluents: set):
+        if isinstance(formula, list):  # This if prunes primitives
+            if is_op(formula[0]):  # If element is an operator
+                # assert len(formula) == 3
+                self.add_fluents_from_formula(formula[1], fluents)
+                self.add_fluents_from_formula(formula[2], fluents)
+            else:  # Else element is a fluent value
+                if len(formula) == 1:  # This is a fluent
+                    fluent_name = (formula[0],)  # Todo: understand why this hack is needed
+                else:
+                    fluent_name = tuple(formula)
+                fluents.add(fluent_name)
+
+    ''' Adds all the fluents used in the given set of preconditions '''
+    def add_fluents_in_precondition(self, precondition, fluents: set):
+        if isinstance(precondition, str):
+            if is_float(precondition)==False:
+                fluents.add((precondition,))
+        elif isinstance(precondition, list):
+            if precondition[0] == "not":
+                self.add_fluents_in_precondition(precondition[1], fluents)
+            elif precondition[0] == "or":
+                for clause in precondition[1:]:
+                    self.add_fluents_in_precondition(clause, fluents)
+            else:
+                self.add_fluents_from_formula(precondition,fluents)
+        return fluents
+
+    ''' Finds all the effects that are not applicable in the current problem '''
+    def find_inapplicable_events(self, grounded_domain: PddlPlusDomain, grounded_problem: PddlPlusProblem):
+        initial_state = PddlPlusState(grounded_problem.init)
+
+        world_changes = list()
+        world_changes.extend(grounded_domain.actions)
+        world_changes.extend(grounded_domain.events)
+        world_changes.extend(grounded_domain.processes)
+
+        fluents_in_effects = set()
+        for world_change in world_changes:
+            self.add_fluents_from_effects(world_change.effects, fluents_in_effects)
+
+        sim = PddlPlusSimulator()
+        fluents_in_precondition = set()
+        inapplicable_events = set()
+        for event in grounded_domain.events:
+            for precondition in event.preconditions:
+                fluents_in_precondition.clear()
+                self.add_fluents_in_precondition(precondition, fluents_in_precondition)
+
+                # if event's preconditions constants
+                if len(set(fluents_in_effects).intersection(fluents_in_precondition)) == 0:
+                    if sim.preconditions_hold(initial_state, [precondition]) == False:
+                        inapplicable_events.add(event)
+                        break
+
+        return inapplicable_events
 
 ''' A simplistic, probably not complete and sound, simulator for PDDL+ processes
  TODO: Replace this with a call to VAL. '''
+class RefinedPddlPlusSimulator(PddlPlusSimulator):
+    ''' Simulate running the given plan from the start state '''
+    def simulate(self, plan_to_simulate: PddlPlusPlan, problem: PddlPlusProblem, domain: PddlPlusDomain, delta_t:float, max_t:float = 1000, max_iterations: float = 1000):
+        # Remove inapplicable events
+        refiner = DomainRefiner()
+        unused_events = refiner.find_inapplicable_events(domain, problem)
+        for event in unused_events:
+            domain.events.remove(event)
+
+        return super().simulate(plan_to_simulate, problem, domain, delta_t, max_t, max_iterations)
+
+
+''' A PDDL+ sim that caches calls to evaluate formulaes to gain efficiency  '''
 class CachingPddlPlusSimulator(PddlPlusSimulator):
     def __init__(self):
         self.context = dict()
 
-
     ''' Simulate running the given plan from the start state '''
     def simulate(self, plan_to_simulate: PddlPlusPlan, problem: PddlPlusProblem, domain: PddlPlusDomain, delta_t:float, max_t:float = 1000, max_iterations: float = 1000):
-        self.problem = problem
-        # Ground the domain
-        grounder = PddlPlusGrounder(no_dummy_objects=False)
-        self.domain = grounder.ground_domain(domain, problem)
+        # Remove inapplicable events
+        refiner = DomainRefiner()
+        unused_events = refiner.find_inapplicable_events(domain, problem)
+        for event in unused_events:
+            domain.events.remove(event)
 
-        # print ("\n\nGROUNDED DOMAIN: \n")
-        # print (self.domain.name)
-        # print (self.domain.types)
-        # print (self.domain.predicates)
-        # print (self.domain.functions)
-        # for pro in self.domain.processes:
-        #     pro.print_info()
-        # print ("")
-        # for ev in self.domain.events:
-        #     ev.print_info()
-        # print ("")
-        # for ac in self.domain.actions:
-        #     ac.print_info()
+        return super().simulate(plan_to_simulate, problem, domain, delta_t, max_t, max_iterations)
 
-        state = PddlPlusState(problem.init)
-        t = 0.0
-        trace = []
-        current_state = state.clone()
-        plan = PddlPlusPlan(plan_to_simulate) # Clone the given plan
-
-        # print("\n\nACTIONS IN COPIED PLAN")
-        # for acts in plan:
-        #     print (acts.action_name, " at ", acts.start_at)
-
-        if len(plan)==0:
-            raise ValueError("Plan is empty")
-        next_timed_action  = plan.pop(0)
-        # print("\n\nNEXT TIMED ACTION: ", next_timed_action.action_name, " at ", next_timed_action.start_at)
-
-        # Create the first trace_item
-        trace_item = [None, None, None]
-        trace.append(trace_item)
-        trace_item[TI_STATE]=current_state.clone() # TODO: Maybe this close is redundant
-        trace_item[TI_T] = t
-        world_changes_at_t = []
-        trace_item[TI_WORLD_CHANGES] = world_changes_at_t
-
-        still_active = True
-        while still_active and t<max_t and t/delta_t<max_iterations:
-            self.context.clear()  # New t value may change the cached values TODO: Smarter caching
-
-            # If we reached the time in which the next action should be applied, apply it
-            # print ("TIME = ", t)
-            if next_timed_action is not None and next_timed_action.start_at<=t:
-                # Get the WorldChange object for the action to perform
-                # print ("APPLIED TIMED ACTION: ", next_timed_action.action_name, " at time = ", next_timed_action.start_at, "/", t)
-                world_change = self.domain.get_action(next_timed_action.action_name)
-                new_effects = self.compute_apply_action(current_state, world_change)
-                world_changes_at_t.append(world_change)
-                if new_effects is not None and len(new_effects)>0:
-                    self.apply_effects(current_state, new_effects)
-
-                # Next action
-                if len(plan)>0:
-                    next_timed_action = plan.pop(0)
-                else:
-                    next_timed_action = None
-
-            # Compute delta t
-            if next_timed_action is None or next_timed_action.start_at > t+delta_t: # Next action should not start before t+delta_t
-                current_delta_t = delta_t
-            else: # Next action should start before t+delta_t, we don't want to miss it
-                current_delta_t = next_timed_action.start_at - t
-
-            # Trigger events after action is performed
-            fired_events = self.handle_events(current_state)
-            for event in fired_events:
-                world_changes_at_t.append(event)
-
-            # Advance process and apply events
-            active_processes = self.handle_processes(current_state, current_delta_t) # Advance processes
-            for process in active_processes:
-                world_changes_at_t.append(process)
-
-            t = t+current_delta_t # Advance time
-
-            # Add new trace item, which will be completed by the next iteration of this while
-            trace_item = [None, None, None]
-            trace_item[TI_STATE]=current_state.clone()
-            trace_item[TI_T] = t
-            world_changes_at_t = []
-            trace_item[TI_WORLD_CHANGES]=world_changes_at_t # Actions, events, and process, performed in this (state,time) pair
-            trace.append(trace_item)
-
-            # Stopping condition
-            if len(active_processes)>0:
-                still_active = True
-            elif len(fired_events)>0:
-                still_active = True # This one is debatable TODO: Consult Wiktor and Matt
-            elif next_timed_action is not None:
-                # In this case, everything is waiting for the next timed action, so we can just "jump ahead" to get to do that action.
-                still_active = True
-                t = next_timed_action.start_at
-            else:
-                still_active = False
-
-        return current_state, t, trace
+    def _sim_step(self, current_state, t):
+        self.context.clear()  # New t value may change the cached values TODO: Smarter caching
+        return super()._sim_step(current_state, t)
 
     ''' Apply the specified effect ont he given state '''
     def apply_effects(self, state, effects, delta_t=-1):
@@ -127,69 +133,8 @@ class CachingPddlPlusSimulator(PddlPlusSimulator):
     def _eval(self, element, state: PddlPlusState, delta_t: float = -1):
         element_str = str(element)
         if element_str in self.context:
-            # print("Cache hit")
             return self.context[element_str]
-        # else:
-            # print("Cache miss")
-        # print("Eval %s" % str(element))
-        if isinstance(element, list):
-            if self.is_op(element[0]): # If element is an operator
-                assert len(element) == 3
-
-                # Below: inling the __eval__ call for performance
-                if is_float(element[1]):
-                    value1 = float(element[1])
-                else:
-                    value1 = self._eval(element[1], state, delta_t)
-                if is_float(element[2]):
-                    value2 = float(element[2])
-                else:
-                    value2 = self._eval(element[2], state, delta_t)
-
-                op_name = element[0]
-                assert(is_float(value1))
-                assert(is_float(value2))
-
-                # Switch case
-                if op_name=="+":
-                    result = value1 + value2
-                elif op_name=="-":
-                    result = value1 - value2
-                elif op_name == "*":
-                    result = value1 * value2
-                elif op_name == "/":
-                    result = value1 / value2
-                elif op_name == ">":
-                    result = value1 > value2
-                elif op_name == "<":
-                    result = value1 < value2
-                elif op_name == "<=":
-                    result = value1 <= value2
-                elif op_name == ">=":
-                    result = value1 >= value2
-                elif op_name == "=":
-                    result = value1 == value2
-                else:
-                    result = eval("%s%s%s" % (str(value1), op_name, str(value2)))
-
-                self.context[element_str] = result
-                return result
-            else: # Else element is a fluent value
-                if len(element)==1: # This is a fluent
-                    fluent_name = (element[0],) # Todo: understand why this hack is needed
-                else:
-                    fluent_name = tuple(element)
-                if fluent_name in state.numeric_fluents:
-                    return float(state.numeric_fluents[fluent_name])
-                else:
-                    return fluent_name in state.boolean_fluents
         else:
-            if is_float(element):
-                return float(element) # A constant
-            elif element=="#t":
-                if delta_t==-1:
-                    raise ValueError("Delta t not set, but needed for evaluation")
-                return delta_t
-            else:
-                return element
-                # return float(state.numeric_fluents[element])  # A fluent
+            result = super()._eval(element, state, delta_t)
+            self.context[element_str] = result
+            return result

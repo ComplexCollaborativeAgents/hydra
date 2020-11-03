@@ -17,7 +17,8 @@ PIG_MARKER = "o"
 ''' Helper function: simulate the given plan, on the given problem and domain.  '''
 def simulate_plan_trace(plan: PddlPlusPlan, problem:PddlPlusProblem, domain: PddlPlusDomain, delta_t:float = 0.05):
     simulator = PddlPlusSimulator()
-    (_, _, trace) =  simulator.simulate(plan, problem, domain, delta_t)
+    grounded_domain = PddlPlusGrounder().ground_domain(domain, problem)  # Simulator accepts only grounded domains
+    (_, _, trace) =  simulator.simulate(plan, problem, grounded_domain, delta_t)
     return trace
 
 ''' Helper function: returns a PDDL+ problem and domain objects'''
