@@ -5,6 +5,7 @@
     (:functions (x_bird ?b - bird) (y_bird ?b - bird) (v_bird ?b - bird) (vx_bird ?b - bird) (vy_bird ?b - bird) (m_bird ?b - bird) (bird_id ?b - bird) (bounce_count ?b - bird)
                 (gravity) (angle_rate) (angle) (active_bird) (ground_damper) (max_angle) (gravity_factor)
                 (base_life_wood_multiplier) (base_life_ice_multiplier) (base_life_stone_multiplier) (base_life_tnt_multiplier)
+                (base_mass_wood_multiplier) (base_mass_ice_multiplier) (base_mass_stone_multiplier) (base_mass_tnt_multiplier)
                 (x_pig ?p - pig) (y_pig ?p - pig) (pig_radius ?p - pig) (m_pig ?p - pig)
                 (x_platform ?pl - platform) (y_platform ?pl - platform) (platform_width ?pl - platform) (platform_height ?pl - platform)
                 (x_block ?bl - block) (y_block ?bl - block) (block_width ?bl - block) (block_height ?bl - block) (block_life ?bl - block) (block_mass ?bl - block) (block_stability ?bl - block)
@@ -128,12 +129,40 @@
         )
     )
 
+    (:event collision_block_bounce_off
+        :parameters (?b - bird ?bl - block)
+        :precondition (and
+            (= (active_bird) (bird_id ?b))
+            (> (block_life ?bl) 0)
+            (> (v_bird ?b) 0)
+            (> (block_stability ?bl) (v_bird ?b) )
+            (> (block_life ?bl) (v_bird ?b) )
+            (<= (x_bird ?b) (+ (x_block ?bl) (/ (block_width ?bl) 2) ) )
+            (>= (x_bird ?b) (- (x_block ?bl) (/ (block_width ?bl) 2) ) )
+            (>= (y_bird ?b) (- (y_block ?bl) (/ (block_height ?bl) 2) ) )
+            (<= (y_bird ?b) (+ (y_block ?bl) (/ (block_height ?bl) 2) ) )
+        )
+        :effect (and
+            (assign (block_stability ?bl) (- (block_stability ?bl) (v_bird ?b)) )
+            (assign (block_life ?bl) (- (block_life ?bl) (v_bird ?b)) )
+            (assign (vy_bird ?b) (* (vy_bird ?b) (/ (v_bird ?b) (block_stability ?bl)) ))
+            (assign (vx_bird ?b) (- 0 (* (vx_bird ?b) (/ (v_bird ?b) (block_stability ?bl))) ))
+            (assign (v_bird ?b) (* (v_bird ?b) (/ (v_bird ?b) (block_stability ?bl)) ))
+            (assign (bounce_count ?b) (+ (bounce_count ?b) 1))
+        )
+    )
+
+
     (:event collision_block
         :parameters (?b - bird ?bl - block)
         :precondition (and
             (= (active_bird) (bird_id ?b))
             (> (block_life ?bl) 0)
             (> (v_bird ?b) 0)
+            (or 
+            	(<= (block_stability ?bl) (v_bird ?b))
+            	(<= (block_life ?bl) (v_bird ?b))
+        	)
             (<= (x_bird ?b) (+ (x_block ?bl) (/ (block_width ?bl) 2) ) )
             (>= (x_bird ?b) (- (x_block ?bl) (/ (block_width ?bl) 2) ) )
             (>= (y_bird ?b) (- (y_block ?bl) (/ (block_height ?bl) 2) ) )
@@ -148,6 +177,7 @@
             (assign (bounce_count ?b) (+ (bounce_count ?b) 1))
         )
     )
+
 
     (:event remove_unsupported_block
         :parameters (?bl_bottom - block ?bl_top - block)

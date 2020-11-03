@@ -11,6 +11,7 @@ import os.path as path
 
 GRAVITY_FACTOR = "gravity_factor"
 BASE_LIFE_WOOD_MULTIPLIER = "base_life_wood_multiplier"
+BASE_MASS_WOOD_MULTIPLIER = "base_mass_wood_multiplier"
 DATA_DIR = path.join(settings.ROOT_PATH, 'data')
 TEST_DATA_DIR = path.join(DATA_DIR, 'science_birds', 'tests')
 
@@ -42,7 +43,7 @@ def _run_experiment(hydra, experiment_name, max_iterations = 10):
     # _inject_fault_to_meta_model(hydra.meta_model, GRAVITY_FACTOR)
     try:
         results_file = open(path.join(TEST_DATA_DIR, "%s.csv" % experiment_name), "w")
-        results_file.write("Iteration\t Reward\t PlanningTime\t CummulativePlanningTime\t base_life_wood_multiplier\n")
+        results_file.write("Iteration\t Reward\t PlanningTime\t CummulativePlanningTime\t base_life_wood_multiplier\t base_mass_wood_multiplier\n")
 
         iteration = 0
         obs_with_rewards = 0
@@ -50,11 +51,12 @@ def _run_experiment(hydra, experiment_name, max_iterations = 10):
             hydra.run_next_action()
             observation = hydra.find_last_obs()
 
-            results_file.write("%d\t %.2f\t %.2f\t %.2f\t %.2f\n" % (iteration,
+            results_file.write("%d\t %.2f\t %.2f\t %.2f\t %.4f\t %.4f\n" % (iteration,
                                                                      observation.reward,
                                                                      hydra.overall_plan_time,
                                                                      hydra.cumulative_plan_time,
-                                                                     hydra.meta_model.constant_numeric_fluents[BASE_LIFE_WOOD_MULTIPLIER]))
+                                                                     hydra.meta_model.constant_numeric_fluents[BASE_LIFE_WOOD_MULTIPLIER],
+                                                                     hydra.meta_model.constant_numeric_fluents[BASE_MASS_WOOD_MULTIPLIER]))
             results_file.flush()
 
             # Store observation for debug
