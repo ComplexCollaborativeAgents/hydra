@@ -27,7 +27,7 @@ SB_NOVEL_OBS_DIR = path.join(settings.ROOT_PATH, 'data', 'science_birds', 'consi
 SB_NON_NOVEL_TESTS = ['level_15_obs.p']
 SB_NOVEL_TESTS = ['novelty_2_6_level_15_new_bird_obs.p', 'novelty_2_7_level_15_new_bird_obs.p']
 
-@pytest.mark.skip("Currently failing.")
+# @pytest.mark.skip("Currently failing.")
 def test_UPenn_consistency_cartpole():
     '''
     verify that we can identify novelty for observations of novel problems, and that we don't for non_novel-problems
