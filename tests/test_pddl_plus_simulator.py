@@ -1,8 +1,11 @@
 from os import path
+import time
 
 import pytest
 import matplotlib.pyplot as plt
 import pickle
+
+from agent.consistency.fast_pddl_simulator import CachingPddlPlusSimulator, RefinedPddlPlusSimulator
 from agent.consistency.meta_model_repair import *
 from agent.planning.planner import Planner
 import tests.test_utils as test_utils
@@ -140,7 +143,62 @@ def test_simulate():
     timed_action = TimedAction(twang_action.name, 20)
     plan = [timed_action]
 
+    pddl_domain = PddlPlusGrounder().ground_domain(pddl_domain, pddl_problem)  # Simulator accepts only grounded domains
     (current_state, t, trace) = simulator.simulate(plan, pddl_problem, pddl_domain, delta_t)
     assert t>4
     assert trace[-1][0]==current_state
     assert t == trace[-1][1]
+
+''' Tests the faster implementation of the simulator '''
+def _test_fast_sim(simulator_to_test):
+    obs_output_file = path.join(settings.ROOT_PATH, "data", "science_birds", "tests",
+                                "current_repair.p")  # For debug
+    obs = pickle.load(open(obs_output_file, "rb"))
+
+    mm_output_file = path.join(settings.ROOT_PATH, "data", "science_birds", "tests",
+                               "current_repair.mm")  # For debug
+    meta_model = pickle.load(open(mm_output_file, "rb"))
+
+    start = time.time()
+    value = check_obs_consistency(obs, meta_model, BirdLocationConsistencyEstimator(),
+                                  simulator=simulator_to_test)
+    runtime = time.time() - start
+    print(runtime)
+    return runtime
+
+''' Assert faster simulators output the same values as the original one '''
+def test_fast_sim():
+    obs_output_file = path.join(settings.ROOT_PATH, "data", "science_birds", "tests",
+                                "current_repair.p")  # For debug
+    observation = pickle.load(open(obs_output_file, "rb"))
+
+    mm_output_file = path.join(settings.ROOT_PATH, "data", "science_birds", "tests",
+                               "current_repair.mm")  # For debug
+    meta_model = pickle.load(open(mm_output_file, "rb"))
+    delta_t = settings.SB_DELTA_T
+    consistency_estimator = BirdLocationConsistencyEstimator()
+    observed_seq = observation.get_trace(meta_model)
+
+    simulator = PddlPlusSimulator()
+    vanilla_sim_expected_trace, _ = simulator.get_expected_trace(observation, meta_model, delta_t)
+    vanilla_sim_consistency = consistency_estimator.estimate_consistency(vanilla_sim_expected_trace, observed_seq, delta_t)
+
+    simulator = RefinedPddlPlusSimulator()
+    refined_sim_expected_trace, _ = simulator.get_expected_trace(observation, meta_model, delta_t)
+    refined_sim_consistency = consistency_estimator.estimate_consistency(refined_sim_expected_trace, observed_seq, delta_t)
+
+    assert(vanilla_sim_consistency==refined_sim_consistency)
+    assert(len(vanilla_sim_expected_trace)==len(refined_sim_expected_trace))
+    for i, trace_item in enumerate(vanilla_sim_expected_trace):
+        other_trace_item = refined_sim_expected_trace[i]
+        assert(trace_item[0]==other_trace_item[0])
+
+    simulator = CachingPddlPlusSimulator()
+    caching_sim_expected_trace, _ = simulator.get_expected_trace(observation, meta_model, delta_t)
+    caching_sim_consistency = consistency_estimator.estimate_consistency(caching_sim_expected_trace, observed_seq, delta_t)
+
+    assert(vanilla_sim_consistency==caching_sim_consistency)
+    assert(len(vanilla_sim_expected_trace)==len(caching_sim_expected_trace))
+    for i, trace_item in enumerate(vanilla_sim_expected_trace):
+        other_trace_item = caching_sim_expected_trace[i]
+        assert(trace_item[0]==other_trace_item[0])

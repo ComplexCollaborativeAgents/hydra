@@ -1,7 +1,9 @@
-from agent.consistency.pddl_plus_simulator import *
+from agent.consistency.fast_pddl_simulator import RefinedPddlPlusSimulator
 from agent.consistency.consistency_estimator import *
 from agent.planning.pddl_meta_model import *
 import heapq
+import time
+
 
 logger = logging.getLogger("meta_model_repair")
 
@@ -15,21 +17,26 @@ class MetaModelRepair(): # TODO: Remove this class
                pddl_meta_model,
                observation, delta_t=1.0):
 
-        simulator = PddlPlusSimulator()
+        simulator = RefinedPddlPlusSimulator()
         sb_state = observation.state
         pddl_plan = observation.get_pddl_plan(pddl_meta_model)
         observed_states = observation.get_trace(pddl_meta_model)
 
         pddl_domain = pddl_meta_model.create_pddl_domain(sb_state)
         pddl_problem = pddl_meta_model.create_pddl_problem(sb_state)
+        pddl_domain = PddlPlusGrounder().ground_domain(pddl_domain,pddl_problem) # Simulator accepts only grounded domains
+
         (_,_,expected_obs) = simulator.simulate(pddl_plan, pddl_problem, pddl_domain, delta_t)
 
         manipulator_itr = self.choose_manipulator()
         while self.is_consistent(expected_obs, observed_states)==False:
             manipulator = next(manipulator_itr)
             manipulator.apply_change(pddl_meta_model)
+            # Create updated problem and domain
             pddl_domain = pddl_meta_model.create_pddl_domain(sb_state)
             pddl_problem = pddl_meta_model.create_pddl_problem(sb_state)
+            pddl_domain = PddlPlusGrounder().ground_domain(pddl_domain, pddl_problem)  # Simulator accepts only grounded domains
+
             (_, _, expected_obs) = simulator.simulate(pddl_plan, pddl_problem, pddl_domain, delta_t)
 
         return pddl_meta_model
@@ -50,18 +57,21 @@ class GreedyBestFirstSearchMetaModelRepair(MetaModelRepair):
                  consistency_estimator,
                  deltas,
                  consistency_threshold=2,
-                 max_iteration=30):
+                 max_iteration=30,
+                 time_limit = 1000):
 
         self.consistency_estimator = consistency_estimator
         self.fluents_to_repair = fluents_to_repair
         self.deltas =deltas
         self.consistency_threshold = consistency_threshold
         self.max_iterations = max_iteration
-        self.simulator = PddlPlusSimulator()
+        self.simulator = RefinedPddlPlusSimulator()
 
         # Init other fields
         self.current_delta_t = None
         self.current_meta_model = None
+
+        self.time_limit = time_limit # Allows setting a timeout for the repair
 
     ''' The heursitic to use to prioritize repairs'''
     def _heuristic(self, repair, consistency):
@@ -77,7 +87,7 @@ class GreedyBestFirstSearchMetaModelRepair(MetaModelRepair):
 
         self.current_delta_t = delta_t
         self.current_meta_model = pddl_meta_model
-
+        start_time = time.time()
         # Initialize OPEN
         open = []
         repair = [0]* len(self.fluents_to_repair) # Repair is a list, in order of the fluents_to_repair list
@@ -91,13 +101,20 @@ class GreedyBestFirstSearchMetaModelRepair(MetaModelRepair):
         # fig = test_utils.plot_observation(observation) # For debug
         incumbent_consistency = base_consistency
         incumbent_repair = repair
+        timeout = False
 
-        while iteration < self.max_iterations and \
-                not (self.is_incumbent_good_enough(incumbent_consistency)
+        while iteration < self.max_iterations and timeout==False \
+                and not (self.is_incumbent_good_enough(incumbent_consistency)
                      and np.any(incumbent_repair)): # Last condition is designed to prevent returning an empty repair
             [_, repair] = heapq.heappop(open)
             new_repairs = self.expand(repair)
             for new_repair in new_repairs:
+
+                # Check if reached the timeout
+                if time.time() - start_time > self.time_limit:
+                    timeout=True
+                    break
+
                 new_repair_tuple = tuple(new_repair)
                 if new_repair_tuple not in generated_repairs: # If  this is a new repair
                     generated_repairs.add(new_repair_tuple) # To allow duplicate detection

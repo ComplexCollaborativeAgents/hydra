@@ -1,0 +1,9 @@
+<evaluation>
+  <novelty_detection_measurement measure_in_testing="True" measure_in_training="True" step="1" />
+  <trials>
+    <trial checkpoint_interaction_limit="200" checkpoint_time_limit="200" id="0" notify_novelty="True" number_of_executions="1">
+      <game_level_set allow_level_selection="False" attempt_limit_per_level="1" mode="training" time_limit="100000" total_interaction_limit="500000">
+        <game_levels level_path="Levels/novelty_level_0/type2/Levels/00116_1_1_2_0.xml" /></game_level_set>
+    </trial>
+  </trials>
+</evaluation>

@@ -10,6 +10,8 @@ import tests.test_utils as test_utils
 import os.path as path
 
 GRAVITY_FACTOR = "gravity_factor"
+BASE_LIFE_WOOD_MULTIPLIER = "base_life_wood_multiplier"
+BASE_MASS_WOOD_MULTIPLIER = "base_mass_wood_multiplier"
 DATA_DIR = path.join(settings.ROOT_PATH, 'data')
 TEST_DATA_DIR = path.join(DATA_DIR, 'science_birds', 'tests')
 
@@ -19,12 +21,18 @@ plot_exp_vs_obs = False
 settings.SB_SIM_SPEED = 5
 settings.SB_GT_FREQ = 1
 
-logger = test_utils.create_logger("test_repairing_experiments")
+fh = logging.FileHandler("hydra_debug.log",mode='w')
+formatter = logging.Formatter('%(name)s - %(levelname)s - %(message)s')
+fh.setFormatter(formatter)
+logger = test_utils.create_logger("hydra_agent")
+logger.setLevel(logging.INFO)
+logger.addHandler(fh)
+
 
 @pytest.fixture(scope="module")
 def launch_science_birds_with_all_levels():
     logger.info("Starting ScienceBirds")
-    env = sb.ScienceBirds(None,launch=True,config='default_ANU_config.xml')
+    env = sb.ScienceBirds(None,launch=True,config='test_repair_wood_health.xml')
     yield env
     env.kill()
     logger.info("Ending ScienceBirds")
@@ -35,7 +43,7 @@ def _run_experiment(hydra, experiment_name, max_iterations = 10):
     # _inject_fault_to_meta_model(hydra.meta_model, GRAVITY_FACTOR)
     try:
         results_file = open(path.join(TEST_DATA_DIR, "%s.csv" % experiment_name), "w")
-        results_file.write("Iteration\t Reward\t PlanningTime\t CummulativePlanningTime\t Gravity\n")
+        results_file.write("Iteration\t Reward\t PlanningTime\t CummulativePlanningTime\t base_life_wood_multiplier\t base_mass_wood_multiplier\n")
 
         iteration = 0
         obs_with_rewards = 0
@@ -43,11 +51,12 @@ def _run_experiment(hydra, experiment_name, max_iterations = 10):
             hydra.run_next_action()
             observation = hydra.find_last_obs()
 
-            results_file.write("%d\t %.2f\t %.2f\t %.2f\t %.2f\n" % (iteration,
+            results_file.write("%d\t %.2f\t %.2f\t %.2f\t %.4f\t %.4f\n" % (iteration,
                                                                      observation.reward,
                                                                      hydra.overall_plan_time,
                                                                      hydra.cumulative_plan_time,
-                                                                     hydra.meta_model.constant_numeric_fluents[GRAVITY_FACTOR]))
+                                                                     hydra.meta_model.constant_numeric_fluents[BASE_LIFE_WOOD_MULTIPLIER],
+                                                                     hydra.meta_model.constant_numeric_fluents[BASE_MASS_WOOD_MULTIPLIER]))
             results_file.flush()
 
             # Store observation for debug
@@ -74,7 +83,7 @@ def test_set_of_levels_no_repair(launch_science_birds_with_all_levels):
     max_iterations = 10
     _run_experiment(hydra, "no_repair-%d" % max_iterations, max_iterations=max_iterations)
 
-@pytest.mark.skip("Have not migrated to 0.3.6 yet")
+# @pytest.mark.skip("Have not migrated to 0.3.6 yet")
 def test_set_of_levels_repair_no_fault(launch_science_birds_with_all_levels):
     env = launch_science_birds_with_all_levels
     hydra = RepairingHydraSBAgent(env)

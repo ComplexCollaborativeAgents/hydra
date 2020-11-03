@@ -409,3 +409,12 @@ def is_float( text :str ):
     except:
         return False
 
+
+''' Check if the given string is one of the supported mathematical operations '''
+def is_op(op_name: str):
+    if op_name in ("+-/*=><"):
+        return True
+    elif op_name == "<=" or op_name == ">=":
+        return True
+    else:
+        return False

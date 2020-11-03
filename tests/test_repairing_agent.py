@@ -298,6 +298,7 @@ def _run_repairing_experiment(env_param, fluent_name, injected_faults = [0.5, 0.
 def test_oracle_repair_force_5():
     _run_oracle_experiment("force_mag", "force_mag", injected_faults=[0.5])
 
+@pytest.mark.skip("Disabling tests that render cartpole.")
 def test_repair_force_8():
     _run_repairing_experiment("force_mag", "force_mag", injected_faults=[0.8])
 

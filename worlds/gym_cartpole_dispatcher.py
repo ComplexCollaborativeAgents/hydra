@@ -26,7 +26,6 @@ class GymCartpoleDispatcher:
         self.delegate.training_start()
         # generate training data here in the future
         self.delegate.training_end()
-        self.delegate.novelty_start()
 
         for trial in range(trials):
             self.delegate.trial_start(trial, dict())
@@ -35,7 +34,6 @@ class GymCartpoleDispatcher:
             self.delegate.testing_end()
             self.delegate.trial_end()
 
-        self.delegate.novelty_end()
         self.delegate.experiment_end()
 
     def __run_trial(self, episodes: int = 5, steps: int = 200):

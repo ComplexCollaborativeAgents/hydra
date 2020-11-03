@@ -4,7 +4,7 @@
 '''
 from agent.planning.pddl_meta_model import *
 from agent.consistency.observation import *
-
+from agent.planning.pddl_plus import is_op
 
 # Constants
 TI_STATE = 0 # Index in a trace_item for the state
@@ -21,7 +21,6 @@ class InconsistentPlanError(ValueError):
 ''' A simplistic, probably not complete and sound, simulator for PDDL+ processes
  TODO: Replace this with a call to VAL. '''
 class PddlPlusSimulator():
-
     ''' Return a list of (values_dict,t) pairs, where value_dict is a dictionary
      with the values of the fluents at time t, according to the given trace '''
     def trace_fluents(self, trace : list, fluent_names:list):
@@ -40,117 +39,94 @@ class PddlPlusSimulator():
         return output
 
     ''' Simulate running the given plan from the start state '''
-    def simulate(self, plan_to_simulate: PddlPlusPlan, problem: PddlPlusProblem, domain: PddlPlusDomain, delta_t:float, max_t:float = 1000):
+    def simulate(self, plan_to_simulate: PddlPlusPlan, problem: PddlPlusProblem, domain: PddlPlusDomain, delta_t:float, max_t:float = 1000, max_iterations: float = 1000):
         self.problem = problem
-        # Ground the domain
-        grounder = PddlPlusGrounder(no_dummy_objects=False)
-        self.domain = grounder.ground_domain(domain, problem)
-
-        # print ("\n\nGROUNDED DOMAIN: \n")
-        # print (self.domain.name)
-        # print (self.domain.types)
-        # print (self.domain.predicates)
-        # print (self.domain.functions)
-        # for pro in self.domain.processes:
-        #     pro.print_info()
-        # print ("")
-        # for ev in self.domain.events:
-        #     ev.print_info()
-        # print ("")
-        # for ac in self.domain.actions:
-        #     ac.print_info()
-
-        state = PddlPlusState(problem.init)
-        t = 0.0
-        trace = []
-        current_state = state.clone()
-        plan = PddlPlusPlan(plan_to_simulate) # Clone the given plan
-
-        # print("\n\nACTIONS IN COPIED PLAN")
-        # for acts in plan:
-        #     print (acts.action_name, " at ", acts.start_at)
-
-        if len(plan)==0:
+        self.domain = domain
+        self.trace = []
+        self.plan = PddlPlusPlan(plan_to_simulate) # Clone the given plan
+        if len(self.plan)==0:
             raise ValueError("Plan is empty")
-        next_timed_action  = plan.pop(0)
-        # print("\n\nNEXT TIMED ACTION: ", next_timed_action.action_name, " at ", next_timed_action.start_at)
+        self.next_timed_action  = self.plan.pop(0)
+        self.delta_t = delta_t
+
+        # Initial state and first action
+        state = PddlPlusState(problem.init)
+        current_state = state.clone()
+        t = 0.0
 
         # Create the first trace_item
         trace_item = [None, None, None]
-        trace.append(trace_item)
+        self.trace.append(trace_item)
         trace_item[TI_STATE]=current_state.clone() # TODO: Maybe this close is redundant
         trace_item[TI_T] = t
         world_changes_at_t = []
         trace_item[TI_WORLD_CHANGES] = world_changes_at_t
 
         still_active = True
-        while still_active and t<max_t:
-            # If we reached the time in which the next action should be applied, apply it
-            # print ("TIME = ", t)
-            if next_timed_action is not None and next_timed_action.start_at<=t:
-                # Get the WorldChange object for the action to perform
-                # print ("APPLIED TIMED ACTION: ", next_timed_action.action_name, " at time = ", next_timed_action.start_at, "/", t)
-                world_change = self.domain.get_action(next_timed_action.action_name)
-                new_effects = self.compute_apply_action(current_state, world_change)
-                world_changes_at_t.append(world_change)
-                if new_effects is not None and len(new_effects)>0:
-                    self.apply_effects(current_state, new_effects)
+        while still_active and t<max_t and t/self.delta_t<max_iterations:
+            still_active, t = self._sim_step(current_state, t)
 
-                # Next action
-                if len(plan)>0:
-                    next_timed_action = plan.pop(0)
-                else:
-                    next_timed_action = None
+        return current_state, t, self.trace
 
-                # Trigger events after action is performed
-                fired_events = self.handle_events(current_state)
-                for event in fired_events:
-                    world_changes_at_t.append(event)
+    ''' Simulate a single step '''
+    def _sim_step(self, current_state, t):
+        world_changes_at_t = []
 
-            # Compute delta t
-            if next_timed_action is None or next_timed_action.start_at > t+delta_t: # Next action should not start before t+delta_t
-                current_delta_t = delta_t
-            else: # Next action should start before t+delta_t, we don't want to miss it
-                current_delta_t = next_timed_action.start_at - t
+        # If we reached the time in which the next action should be applied, apply it
+        if self.next_timed_action is not None and self.next_timed_action.start_at <= t:
+            world_change = self.domain.get_action(self.next_timed_action.action_name)
+            new_effects = self.compute_apply_action(current_state, world_change)
+            world_changes_at_t.append(world_change)
+            if new_effects is not None and len(new_effects) > 0:
+                self.apply_effects(current_state, new_effects)
 
-            # Advance process and apply events
-            active_processes = self.handle_processes(current_state, current_delta_t) # Advance processes
-            for process in active_processes:
-                world_changes_at_t.append(process)
+            # Next action
+            if len(self.plan) > 0:
+                self.next_timed_action = self.plan.pop(0)
+            else:
+                self.next_timed_action = None
 
-            fired_events = self.handle_events(current_state) # Apply events to the resulting state
+            # Trigger events after action is performed
+            fired_events = self.handle_events(current_state)
             for event in fired_events:
                 world_changes_at_t.append(event)
-
-            t = t+current_delta_t # Advance time
-
-            # Add new trace item, which will be completed by the next iteration of this while
-            trace_item = [None, None, None]
-            trace_item[TI_STATE]=current_state.clone()
-            trace_item[TI_T] = t
-            world_changes_at_t = []
-            trace_item[TI_WORLD_CHANGES]=world_changes_at_t # Actions, events, and process, performed in this (state,time) pair
-            trace.append(trace_item)
-
-            # Stopping condition
-            if len(active_processes)>0:
-                still_active = True
-            elif len(fired_events)>0:
-                still_active = True # This one is debatable TODO: Consult Wiktor and Matt
-            elif next_timed_action is not None:
-                # In this case, everything is waiting for the next timed action, so we can just "jump ahead" to get to do that action.
-                still_active = True
-                t = next_timed_action.start_at
-            else:
-                still_active = False
-
-        return current_state, t, trace
-
+        # Compute delta t
+        if self.next_timed_action is None or self.next_timed_action.start_at > t + self.delta_t:  # Next action should not start before t+delta_t
+            current_delta_t = self.delta_t
+        else:  # Next action should start before t+delta_t, we don't want to miss it
+            current_delta_t = self.next_timed_action.start_at - t
+        # Advance process and apply events
+        active_processes = self.handle_processes(current_state, current_delta_t)  # Advance processes
+        for process in active_processes:
+            world_changes_at_t.append(process)
+        fired_events = self.handle_events(current_state)  # Apply events to the resulting state
+        for event in fired_events:
+            world_changes_at_t.append(event)
+        t = t + current_delta_t  # Advance time
+        # Add new trace item, which will be completed by the next iteration of this while
+        trace_item = [None, None, None]
+        trace_item[TI_STATE] = current_state.clone()
+        trace_item[TI_T] = t
+        trace_item[TI_WORLD_CHANGES] = world_changes_at_t  # Actions, events, and process, performed in this (state,time) pair
+        self.trace.append(trace_item)
+        # Stopping condition
+        if len(active_processes) > 0:
+            still_active = True
+        elif len(fired_events) > 0:
+            still_active = True  # This one is debatable TODO: Consult Wiktor and Matt
+        elif self.next_timed_action is not None:
+            # In this case, everything is waiting for the next timed action, so we can just "jump ahead" to get to do that action.
+            still_active = True
+            t = self.next_timed_action.start_at
+        else:
+            still_active = False
+        return still_active, t
 
     ''' Simulate the trace of a given action in a given state according to the given meta model'''
     def simulate_observed_action(self, game_state, game_action, game_meta_model, delta_t : float):
         problem = game_meta_model.create_pddl_problem(game_state)
         domain = game_meta_model.create_pddl_domain(game_state)
+        domain = PddlPlusGrounder().ground_domain(domain,problem) # Simulator accepts only grounded domains
         plan = PddlPlusPlan()
         plan.append(game_meta_model.create_timed_action(game_action, game_state))
         (_, _, trace) = self.simulate(plan, problem, domain, delta_t)
@@ -160,6 +136,8 @@ class PddlPlusSimulator():
     def simulate_observed_plan(self, game_states, game_actions, game_meta_model, delta_t : float):
         problem = game_meta_model.create_pddl_problem(game_states[0])
         domain = game_meta_model.create_pddl_domain(game_states[0])
+        domain = PddlPlusGrounder().ground_domain(domain,problem) # Simulator accepts only grounded domains
+
         plan = PddlPlusPlan()
         for ix in enumerate(game_actions):
             plan.append(game_meta_model.create_timed_action(game_actions[ix], ix))
@@ -319,7 +297,7 @@ class PddlPlusSimulator():
     ''' Evaluates a given expression using the fluents in the given state, and delta f, if needed'''
     def _eval(self, element, state: PddlPlusState, delta_t: float = -1):
         if isinstance(element, list):
-            if self.is_op(element[0]): # If element is an operator
+            if is_op(element[0]): # If element is an operator
                 assert len(element) == 3
 
                 op_name = element[0]
@@ -372,35 +350,17 @@ class PddlPlusSimulator():
                 return element
                 # return float(state.numeric_fluents[element])  # A fluent
 
-    ''' Check if the given string is one of the supported mathematical operations '''
-    def is_op(self, op_name:str):
-        if op_name in ("+-/*=><"):
-            return True
-        elif op_name == "<=" or op_name == ">=":
-            return True
-        else:
-            return False
-
     ''' Simulate the observed action in the observed state according to the given meta model '''
     def get_expected_trace(self, observation, meta_model, delta_t = 0.05):
         problem = meta_model.create_pddl_problem(observation.get_initial_state())
         domain = meta_model.create_pddl_domain(observation.get_initial_state())
+        domain = PddlPlusGrounder().ground_domain(domain,problem) # Simulator accepts only grounded domains
         plan = observation.get_pddl_plan(meta_model)
-
-        # print("\n\nACTIONS IN PLAN")
-        # for acts in plan:
-        #     print (acts.action_name, " at ", acts.start_at)
 
         (_,_,trace,) = self.simulate(plan, problem, domain, delta_t=delta_t)
         return trace, plan
 
-
-''' Simulate the observed action in the observed state according to the given meta model '''
-def get_expected_trace(observation, meta_model, delta_t = 0.05):
-    return PddlPlusSimulator().get_expected_trace(observation, meta_model, delta_t)
-
 ''' Helper function: simulate the given plan, on the given problem and domain.  '''
-def simulate_plan_trace(plan: PddlPlusPlan, problem:PddlPlusProblem, domain: PddlPlusDomain, delta_t:float = 0.05):
-    simulator = PddlPlusSimulator()
+def simulate_plan_trace(plan: PddlPlusPlan, problem:PddlPlusProblem, domain: PddlPlusDomain, delta_t:float = 0.05, simulator = PddlPlusSimulator()):
     (_, _, trace) =  simulator.simulate(plan, problem, domain, delta_t)
     return trace

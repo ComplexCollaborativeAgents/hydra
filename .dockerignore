@@ -5,3 +5,4 @@
 **/*.py[cod]
 **/bin/
 **/.git/
+runners/log/*.txt
