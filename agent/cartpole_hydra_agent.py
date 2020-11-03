@@ -8,6 +8,7 @@ from agent.consistency.observation import CartPoleObservation
 from agent.consistency.consistency_estimator import DEFAULT_DELTA_T
 import time
 import copy
+import json
 import numpy as np
 import settings
 import random
@@ -28,7 +29,8 @@ class CartpoleHydraAgent:
 
         self.novelty_probability = 0.0
         self.novelty_type = 0
-        self.novelty_characterization = dict()
+        self.novelty_characterization = {'novelty_probability_threshold': 0.999999, # TODO: Re-think whether this makes sense,
+                                         'novelty_characterization_description': ''}
 
         self.plan_idx = 0
         self.steps = 0
@@ -92,12 +94,13 @@ class RepairingCartpoleHydraAgent(CartpoleHydraAgent):
         self.desired_precision = 0.01
         self.repair_threshold = 0.975 # 195/200
         self.has_repaired = False
-        self.detector = FocusedAnomalyDetector(threshold=[0.012, 0.012, 0.006, 0.009])
+        self.detector = FocusedAnomalyDetector()
 
     def episode_end(self, performance: float):
         novelties = []
+        novelty_likelihood=0.0
         try:
-            novelties = self.detector.detect(self.current_observation)
+            novelties, novelty_likelihood = self.detector.detect(self.current_observation)
         except Exception:
             pass
 
@@ -118,8 +121,9 @@ class RepairingCartpoleHydraAgent(CartpoleHydraAgent):
                             for novel_property in novelty_properties:
                                 characterization[novel_property] = "Abnormal state attribute"
 
-                self.novelty_probability = 1.0 # TODO:  Replace this with a real prob. estimate
-                self.novelty_characterization = characterization
+                if novelty_likelihood==0.0:
+                    novelty_likelihood = 1.0 # Novelty likelihood is zero when novelty detector says so, but we set this to novelty for some other reasons
+                self.novelty_characterization['novelty_characterization_description'] = json.dumps(characterization)
 
             try:
                 meta_model_repair = CartpoleRepair(self.consistency_checker, self.desired_precision)
@@ -128,6 +132,9 @@ class RepairingCartpoleHydraAgent(CartpoleHydraAgent):
                 self.has_repaired = True
             except Exception:
                 pass
+
+        self.novelty_probability = max(self.novelty_probability, novelty_likelihood)
+
         super().episode_end(performance)
 
 

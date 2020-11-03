@@ -60,6 +60,13 @@ class CartPolePlanner():
 
     def get_plan_actions(self,count=0):
         chdir("%s"  % settings.CARTPOLE_PLANNING_DOCKER_PATH)
+        cartpole_domain_pddl_path = "{}/cartpole_domain.{}.pddl".format(settings.TMP_FOLDER, settings.HYDRA_INSTANCE_ID)
+        subprocess.run("cp cartpole_domain.pddl {}".format(cartpole_domain_pddl_path), shell=True)
+        cartpole_prob_pddl_path = "{}/cartpole_prob.{}.pddl".format(settings.TMP_FOLDER, settings.HYDRA_INSTANCE_ID)
+        subprocess.run("cp cartpole_prob.pddl {}".format(cartpole_prob_pddl_path), shell=True)
+        # print(cartpole_domain_pddl_path)
+        # print(cartpole_prob_pddl_path)
+
         completed_process = subprocess.run(('docker', 'build', '-t', 'upm_from_dockerfile', '.'), capture_output=True)
         out_file = open("docker_build_trace.txt", "wb")
         out_file.write(completed_process.stdout)
@@ -70,7 +77,10 @@ class CartPolePlanner():
 
         docker_plan_time = time.perf_counter()
         # print ("\n\n Running planner with parameters - Memory limit:", str(settings.PLANNER_MEMORY_LIMIT), "Delta T: ", str(settings.DELTA_T), "Timeout: ", (str(settings.TIMEOUT)+"s"), "Max plan length: ", str(self.meta_model.constant_numeric_fluents['time_limit']))
-        completed_process = subprocess.run(('docker', 'run', '--rm', 'upm_from_dockerfile', 'cartpole_domain.pddl',
+        completed_process = subprocess.run(('docker', 'run', '--rm',
+                                            '-v', '{}:/home/UPMurphi-DFS/ex/cartpole/cartpole_domain.pddl'.format(cartpole_domain_pddl_path),
+                                            '-v', '{}:/home/UPMurphi-DFS/ex/cartpole/cartpole_prob.pddl'.format(cartpole_prob_pddl_path),
+                                            'upm_from_dockerfile', 'cartpole_domain.pddl',
                                             'cartpole_prob.pddl', str(settings.CP_PLANNER_MEMORY_LIMIT), str(settings.CP_DELTA_T), (str(settings.CP_TIMEOUT)+"s"), str(math.ceil(self.meta_model.constant_numeric_fluents['time_limit'])),
                                             '>', 'docker_plan_trace.txt'), capture_output=True)
         completed_docker_plan_time = (time.perf_counter() - docker_plan_time)
@@ -82,7 +92,7 @@ class CartPolePlanner():
             out_file.write(completed_process.stderr)
         out_file.close()
 
-        subprocess.run(['docker', 'image', 'prune', '--force'])
+        # subprocess.run(['docker', 'image', 'prune', '--force'])
 
         plan_actions =  self.extract_actions_from_plan_trace("%s/docker_plan_trace.txt" % str(settings.CARTPOLE_PLANNING_DOCKER_PATH))
 

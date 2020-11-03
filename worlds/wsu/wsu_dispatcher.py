@@ -302,6 +302,7 @@ class WSUDispatcher(TA2Logic):
                 response = response_queue.get(block=True, timeout=5)
                 response = response
             except queue.Empty:
+                self.log.debug("Processing AMQP Events...")
                 self.process_amqp_events()
 
         threaded_work.stop()
