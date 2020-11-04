@@ -3,6 +3,7 @@ import torchvision.transforms as transforms
 import numpy as np
 from ab_cnn import MyCNN
 import pickle
+from obs_to_imgs import  SBObs_to_Imgs
 
 class AnomalyDetector:
     def __init__(self, threshold=0.5):
@@ -38,7 +39,7 @@ class AnomalyDetector:
     def novelty_features(self, state, y_hat, next_state):
         mask_changed = torch.ne(state, next_state)   # this will consider only points that change
         mask_predicted_changed = torch.ne(state, y_hat > 0)   # this will consider only points that change
- 
+
         num_points_changed = mask_changed.sum(dim=(1,2))
         num_points_unchanged = (~mask_changed).sum(dim=(1,2))
         num_points_predicted_changed = mask_predicted_changed.sum(dim=(1,2))
@@ -54,8 +55,15 @@ class AnomalyDetector:
         return x.reshape(1, -1)
 
     def convert_to_images(self, sb_obs):
-        ''' dummy'''
-        return sb_obs['state'], sb_obs['action'], sb_obs['next_state']
+        obs_conv =  SBObs_to_Imgs()
+        state, action, inter_states = obs_conv.Obs_to_StateActionNextState(sb_obs)
+        state_img = obs_conv.state_to_nD_img(state)
+        inter_states_img = []
+            #
+        for s in inter_states:
+            next_img = obs_conv.state_to_nD_img(s)
+            inter_states_img.append(next_img)
 
+        sb_state = {'state': state_img, 'action': action, 'next_state':inter_states_img}
 
-
+        return sb_state['state'], sb_state['action'], sb_state['next_state']
