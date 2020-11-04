@@ -4,8 +4,11 @@ from ab_dataset_tensor import ABDataset
 from torch.utils.data import DataLoader
 from sklearn.metrics import roc_curve
 from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import cross_val_score
+from sklearn import metrics
 import matplotlib.pyplot as plt
 import numpy as np
+import pickle
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
@@ -148,24 +151,26 @@ X_novelty = X_novelty / X_novelty.std(axis=0)
 print(X_novelty.max(axis=0), X_novelty.min(axis=0))
 print(X_novelty.shape)
 
-shuffle_idx = np.random.permutation(y_true.shape[0])
-idx_train = shuffle_idx[:int(0.8 * y_true.shape[0])]
-idx_test = shuffle_idx[int(0.8 * y_true.shape[0]):]
-y_true_train = y_true[idx_train]
-X_novelty_train = X_novelty[idx_train]
-
-y_true_test = y_true[idx_test]
-X_novelty_test = X_novelty[idx_test]
+clf_crossval = LogisticRegression(penalty='none', class_weight='balanced', max_iter=1000)
+scores = cross_val_score(clf_crossval, X_novelty, y_true, cv=10, scoring='roc_auc')
+print(scores)
+print(np.mean(scores), np.std(scores))
+scores = cross_val_score(clf_crossval, X_novelty, y_true, cv=10, scoring='balanced_accuracy')
+print(scores)
+print(np.mean(scores), np.std(scores))
 
 clf = LogisticRegression(penalty='none', class_weight='balanced', max_iter=1000)
-clf.fit(X_novelty_train, y_true_train)
-y_score = clf.predict_proba(X_novelty_test)[:, 1]
+clf.fit(X_novelty, y_true)
+with open('pretrained_novelty_detector.pickle', 'wb') as f:
+    pickle.dump(clf, f)
+
+y_score = clf.predict_proba(X_novelty)[:, 1]
 
 # y_score = np.r_[err_changed_no_novelty.data.cpu().numpy(), err_changed_novelty.data.cpu().numpy()]
 # y_score = np.r_[err_predicted_changed_no_novelty.data.cpu().numpy(), err_predicted_changed_novelty.data.cpu().numpy()]
-print(y_true_test.shape, y_score.shape)
+print(y_true.shape, y_score.shape)
 
-fpr, tpr, thresholds = roc_curve(y_true_test, y_score)
+fpr, tpr, thresholds = roc_curve(y_true, y_score)
 print(fpr.shape, tpr.shape)
 
 plt.figure()
