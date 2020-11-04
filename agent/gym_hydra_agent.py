@@ -15,7 +15,6 @@ class GymHydraAgent:
         self.observation = self.env.reset()
         if starting_seed == True:
             self.observation = self.reset_with_seed()
-        self.consistency_checker = ConsistencyChecker()
         self.meta_model = CartPoleMetaModel()
         self.cartpole_planner = CartPolePlanner(self.meta_model)
         self.novelty_likelihood = 0.0

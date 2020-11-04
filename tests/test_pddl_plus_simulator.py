@@ -1,16 +1,9 @@
 from os import path
-import time
 
-import pytest
-import matplotlib.pyplot as plt
-import pickle
-
-from agent.consistency.fast_pddl_simulator import CachingPddlPlusSimulator, RefinedPddlPlusSimulator
+from agent.consistency.fast_pddl_simulator import CachingPddlPlusSimulator
 from agent.consistency.meta_model_repair import *
-from agent.planning.planner import Planner
+from agent.consistency.sb_repair import BirdLocationConsistencyEstimator
 import tests.test_utils as test_utils
-import matplotlib.pyplot as plt
-
 
 DATA_DIR = path.join(settings.ROOT_PATH, 'data')
 TRACE_DIR = path.join(DATA_DIR, 'science_birds', 'serialized_levels', 'level-01')

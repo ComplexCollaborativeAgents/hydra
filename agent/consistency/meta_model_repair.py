@@ -71,7 +71,7 @@ class SimulationBasedMetaModelRepair(MetaModelRepair):
 
 
     ''' Computes the consistency score for the given delta state'''
-    def _compute_consistency(self, repair: dict, observation: ScienceBirdsObservation):
+    def _compute_consistency(self, repair: list, observation: ScienceBirdsObservation):
         # Apply change
         self._do_change(repair)
 
@@ -86,12 +86,12 @@ class SimulationBasedMetaModelRepair(MetaModelRepair):
         self._undo_change(repair)
         return consistency
 
-    def _do_change(self, change : dict):
+    def _do_change(self, change : list):
         for i, change_to_fluent in enumerate(change):
             self.current_meta_model.constant_numeric_fluents[self.fluents_to_repair[i]] = \
                 self.current_meta_model.constant_numeric_fluents[self.fluents_to_repair[i]] + change_to_fluent
 
-    def _undo_change(self, change: dict):
+    def _undo_change(self, change: list):
         for i,change_to_fluent in enumerate(change):
             self.current_meta_model.constant_numeric_fluents[self.fluents_to_repair[i]] = \
                 self.current_meta_model.constant_numeric_fluents[self.fluents_to_repair[i]] - change_to_fluent
@@ -200,16 +200,3 @@ class GreedyBestFirstSearchMetaModelRepair(SimulationBasedMetaModelRepair):
                     new_repair[i] = change_to_fluent
                     new_repairs.append(new_repair)
         return new_repairs
-
-
-'''
- The meta model repair used for ScienceBirds. 
-'''
-class ScienceBirdsMetaModelRepair(GreedyBestFirstSearchMetaModelRepair):
-    def __init__(self, consistency_threshold=25, time_limit=300):
-        constants_to_repair = MetaModel().repairable_constants
-        consistency_estimator = ScienceBirdsConsistencyEstimator()
-        repair_deltas = [1.0] * len(constants_to_repair)
-        super().__init__(constants_to_repair, consistency_estimator, repair_deltas,
-                         consistency_threshold=consistency_threshold,
-                         time_limit=time_limit)

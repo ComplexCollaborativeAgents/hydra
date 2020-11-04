@@ -1,17 +1,13 @@
-import settings
 from agent.repairing_hydra_agent import RepairingHydraSBAgent
 from agent.hydra_agent import HydraAgent
 import pytest
 from agent.consistency.meta_model_repair import *
-from agent.consistency.fast_pddl_simulator import *
-from agent.consistency.consistency_estimator import check_obs_consistency
 from agent.planning.pddl_meta_model import *
-import subprocess
 import worlds.science_birds as sb
 import pickle
 import tests.test_utils as test_utils
 import os.path as path
-from agent.consistency.consistency_estimator import ScienceBirdsConsistencyEstimator, BirdLocationConsistencyEstimator
+from agent.consistency.sb_repair import ScienceBirdsConsistencyEstimator, ScienceBirdsMetaModelRepair
 
 GRAVITY_FACTOR = "gravity_factor"
 BASE_LIFE_WOOD_MULTIPLIER = "base_life_wood_multiplier"
@@ -171,4 +167,4 @@ def test_debugging():
     best_repair, best_consistency = repair_algorithm.repair(meta_model, obs, settings.SB_DELTA_T)
     profiler.disable()
     profiler.print_stats()
-    profiler.dump_stats(open("repair.profile", "w"))
+    profiler.dump_stats("repair.profile")

@@ -1,5 +1,7 @@
 import matplotlib.pyplot as plt
 import pytest
+
+from agent.consistency.sb_repair import BirdLocationConsistencyEstimator
 from agent.hydra_agent import *
 from agent.planning.model_manipulator import ManipulateInitNumericFluent
 from agent.planning.planner import *

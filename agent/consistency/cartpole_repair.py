@@ -23,7 +23,8 @@ class CartpoleConsistencyEstimator(MetaModelBasedConsistencyEstimator):
 
 ''' Repairs Cartpole constants '''
 class CartpoleRepair(MetaModelRepair):
-    def __init__(self, consistency_checker, consistency_threshold):
+    def __init__(self, consistency_checker=CartpoleConsistencyEstimator(),
+                 consistency_threshold=settings.CP_CONSISTENCY_THRESHOLD):
         meta_model = CartPoleMetaModel()
         self.fluents_to_repair = meta_model.repairable_constants
         self.repair_deltas = meta_model.repair_deltas

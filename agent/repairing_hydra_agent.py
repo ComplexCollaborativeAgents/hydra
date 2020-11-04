@@ -1,3 +1,4 @@
+from agent.consistency.sb_repair import ScienceBirdsMetaModelRepair
 from agent.hydra_agent import HydraAgent
 from agent.consistency.meta_model_repair import *
 from agent.gym_hydra_agent import GymHydraAgent
@@ -19,8 +20,6 @@ from agent.consistency.cartpole_repair import *
 class RepairingGymHydraAgent(GymHydraAgent):
     def __init__(self, env, starting_seed=False):
         super().__init__(env, starting_seed)
-        self.consistency_checker = CartpoleConsistencyEstimator()
-        self.desired_precision = 0.01
 
     ''' Checks if the meta model should be repaired based on the given observation. Note: can also consider past observations'''
     def should_repair(self, observation):
@@ -36,7 +35,7 @@ class RepairingGymHydraAgent(GymHydraAgent):
             if not self.should_repair(observation):
                 logger.info("No need to repair")
                 return
-            meta_model_repair = CartpoleRepair(self.consistency_checker, self.desired_precision)
+            meta_model_repair = CartpoleRepair()
             start_time = time.time()
             repair, consistency = meta_model_repair.repair(self.meta_model, observation, delta_t=settings.CP_DELTA_T)
             repair_time = time.time()-start_time
@@ -54,20 +53,7 @@ class RepairingHydraSBAgent(HydraAgent):
     def __init__(self,env=None,agent_stats = dict()):
         super().__init__(env, agent_stats)
         self.debug_mode = True
-        self.consistency_estimator = ScienceBirdsConsistencyEstimator()
-
-        # Create meta_model_repair object
-        self.desired_consistency = 25 # The consistency threshold for initiating repair
-        constants_to_repair = list(self.meta_model.repairable_constants)
-        repair_deltas = [1.0] * len(constants_to_repair)
-
-        self.max_time_to_repair = 600 # The number of second allowed for each repair session
-        self.meta_model_repair = GreedyBestFirstSearchMetaModelRepair(constants_to_repair,
-                                                                      self.consistency_estimator,
-                                                                      repair_deltas,
-                                                                      consistency_threshold=self.desired_consistency,
-                                                                      time_limit = self.max_time_to_repair)
-
+        self.meta_model_repair = ScienceBirdsMetaModelRepair()
 
     ''' Handle what happens when the agent receives a PLAYING request'''
     def handle_game_playing(self, observation, raw_state):
@@ -109,4 +95,5 @@ class RepairingHydraSBAgent(HydraAgent):
 
     ''' Checks if the current model should be repaired'''
     def should_repair(self, observation: ScienceBirdsObservation):
-        return check_obs_consistency(observation, self.meta_model, self.consistency_estimator) > self.desired_consistency
+        return check_obs_consistency(observation, self.meta_model, self.consistency_estimator) \
+               > self.meta_model_repair.consistency_threshold

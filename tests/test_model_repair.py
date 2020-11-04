@@ -1,5 +1,6 @@
 import pytest
 from agent.consistency.meta_model_repair import *
+from agent.consistency.sb_repair import BirdLocationConsistencyEstimator
 from agent.hydra_agent import *
 from agent.planning.simple_planner import *
 import worlds.science_birds as sb
