@@ -2,12 +2,16 @@ import settings
 from agent.repairing_hydra_agent import RepairingHydraSBAgent
 from agent.hydra_agent import HydraAgent
 import pytest
+from agent.consistency.meta_model_repair import *
+from agent.consistency.fast_pddl_simulator import *
+from agent.consistency.consistency_estimator import check_obs_consistency
 from agent.planning.pddl_meta_model import *
 import subprocess
 import worlds.science_birds as sb
 import pickle
 import tests.test_utils as test_utils
 import os.path as path
+from agent.consistency.consistency_estimator import ScienceBirdsConsistencyEstimator, BirdLocationConsistencyEstimator
 
 GRAVITY_FACTOR = "gravity_factor"
 BASE_LIFE_WOOD_MULTIPLIER = "base_life_wood_multiplier"
@@ -27,6 +31,36 @@ fh.setFormatter(formatter)
 logger = test_utils.create_logger("hydra_agent")
 logger.setLevel(logging.INFO)
 logger.addHandler(fh)
+
+'''
+A greedy best-first search model repair implementation. 
+'''
+class MockMetaModelRepair(SimulationBasedMetaModelRepair):
+    def __init__(self, oracle_repair):
+        meta_model = MetaModel()
+
+        super().__init__(meta_model.repairable_constants,
+                         ScienceBirdsConsistencyEstimator(),
+            [1.0] * len(meta_model.repairable_constants))
+
+        self.oracle_repair = oracle_repair
+
+    ''' Repair the given domain and plan such that the given plan's expected outcome matches the observed outcome'''
+    def repair(self,
+               pddl_meta_model: MetaModel,
+               observation, delta_t=1.0):
+
+        self.current_delta_t = delta_t
+        self.current_meta_model = pddl_meta_model
+
+        repair = [0] * len(self.oracle_repair)  # Repair is a list, in order of the fluents_to_repair list
+        base_consistency = self._compute_consistency(repair, observation)
+        best_consistency = self._compute_consistency(self.oracle_repair, observation)
+
+        assert(best_consistency<base_consistency)
+
+        return self.oracle_repair, best_consistency
+
 
 
 @pytest.fixture(scope="module")
@@ -88,7 +122,12 @@ def test_set_of_levels_repair_no_fault(launch_science_birds_with_all_levels):
     env = launch_science_birds_with_all_levels
     hydra = RepairingHydraSBAgent(env)
     max_iterations = 10
+
+    hydra.meta_model_repair = MockMetaModelRepair([3.0, 3.0])
+
     _run_experiment(hydra, "with_repair-%d" % max_iterations, max_iterations=max_iterations)
+
+
 
 
 ''' Inject a fault to the agent's meta model '''
@@ -110,3 +149,26 @@ def test_set_of_levels_no_repair_with_fault(launch_science_birds_with_all_levels
     _inject_fault_to_meta_model(hydra.meta_model, GRAVITY_FACTOR)
     max_iterations = 10
     _run_experiment(hydra, "no_repair_bad_gravity-%d" % max_iterations, max_iterations=max_iterations)
+
+
+
+''' Tests the faster implementation of the simulator '''
+def test_debugging():
+    obs_output_file = path.join(settings.ROOT_PATH, "data", "science_birds", "tests",
+                                "test_repair.p")  # For debug
+    obs = pickle.load(open(obs_output_file, "rb"))
+
+    mm_output_file = path.join(settings.ROOT_PATH, "data", "science_birds", "tests",
+                               "test_repair.mm")  # For debug
+    meta_model = pickle.load(open(mm_output_file, "rb"))
+
+
+    import cProfile
+
+    profiler = cProfile.Profile()
+    profiler.enable()
+    repair_algorithm = ScienceBirdsMetaModelRepair()
+    best_repair, best_consistency = repair_algorithm.repair(meta_model, obs, settings.SB_DELTA_T)
+    profiler.disable()
+    profiler.print_stats()
+    profiler.dump_stats(open("repair.profile", "w"))

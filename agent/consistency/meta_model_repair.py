@@ -49,17 +49,14 @@ class MetaModelRepair(): # TODO: Remove this class
     def choose_manipulator(self):
         raise NotImplemented("Not yet")
 
-'''
-A greedy best-first search model repair implementation. 
-'''
-class GreedyBestFirstSearchMetaModelRepair(MetaModelRepair):
+''' A repair algorithm that is based on simulating the action and checking consistency with the observation '''
+class SimulationBasedMetaModelRepair(MetaModelRepair):
     def __init__(self, fluents_to_repair,
                  consistency_estimator,
                  deltas,
                  consistency_threshold=2,
                  max_iteration=30,
                  time_limit = 1000):
-
         self.consistency_estimator = consistency_estimator
         self.fluents_to_repair = fluents_to_repair
         self.deltas =deltas
@@ -70,8 +67,56 @@ class GreedyBestFirstSearchMetaModelRepair(MetaModelRepair):
         # Init other fields
         self.current_delta_t = None
         self.current_meta_model = None
-
         self.time_limit = time_limit # Allows setting a timeout for the repair
+
+
+    ''' Computes the consistency score for the given delta state'''
+    def _compute_consistency(self, repair: dict, observation: ScienceBirdsObservation):
+        # Apply change
+        self._do_change(repair)
+
+        try:
+            expected_trace, plan = self.simulator.get_expected_trace(observation, self.current_meta_model, self.current_delta_t)
+            observed_seq = observation.get_trace(self.current_meta_model)
+            consistency = self.consistency_estimator.estimate_consistency(expected_trace, observed_seq)
+        except InconsistentPlanError: # Sometimes the repair makes the executed plan be inconsistent #TODO: Discuss this
+            consistency = PLAN_FAILED_CONSISTENCY_VALUE
+        except ZeroDivisionError: # Sometimes the repair causes the simulator to reach zero division #TODO: Discuss this
+            consistency = PLAN_FAILED_CONSISTENCY_VALUE
+        self._undo_change(repair)
+        return consistency
+
+    def _do_change(self, change : dict):
+        for i, change_to_fluent in enumerate(change):
+            self.current_meta_model.constant_numeric_fluents[self.fluents_to_repair[i]] = \
+                self.current_meta_model.constant_numeric_fluents[self.fluents_to_repair[i]] + change_to_fluent
+
+    def _undo_change(self, change: dict):
+        for i,change_to_fluent in enumerate(change):
+            self.current_meta_model.constant_numeric_fluents[self.fluents_to_repair[i]] = \
+                self.current_meta_model.constant_numeric_fluents[self.fluents_to_repair[i]] - change_to_fluent
+
+    ''' Return True if the incumbent is good enough '''
+    def is_incumbent_good_enough(self, consistency: float):
+        return consistency < self.consistency_threshold
+
+'''
+A greedy best-first search model repair implementation. 
+'''
+class GreedyBestFirstSearchMetaModelRepair(SimulationBasedMetaModelRepair):
+    def __init__(self, fluents_to_repair,
+                 consistency_estimator,
+                 deltas,
+                 consistency_threshold=2,
+                 max_iteration=30,
+                 time_limit = 1000):
+
+        super().__init__(fluents_to_repair,
+                         consistency_estimator,
+                         deltas,
+                         consistency_threshold,
+                         max_iteration,
+                         time_limit)
 
     ''' The heursitic to use to prioritize repairs'''
     def _heuristic(self, repair, consistency):
@@ -136,9 +181,7 @@ class GreedyBestFirstSearchMetaModelRepair(MetaModelRepair):
             self._do_change(incumbent_repair)
         return incumbent_repair, incumbent_consistency
 
-    ''' Return True if the incumbent is good enough '''
-    def is_incumbent_good_enough(self, consistency: float):
-        return consistency < self.consistency_threshold
+
 
     ''' Expand the given repair by generating new repairs from it '''
     def expand(self, repair):
@@ -158,28 +201,15 @@ class GreedyBestFirstSearchMetaModelRepair(MetaModelRepair):
                     new_repairs.append(new_repair)
         return new_repairs
 
-    ''' Computes the consistency score for the given delta state'''
-    def _compute_consistency(self, repair: dict, observation: ScienceBirdsObservation):
-        # Apply change
-        self._do_change(repair)
 
-        try:
-            expected_trace, plan = self.simulator.get_expected_trace(observation, self.current_meta_model, self.current_delta_t)
-            observed_seq = observation.get_trace(self.current_meta_model)
-            consistency = self.consistency_estimator.estimate_consistency(expected_trace, observed_seq)
-        except InconsistentPlanError: # Sometimes the repair makes the executed plan be inconsistent #TODO: Discuss this
-            consistency = PLAN_FAILED_CONSISTENCY_VALUE
-        except ZeroDivisionError: # Sometimes the repair causes the simulator to reach zero division #TODO: Discuss this
-            consistency = PLAN_FAILED_CONSISTENCY_VALUE
-        self._undo_change(repair)
-        return  consistency
-
-    def _do_change(self, change : dict):
-        for i, change_to_fluent in enumerate(change):
-            self.current_meta_model.constant_numeric_fluents[self.fluents_to_repair[i]] = \
-                self.current_meta_model.constant_numeric_fluents[self.fluents_to_repair[i]] + change_to_fluent
-
-    def _undo_change(self, change: dict):
-        for i,change_to_fluent in enumerate(change):
-            self.current_meta_model.constant_numeric_fluents[self.fluents_to_repair[i]] = \
-                self.current_meta_model.constant_numeric_fluents[self.fluents_to_repair[i]] - change_to_fluent
+'''
+ The meta model repair used for ScienceBirds. 
+'''
+class ScienceBirdsMetaModelRepair(GreedyBestFirstSearchMetaModelRepair):
+    def __init__(self, consistency_threshold=25, time_limit=300):
+        constants_to_repair = MetaModel().repairable_constants
+        consistency_estimator = ScienceBirdsConsistencyEstimator()
+        repair_deltas = [1.0] * len(constants_to_repair)
+        super().__init__(constants_to_repair, consistency_estimator, repair_deltas,
+                         consistency_threshold=consistency_threshold,
+                         time_limit=time_limit)

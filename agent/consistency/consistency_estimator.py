@@ -1,10 +1,6 @@
 import matplotlib
-from utils.point2D import Point2D
 from agent.consistency.pddl_plus_simulator import *
-from agent.consistency.observation import ScienceBirdsObservation
 from agent.perception.perception import *
-from agent.planning.pddl_plus import *
-from agent.planning.pddl_meta_model import MetaModel
 from tests import test_utils
 
 

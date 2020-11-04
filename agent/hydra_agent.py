@@ -59,7 +59,9 @@ class HydraAgent():
             raw_state = self.env.get_current_state()
 
             if raw_state.game_state.value == GameState.PLAYING.value:
+                self.stats_for_level = dict()
                 self.handle_game_playing(observation, raw_state)
+                self.agent_stats.append(self.stats_for_level)
             elif raw_state.game_state.value == GameState.WON.value:
                 self.handle_game_won()
             elif raw_state.game_state.value == GameState.LOST.value:

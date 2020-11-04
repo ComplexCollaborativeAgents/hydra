@@ -1,6 +1,7 @@
 from agent.hydra_agent import HydraAgent
 from agent.consistency.meta_model_repair import *
 from agent.gym_hydra_agent import GymHydraAgent
+import os.path as path
 
 # fh = logging.FileHandler("hydra_repair_debug.log",mode='w')
 # formatter = logging.Formatter('%(name)s - %(levelname)s - %(message)s')
@@ -72,10 +73,10 @@ class RepairingHydraSBAgent(HydraAgent):
     def handle_game_playing(self, observation, raw_state):
         last_obs = self.find_last_obs()
         if last_obs!=None:
-            if "repair_calls" not in self.agent_stats:
-                self.agent_stats["repair_calls"] = 0
-            if "repair_time" not in self.agent_stats:
-                self.agent_stats["repair_time"] = 0
+            if "repair_calls" not in self.stats_for_level:
+                self.stats_for_level["repair_called"] = 0
+            if "repair_time" not in self.stats_for_level:
+                self.stats_for_level["repair_time"] = 0
 
             # Check if we should repair
             logger.info("checking for repair...")
@@ -94,12 +95,14 @@ class RepairingHydraSBAgent(HydraAgent):
                                                                     delta_t=settings.SB_DELTA_T)
                 repair_time = time.time()-start_time
 
-                self.agent_stats["repair_time"]+=repair_time
-                self.agent_stats["repair_calls"]+=1
+                self.stats_for_level["repair_time"] = repair_time
+                self.stats_for_level["repair_called"] = 1
+                self.stats_for_level["consistency_after_repair"] = consistency
 
                 repair_description = ["Repair %s, %.2f" % (fluent, repair[i])
-                                      for i, fluent in enumerate(self.meta_model_repair.fluents_to_repair)]
-                logger.info("Repair done! Consistency: %.2f, Repair:\n %s" % (consistency, "\n".join(repair_description)))
+                                      for i, fluent in enumerate(self.meta_model_repair.fluents_to_repair) if repair[i]!=0]
+                logger.info("Repair done! Consistency: %.2f, Runtime %.2f, Repaired:\n %s" %
+                            (consistency, repair_time, "\n".join(repair_description)))
 
 
         super().handle_game_playing(observation, raw_state)

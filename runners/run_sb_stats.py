@@ -85,7 +85,7 @@ def diff_directories(a, b):
 
 
 @contextlib.contextmanager
-def run_agent(config, agent, agent_stats=dict()):
+def run_agent(config, agent, agent_stats=list()):
     ''' Run science birds and the hydra agent. '''
     try:
         env = sb.ScienceBirds(None, launch=True, config=config)
@@ -129,7 +129,7 @@ def get_bird_count(level_path):
         pass
     return birds
 
-def compute_stats(results_path, agent, agent_stats = dict()):
+def compute_stats(results_path, agent, agent_stats = list()):
     ''' Inspect evaluation directory from science birds and generate a stats dict. '''
     stats = {'levels': [], 'overall': None}
 
@@ -143,7 +143,7 @@ def compute_stats(results_path, agent, agent_stats = dict()):
         evaluation_data = evaluation_data[0]
         with open(evaluation_data) as f:
             data = csv.DictReader(f)
-            for row in data:
+            for i, row in enumerate(data):
                 level_path = row['levelName']
                 birds = get_bird_count(os.path.join(SB_BIN_PATH, level_path))
                 status = row['LevelStatus']
@@ -169,8 +169,8 @@ def compute_stats(results_path, agent, agent_stats = dict()):
                                'birds': birds}
 
                 # Get agent stats
-                if level_path in agent_stats:
-                    agent_stats_for_level = agent_stats[level_path]
+                if i<len(agent_stats):
+                    agent_stats_for_level = agent_stats[i]
                     for key in agent_stats_for_level:
                         level_stats[key]= agent_stats_for_level[key]
 
@@ -213,7 +213,7 @@ def run_performance_stats(novelties: dict,
             pre_directories = glob_directories(bin_path, 'Agent*')
             post_directories = None
 
-            agent_stats = dict()
+            agent_stats = list()
             with run_agent(config.name, agent_type, agent_stats) as env: # TODO: Typo?
                 post_directories = glob_directories(SB_BIN_PATH, 'Agent*')
 
