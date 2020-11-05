@@ -55,6 +55,8 @@ class MockMetaModelRepair(SimulationBasedMetaModelRepair):
 
         assert(best_consistency<base_consistency)
 
+        self._do_change(self.oracle_repair)
+
         return self.oracle_repair, best_consistency
 
 
