@@ -1,4 +1,4 @@
-from agent.consistency.fast_pddl_simulator import RefinedPddlPlusSimulator
+from agent.consistency.fast_pddl_simulator import RefinedPddlPlusSimulator, CachingPddlPlusSimulator
 from agent.consistency.consistency_estimator import *
 from agent.planning.pddl_meta_model import *
 import heapq
@@ -62,7 +62,7 @@ class SimulationBasedMetaModelRepair(MetaModelRepair):
         self.deltas =deltas
         self.consistency_threshold = consistency_threshold
         self.max_iterations = max_iteration
-        self.simulator = RefinedPddlPlusSimulator()
+        self.simulator = CachingPddlPlusSimulator()
 
         # Init other fields
         self.current_delta_t = None
