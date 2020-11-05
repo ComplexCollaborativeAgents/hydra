@@ -95,5 +95,5 @@ class RepairingHydraSBAgent(HydraAgent):
 
     ''' Checks if the current model should be repaired'''
     def should_repair(self, observation: ScienceBirdsObservation):
-        return check_obs_consistency(observation, self.meta_model, self.consistency_estimator, simulator=RefinedPddlPlusSimulator()) \
+        return check_obs_consistency(observation, self.meta_model, self.meta_model_repair.consistency_estimator, simulator=RefinedPddlPlusSimulator()) \
                > self.meta_model_repair.consistency_threshold
