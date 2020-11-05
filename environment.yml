@@ -21,6 +21,7 @@ dependencies:
   - psutil
   - pytz
   - pytorch
+  - torchvision
   - shortuuid
   - pip:
       - pika==1.1.0

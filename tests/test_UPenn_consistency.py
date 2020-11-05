@@ -1,5 +1,7 @@
 import os
 
+from state_prediction.anomaly_detector import FocusedSBAnomalyDetector
+
 os.environ['LANG'] = 'en_US'
 os.environ['PYOPENGL_PLATFORM'] = 'egl' # Uncommnet this line while running remotely
 
@@ -49,12 +51,12 @@ def test_UPenn_consistency_cartpole():
         assert(len(novelties)>0) # "Novelty not detected (false negative)"
         assert(novelty_likelihood==1.0)
 
-@pytest.mark.skip("Skipping science birds for now")
+#@pytest.mark.skip("Skipping science birds for now")
 def test_UPenn_consistency_science_birds():
     '''
     verify that we can identify novelty for observations of novel problems, and that we don't for non_novel-problems
     '''
-    detector = FocusedAnomalyDetector(threshold = 0.3)
+    detector = FocusedSBAnomalyDetector(threshold = 0.3)
     for ob_file in SB_NON_NOVEL_TESTS:
         #load file
         sb_ob : ScienceBirdsObservation = pickle.load(open(path.join(SB_NON_NOVEL_OBS_DIR, ob_file), "rb"))

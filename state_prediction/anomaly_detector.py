@@ -1,16 +1,21 @@
 import torch
 import torchvision.transforms as transforms
 import numpy as np
-from ab_cnn import MyCNN
+from state_prediction.ab_cnn import MyCNN
 import pickle
-from obs_to_imgs import  SBObs_to_Imgs
+from state_prediction.obs_to_imgs import  SBObs_to_Imgs
+import settings
 
-class AnomalyDetector:
+from agent.consistency.focused_anomaly_detector import FocusedAnomalyDetector
+
+
+class FocusedSBAnomalyDetector(FocusedAnomalyDetector):
     def __init__(self, threshold=0.5):
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
         self.state_predictor = MyCNN(self.device)
-        self.state_predictor.load_state_dict(torch.load('pretrained_model.pt', map_location=self.device))
-        with open('pretrained_novelty_detector.pickle', 'rb') as f:
+        self.state_predictor.load_state_dict(torch.load('{}/state_prediction/pretrained_model.pt'.format(settings.ROOT_PATH),
+                                                        map_location=self.device))
+        with open('{}/state_prediction/pretrained_novelty_detector.pickle'.format(settings.ROOT_PATH), 'rb') as f:
             self.novelty_detector = pickle.load(f)
 
         self.transform_s = transforms.Compose([
@@ -22,7 +27,7 @@ class AnomalyDetector:
 
         self.threshold = threshold
 
-    def detect_SB_novelty(self, sb_ob):
+    def detect(self, sb_ob):
         state, action, next_state = self.convert_to_images(sb_ob)
         state = self.transform_s(state)
         action = self.transform_a(action)
