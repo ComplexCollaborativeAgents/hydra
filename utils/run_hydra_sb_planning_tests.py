@@ -33,7 +33,6 @@ def main(config='30_level_0_novelties.xml',simplification_code=[0]):
     settings.SB_DEV_MODE=False
     settings.SB_PLANNER_SIMPLIFICATION_SEQUENCE = simplification_code
     settings.HEADLESS = True
-    settings.SB_TIMEOUT = 180 # 3 minutes
     env = sb.ScienceBirds(None,launch=True,config=config)
     hydra = HydraAgent(env)
     hydra.main_loop()

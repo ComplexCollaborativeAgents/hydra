@@ -183,7 +183,7 @@ class HydraAgent():
             observation.intermediate_states = list(self.env.intermediate_states)
             self.perception.process_observation(observation)
             if settings.DEBUG:
-                observation.log_observation(self.planner.current_problem_prefix)
+                observation.log_observation('{}_{}'.format(self.current_level,self.planner.current_problem_prefix))
             logger.info("[hydra_agent_server] :: Reward {} Game State {}".format(reward, raw_state.game_state))
             # time.sleep(5)
         else:

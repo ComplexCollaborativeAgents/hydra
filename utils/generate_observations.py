@@ -10,6 +10,7 @@ def main(config='all_level_0_novelties.xml'):
     env = sb.ScienceBirds(None,launch=True,config=config)
     hydra = HydraAgent(env)
     hydra.main_loop()
+    env.kill()
 
 if __name__ == '__main__':
     main()
