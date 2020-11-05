@@ -32,6 +32,18 @@ class HydraAgent():
         self.cumulative_plan_time = 0.0
         self.overall_plan_time = 0.0
 
+    def reinit(self):
+        self.env.history = []
+        self.perception = Perception()
+        self.consistency_checker = ConsistencyChecker()
+        self.meta_model = MetaModel()
+        self.planner = Planner(self.meta_model) # TODO: Discuss this w. Wiktor & Matt
+        self.completed_levels = []
+        self.observations = []
+        self.novelty_likelihood = 0.0
+        self.cumulative_plan_time = 0.0
+        self.overall_plan_time = 0.0
+
     ''' Runs the agent. Returns False if the evaluation has not ended, and True if it has ended.'''
     def main_loop(self,max_actions=1000):
         logger.info("[hydra_agent_server] :: Entering main loop")
@@ -84,6 +96,7 @@ class HydraAgent():
         (time_limit, interaction_limit, n_levels, attempts_per_level, mode, seq_or_set,
          allowNoveltyInfo) = self.env.sb_client.ready_for_new_set()
         logger.info("New Trial Request Received. Refresh agent.")
+        self.reinit()
         self.current_level = 0
         self.training_level_backup = 0
         change_from_training = True
