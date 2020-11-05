@@ -71,4 +71,7 @@ class RepairingHydraSBAgent(HydraAgent):
 
     ''' Checks if the current model should be repaired'''
     def should_repair(self, observation: ScienceBirdsObservation):
+        if self.novelty_existence is not None and self.novelty_existence==False:
+            return False
+
         return check_obs_consistency(observation, self.meta_model, self.consistency_estimator) > self.desired_consistency
