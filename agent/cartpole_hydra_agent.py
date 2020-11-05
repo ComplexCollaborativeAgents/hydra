@@ -5,7 +5,6 @@ from agent.consistency.meta_model_repair import *
 from agent.planning.cartpole_planner import CartPolePlanner
 from agent.planning.cartpole_pddl_meta_model import *
 from agent.consistency.observation import CartPoleObservation
-from agent.consistency.consistency_estimator import DEFAULT_DELTA_T
 import time
 import copy
 import json
@@ -124,7 +123,7 @@ class RepairingCartpoleHydraAgent(CartpoleHydraAgent):
 
             try:
                 meta_model_repair = CartpoleRepair()
-                repair, _ = meta_model_repair.repair(self.meta_model, self.current_observation, delta_t=DEFAULT_DELTA_T)
+                repair, _ = meta_model_repair.repair(self.meta_model, self.current_observation, delta_t=settings.CP_DELTA_T)
                 self.log.info("Repaired meta model (repair string: %s)" % repair)
                 self.has_repaired = True
             except Exception:

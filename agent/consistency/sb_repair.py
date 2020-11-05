@@ -1,3 +1,7 @@
+import logging
+
+logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger("sb_repair")
 
 
 ''' All consistency estimators for SB '''
@@ -46,10 +50,11 @@ class BlockNotDeadConsistencyEstimator(MetaModelBasedConsistencyEstimator):
         blocks_in_sim = last_state_in_sim.get_blocks()
         # Make sure very block that is assumed to be dead in sim is indeed not alive in obs
         for block in blocks_in_sim:
-            life_fluent = "block_life %s" % block
-            life_value = float(last_state_in_sim[life_fluent])
+            life_fluent = ('block_life', block)
+            life_value = last_state_in_sim[life_fluent]
             if life_value <= 0:
                 if block in live_blocks_in_obs:
+                    logger.info("Block %s is alive but sim. thinks it is dead (life value=%.2f)" % (block, life_value))
                     return BlockNotDeadConsistencyEstimator.BLOCK_NOT_DEAD
         # TODO: Consider checking also the reverse condition
 

@@ -5,7 +5,7 @@ from tests import test_utils
 
 
 # Defaults
-DEFAULT_DELTA_T = 0.02
+DEFAULT_DELTA_T = settings.SB_DELTA_T
 DEFAULT_PLOT_OBS_VS_EXP = False
 
 '''
@@ -15,7 +15,7 @@ class ConsistencyEstimator:
     ''' The first parameter is a list of (state,time) pairs, the second is just a list of states.
      Returns a positive number  that represents the possible consistency between the sequences,
      where zero means fully consistent. '''
-    def estimate_consistency(self, timed_state_seq: list, state_seq: list, delta_t: float = DEFAULT_DELTA_T):
+    def estimate_consistency(self, timed_state_seq: list, state_seq: list, delta_t: float):
         raise NotImplementedError()
 
 
