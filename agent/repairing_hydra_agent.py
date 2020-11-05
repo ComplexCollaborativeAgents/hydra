@@ -44,7 +44,7 @@ class RepairingHydraSBAgent(HydraAgent):
         super().__init__(env)
 
         self.consistency_estimator = BirdLocationConsistencyEstimator()
-
+        self.revision_attempts = 0
         # Create meta_model_repair object
         self.desired_consistency = 25 # The consistency threshold for initiating repair
         constants_to_repair = list(self.meta_model.repairable_constants)
@@ -53,6 +53,12 @@ class RepairingHydraSBAgent(HydraAgent):
                                                                       self.consistency_estimator,
                                                                       repair_deltas,
                                                                       consistency_threshold=self.desired_consistency)
+
+    def reinit(self):
+        super().reinit()
+        self.revision_attempts = 0
+
+
 
     ''' Handle what happens when the agent receives a PLAYING request'''
     def handle_game_playing(self, observation, raw_state):
@@ -69,9 +75,11 @@ class RepairingHydraSBAgent(HydraAgent):
 
         super().handle_game_playing(observation, raw_state)
 
+
     ''' Checks if the current model should be repaired'''
     def should_repair(self, observation: ScienceBirdsObservation):
-        if self.novelty_existence is not None and self.novelty_existence==False:
+        if self.revision_attempts >= settings.HYDRA_MODEL_REVISION_ATTEMPTS  or\
+                (self.novelty_existence is not None and self.novelty_existence==False):
             return False
-
+        self.revision_attempts += 1
         return check_obs_consistency(observation, self.meta_model, self.consistency_estimator) > self.desired_consistency
