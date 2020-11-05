@@ -291,7 +291,7 @@ class AgentClient:
     def get_novelty_info(self):
         """query if novelty starts to appear"""
         self._send_command(RequestCodes.NoveltyInfo)
-        novelty_info = self._read_from_buff("I")[0]
+        novelty_info = self._read_from_buff("i")[0]
         self._logger.info("novelty existence is %d ", novelty_info)
         return novelty_info
 
