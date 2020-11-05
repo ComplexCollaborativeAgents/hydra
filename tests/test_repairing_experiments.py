@@ -77,6 +77,7 @@ def _run_experiment(hydra, experiment_name, max_iterations = 10):
 
         iteration = 0
         obs_with_rewards = 0
+        cummulative_reward = 0
         while iteration < max_iterations:
             hydra.run_next_action()
             observation = hydra.find_last_obs()
@@ -101,8 +102,10 @@ def _run_experiment(hydra, experiment_name, max_iterations = 10):
             if observation.reward > 0:
                 logger.info("Reward ! (%.2f), iteration %d" % (observation.reward, iteration))
                 obs_with_rewards = obs_with_rewards + 1
+                cummulative_reward += observation.reward
             iteration = iteration + 1
-        assert obs_with_rewards > 0
+
+        return len(hydra.completed_levels), cummulative_reward
     finally:
         results_file.close()
 
@@ -114,14 +117,32 @@ def test_set_of_levels_no_repair(launch_science_birds_with_all_levels):
     _run_experiment(hydra, "no_repair-%d" % max_iterations, max_iterations=max_iterations)
 
 # @pytest.mark.skip("Have not migrated to 0.3.6 yet")
-def test_set_of_levels_repair_no_fault(launch_science_birds_with_all_levels):
-    env = launch_science_birds_with_all_levels
-    hydra = RepairingHydraSBAgent(env)
+def test_set_of_levels_repair_no_fault():
     max_iterations = 10
 
-    hydra.meta_model_repair = MockMetaModelRepair([3.0, 3.0])
+    logger.info("Starting no repair experiment")
+    env = sb.ScienceBirds(None,launch=True,config='test_repair_wood_health.xml')
+    hydra = HydraAgent(env)
+    levels_completed_no_repair, reward_no_repair = _run_experiment(hydra, "with_repair-%d" % max_iterations, max_iterations=max_iterations)
+    env.kill()
+    logger.info("Ending no repair experiment, levels completed = %d, reward = %.2f" % (levels_completed_no_repair, reward_no_repair))
 
-    _run_experiment(hydra, "with_repair-%d" % max_iterations, max_iterations=max_iterations)
+    logger.info("Starting mock oracle repair experiment")
+    env = sb.ScienceBirds(None,launch=True,config='test_repair_wood_health.xml')
+    hydra = RepairingHydraSBAgent(env)
+    hydra.meta_model_repair = MockMetaModelRepair([3.0, 3.0])
+    levels_completed_oracle_repair, reward_with_oracle_repair = _run_experiment(hydra, "with_repair-%d" % max_iterations, max_iterations=max_iterations)
+    env.kill()
+    logger.info("Ending mock oracle repair experiment, levels completed = %d, reward = %.2f" % (levels_completed_oracle_repair, reward_with_oracle_repair))
+    assert(levels_completed_no_repair<=levels_completed_oracle_repair)
+
+    logger.info("Starting repair experiment")
+    env = sb.ScienceBirds(None,launch=True,config='test_repair_wood_health.xml')
+    hydra = RepairingHydraSBAgent(env)
+    levels_completed_repair, reward_with_repair = _run_experiment(hydra, "with_repair-%d" % max_iterations, max_iterations=max_iterations)
+    env.kill()
+    logger.info("Ending repair experiment, levels completed = %d, reward = %.2f" % (levels_completed_repair, reward_with_repair))
+    assert(levels_completed_no_repair<=levels_completed_repair)
 
 
 
