@@ -50,7 +50,7 @@ class RepairingGymHydraAgent(GymHydraAgent):
 
 ''' Repairing Hydra agent for the SB domain '''
 class RepairingHydraSBAgent(HydraAgent):
-    def __init__(self,env=None,agent_stats = dict()):
+    def __init__(self,env=None,agent_stats = list()):
         super().__init__(env, agent_stats)
         self.debug_mode = True
         self.meta_model_repair = ScienceBirdsMetaModelRepair()

@@ -25,7 +25,7 @@ class HydraAgent():
     '''
     Probably needs to subclass for each domain. We will cross that bridge when we get there
     '''
-    def __init__(self,env=None, agent_stats = dict()):
+    def __init__(self,env=None, agent_stats = list()):
         logger.info("[hydra_agent_server] :: Agent Created")
         self.env = env # agent always has a pointer to its environment
         if env is not None:

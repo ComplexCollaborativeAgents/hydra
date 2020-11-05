@@ -145,6 +145,8 @@
         :effect (and
             (assign (block_stability ?bl) (- (block_stability ?bl) (v_bird ?b)) )
             (assign (block_life ?bl) (- (block_life ?bl) (v_bird ?b)) )
+            (assign (x_bird ?b) (- (x_block ?bl) (+ (/ (block_width ?bl) 2) 1) ) )
+            (assign (y_bird ?b) (+ (y_block ?bl) (+ (/ (block_height ?bl) 2) 1) ) )
             (assign (vy_bird ?b) (* (vy_bird ?b) (/ (v_bird ?b) (block_stability ?bl)) ))
             (assign (vx_bird ?b) (- 0 (* (vx_bird ?b) (/ (v_bird ?b) (block_stability ?bl))) ))
             (assign (v_bird ?b) (* (v_bird ?b) (/ (v_bird ?b) (block_stability ?bl)) ))
