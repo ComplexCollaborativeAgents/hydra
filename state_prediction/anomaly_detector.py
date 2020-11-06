@@ -31,15 +31,15 @@ class FocusedSBAnomalyDetector(FocusedAnomalyDetector):
         state, action, next_state = self.convert_to_images(sb_ob)
         state = self.transform_s(state)
         action = self.transform_a(action)
-        next_state = self.transform_s(next_state)
+        next_state = self.transform_s(next_state[-1])
 
         y_hat = self.state_predictor(state.unsqueeze(0), action.unsqueeze(0)).squeeze()
         x = self.novelty_features(state, y_hat, next_state)
         prob = self.novelty_detector.predict_proba(x).squeeze()[1]
         # returning empty or non-empty list to keep with cart-pole assumption
         if prob > self.threshold:
-            return [True]
-        return []
+            return [True], prob
+        return [], prob
 
     def novelty_features(self, state, y_hat, next_state):
         mask_changed = torch.ne(state, next_state)   # this will consider only points that change
