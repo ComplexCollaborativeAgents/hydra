@@ -10,7 +10,7 @@ from agent.consistency.focused_anomaly_detector import *
 import settings
 import pickle
 import pytest
-from os import path
+from os import path, listdir
 
 # Constants for ScienceBirds
 CP_NON_NOVEL_OBS_DIR = path.join(settings.ROOT_PATH, 'data', 'cartpole', 'consistency', 'non_novel')
@@ -26,8 +26,8 @@ CP_NOVEL_OBS = 3
 SB_NON_NOVEL_OBS_DIR = path.join(settings.ROOT_PATH, 'data', 'science_birds', 'consistency', 'dynamics', 'non_novel')
 SB_NOVEL_OBS_DIR = path.join(settings.ROOT_PATH, 'data', 'science_birds', 'consistency', 'dynamics', 'novel')
 
-SB_NON_NOVEL_TESTS = ['level_15_obs.p']
-SB_NOVEL_TESTS = ['novelty_2_6_level_15_new_bird_obs.p', 'novelty_2_7_level_15_new_bird_obs.p']
+SB_NON_NOVEL_TESTS = listdir(SB_NON_NOVEL_OBS_DIR)
+SB_NOVEL_TESTS = listdir(SB_NOVEL_OBS_DIR)
 
 # @pytest.mark.skip("Currently failing.")
 def test_UPenn_consistency_cartpole():
@@ -63,6 +63,7 @@ def test_UPenn_consistency_science_birds():
         novelties, novelty_likelihood = detector.detect(sb_ob)
         assert(len(novelties)==0)
         assert(novelty_likelihood<1)
+
 
     for ob_file in SB_NOVEL_TESTS:
         sb_ob : ScienceBirdsObservation = pickle.load(open(path.join(SB_NOVEL_OBS_DIR, ob_file), "rb"))
