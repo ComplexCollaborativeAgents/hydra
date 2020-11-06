@@ -4,6 +4,19 @@ import argparse
 from utils.host import Host
 
 import settings
+import logging
+import pathlib
+
+LOG_PATH = pathlib.Path(settings.ROOT_PATH) / 'runners' / 'log' / 'hydra-sb.log'
+
+
+def config_logging():
+    logger = logging.getLogger()
+    fh = logging.FileHandler(LOG_PATH)
+    fh.setLevel(logging.DEBUG)
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    fh.setFormatter(formatter)
+    logger.addHandler(fh)
 
 def parse():
     parser = argparse.ArgumentParser(description='HYDRA agent.')
@@ -14,6 +27,8 @@ def parse():
 
 
 def main():
+    config_logging()
+
     settings.HYDRA_MODEL_REVISION_ATTEMPTS = 0
     arguments = parse()
     env = sb.ScienceBirds(None, launch=False, host=arguments.server)
