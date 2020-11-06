@@ -7,6 +7,7 @@ from tests import test_utils
 # Defaults
 DEFAULT_DELTA_T = settings.SB_DELTA_T
 DEFAULT_PLOT_OBS_VS_EXP = False
+CONSISTENCY_CHECK_FAILED_VALUE = 1000
 
 '''
 An abstract class for checking if a given sequence of (state, time) pairs can be consistent with a given sequence of states.  
@@ -192,5 +193,8 @@ def check_obs_consistency(observation,
         matplotlib.interactive(True)
         plot_axes = test_utils.plot_observation(observation)
         test_utils.plot_expected_trace_for_obs(meta_model, observation, ax=plot_axes)
-
-    return consistency_checker.compute_consistency(observation, meta_model, simulator,delta_t)
+    try:
+        consistency_value = consistency_checker.compute_consistency(observation, meta_model, simulator,delta_t)
+    except ValueError:
+        consistency_value = CONSISTENCY_CHECK_FAILED_VALUE
+    return consistency_value
