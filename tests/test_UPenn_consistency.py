@@ -1,5 +1,7 @@
 import os
 
+from state_prediction.anomaly_detector import FocusedSBAnomalyDetector
+
 os.environ['LANG'] = 'en_US'
 os.environ['PYOPENGL_PLATFORM'] = 'egl' # Uncommnet this line while running remotely
 
@@ -8,7 +10,7 @@ from agent.consistency.focused_anomaly_detector import *
 import settings
 import pickle
 import pytest
-from os import path
+from os import path, listdir
 
 # Constants for ScienceBirds
 CP_NON_NOVEL_OBS_DIR = path.join(settings.ROOT_PATH, 'data', 'cartpole', 'consistency', 'non_novel')
@@ -24,8 +26,8 @@ CP_NOVEL_OBS = 3
 SB_NON_NOVEL_OBS_DIR = path.join(settings.ROOT_PATH, 'data', 'science_birds', 'consistency', 'dynamics', 'non_novel')
 SB_NOVEL_OBS_DIR = path.join(settings.ROOT_PATH, 'data', 'science_birds', 'consistency', 'dynamics', 'novel')
 
-SB_NON_NOVEL_TESTS = ['level_15_obs.p']
-SB_NOVEL_TESTS = ['novelty_2_6_level_15_new_bird_obs.p', 'novelty_2_7_level_15_new_bird_obs.p']
+SB_NON_NOVEL_TESTS = listdir(SB_NON_NOVEL_OBS_DIR)
+SB_NOVEL_TESTS = listdir(SB_NOVEL_OBS_DIR)
 
 # @pytest.mark.skip("Currently failing.")
 def test_UPenn_consistency_cartpole():
@@ -49,24 +51,37 @@ def test_UPenn_consistency_cartpole():
         assert(len(novelties)>0) # "Novelty not detected (false negative)"
         assert(novelty_likelihood==1.0)
 
-@pytest.mark.skip("Skipping science birds for now")
+#@pytest.mark.skip("Skipping science birds for now")
 def test_UPenn_consistency_science_birds():
     '''
     verify that we can identify novelty for observations of novel problems, and that we don't for non_novel-problems
     '''
-    detector = FocusedAnomalyDetector(threshold = 0.3)
+    detector = FocusedSBAnomalyDetector(threshold = 0.5) # Raising this threshold will reduce false positives
+
+    true_negatives = 0
+    true_positives = 0
+    false_negatives = 0
+    false_positives = 0
     for ob_file in SB_NON_NOVEL_TESTS:
         #load file
         sb_ob : ScienceBirdsObservation = pickle.load(open(path.join(SB_NON_NOVEL_OBS_DIR, ob_file), "rb"))
         novelties, novelty_likelihood = detector.detect(sb_ob)
-        assert(len(novelties)==0)
-        assert(novelty_likelihood<1)
+        if not novelties:
+            true_negatives += 1
+        else:
+            false_positives += 1
 
     for ob_file in SB_NOVEL_TESTS:
         sb_ob : ScienceBirdsObservation = pickle.load(open(path.join(SB_NOVEL_OBS_DIR, ob_file), "rb"))
         novelties, novelty_likelihood = detector.detect(sb_ob)
-        assert(len(novelties)>0)
-        assert(novelty_likelihood==1)
+        if novelties:
+            true_positives += 1
+        else:
+            false_negatives += 1
+    assert(true_positives >= 4)
+    assert(true_negatives >= 7)
+    assert(false_positives <= 2)
+    assert(false_negatives <= 5)
 
 # Data generation methods - NOT TESTS
 @pytest.mark.skip("Generates data for  test_UPenn_consistency_cartpole() - not a real test")
