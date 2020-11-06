@@ -1,6 +1,7 @@
 from agent.hydra_agent import HydraAgent
 from agent.consistency.meta_model_repair import *
 from agent.gym_hydra_agent import GymHydraAgent
+from state_prediction.anomaly_detector import FocusedSBAnomalyDetector
 
 fh = logging.FileHandler("hydra.log",mode='w')
 formatter = logging.Formatter('%(name)s - %(levelname)s - %(message)s')
@@ -53,6 +54,7 @@ class RepairingHydraSBAgent(HydraAgent):
                                                                       self.consistency_estimator,
                                                                       repair_deltas,
                                                                       consistency_threshold=self.desired_consistency)
+        self.detector = FocusedSBAnomalyDetector()
 
     def reinit(self):
         super().reinit()
@@ -66,7 +68,8 @@ class RepairingHydraSBAgent(HydraAgent):
         if last_obs!=None:
             # Check if we should repair
             if self.should_repair(last_obs):
-                logger.info("Initiating repair...")
+                self.revision_attempts += 1
+                logger.info("Initiating repair number {}".format(self.revision_attempts))
                 repair, consistency = self.meta_model_repair.repair(self.meta_model, last_obs)
                 repair_description = ["Repair %s, %.2f" % (fluent, repair[i])
                                       for i, fluent in enumerate(self.meta_model_repair.fluents_to_repair)]
@@ -78,8 +81,18 @@ class RepairingHydraSBAgent(HydraAgent):
 
     ''' Checks if the current model should be repaired'''
     def should_repair(self, observation: ScienceBirdsObservation):
-        if self.revision_attempts >= settings.HYDRA_MODEL_REVISION_ATTEMPTS  or\
-                (self.novelty_existence is not None and self.novelty_existence==False):
+        # novelty existences should be -1, 0, 1 but we are still waiting on Peng
+        if (self.novelty_existence == 0) or self.revision_attempts >= settings.HYDRA_MODEL_REVISION_ATTEMPTS:
             return False
-        self.revision_attempts += 1
-        return check_obs_consistency(observation, self.meta_model, self.consistency_estimator) > self.desired_consistency
+        elif self.novelty_existence == 1:
+            return True
+        elif self.novelty_existence == -1 and \
+                (self.completed_levels and self.completed_levels[-1] == False):
+            if observation.hasUnknownObj():
+                self.novelty_likelihood = 1
+                return True
+            cnn_novelty, cnn_prob = self.detector.detect(observation)
+            self.novelty_likelihood = max(self.novelty_likelihood, cnn_prob)
+            return cnn_novelty and check_obs_consistency(observation, self.meta_model, self.consistency_estimator) > self.desired_consistency
+        else:
+            return False
