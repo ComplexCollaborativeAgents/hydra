@@ -10,7 +10,7 @@ logger.setLevel(logging.INFO)
 
 ''' Run experiments iwth the repairing Hydra agent '''
 def run_repairing_sb_experiments():
-    SAMPLES = 2
+    SAMPLES = 25
     novelties = {NOVELTY: [TYPE]}
     run_performance_stats(novelties, seed=1, agent_type=AgentType.RepairingHydra, samples=SAMPLES)
     run_performance_stats(novelties, seed=1, agent_type=AgentType.Baseline, samples=SAMPLES)
