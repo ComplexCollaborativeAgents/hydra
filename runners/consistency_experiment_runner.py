@@ -142,4 +142,4 @@ if __name__ == '__main__':
         results_file = (STATS_FILE_PATH / results_file_name)
 
         analyze_results(results_file, alg.name)
-    logger.info("Analysis Done!")
+    logger.info("Analysis Done!!")
