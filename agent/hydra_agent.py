@@ -57,7 +57,7 @@ class HydraAgent():
         self.overall_plan_time = time.perf_counter()
         self.cumulative_plan_time = 0
 
-        while t < max_actions:
+        while True:
             observation = ScienceBirdsObservation()  # Create an observation object to track on what happend
             raw_state = self.env.get_current_state()
 

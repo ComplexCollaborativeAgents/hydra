@@ -87,14 +87,14 @@ class ScienceBirds(World):
 
     trajectory_planner = SimpleTrajectoryPlanner() # This is static to allow others to reason about it
 
-    def __init__(self,sel_level=0,launch=False,config='test_config.xml'):
+    def __init__(self,sel_level=0,launch=False,config='test_config.xml', host=None):
         self.id = 2228
         self.SB_process = None
         self.SB_server_process = None
         if launch:
             self.launch_SB(config)
             time.sleep(5)
-        self.create_interface(sel_level)
+        self.create_interface(sel_level, host=host)
 
 
 
@@ -176,10 +176,13 @@ class ScienceBirds(World):
             observer.port = observer_host.port
 
 
-    def create_interface(self,first_level=None):
+    def create_interface(self,first_level=None,host=None):
         with open(str(path.join(settings.ROOT_PATH, 'worlds', 'science_birds_interface', 'client', 'server_client_config.json')), 'r') as config:
             sc_json_config = json.load(config)
-        self.sb_client = ac.AgentClient('docker-host' if 'DOCKER' in os.environ else sc_json_config[0]['host'], sc_json_config[0]['port'])
+        if host is not None:
+            sc_json_config[0]['host'] = host.hostname
+            sc_json_config[0]['port'] = host.port
+        self.sb_client = ac.AgentClient(sc_json_config[0]['host'], sc_json_config[0]['port'])
         self.sb_client.connect_to_server()
         self.sb_client.configure(self.id)
         if first_level:
