@@ -56,24 +56,32 @@ def test_UPenn_consistency_science_birds():
     '''
     verify that we can identify novelty for observations of novel problems, and that we don't for non_novel-problems
     '''
-    detector = FocusedSBAnomalyDetector(threshold = 0.5)
+    detector = FocusedSBAnomalyDetector(threshold = 0.5) # Raising this threshold will reduce false positives
+
+    true_negatives = 0
+    true_positives = 0
+    false_negatives = 0
+    false_positives = 0
     for ob_file in SB_NON_NOVEL_TESTS:
         #load file
         sb_ob : ScienceBirdsObservation = pickle.load(open(path.join(SB_NON_NOVEL_OBS_DIR, ob_file), "rb"))
         novelties, novelty_likelihood = detector.detect(sb_ob)
-        print(novelties)
-        print(novelty_likelihood)
-#        assert(len(novelties)==0)
-#        assert(novelty_likelihood<1)
-
+        if not novelties:
+            true_negatives += 1
+        else:
+            false_positives += 1
 
     for ob_file in SB_NOVEL_TESTS:
         sb_ob : ScienceBirdsObservation = pickle.load(open(path.join(SB_NOVEL_OBS_DIR, ob_file), "rb"))
         novelties, novelty_likelihood = detector.detect(sb_ob)
-        print(novelties)
-        print(novelty_likelihood)
-#        assert(len(novelties)>0)
-#        assert(novelty_likelihood==1)
+        if novelties:
+            true_positives += 1
+        else:
+            false_negatives += 1
+    assert(true_positives >= 4)
+    assert(true_negatives >= 7)
+    assert(false_positives <= 2)
+    assert(false_negatives <= 5)
 
 # Data generation methods - NOT TESTS
 @pytest.mark.skip("Generates data for  test_UPenn_consistency_cartpole() - not a real test")
