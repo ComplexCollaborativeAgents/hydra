@@ -3,6 +3,7 @@ from agent.repairing_hydra_agent import RepairingHydraSBAgent
 import argparse
 from utils.host import Host
 
+import settings
 
 def parse():
     parser = argparse.ArgumentParser(description='HYDRA agent.')
@@ -13,6 +14,7 @@ def parse():
 
 
 def main():
+    settings.HYDRA_MODEL_REVISION_ATTEMPTS = 0
     arguments = parse()
     env = sb.ScienceBirds(None, launch=False, host=arguments.server)
     hydra = RepairingHydraSBAgent(env)
