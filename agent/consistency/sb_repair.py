@@ -1,12 +1,13 @@
 from agent.consistency.fast_pddl_simulator import *
+from agent.consistency.meta_model_repair import *
+from agent.planning.pddl_meta_model import MetaModel
+from agent.consistency.consistency_estimator import *
+
 
 logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("sb_repair")
 
 
-''' All consistency estimators for SB '''
-from agent.consistency.meta_model_repair import *
-from agent.planning.pddl_meta_model import MetaModel
 
 ''' Checks consistency by considering the location of the birds '''
 class BirdLocationConsistencyEstimator(MetaModelBasedConsistencyEstimator):
