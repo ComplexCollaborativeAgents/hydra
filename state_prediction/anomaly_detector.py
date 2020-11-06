@@ -16,7 +16,10 @@ class FocusedSBAnomalyDetector(FocusedAnomalyDetector):
         self.state_predictor.load_state_dict(torch.load('{}/state_prediction/pretrained_model.pt'.format(settings.ROOT_PATH),
                                                         map_location=self.device))
         with open('{}/state_prediction/pretrained_novelty_detector.pickle'.format(settings.ROOT_PATH), 'rb') as f:
-            self.novelty_detector = pickle.load(f)
+            novelty_detector_info = pickle.load(f)
+        self.novelty_detector = novelty_detector_info['clf']
+        self.novelty_feature_mu = novelty_detector_info['x_mu']
+        self.novelty_feature_std = novelty_detector_info['x_std']
 
         self.transform_s = transforms.Compose([
             transforms.ToTensor(),
@@ -32,10 +35,10 @@ class FocusedSBAnomalyDetector(FocusedAnomalyDetector):
         state = self.transform_s(state)
         action = self.transform_a(action)
         next_state = self.transform_s(next_state[-1])
-
         y_hat = self.state_predictor(state.unsqueeze(0), action.unsqueeze(0)).squeeze()
         x = self.novelty_features(state, y_hat, next_state)
         prob = self.novelty_detector.predict_proba(x).squeeze()[1]
+        y_hat = self.novelty_detector.predict(x).squeeze()
         # returning empty or non-empty list to keep with cart-pole assumption
         if prob > self.threshold:
             return [True], prob
@@ -50,13 +53,15 @@ class FocusedSBAnomalyDetector(FocusedAnomalyDetector):
         num_points_predicted_changed = mask_predicted_changed.sum(dim=(1,2))
         num_points_predicted_unchanged = (~mask_predicted_changed).sum(dim=(1,2))
 
-        err_changed = (torch.ne(y_hat > 0, next_state) * mask_changed).sum(dim=(1,2))
-        err_unchanged = (torch.ne(y_hat > 0, next_state) * (~mask_changed)).sum(dim=(1,2))
-        err_predicted_changed = (torch.ne(y_hat > 0, next_state) * mask_predicted_changed).sum(dim=(1,2))
-        err_predicted_unchanged = (torch.ne(y_hat > 0, next_state) * (~mask_predicted_changed)).sum(dim=(1,2))
+        err_changed = (torch.ne(y_hat > 0, next_state) * mask_changed).sum(dim=(1,2)) / num_points_changed
+        err_unchanged = (torch.ne(y_hat > 0, next_state) * (~mask_changed)).sum(dim=(1,2)) / num_points_unchanged
+        err_predicted_changed = (torch.ne(y_hat > 0, next_state) * mask_predicted_changed).sum(dim=(1,2)) / num_points_predicted_changed
+        err_predicted_unchanged = (torch.ne(y_hat > 0, next_state) * (~mask_predicted_changed)).sum(dim=(1,2)) / num_points_predicted_unchanged
 
         x = np.r_[err_changed, err_unchanged, err_predicted_changed, err_predicted_unchanged]
-
+        x[np.isnan(x)] = 0
+        x = (x - self.novelty_feature_mu) / self.novelty_feature_std
+        
         return x.reshape(1, -1)
 
     def convert_to_images(self, sb_obs):

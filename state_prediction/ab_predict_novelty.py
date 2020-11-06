@@ -144,8 +144,9 @@ X_novelty = np.c_[np.r_[err_changed_no_novelty, err_changed_novelty],
                     np.r_[err_predicted_changed_no_novelty, err_predicted_changed_novelty],
                     np.r_[err_predicted_unchanged_no_novelty, err_predicted_unchanged_novelty]]
 X_novelty[np.isnan(X_novelty)] = 0
-X_novelty = X_novelty - X_novelty.mean(axis=0)
-X_novelty = X_novelty / X_novelty.std(axis=0)
+X_mean = X_novelty.mean(axis=0)
+X_std = X_novelty.std(axis=0)
+X_novelty = (X_novelty - X_mean) / X_std
 
 
 print(X_novelty.max(axis=0), X_novelty.min(axis=0))
@@ -162,7 +163,7 @@ print(np.mean(scores), np.std(scores))
 clf = LogisticRegression(penalty='none', class_weight='balanced', max_iter=1000)
 clf.fit(X_novelty, y_true)
 with open('pretrained_novelty_detector.pickle', 'wb') as f:
-    pickle.dump(clf, f)
+    pickle.dump({'clf': clf, 'x_mu': X_mean, 'x_std': X_std}, f)
 
 y_score = clf.predict_proba(X_novelty)[:, 1]
 

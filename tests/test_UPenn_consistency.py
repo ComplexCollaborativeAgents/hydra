@@ -56,7 +56,7 @@ def test_UPenn_consistency_science_birds():
     '''
     verify that we can identify novelty for observations of novel problems, and that we don't for non_novel-problems
     '''
-    detector = FocusedSBAnomalyDetector(threshold = 0.3)
+    detector = FocusedSBAnomalyDetector(threshold = 0.5)
     for ob_file in SB_NON_NOVEL_TESTS:
         #load file
         sb_ob : ScienceBirdsObservation = pickle.load(open(path.join(SB_NON_NOVEL_OBS_DIR, ob_file), "rb"))
