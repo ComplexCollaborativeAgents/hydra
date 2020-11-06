@@ -384,7 +384,7 @@ class MetaModel():
         self.constant_boolean_fluents = dict()
 
         # Constants to repair
-        self.repairable_constants = list(['base_life_wood_multiplier', 'base_mass_wood_multiplier'])
+        self.repairable_constants = list(['meta_wood_multiplier', 'meta_stone_multiplier', 'meta_ice_multiplier', 'gravity_factor'])
 
         for (fluent, value) in [('active_bird', 0),
                                 ('angle_rate', 20),
@@ -397,6 +397,9 @@ class MetaModel():
                                 ('base_mass_ice_multiplier', 0.25),
                                 ('base_mass_stone_multiplier', 1.2),
                                 ('base_mass_tnt_multiplier', 0.1),
+                                ('meta_wood_multiplier', 1.0),
+                                ('meta_stone_multiplier', 1.0),
+                                ('meta_ice_multiplier', 1.0),
                                 ('gravity_factor', 9.81)]:
             self.constant_numeric_fluents[fluent]=value
 
@@ -519,15 +522,17 @@ class MetaModel():
         problem_params["birds"] = set()
         problem_params["initial_state"]=True # This marks that SBState describes the initial state. Used for setting the bird's location in the slingshot's location. TODO: Reconsider this design choice
 
-        self.object_types["wood"].hyper_parameters["block_life_multiplier"] = self.constant_numeric_fluents["base_life_wood_multiplier"]
-        self.object_types["stone"].hyper_parameters["block_life_multiplier"] = self.constant_numeric_fluents["base_life_stone_multiplier"]
-        self.object_types["ice"].hyper_parameters["block_life_multiplier"] = self.constant_numeric_fluents["base_life_ice_multiplier"]
+        self.object_types["wood"].hyper_parameters["block_life_multiplier"] = self.constant_numeric_fluents["base_life_wood_multiplier"] * self.constant_numeric_fluents["meta_wood_multiplier"]
+        self.object_types["stone"].hyper_parameters["block_life_multiplier"] = self.constant_numeric_fluents["base_life_stone_multiplier"] * self.constant_numeric_fluents["meta_stone_multiplier"]
+        self.object_types["ice"].hyper_parameters["block_life_multiplier"] = self.constant_numeric_fluents["base_life_ice_multiplier"] * self.constant_numeric_fluents["meta_ice_multiplier"]
         self.object_types["TNT"].hyper_parameters["block_life_multiplier"] = self.constant_numeric_fluents["base_life_tnt_multiplier"]
 
-        self.object_types["wood"].hyper_parameters["block_mass_coeff"] = self.constant_numeric_fluents["base_mass_wood_multiplier"]
-        self.object_types["stone"].hyper_parameters["block_mass_coeff"] = self.constant_numeric_fluents["base_mass_stone_multiplier"]
-        self.object_types["ice"].hyper_parameters["block_mass_coeff"] = self.constant_numeric_fluents["base_mass_ice_multiplier"]
+        self.object_types["wood"].hyper_parameters["block_mass_coeff"] = self.constant_numeric_fluents["base_mass_wood_multiplier"] * self.constant_numeric_fluents["meta_wood_multiplier"]
+        self.object_types["stone"].hyper_parameters["block_mass_coeff"] = self.constant_numeric_fluents["base_mass_stone_multiplier"] * self.constant_numeric_fluents["meta_stone_multiplier"]
+        self.object_types["ice"].hyper_parameters["block_mass_coeff"] = self.constant_numeric_fluents["base_mass_ice_multiplier"] * self.constant_numeric_fluents["meta_ice_multiplier"]
         self.object_types["TNT"].hyper_parameters["block_mass_coeff"] = self.constant_numeric_fluents["base_mass_tnt_multiplier"]
+
+        self.object_types["bird"].hyper_parameters
 
         # Add objects to problem
         for obj in sb_state.objects.items():
