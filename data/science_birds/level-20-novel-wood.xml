@@ -11,7 +11,7 @@
 
 <Block type="novel_object_5" material="wood" x="1.0" y="-3.0" rotation="90" />
 
-<Pig type="BasicBig" material="" x="2.5" y="-3.0" rotation="0" />
+<Pig type="BasicSmall" material="" x="2.5" y="-3.0" rotation="0" />
 
 </GameObjects>
 </Level>

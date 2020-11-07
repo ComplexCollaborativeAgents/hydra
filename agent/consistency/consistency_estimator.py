@@ -1,16 +1,13 @@
 import matplotlib
-from utils.point2D import Point2D
 from agent.consistency.pddl_plus_simulator import *
-from agent.consistency.observation import ScienceBirdsObservation
 from agent.perception.perception import *
-from agent.planning.pddl_plus import *
-from agent.planning.pddl_meta_model import MetaModel
 from tests import test_utils
 
 
 # Defaults
-DEFAULT_DELTA_T = 0.02
+DEFAULT_DELTA_T = settings.SB_DELTA_T
 DEFAULT_PLOT_OBS_VS_EXP = False
+CONSISTENCY_CHECK_FAILED_VALUE = 1000
 
 '''
 An abstract class for checking if a given sequence of (state, time) pairs can be consistent with a given sequence of states.  
@@ -19,7 +16,7 @@ class ConsistencyEstimator:
     ''' The first parameter is a list of (state,time) pairs, the second is just a list of states.
      Returns a positive number  that represents the possible consistency between the sequences,
      where zero means fully consistent. '''
-    def estimate_consistency(self, timed_state_seq: list, state_seq: list, delta_t: float = DEFAULT_DELTA_T):
+    def estimate_consistency(self, timed_state_seq: list, state_seq: list, delta_t: float):
         raise NotImplementedError()
 
 
@@ -148,35 +145,6 @@ class NumericFluentsConsistencyEstimator(MetaModelBasedConsistencyEstimator):
         return (best_t, best_fit_error)
 
 
-''' Checks consistency by considering the location of the birds '''
-class BirdLocationConsistencyEstimator(MetaModelBasedConsistencyEstimator):
-    def __init__(self, unique_prefix_size = 100,discount_factor=0.9, consistency_threshold = 20):
-        self.unique_prefix_size=unique_prefix_size
-        self.discount_factor = discount_factor
-        self.consistency_threshold = consistency_threshold
-
-    ''' Estimate consitency by considering the location of the birds in the observed state seq '''
-    def estimate_consistency(self, simulation_trace: list, state_seq: list, delta_t: float = DEFAULT_DELTA_T):
-        # Get birds
-        birds = set()
-        for [state, _,_] in simulation_trace:
-            if len(birds)==0: # TODO: Discuss how to make this work. Currently a new bird suddenly appears
-                birds = state.get_birds()
-            else:
-                break
-
-        fluent_names = []
-        for bird in birds:
-            fluent_names.append(('x_bird', bird))
-            fluent_names.append(('y_bird', bird))
-
-        consistency_checker = NumericFluentsConsistencyEstimator(fluent_names, self.unique_prefix_size,
-                                                                 self.discount_factor,
-                                                                 consistency_threshold = self.consistency_threshold)
-        return consistency_checker.estimate_consistency(simulation_trace, state_seq, delta_t)
-
-
-
 ''' A utility function for comparing (state, time) sequences. 
 It outputs a list of differences between the sequences. '''
 def diff_traces(trace1, trace2: list):
@@ -218,11 +186,15 @@ def diff_pddl_states(state1, state2):
 def check_obs_consistency(observation,
                           meta_model,
                           consistency_checker : MetaModelBasedConsistencyEstimator,
+                          simulator : PddlPlusSimulator = PddlPlusSimulator(),
                           delta_t : float = DEFAULT_DELTA_T,
                           plot_obs_vs_exp = DEFAULT_PLOT_OBS_VS_EXP):
     if plot_obs_vs_exp:
         matplotlib.interactive(True)
         plot_axes = test_utils.plot_observation(observation)
         test_utils.plot_expected_trace_for_obs(meta_model, observation, ax=plot_axes)
-
-    return consistency_checker.compute_consistency(observation, meta_model, PddlPlusSimulator(),delta_t)
+    try:
+        consistency_value = consistency_checker.compute_consistency(observation, meta_model, simulator,delta_t)
+    except ValueError:
+        consistency_value = CONSISTENCY_CHECK_FAILED_VALUE
+    return consistency_value

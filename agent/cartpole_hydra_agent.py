@@ -5,7 +5,6 @@ from agent.consistency.meta_model_repair import *
 from agent.planning.cartpole_planner import CartPolePlanner
 from agent.planning.cartpole_pddl_meta_model import *
 from agent.consistency.observation import CartPoleObservation
-from agent.consistency.consistency_estimator import DEFAULT_DELTA_T
 import time
 import copy
 import json
@@ -19,7 +18,6 @@ from worlds.wsu.wsu_dispatcher import WSUObserver
 
 class CartpoleHydraAgent:
     def __init__(self):
-        self.consistency_checker = ConsistencyChecker()
         self.meta_model = CartPoleMetaModel()
         self.cartpole_planner = CartPolePlanner(self.meta_model)
         self.log = logging.getLogger(__name__).getChild('CartpoleHydraAgent')
@@ -90,8 +88,6 @@ class CartpoleHydraAgent:
 class RepairingCartpoleHydraAgent(CartpoleHydraAgent):
     def __init__(self):
         super().__init__()
-        self.consistency_checker = CartpoleConsistencyEstimator()
-        self.desired_precision = 0.01
         self.repair_threshold = 0.975 # 195/200
         self.has_repaired = False
         self.detector = FocusedAnomalyDetector()
@@ -126,8 +122,8 @@ class RepairingCartpoleHydraAgent(CartpoleHydraAgent):
                 self.novelty_characterization['novelty_characterization_description'] = json.dumps(characterization)
 
             try:
-                meta_model_repair = CartpoleRepair(self.consistency_checker, self.desired_precision)
-                repair, _ = meta_model_repair.repair(self.meta_model, self.current_observation, delta_t=DEFAULT_DELTA_T)
+                meta_model_repair = CartpoleRepair()
+                repair, _ = meta_model_repair.repair(self.meta_model, self.current_observation, delta_t=settings.CP_DELTA_T)
                 self.log.info("Repaired meta model (repair string: %s)" % repair)
                 self.has_repaired = True
             except Exception:

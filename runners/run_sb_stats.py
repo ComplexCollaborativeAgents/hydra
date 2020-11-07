@@ -85,17 +85,17 @@ def diff_directories(a, b):
 
 
 @contextlib.contextmanager
-def run_agent(config, agent):
+def run_agent(config, agent, agent_stats=list()):
     ''' Run science birds and the hydra agent. '''
     try:
         env = sb.ScienceBirds(None, launch=True, config=config)
         yield env
 
         if agent == AgentType.Hydra:
-            hydra = HydraAgent(env)
+            hydra = HydraAgent(env, agent_stats)
             hydra.main_loop(max_actions=10000)
         elif agent == AgentType.RepairingHydra:
-            hydra = RepairingHydraSBAgent(env)
+            hydra = RepairingHydraSBAgent(env, agent_stats)
             hydra.main_loop(max_actions=10000)
         elif agent == AgentType.Baseline:
             ground_truth = ClientNaiveAgent(env.id, env.sb_client)
@@ -129,7 +129,7 @@ def get_bird_count(level_path):
         pass
     return birds
 
-def compute_stats(results_path, agent):
+def compute_stats(results_path, agent, agent_stats = list()):
     ''' Inspect evaluation directory from science birds and generate a stats dict. '''
     stats = {'levels': [], 'overall': None}
 
@@ -143,7 +143,7 @@ def compute_stats(results_path, agent):
         evaluation_data = evaluation_data[0]
         with open(evaluation_data) as f:
             data = csv.DictReader(f)
-            for row in data:
+            for i, row in enumerate(data):
                 level_path = row['levelName']
                 birds = get_bird_count(os.path.join(SB_BIN_PATH, level_path))
                 status = row['LevelStatus']
@@ -167,6 +167,13 @@ def compute_stats(results_path, agent):
                                'pigs_remaining': int(row['pigsRemaining']),
                                'pigs_start': int(row['pigsAtStart']),
                                'birds': birds}
+
+                # Get agent stats
+                if i<len(agent_stats):
+                    agent_stats_for_level = agent_stats[i]
+                    for key in agent_stats_for_level:
+                        level_stats[key]= agent_stats_for_level[key]
+
                 stats['levels'].append(level_stats)
 
     stats['overall'] = {'passed': passed, 'failed': failed,
@@ -206,13 +213,14 @@ def run_performance_stats(novelties: dict,
             pre_directories = glob_directories(bin_path, 'Agent*')
             post_directories = None
 
-            with run_agent(config.name, agent_type) as env: # TODO: Typo?
+            agent_stats = list()
+            with run_agent(config.name, agent_type, agent_stats) as env: # TODO: Typo?
                 post_directories = glob_directories(SB_BIN_PATH, 'Agent*')
 
-            results = diff_directories(pre_directories, post_directories)
+            results_directory = diff_directories(pre_directories, post_directories)
 
-            if results is not None:
-                stats = compute_stats(results, agent_type)
+            if results_directory is not None:
+                stats = compute_stats(results_directory, agent_type, agent_stats)
                 filename = "stats_novelty{}_type{}_agent{}.json".format(novelty, novelty_type, agent_type.name)
                 with open(stats_base_path / filename, 'w') as f:
                     json.dump(stats, f, sort_keys=True, indent=4)

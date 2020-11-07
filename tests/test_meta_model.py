@@ -50,3 +50,20 @@ def test_action_angle_conversion():
         action_angle = MetaModel.action_time_to_angle(t, pddl_state)
         derived_t = MetaModel.angle_to_action_time(action_angle, pddl_state)
         assert abs(t-derived_t)<0.05
+
+
+
+''' Check the bird x computation when creating a problem and when creating an intermediate state '''
+@pytest.mark.skip("Currently failing.")
+def test_bird_x_computation():
+    observation = pickle.load(open(os.path.join(DATA_TESTS_DIR, "bad_observation.p"), "rb"))
+    meta_model = MetaModel()
+
+    state2 = PddlPlusState(meta_model.create_pddl_problem(observation.state).init)
+    state1 = meta_model.create_pddl_state(observation.state)
+
+    for bird in state1.get_birds():
+        fluent = ('x_bird', bird)
+        birdx1 = state1.numeric_fluents[fluent]
+        birdx2 = state2.numeric_fluents[fluent]
+        assert birdx1==birdx2

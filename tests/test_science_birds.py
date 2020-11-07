@@ -17,6 +17,7 @@ import subprocess
 import agent.perception.perception as perception
 from agent.hydra_agent import HydraAgent
 from agent.planning.pddl_meta_model import *
+from agent.repairing_hydra_agent import RepairingHydraSBAgent
 
 logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("TestSB")
@@ -41,6 +42,15 @@ def test_science_birds_agent(launch_science_birds):
     env = launch_science_birds
     # env.sb_client.set_game_simulation_speed(settings.SB_SIM_SPEED)
     hydra = HydraAgent(env)
+    hydra.main_loop() # enough actions to play the first two levels
+    assert len(set([o for o in hydra.observations if o.reward > 0])) == 4 # ensure we have 4 shots that hit things
+
+
+@pytest.mark.skip("'ScienceBirdsObservation' object has no attribute 'hasUnknownObj'")
+def test_science_birds_agent(launch_science_birds):
+    env = launch_science_birds
+    # env.sb_client.set_game_simulation_speed(settings.SB_SIM_SPEED)
+    hydra = RepairingHydraSBAgent(env)
     hydra.main_loop() # enough actions to play the first two levels
     assert len(set([o for o in hydra.observations if o.reward > 0])) == 4 # ensure we have 4 shots that hit things
 

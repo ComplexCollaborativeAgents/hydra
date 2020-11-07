@@ -17,7 +17,7 @@ class HydraAgent():
     '''
     Probably needs to subclass for each domain. We will cross that bridge when we get there
     '''
-    def __init__(self,env=None):
+    def __init__(self,env=None, agent_stats = list()):
         logger.info("[hydra_agent_server] :: Agent Created")
         self.env = env # agent always has a pointer to its environment
         if env is not None:
@@ -43,6 +43,7 @@ class HydraAgent():
         self.cumulative_plan_time = 0.0
         self.overall_plan_time = 0.0
         self.novelty_existence = -1
+        self.agent_stats = list() # TODO: Discuss this
 
     ''' Runs the agent. Returns False if the evaluation has not ended, and True if it has ended.'''
     def main_loop(self,max_actions=1000):
@@ -62,7 +63,9 @@ class HydraAgent():
             raw_state = self.env.get_current_state()
 
             if raw_state.game_state.value == GameState.PLAYING.value:
+                self.stats_for_level = dict()
                 self.handle_game_playing(observation, raw_state)
+                self.agent_stats.append(self.stats_for_level)
             elif raw_state.game_state.value == GameState.WON.value:
                 self.handle_game_won()
             elif raw_state.game_state.value == GameState.LOST.value:

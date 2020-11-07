@@ -11,7 +11,7 @@ import tests.test_utils as test_utils
 import os.path as path
 import time
 
-from runners.gym_experiments_runner import FaultyGymCartpoleDispatcher
+from runners.gym_experiment_runner import FaultyGymCartpoleDispatcher
 
 GRAVITY_FACTOR = "gravity_factor"
 DATA_DIR = path.join(settings.ROOT_PATH, 'data')

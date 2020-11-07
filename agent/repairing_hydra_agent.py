@@ -1,7 +1,9 @@
 from agent.hydra_agent import HydraAgent
 from agent.consistency.meta_model_repair import *
 from agent.gym_hydra_agent import GymHydraAgent
+import os.path as path
 from state_prediction.anomaly_detector import FocusedSBAnomalyDetector
+from agent.consistency.sb_repair import *
 
 fh = logging.FileHandler("hydra.log",mode='w')
 formatter = logging.Formatter('%(name)s - %(levelname)s - %(message)s')
@@ -33,40 +35,45 @@ class RepairingGymHydraAgent(GymHydraAgent):
             if not self.should_repair(observation):
                 logger.info("No need to repair")
                 return
-            meta_model_repair = CartpoleRepair(self.consistency_checker, self.desired_precision)
-            repair, _ = meta_model_repair.repair(self.meta_model, observation, delta_t=DEFAULT_DELTA_T)
+            meta_model_repair = CartpoleRepair()
+            start_time = time.time()
+            repair, consistency = meta_model_repair.repair(self.meta_model, observation, delta_t=settings.CP_DELTA_T)
+            repair_time = time.time()-start_time
+            repair_description = ["Repair %s, %.2f" % (fluent, repair[i])
+                                  for i, fluent in enumerate(self.meta_model_repair.fluents_to_repair)]
+
+            logger.info("Repair done! Repair time %.2f, Consistency: %.2f, Repair:\n %s" % (
+            repair_time, consistency, "\n".join(repair_description)))
 
         super().run(debug_info, max_actions)
 
 
 ''' Repairing Hydra agent for the SB domain '''
 class RepairingHydraSBAgent(HydraAgent):
-    def __init__(self,env=None):
+    def __init__(self,env=None,agent_stats = list()):
         super().__init__(env)
-
-        self.consistency_estimator = BirdLocationConsistencyEstimator()
-        self.revision_attempts = 0
-        # Create meta_model_repair object
-        self.desired_consistency = 25 # The consistency threshold for initiating repair
-        constants_to_repair = list(self.meta_model.repairable_constants)
-        repair_deltas = [1.0] * len(constants_to_repair)
-        self.meta_model_repair = GreedyBestFirstSearchMetaModelRepair(constants_to_repair,
-                                                                      self.consistency_estimator,
-                                                                      repair_deltas,
-                                                                      consistency_threshold=self.desired_consistency)
+        self.consistency_estimator = ScienceBirdsConsistencyEstimator()
         self.detector = FocusedSBAnomalyDetector()
+
+        # Create meta_model_repair object
+        self.revision_attempts = 0
+        self.meta_model_repair = ScienceBirdsMetaModelRepair(self.meta_model)
 
     def reinit(self):
         super().reinit()
         self.revision_attempts = 0
 
-
-
     ''' Handle what happens when the agent receives a PLAYING request'''
     def handle_game_playing(self, observation, raw_state):
         last_obs = self.find_last_obs()
         if last_obs!=None:
+            if "repair_calls" not in self.stats_for_level:
+                self.stats_for_level["repair_called"] = 0
+            if "repair_time" not in self.stats_for_level:
+                self.stats_for_level["repair_time"] = 0
+
             # Check if we should repair
+            logger.info("checking for repair...")
             if self.should_repair(last_obs):
                 self.revision_attempts += 1
                 logger.info("Initiating repair number {}".format(self.revision_attempts))
@@ -93,6 +100,8 @@ class RepairingHydraSBAgent(HydraAgent):
                 return True
             cnn_novelty, cnn_prob = self.detector.detect(observation)
             self.novelty_likelihood = max(self.novelty_likelihood, cnn_prob)
-            return cnn_novelty and check_obs_consistency(observation, self.meta_model, self.consistency_estimator) > self.desired_consistency
+            return cnn_novelty and check_obs_consistency(observation, self.meta_model, self.consistency_estimator,
+                                                         simulator=RefinedPddlPlusSimulator(),
+                                                         delta_t=settings.SB_DELTA_T) > self.meta_model_repair.consistency_threshold
         else:
             return False
