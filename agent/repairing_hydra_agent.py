@@ -101,7 +101,11 @@ class RepairingHydraSBAgent(HydraAgent):
             self.novelty_likelihood = 1
             return True
         elif self.novelty_existence == -1:
-            cnn_novelty, cnn_prob = self.detector.detect(observation)
+            try:
+                cnn_novelty, cnn_prob = self.detector.detect(observation)
+            except:
+                return False
+
             self.consistency_scores_current_level.append(cnn_prob)
             if len(self.consistency_scores_per_level) < 2 or len(self.consistency_scores_current_level) != 1:
                 return False
