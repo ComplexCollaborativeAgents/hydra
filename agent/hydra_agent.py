@@ -31,6 +31,8 @@ class HydraAgent():
         self.cumulative_plan_time = 0.0
         self.overall_plan_time = 0.0
         self.novelty_existence = -1
+        self.consistency_scores_per_level = []
+        self.consistency_scores_current_level = []
 
     def reinit(self):
         self.env.history = []
@@ -43,6 +45,8 @@ class HydraAgent():
         self.cumulative_plan_time = 0.0
         self.overall_plan_time = 0.0
         self.novelty_existence = -1
+        self.consistency_scores_per_level = []
+        self.consistency_scores_current_level = []
         self.agent_stats = list() # TODO: Discuss this
 
     ''' Runs the agent. Returns False if the evaluation has not ended, and True if it has ended.'''
@@ -146,6 +150,9 @@ class HydraAgent():
             (time.perf_counter() - self.overall_plan_time))))
         cumulative_plan_time = 0
         overall_plan_time = time.perf_counter()
+        if self.consistency_scores_current_level:
+            self.consistency_scores_per_level.insert(0,sum(self.consistency_scores_current_level)/len(self.consistency_scores_current_level))
+            self.consistency_scores_current_level = []
         self.perception.new_level = True
         self.current_level = self.env.sb_client.load_next_available_level()
         # time.sleep(1)
@@ -163,6 +170,9 @@ class HydraAgent():
             (time.perf_counter() - self.overall_plan_time))))
         self.cumulative_plan_time = 0
         self.overall_plan_time = time.perf_counter()
+        if self.consistency_scores_current_level:
+            self.consistency_scores_per_level.insert(0,sum(self.consistency_scores_current_level)/len(self.consistency_scores_current_level))
+            self.consistency_scores_current_level = []
         self.current_level = self.env.sb_client.load_next_available_level()
         self.perception.new_level = True
         # time.sleep(1)

@@ -10,7 +10,7 @@ from agent.consistency.focused_anomaly_detector import FocusedAnomalyDetector
 
 
 class FocusedSBAnomalyDetector(FocusedAnomalyDetector):
-    def __init__(self, threshold=0.5):
+    def __init__(self, threshold=settings.SB_ANOMOLY_DETECTOR_THRESHOLD):
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
         self.state_predictor = MyCNN(self.device)
         self.state_predictor.load_state_dict(torch.load('{}/state_prediction/pretrained_model.pt'.format(settings.ROOT_PATH),

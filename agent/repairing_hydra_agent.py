@@ -54,13 +54,13 @@ class RepairingHydraSBAgent(HydraAgent):
         # Create meta_model_repair object
         self.revision_attempts = 0
         self.meta_model_repair = ScienceBirdsMetaModelRepair(self.meta_model)
-        self.latest_consistency_scores = []
+
 
 
     def reinit(self):
         super().reinit()
         self.revision_attempts = 0
-        self.latest_consistency_scores = []
+
 
     ''' Handle what happens when the agent receives a PLAYING request'''
     def handle_game_playing(self, observation, raw_state):
@@ -85,34 +85,34 @@ class RepairingHydraSBAgent(HydraAgent):
         super().handle_game_playing(observation, raw_state)
 
 
-    ''' Checks if the current model should be repaired'''
+    '''
+    Checks if the current model should be repaired
+    If we are going to repair for a level, it will be a repair with the first shot's observations for that level.
+    '''
     def should_repair(self, observation: ScienceBirdsObservation):
         # novelty existences should be -1, 0, 1 but we are still waiting on Peng
-        if (self.novelty_existence == 0) or self.revision_attempts >= settings.HYDRA_MODEL_REVISION_ATTEMPTS:
+        if (self.novelty_existence == 0):
+            self.novelty_likelihood = 0
             return False
         elif self.novelty_existence == 1:
+            self.novelty_likelihood = 1
             return True
-        elif self.novelty_existence == -1 and \
-                (self.completed_levels and self.completed_levels[-1] == False):
-            if observation.hasUnknownObj():
+        elif observation.hasUnknownObj():
+            self.novelty_likelihood = 1
+            return True
+        elif self.novelty_existence == -1:
+            cnn_novelty, cnn_prob = self.detector.detect(observation)
+            self.consistency_scores_current_level.append(cnn_prob)
+            if len(self.consistency_scores_per_level) < 2 or len(self.consistency_scores_current_level) != 1:
+                return False
+            logger.info("CNN novelty likelihoods last shot: %.3f, previous problem: %.3f, two problems ago: %.3f, last problem solved? %s" % (cnn_prob,  self.consistency_scores_per_level[0], self.consistency_scores_per_level[1], self.completed_levels[-1]))
+            if cnn_prob > self.detector.threshold and\
+                self.consistency_scores_per_level[0] > self.detector.threshold and\
+                self.consistency_scores_per_level[1] > self.detector.threshold and\
+                not self.completed_levels[-1] and \
+                check_obs_consistency(observation, self.meta_model, self.consistency_estimator, simulator=RefinedPddlPlusSimulator(),  delta_t=settings.SB_DELTA_T) > self.meta_model_repair.consistency_threshold:
                 self.novelty_likelihood = 1
                 return True
-            cnn_novelty, cnn_prob = self.detector.detect(observation)
-            self.novelty_likelihood = max(self.novelty_likelihood, cnn_prob)
-
-            average_novelty_likelihood = 0.0
-            self.latest_consistency_scores.append(cnn_prob)
-            if len(self.latest_consistency_scores) > 5:
-                self.latest_consistency_scores.pop(0)
-                assert(len(self.latest_consistency_scores) == 5)
-                average_novelty_likelihood = sum(self.latest_consistency_scores)/5
-            else:
-                return False
-
-            logger.info("Average CNN novelty likelihood %.3f over the past %d observations %s" % (average_novelty_likelihood, len(self.latest_consistency_scores), str(self.latest_consistency_scores)))
-
-            return (average_novelty_likelihood > settings.SB_CLASSIFICATION_THRESHOLD) and check_obs_consistency(observation, self.meta_model, self.consistency_estimator,
-                                                         simulator=RefinedPddlPlusSimulator(),
-                                                         delta_t=settings.SB_DELTA_T) > self.meta_model_repair.consistency_threshold
-        else:
+            if self.novelty_likelihood != 1:
+                self.novelty_likelihood = cnn_prob
             return False
