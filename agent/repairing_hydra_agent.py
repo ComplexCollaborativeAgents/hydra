@@ -3,6 +3,7 @@ from agent.consistency.meta_model_repair import *
 from agent.gym_hydra_agent import GymHydraAgent
 import os.path as path
 from state_prediction.anomaly_detector import FocusedSBAnomalyDetector
+from agent.consistency.sb_repair import *
 
 fh = logging.FileHandler("hydra.log",mode='w')
 formatter = logging.Formatter('%(name)s - %(levelname)s - %(message)s')
@@ -51,22 +52,16 @@ class RepairingGymHydraAgent(GymHydraAgent):
 class RepairingHydraSBAgent(HydraAgent):
     def __init__(self,env=None,agent_stats = list()):
         super().__init__(env)
-        self.debug_mode = True
-
         self.consistency_estimator = ScienceBirdsConsistencyEstimator()
-        self.revision_attempts = 0
-        # Create meta_model_repair object
-        self.desired_consistency = 25 # The consistency threshold for initiating repair
-        constants_to_repair = list(self.meta_model.repairable_constants)
-        repair_deltas = [1.0] * len(constants_to_repair)
-        self.meta_model_repair = ScienceBirdsMetaModelRepair()
         self.detector = FocusedSBAnomalyDetector()
+
+        # Create meta_model_repair object
+        self.revision_attempts = 0
+        self.meta_model_repair = ScienceBirdsMetaModelRepair(self.meta_model)
 
     def reinit(self):
         super().reinit()
         self.revision_attempts = 0
-
-
 
     ''' Handle what happens when the agent receives a PLAYING request'''
     def handle_game_playing(self, observation, raw_state):
@@ -107,6 +102,6 @@ class RepairingHydraSBAgent(HydraAgent):
             self.novelty_likelihood = max(self.novelty_likelihood, cnn_prob)
             return cnn_novelty and check_obs_consistency(observation, self.meta_model, self.consistency_estimator,
                                                          simulator=RefinedPddlPlusSimulator(),
-                                                         delta_t=settings.SB_DELTA_T) > self.desired_consistency
+                                                         delta_t=settings.SB_DELTA_T) > self.meta_model_repair.consistency_threshold
         else:
             return False

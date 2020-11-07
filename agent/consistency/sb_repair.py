@@ -78,10 +78,11 @@ class ScienceBirdsConsistencyEstimator(MetaModelBasedConsistencyEstimator):
  The meta model repair used for ScienceBirds. 
 '''
 class ScienceBirdsMetaModelRepair(GreedyBestFirstSearchMetaModelRepair):
-    def __init__(self, consistency_threshold=settings.SB_CONSISTENCY_THRESHOLD,
+    def __init__(self, meta_model = MetaModel(),
+                 consistency_threshold=settings.SB_CONSISTENCY_THRESHOLD,
                  time_limit=settings.SB_REPAIR_TIMEOUT,
                  max_iterations=settings.SB_REPAIR_MAX_ITERATIONS):
-        constants_to_repair = MetaModel().repairable_constants
+        constants_to_repair = meta_model.repairable_constants
         consistency_estimator = ScienceBirdsConsistencyEstimator()
         repair_deltas = [1.0] * len(constants_to_repair)
         super().__init__(constants_to_repair, consistency_estimator, repair_deltas,
