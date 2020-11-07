@@ -5,12 +5,8 @@ import os.path as path
 from state_prediction.anomaly_detector import FocusedSBAnomalyDetector
 from agent.consistency.sb_repair import *
 
-fh = logging.FileHandler("hydra.log",mode='w')
-formatter = logging.Formatter('%(name)s - %(levelname)s - %(message)s')
-fh.setFormatter(formatter)
-logger = logging.getLogger("hydra_agent")
-logger.setLevel(logging.INFO)
-logger.addHandler(fh)
+
+logger = logging.getLogger("repairing_hydra_agent")
 
 from agent.planning.cartpole_pddl_meta_model import *
 from agent.consistency.cartpole_repair import *
@@ -58,10 +54,13 @@ class RepairingHydraSBAgent(HydraAgent):
         # Create meta_model_repair object
         self.revision_attempts = 0
         self.meta_model_repair = ScienceBirdsMetaModelRepair(self.meta_model)
+        self.latest_consistency_scores = []
+
 
     def reinit(self):
         super().reinit()
         self.revision_attempts = 0
+        self.latest_consistency_scores = []
 
     ''' Handle what happens when the agent receives a PLAYING request'''
     def handle_game_playing(self, observation, raw_state):
@@ -100,7 +99,19 @@ class RepairingHydraSBAgent(HydraAgent):
                 return True
             cnn_novelty, cnn_prob = self.detector.detect(observation)
             self.novelty_likelihood = max(self.novelty_likelihood, cnn_prob)
-            return cnn_novelty and check_obs_consistency(observation, self.meta_model, self.consistency_estimator,
+
+            average_novelty_likelihood = 0.0
+            self.latest_consistency_scores.append(cnn_prob)
+            if len(self.latest_consistency_scores) > 5:
+                self.latest_consistency_scores.pop(0)
+                assert(len(self.latest_consistency_scores) == 5)
+                average_novelty_likelihood = sum(self.latest_consistency_scores)/5
+            else:
+                return False
+
+            logger.info("Average CNN novelty likelihood %.3f over the past %d observations %s" % (average_novelty_likelihood, len(self.latest_consistency_scores), str(self.latest_consistency_scores)))
+
+            return (average_novelty_likelihood > settings.SB_CLASSIFICATION_THRESHOLD) and check_obs_consistency(observation, self.meta_model, self.consistency_estimator,
                                                          simulator=RefinedPddlPlusSimulator(),
                                                          delta_t=settings.SB_DELTA_T) > self.meta_model_repair.consistency_threshold
         else:

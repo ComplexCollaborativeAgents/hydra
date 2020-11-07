@@ -230,7 +230,7 @@ class HydraAgent():
         try:
             pig_x, pig_y = get_random_pig_xy(problem)
             min_angle, max_angle = estimate_launch_angle(self.planner.meta_model.get_slingshot(state), Point2D(pig_x, pig_y), self.meta_model)
-            default_time = self.meta_model.angle_to_action_time((max_angle+min_angle)/2, pddl_state)
+            default_time = self.meta_model.angle_to_action_time(min_angle, pddl_state)
         except:
             logger.info("Unable to shoot at a random pig, taking default angle of 20")
             default_time = self.meta_model.angle_to_action_time(20, pddl_state)
