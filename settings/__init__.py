@@ -15,6 +15,7 @@ SB_PLANNER_MEMORY_LIMIT = 50 # memory limit for UPMurphi (in MB)
 SB_DELTA_T = 0.05 # time discretisation for UPMurphi
 SB_TIMEOUT = 60 # timeout for the planning phase (in seconds)
 
+
 CP_PLANNER_MEMORY_LIMIT = 50 # memory limit for UPMurphi (in MB)
 CP_DELTA_T = 0.02 # time discretisation for UPMurphi
 CP_TIMEOUT = 60 # timeout for the planning phase (in seconds)
@@ -29,6 +30,7 @@ SB_SIM_SPEED = 2 # run at real time
 SB_GT_FREQ = int(30/SB_SIM_SPEED)
 SB_CLASSIFICATION_THRESHOLD = 0.5
 
+HYDRA_MODEL_REVISION_ATTEMPTS = 5
 
 # Repair parameters for ScienceBirds
 SB_REPAIR_TIMEOUT = 300

@@ -13,14 +13,6 @@ from agent.planning.pddl_meta_model import *
 logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("hydra_agent")
 
-# fh = logging.FileHandler("hydra_debug.log",mode='w')
-# logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
-# # fh.setFormatter(formatter)
-# logger = logging.getLogger("hydra_agent")
-# logger.setLevel(logging.INFO)
-# logger.addHandler(fh)
-
-
 class HydraAgent():
     '''
     Probably needs to subclass for each domain. We will cross that bridge when we get there
@@ -31,7 +23,6 @@ class HydraAgent():
         if env is not None:
             env.sb_client.set_game_simulation_speed(settings.SB_SIM_SPEED)
         self.perception = Perception()
-        self.consistency_checker = ConsistencyChecker()
         self.meta_model = MetaModel()
         self.planner = Planner(self.meta_model) # TODO: Discuss this w. Wiktor & Matt
         self.completed_levels = []
@@ -39,13 +30,26 @@ class HydraAgent():
         self.novelty_likelihood = 0.0
         self.cumulative_plan_time = 0.0
         self.overall_plan_time = 0.0
-        self.agent_stats = agent_stats
+        self.novelty_existence = -1
+
+    def reinit(self):
+        self.env.history = []
+        self.perception = Perception()
+        self.meta_model = MetaModel()
+        self.planner = Planner(self.meta_model) # TODO: Discuss this w. Wiktor & Matt
+        self.completed_levels = []
+        self.observations = []
+        self.novelty_likelihood = 0.0
+        self.cumulative_plan_time = 0.0
+        self.overall_plan_time = 0.0
+        self.novelty_existence = -1
+        self.agent_stats = list() # TODO: Discuss this
 
     ''' Runs the agent. Returns False if the evaluation has not ended, and True if it has ended.'''
     def main_loop(self,max_actions=1000):
         logger.info("[hydra_agent_server] :: Entering main loop")
         logger.info("[hydra_agent_server] :: Delta t = {}".format(str(settings.SB_DELTA_T)))
-        logger.info("[hydra_agent_server] :: Simulation speed = {}".format(str(settings.SB_SIM_SPEED)))
+        logger.info("[hydra_agent_server] :: Simulation speed = {}\n\n".format(str(settings.SB_SIM_SPEED)))
         logger.info("[hydra_agent_server] :: Planner memory limit = {}".format(str(settings.SB_PLANNER_MEMORY_LIMIT)))
         logger.info("[hydra_agent_server] :: Planner timeout = {}s\n\n".format(str(settings.SB_TIMEOUT)))
         t = 0
@@ -54,7 +58,7 @@ class HydraAgent():
         self.overall_plan_time = time.perf_counter()
         self.cumulative_plan_time = 0
 
-        while t < max_actions:
+        while True:
             observation = ScienceBirdsObservation()  # Create an observation object to track on what happend
             raw_state = self.env.get_current_state()
 
@@ -95,6 +99,7 @@ class HydraAgent():
         (time_limit, interaction_limit, n_levels, attempts_per_level, mode, seq_or_set,
          allowNoveltyInfo) = self.env.sb_client.ready_for_new_set()
         logger.info("New Trial Request Received. Refresh agent.")
+        self.reinit()
         self.current_level = 0
         self.training_level_backup = 0
         change_from_training = True
@@ -104,8 +109,8 @@ class HydraAgent():
     ''' Handle what happens when the agent receives a REQUESTNOVELTYLIKELIHOOD request'''
     def handle_request_novelty_likelihood(self):
         logger.info("[hydra_agent_server] :: Requesting Novelty Likelihood {}".format(
-            self.consistency_checker.novelty_likelihood))
-        novelty_likelihood = self.consistency_checker.novelty_likelihood
+            self.novelty_likelihood))
+        novelty_likelihood = self.novelty_likelihood
         non_novelty_likelihood = 1 - novelty_likelihood
         #placeholders for novelty information
         ids = {1,-2,-398879789}
@@ -169,7 +174,7 @@ class HydraAgent():
     def handle_game_playing(self, observation, raw_state):
         processed_state = self.perception.process_state(raw_state)
         observation.state = processed_state
-        if processed_state and self.consistency_checker.is_consistent(processed_state):
+        if processed_state:
             logger.info("[hydra_agent_server] :: Invoking Planner".format())
             orig_plan_time = time.perf_counter()
             plan = self.planner.make_plan(processed_state, 1)
