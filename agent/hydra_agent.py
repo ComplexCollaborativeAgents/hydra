@@ -170,9 +170,7 @@ class HydraAgent():
             (time.perf_counter() - self.overall_plan_time))))
         self.cumulative_plan_time = 0
         self.overall_plan_time = time.perf_counter()
-        if self.consistency_scores_current_level:
-            self.consistency_scores_per_level.insert(0,sum(self.consistency_scores_current_level)/len(self.consistency_scores_current_level))
-            self.consistency_scores_current_level = []
+
         self.current_level = self.env.sb_client.load_next_available_level()
         self.perception.new_level = True
         # time.sleep(1)

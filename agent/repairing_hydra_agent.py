@@ -61,6 +61,21 @@ class RepairingHydraSBAgent(HydraAgent):
         super().reinit()
         self.revision_attempts = 0
 
+    def process_final_observation(self):
+        last_obs = self.find_last_obs()
+        cnn_novelty, cnn_prob = self.detector.detect(last_obs)
+        self.consistency_scores_current_level.append(cnn_prob)
+        self.consistency_scores_per_level.insert(0, sum(self.consistency_scores_current_level) / len(
+            self.consistency_scores_current_level))
+        self.consistency_scores_current_level = []
+
+    def handle_game_won(self):
+        self.process_final_observation()
+        super().handle_game_won()
+
+    def handle_game_lost(self):
+        self.process_final_observation()
+        super().handle_game_lost()
 
     ''' Handle what happens when the agent receives a PLAYING request'''
     def handle_game_playing(self, observation, raw_state):
