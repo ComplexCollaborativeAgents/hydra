@@ -118,7 +118,7 @@ def test_set_of_levels_no_repair(launch_science_birds_with_all_levels):
     max_iterations = 10
     _run_experiment(hydra, "no_repair-%d" % max_iterations, max_iterations=max_iterations)
 
-# @pytest.mark.skip("Have not migrated to 0.3.6 yet")
+@pytest.mark.skip("No test found: ./Levels/novelty_level_2/type8/Levels/test_alt2_1_1_8_2.xml")
 def test_set_of_levels_repair_no_fault():
     max_iterations = 10
 
@@ -172,6 +172,7 @@ def test_set_of_levels_no_repair_with_fault(launch_science_birds_with_all_levels
 
 
 ''' Tests the faster implementation of the simulator '''
+@pytest.mark.skip("Profiling test.")
 def test_debugging():
     obs_output_file = path.join(settings.ROOT_PATH, "data", "science_birds", "tests",
                                 "test_repair.p")  # For debug
