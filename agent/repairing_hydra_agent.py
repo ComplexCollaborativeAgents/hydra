@@ -63,10 +63,14 @@ class RepairingHydraSBAgent(HydraAgent):
 
     def process_final_observation(self):
         last_obs = self.find_last_obs()
-        cnn_novelty, cnn_prob = self.detector.detect(last_obs)
-        self.consistency_scores_current_level.append(cnn_prob)
-        self.consistency_scores_per_level.insert(0, sum(self.consistency_scores_current_level) / len(
-            self.consistency_scores_current_level))
+        try:
+            cnn_novelty, cnn_prob = self.detector.detect(last_obs)
+            self.consistency_scores_current_level.append(cnn_prob)
+        except:
+            logging.info('CNN Index out of Bounds in final Observation')
+        if self.consistency_scores_current_level:
+            self.consistency_scores_per_level.insert(0, sum(self.consistency_scores_current_level) / len(
+                self.consistency_scores_current_level))
         self.consistency_scores_current_level = []
 
     def handle_game_won(self):
@@ -119,6 +123,7 @@ class RepairingHydraSBAgent(HydraAgent):
             try:
                 cnn_novelty, cnn_prob = self.detector.detect(observation)
             except:
+                logging.info('CNN Index out of Bounds in game playing')
                 return False
 
             self.consistency_scores_current_level.append(cnn_prob)
