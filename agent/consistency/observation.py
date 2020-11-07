@@ -28,6 +28,12 @@ class ScienceBirdsObservation:
             observed_state_seq.append(meta_model.create_pddl_state(intermediate_state))
         return observed_state_seq
 
+    def hasUnknownObj(self):
+        if self.state.novel_objects():
+            return True
+        else:
+            return False
+
     ''' Returns a PDDL+ plan object with a single action that is the action that was performed '''
     def get_pddl_plan(self, meta_model: MetaModel = MetaModel):
         pddl_plan = PddlPlusPlan()
