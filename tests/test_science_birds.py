@@ -37,7 +37,8 @@ def launch_science_birds():
     env.kill()
     logger.info("teardown tests")
 
-#@pytest.mark.skipif(False, reason="headless does not work in docker")
+
+@pytest.mark.skip()
 def test_science_birds_agent(launch_science_birds):
     env = launch_science_birds
     # env.sb_client.set_game_simulation_speed(settings.SB_SIM_SPEED)
@@ -46,8 +47,7 @@ def test_science_birds_agent(launch_science_birds):
     assert len(set([o for o in hydra.observations if o.reward > 0])) == 4 # ensure we have 4 shots that hit things
 
 
-@pytest.mark.skip("'ScienceBirdsObservation' object has no attribute 'hasUnknownObj'")
-def test_science_birds_agent(launch_science_birds):
+def test_science_birds_agent_repair(launch_science_birds):
     env = launch_science_birds
     # env.sb_client.set_game_simulation_speed(settings.SB_SIM_SPEED)
     hydra = RepairingHydraSBAgent(env)
