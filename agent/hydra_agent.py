@@ -104,7 +104,7 @@ class HydraAgent():
         self.training_level_backup = 0
         change_from_training = True
         self.current_level = self.env.sb_client.load_next_available_level()
-        self.novelty_existence = self.env.sb_client.get_novelty_info()
+        #self.novelty_existence = self.env.sb_client.get_novelty_info()
 
     ''' Handle what happens when the agent receives a REQUESTNOVELTYLIKELIHOOD request'''
     def handle_request_novelty_likelihood(self):
@@ -133,7 +133,7 @@ class HydraAgent():
         self.training_level_backup = 0
         change_from_training = True
         self.current_level = self.env.sb_client.load_next_available_level()
-        self.novelty_existence = self.env.sb_client.get_novelty_info()
+        #self.novelty_existence = self.env.sb_client.get_novelty_info()
 
     ''' Handle what happens when the agent receives a LOST request'''
     def handle_game_lost(self):
