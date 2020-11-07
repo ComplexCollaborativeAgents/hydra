@@ -106,7 +106,8 @@ class RepairingHydraSBAgent(HydraAgent):
             if len(self.consistency_scores_per_level) < 2 or len(self.consistency_scores_current_level) != 1:
                 return False
             logger.info("CNN novelty likelihoods last shot: %.3f, previous problem: %.3f, two problems ago: %.3f, last problem solved? %s" % (cnn_prob,  self.consistency_scores_per_level[0], self.consistency_scores_per_level[1], self.completed_levels[-1]))
-            if cnn_prob > self.detector.threshold and\
+            if self.revision_attempts < settings.HYDRA_MODEL_REVISION_ATTEMPTS and\
+                cnn_prob > self.detector.threshold and\
                 self.consistency_scores_per_level[0] > self.detector.threshold and\
                 self.consistency_scores_per_level[1] > self.detector.threshold and\
                 not self.completed_levels[-1] and \
