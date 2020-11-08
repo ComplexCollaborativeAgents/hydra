@@ -28,8 +28,6 @@ def parse():
 
 def main():
     config_logging()
-
-    settings.HYDRA_MODEL_REVISION_ATTEMPTS = 2
     arguments = parse()
     env = sb.ScienceBirds(None, launch=False, host=arguments.server)
     hydra = RepairingHydraSBAgent(env)
