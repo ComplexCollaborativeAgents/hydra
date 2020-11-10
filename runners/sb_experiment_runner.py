@@ -12,6 +12,7 @@ logger.setLevel(logging.INFO)
 def run_repairing_sb_experiments():
     SAMPLES = 25
     novelties = {NOVELTY: [TYPE]}
+    run_performance_stats(novelties, seed=1, agent_type=AgentType.FocusedRepairingHydra, samples=SAMPLES)
     run_performance_stats(novelties, seed=1, agent_type=AgentType.RepairingHydra, samples=SAMPLES)
     run_performance_stats(novelties, seed=1, agent_type=AgentType.Baseline, samples=SAMPLES)
     run_performance_stats(novelties, seed=1, agent_type=AgentType.Hydra, samples=SAMPLES)

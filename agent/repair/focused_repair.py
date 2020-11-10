@@ -36,13 +36,13 @@ class MmoBasedMetaModelRepair(SimulationBasedMetaModelRepair):
                  consistency_estimator,
                  deltas,
                  consistency_threshold=2,
-                 max_iteration=30,
+                 max_iterations=30,
                  time_limit=1000):
         super().__init__(fluents_to_repair,
-                     consistency_estimator,
-                     deltas,
-                     consistency_threshold,
-                     max_iteration,
+                         consistency_estimator,
+                         deltas,
+                         consistency_threshold,
+                         max_iterations,
                          time_limit)
 
         self.incumbet_repair = None
@@ -135,14 +135,14 @@ class FocusedMetaModelRepair(MmoBasedMetaModelRepair):
                  consistency_estimator,
                  deltas,
                  consistency_threshold=2,
-                 max_iteration=30,
+                 max_iterations=30,
                  time_limit=1000):
 
         super().__init__(fluents_to_repair,
-                     consistency_estimator,
-                     deltas,
-                     consistency_threshold=consistency_threshold,
-                     max_iteration=max_iteration,
+                         consistency_estimator,
+                         deltas,
+                         consistency_threshold=consistency_threshold,
+                         max_iterations=max_iterations,
                          time_limit=time_limit)
 
     ''' Update the list of MMOs'''

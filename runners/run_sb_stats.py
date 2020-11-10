@@ -17,6 +17,8 @@ import worlds.science_birds as sb
 from agent.hydra_agent import HydraAgent
 from agent.repairing_hydra_agent import RepairingHydraSBAgent
 import settings
+from agent.repair.focused_repair import *
+from agent.repair.sb_repair import *
 
 SB_DATA_PATH = pathlib.Path(settings.ROOT_PATH) / 'data' / 'science_birds'
 SB_BIN_PATH = pathlib.Path(settings.SCIENCE_BIRDS_BIN_DIR) / 'linux'
@@ -25,9 +27,10 @@ ANU_LEVELS_PATH = SB_DATA_PATH / 'ANU_Levels.tar.gz'
 STATS_BASE_PATH = pathlib.Path(__file__).parent.absolute()
 
 class AgentType(enum.Enum):
-    RepairingHydra = 0
+    FocusedRepairingHydra = 3
+    RepairingHydra = 2
     Hydra = 1
-    Baseline = 2
+    Baseline = 0
 
 NOVELTY = 0
 TYPE = 2
@@ -96,6 +99,10 @@ def run_agent(config, agent, agent_stats=list()):
             hydra.main_loop(max_actions=10000)
         elif agent == AgentType.RepairingHydra:
             hydra = RepairingHydraSBAgent(env, agent_stats)
+            hydra.main_loop(max_actions=10000)
+        elif agent==AgentType.FocusedRepairingHydra:
+            hydra = RepairingHydraSBAgent(env, agent_stats)
+            hydra.meta_model_repair = ScienceBirdsFocusedMetaModelRepair(hydra.meta_model)
             hydra.main_loop(max_actions=10000)
         elif agent == AgentType.Baseline:
             ground_truth = ClientNaiveAgent(env.id, env.sb_client)

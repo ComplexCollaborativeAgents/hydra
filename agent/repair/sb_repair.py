@@ -1,6 +1,6 @@
 from agent.repair.meta_model_repair import *
 from agent.consistency.consistency_estimator import *
-
+from agent.repair.focused_repair import *
 
 logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("sb_repair")
@@ -76,6 +76,22 @@ class ScienceBirdsConsistencyEstimator(MetaModelBasedConsistencyEstimator):
  The meta model repair used for ScienceBirds. 
 '''
 class ScienceBirdsMetaModelRepair(GreedyBestFirstSearchMetaModelRepair):
+    def __init__(self, meta_model = MetaModel(),
+                 consistency_threshold=settings.SB_CONSISTENCY_THRESHOLD,
+                 time_limit=settings.SB_REPAIR_TIMEOUT,
+                 max_iterations=settings.SB_REPAIR_MAX_ITERATIONS):
+        constants_to_repair = meta_model.repairable_constants
+        repair_deltas = meta_model.repair_deltas
+        consistency_estimator = ScienceBirdsConsistencyEstimator()
+        super().__init__(constants_to_repair, consistency_estimator, repair_deltas,
+                         consistency_threshold=consistency_threshold,
+                         max_iterations=max_iterations,
+                         time_limit=time_limit)
+
+'''
+ The meta model repair used for ScienceBirds. 
+'''
+class ScienceBirdsFocusedMetaModelRepair(FocusedMetaModelRepair):
     def __init__(self, meta_model = MetaModel(),
                  consistency_threshold=settings.SB_CONSISTENCY_THRESHOLD,
                  time_limit=settings.SB_REPAIR_TIMEOUT,
