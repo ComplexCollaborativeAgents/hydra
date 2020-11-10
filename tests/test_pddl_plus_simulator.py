@@ -2,9 +2,8 @@ from os import path
 
 import pytest
 
-from agent.consistency.fast_pddl_simulator import CachingPddlPlusSimulator
-from agent.consistency.meta_model_repair import *
-from agent.consistency.sb_repair import BirdLocationConsistencyEstimator
+from agent.repair.meta_model_repair import *
+from agent.repair.sb_repair import BirdLocationConsistencyEstimator
 import tests.test_utils as test_utils
 
 DATA_DIR = path.join(settings.ROOT_PATH, 'data')

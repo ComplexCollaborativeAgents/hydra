@@ -1,15 +1,13 @@
 from agent.hydra_agent import HydraAgent
-from agent.consistency.meta_model_repair import *
 from agent.gym_hydra_agent import GymHydraAgent
-import os.path as path
 from state_prediction.anomaly_detector import FocusedSBAnomalyDetector
-from agent.consistency.sb_repair import *
+from agent.repair.sb_repair import *
 
 
 logger = logging.getLogger("repairing_hydra_agent")
 
 from agent.planning.cartpole_pddl_meta_model import *
-from agent.consistency.cartpole_repair import *
+from agent.repair.cartpole_repair import *
 
 class RepairingGymHydraAgent(GymHydraAgent):
     def __init__(self, env, starting_seed=False):

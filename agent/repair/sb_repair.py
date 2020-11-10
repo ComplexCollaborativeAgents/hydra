@@ -1,6 +1,4 @@
-from agent.consistency.fast_pddl_simulator import *
-from agent.consistency.meta_model_repair import *
-from agent.planning.pddl_meta_model import MetaModel
+from agent.repair.meta_model_repair import *
 from agent.consistency.consistency_estimator import *
 
 
@@ -83,8 +81,9 @@ class ScienceBirdsMetaModelRepair(GreedyBestFirstSearchMetaModelRepair):
                  time_limit=settings.SB_REPAIR_TIMEOUT,
                  max_iterations=settings.SB_REPAIR_MAX_ITERATIONS):
         constants_to_repair = meta_model.repairable_constants
+        repair_deltas = meta_model.repair_deltas
         consistency_estimator = ScienceBirdsConsistencyEstimator()
-        repair_deltas = [1.0] * len(constants_to_repair)
         super().__init__(constants_to_repair, consistency_estimator, repair_deltas,
                          consistency_threshold=consistency_threshold,
+                         max_iterations=max_iterations,
                          time_limit=time_limit)

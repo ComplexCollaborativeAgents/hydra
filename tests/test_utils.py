@@ -1,11 +1,6 @@
-import logging
-
 import matplotlib.pyplot as plt
 
-import settings
-from agent.consistency.meta_model_repair import *
-from agent.consistency.observation import ScienceBirdsObservation
-from agent.planning.planner import *
+from agent.repair.meta_model_repair import *
 from agent.consistency.pddl_plus_simulator import *
 import matplotlib.patches as patches
 
