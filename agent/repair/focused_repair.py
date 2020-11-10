@@ -36,12 +36,14 @@ class MmoBasedMetaModelRepair(SimulationBasedMetaModelRepair):
                  consistency_estimator,
                  deltas,
                  consistency_threshold=2,
-                 max_iteration=30):
+                 max_iteration=30,
+                 time_limit=1000):
         super().__init__(fluents_to_repair,
                      consistency_estimator,
                      deltas,
                      consistency_threshold,
-                     max_iteration)
+                     max_iteration,
+                         time_limit)
 
         self.incumbet_repair = None
         self.incumbet_consistency = 100000
@@ -55,6 +57,7 @@ class MmoBasedMetaModelRepair(SimulationBasedMetaModelRepair):
         base_consistency = self.incumbent_consistency # Save the base consistency to measure success
         iteration = 0
         while iteration < self.max_iterations and len(self.open)>0 and \
+            time.time()-self.start_time<=self.time_limit and \
                 not (self.is_incumbent_good_enough(self.incumbent_consistency) and
                      np.any(self.incumbent_repair)): # Last condition is designed to prevent returning an empty repair
             [_, repair] = heapq.heappop(self.open)
@@ -72,6 +75,7 @@ class MmoBasedMetaModelRepair(SimulationBasedMetaModelRepair):
 
     ''' Setup the internal parameters before running the repair algorithm '''
     def _setup_repair(self, pddl_meta_model, observation, delta_t):
+        self.start_time = time.time()
         self.current_delta_t = delta_t
         self.current_meta_model = pddl_meta_model
         self.observation = observation
@@ -114,6 +118,9 @@ class MmoBasedMetaModelRepair(SimulationBasedMetaModelRepair):
                         self.incumbent_consistency = consistency
                         self.incumbent_repair = new_repair
 
+            # Check if reached the timeout
+            if time.time() - self.start_time > self.time_limit:
+                break
     ''' The heursitic to use to prioritize repairs'''
     def _heuristic(self, repair, consistency):
         change_cardinality = 0
@@ -128,12 +135,15 @@ class FocusedMetaModelRepair(MmoBasedMetaModelRepair):
                  consistency_estimator,
                  deltas,
                  consistency_threshold=2,
-                 max_iteration=30):
+                 max_iteration=30,
+                 time_limit=1000):
+
         super().__init__(fluents_to_repair,
                      consistency_estimator,
                      deltas,
                      consistency_threshold=consistency_threshold,
-                     max_iteration=max_iteration)
+                     max_iteration=max_iteration,
+                         time_limit=time_limit)
 
     ''' Update the list of MMOs'''
     def _setup_repair(self, pddl_meta_model, observation, delta_t):
