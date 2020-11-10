@@ -108,14 +108,14 @@ class GreedyBestFirstSearchMetaModelRepair(SimulationBasedMetaModelRepair):
                  consistency_estimator,
                  deltas,
                  consistency_threshold=2,
-                 max_iteration=30,
+                 max_iterations=30,
                  time_limit = 1000):
 
         super().__init__(fluents_to_repair,
                          consistency_estimator,
                          deltas,
                          consistency_threshold,
-                         max_iteration,
+                         max_iterations,
                          time_limit)
 
     ''' The heursitic to use to prioritize repairs'''
