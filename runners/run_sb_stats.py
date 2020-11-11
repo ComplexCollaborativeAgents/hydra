@@ -20,6 +20,8 @@ import settings
 from agent.repair.focused_repair import *
 from agent.repair.sb_repair import *
 
+logger = logging.getLogger("run_sb_stats")
+
 SB_DATA_PATH = pathlib.Path(settings.ROOT_PATH) / 'data' / 'science_birds'
 SB_BIN_PATH = pathlib.Path(settings.SCIENCE_BIRDS_BIN_DIR) / 'linux'
 SB_CONFIG_PATH = SB_DATA_PATH / 'config'
@@ -206,6 +208,8 @@ def run_performance_stats(novelties: dict,
                           stats_base_path: pathlib.Path = STATS_BASE_PATH,
                           template: pathlib.Path = SB_CONFIG_PATH / 'test_config.xml',
                           config: pathlib.Path = SB_CONFIG_PATH / 'stats_config.xml'):
+
+    logger.info("----------------- run_performance_stats({}) ------------------".format(agent_type.name))
     ''' Run science birds agent stats. '''
     if seed is not None:
         random.seed(seed)

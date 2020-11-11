@@ -27,7 +27,7 @@ class ConstantChangeMMO(ModelManipulationOperator):
 
     def apply(self, repair):
         new_repair = list(repair)
-        new_repair[self.fluent_index] =+ self.delta
+        new_repair[self.fluent_index] += self.delta
         return new_repair
 
 ''' Repair class based on a given set of MMOs. '''

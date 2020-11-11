@@ -2,7 +2,7 @@ from agent.hydra_agent import HydraAgent
 from agent.gym_hydra_agent import GymHydraAgent
 from state_prediction.anomaly_detector import FocusedSBAnomalyDetector
 from agent.repair.sb_repair import *
-
+import pathlib
 
 logger = logging.getLogger("repairing_hydra_agent")
 
@@ -45,7 +45,7 @@ class RepairingGymHydraAgent(GymHydraAgent):
 ''' Repairing Hydra agent for the SB domain '''
 class RepairingHydraSBAgent(HydraAgent):
     def __init__(self,env=None,agent_stats = list()):
-        super().__init__(env)
+        super().__init__(env, agent_stats)
         self.consistency_estimator = ScienceBirdsConsistencyEstimator()
         self.detector = FocusedSBAnomalyDetector()
 
@@ -53,7 +53,9 @@ class RepairingHydraSBAgent(HydraAgent):
         self.revision_attempts = 0
         self.meta_model_repair = ScienceBirdsMetaModelRepair(self.meta_model)
 
-
+        # For debug
+        self.write_repair_files = True
+        self.repair_file_number = 0
 
     def reinit(self):
         super().reinit()
@@ -88,16 +90,29 @@ class RepairingHydraSBAgent(HydraAgent):
             if "repair_time" not in self.stats_for_level:
                 self.stats_for_level["repair_time"] = 0
 
+            if self.write_repair_files:
+                dump_file = pathlib.Path(settings.ROOT_PATH) / 'data' / 'science_birds' / 'repairing-{}.obs'.format(self.repair_file_number)
+                pickle.dump(last_obs, open(dump_file, "wb"))
+                dump_file = pathlib.Path(settings.ROOT_PATH) / 'data' / 'science_birds' / 'repairing-{}.mm'.format(self.repair_file_number)
+                pickle.dump(self.meta_model, open(dump_file, "wb"))
+                self.repair_file_number = self.repair_file_number+1
+
             # Check if we should repair
-            logger.info("checking for repair...")
+            logger.info("Checking for repair...")
             if self.should_repair(last_obs):
                 self.revision_attempts += 1
                 logger.info("Initiating repair number {}".format(self.revision_attempts))
+                self.stats_for_level["repair_called"]+=1
+
+                start_repair = time.time()
                 repair, consistency = self.meta_model_repair.repair(self.meta_model, last_obs)
+                self.stats_for_level["repair_time"]+=time.time()-start_repair
+
                 repair_description = ["Repair %s, %.2f" % (fluent, repair[i])
                                       for i, fluent in enumerate(self.meta_model_repair.fluents_to_repair)]
                 logger.info("Repair done! Consistency: %.2f, Repair:\n %s" % (consistency, "\n".join(repair_description)))
-
+            else:
+                logger.info("Decided not to initiate repair.")
 
         super().handle_game_playing(observation, raw_state)
 
@@ -124,18 +139,43 @@ class RepairingHydraSBAgent(HydraAgent):
                 logging.info('CNN Index out of Bounds in game playing')
                 return False
 
+            self.novelty_likelihood = cnn_prob
             self.consistency_scores_current_level.append(cnn_prob)
+
             if len(self.consistency_scores_per_level) < 2 or len(self.consistency_scores_current_level) != 1:
+                logger.info("No repair - wait one novel observation before initiating repair.")
                 return False
-            logger.info("CNN novelty likelihoods last shot: %.3f, previous problem: %.3f, two problems ago: %.3f, last problem solved? %s" % (cnn_prob,  self.consistency_scores_per_level[0], self.consistency_scores_per_level[1], self.completed_levels[-1]))
-            if self.revision_attempts < settings.HYDRA_MODEL_REVISION_ATTEMPTS and\
-                cnn_prob > self.detector.threshold and\
-                self.consistency_scores_per_level[0] > self.detector.threshold and\
-                self.consistency_scores_per_level[1] > self.detector.threshold and\
-                not self.completed_levels[-1] and \
-                check_obs_consistency(observation, self.meta_model, self.consistency_estimator, simulator=RefinedPddlPlusSimulator(),  delta_t=settings.SB_DELTA_T) > self.meta_model_repair.consistency_threshold:
-                self.novelty_likelihood = 1
-                return True
-            if self.novelty_likelihood != 1:
-                self.novelty_likelihood = cnn_prob
-            return False
+
+            logger.info("No repair - CNN novelty likelihoods last shot: %.3f, previous problem: %.3f, two problems ago: %.3f, last problem solved? %s" %
+                        (cnn_prob, self.consistency_scores_per_level[0], self.consistency_scores_per_level[1], self.completed_levels[-1]))
+            if self.revision_attempts >= settings.HYDRA_MODEL_REVISION_ATTEMPTS:
+                logger.info("Exceeded amount of allowed revisions ({})".format(settings.HYDRA_MODEL_REVISION_ATTEMPTS))
+                return False
+
+            if cnn_prob <= self.detector.threshold:
+                logger.info("No repair - CNN predicts novelty likelihood below the threshold ({:.2f}<={:.2f})".format(cnn_prob,
+                                                                                                              self.detector.threshold))
+                return False
+
+            if self.consistency_scores_per_level[0] <= self.detector.threshold or \
+                    self.consistency_scores_per_level[1] <= self.detector.threshold:
+                logger.info("No repair - One of the last two observations was not novel enough ({:.2f}, {:.2f})".format(
+                    self.consistency_scores_per_level[0], self.consistency_scores_per_level[1]))
+                return False
+
+            if self.completed_levels[-1]:
+                logger.info("No repair - last level completed successfully")
+                return False
+
+            model_consistency = check_obs_consistency(observation, self.meta_model,
+                                                      self.consistency_estimator,
+                                                      simulator=RefinedPddlPlusSimulator(),
+                                                      delta_t=settings.SB_DELTA_T)
+            if model_consistency <= self.meta_model_repair.consistency_threshold:
+                logger.info("No repair - model is consistent with observations ({:.2f})".format(model_consistency))
+                return False
+
+            # Novelty detected, should repair!
+            logger.info("Novelty detection - should initiate repair!")
+            self.novelty_likelihood = 1
+            return True
