@@ -285,7 +285,7 @@ class AgentClient:
         self._logger.info("Sending load next available level request")
         self._send_command(RequestCodes.LoadNextAvailableLevel)
         level = self._read_from_buff("I")[0]
-        self._logger.info('Received load next available level')
+        self._logger.info('Received load next available level: {}'.format(level))
         return level
 
     def get_novelty_info(self):
