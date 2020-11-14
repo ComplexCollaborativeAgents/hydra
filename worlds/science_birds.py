@@ -249,3 +249,27 @@ class ScienceBirds(World):
     def get_all_scores(self):
         return self.sb_client.get_all_level_scores()
 
+
+class ExternalAgent:
+    def __init__(self, agent_path, agent_name):
+        self.path = agent_path
+        self.agent_name = agent_name
+
+    def run(self):
+        command = "cd {} && java -jar {} 1".format(self.path, self.agent_name)
+        logger.info("starting agent process: {}".format(command))
+        process = subprocess.Popen(command, shell=True)
+        process.wait()
+        logger.info("agent process ended")
+
+
+class DatalabAgent(ExternalAgent):
+    def __init__(self):
+        super().__init__(agent_path=settings.SCIENCE_BIRDS_BIN_DIR + "/baseline_agents/",
+                         agent_name='datalab.jar')
+
+
+class EaglewingsAgent(ExternalAgent):
+    def __init__(self):
+        super().__init__(agent_path=settings.SCIENCE_BIRDS_BIN_DIR + "/baseline_agents/",
+                         agent_name='ealgewings.jar')

@@ -28,6 +28,8 @@ class AgentType(enum.Enum):
     RepairingHydra = 0
     Hydra = 1
     Baseline = 2
+    Datalab = 3
+    Eaglewings = 4
 
 NOVELTY = 0
 TYPE = 2
@@ -78,6 +80,7 @@ def diff_directories(a, b):
         return None
 
     difference = set(b) - set(a)
+    difference = {d for d in difference if any(d.iterdir())}
     if len(difference) == 1:
         return difference.pop()
 
@@ -100,6 +103,12 @@ def run_agent(config, agent, agent_stats=list()):
         elif agent == AgentType.Baseline:
             ground_truth = ClientNaiveAgent(env.id, env.sb_client)
             ground_truth.run()
+        elif agent == AgentType.Datalab:
+            datalab = sb.DatalabAgent()
+            datalab.run()
+        elif agent == AgentType.Eaglewings:
+            eaglewings = sb.EaglewingsAgent()
+            eaglewings.run()
     finally:
         env.kill()
 
@@ -153,6 +162,7 @@ def compute_stats(results_path, agent, agent_stats = list()):
                         bird_scores[bird]['passed'] += 1
                 else:
                     failed += 1
+                    status = 'Fail'
                     for bird in birds.keys():
                         bird_scores[bird]['failed'] += 1
 
@@ -218,6 +228,10 @@ def run_performance_stats(novelties: dict,
                 post_directories = glob_directories(SB_BIN_PATH, 'Agent*')
 
             results_directory = diff_directories(pre_directories, post_directories)
+
+            if results_directory is None:
+                post_directories = glob_directories(SB_BIN_PATH, 'Agent*')
+                results_directory = diff_directories(pre_directories, post_directories)
 
             if results_directory is not None:
                 stats = compute_stats(results_directory, agent_type, agent_stats)
