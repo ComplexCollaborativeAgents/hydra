@@ -9,6 +9,7 @@ import enum
 import time
 import collections
 import xml.etree.ElementTree as ET
+from typing import Optional
 
 import numpy
 from worlds.science_birds_interface.demo.naive_agent_groundtruth import ClientNaiveAgent
@@ -28,6 +29,8 @@ class AgentType(enum.Enum):
     RepairingHydra = 0
     Hydra = 1
     Baseline = 2
+    Datalab = 3
+    Eaglewings = 4
 
 NOVELTY = 0
 TYPE = 2
@@ -54,8 +57,8 @@ def prepare_config(config_template, config_path, levels):
     tree = ET.parse(config_template)
     xpath = './trials/trial/game_level_set'
     level_set = tree.getroot().find(xpath)
-    level_set.set('time_limit', '100000')
-    level_set.set('total_interaction_limit', '500000')
+    level_set.set('time_limit', '500000')
+    level_set.set('total_interaction_limit', '1000000')
 
     for child in list(level_set):
         level_set.remove(child)
@@ -78,6 +81,7 @@ def diff_directories(a, b):
         return None
 
     difference = set(b) - set(a)
+    difference = {d for d in difference if any(d.iterdir())}
     if len(difference) == 1:
         return difference.pop()
 
@@ -100,6 +104,12 @@ def run_agent(config, agent, agent_stats=list()):
         elif agent == AgentType.Baseline:
             ground_truth = ClientNaiveAgent(env.id, env.sb_client)
             ground_truth.run()
+        elif agent == AgentType.Datalab:
+            datalab = sb.DatalabAgent()
+            datalab.run()
+        elif agent == AgentType.Eaglewings:
+            eaglewings = sb.EaglewingsAgent()
+            eaglewings.run()
     finally:
         env.kill()
 
@@ -153,6 +163,7 @@ def compute_stats(results_path, agent, agent_stats = list()):
                         bird_scores[bird]['passed'] += 1
                 else:
                     failed += 1
+                    status = 'Fail'
                     for bird in birds.keys():
                         bird_scores[bird]['failed'] += 1
 
@@ -193,7 +204,7 @@ def run_sb_stats(extract=False, seed=None):
 def run_performance_stats(novelties: dict,
                           agent_type: AgentType,
                           seed: int = None,
-                          samples: int = SAMPLES,
+                          samples: Optional[int] = SAMPLES,
                           bin_path: pathlib.Path = SB_BIN_PATH,
                           levels_path: pathlib.Path = SB_BIN_PATH,
                           stats_base_path: pathlib.Path = STATS_BASE_PATH,
@@ -207,7 +218,11 @@ def run_performance_stats(novelties: dict,
         for novelty_type in types:
             pattern = 'Levels/novelty_level_{}/type{}/Levels/*.xml'.format(novelty, novelty_type)
             levels = list(levels_path.glob(pattern))
-            levels = random.sample(levels, samples)
+
+            number_samples = len(levels)
+            if samples is not None:
+                number_samples = min(number_samples, samples)
+            levels = random.sample(levels, number_samples)
 
             prepare_config(template, config, levels)
             pre_directories = glob_directories(bin_path, 'Agent*')
@@ -218,6 +233,10 @@ def run_performance_stats(novelties: dict,
                 post_directories = glob_directories(SB_BIN_PATH, 'Agent*')
 
             results_directory = diff_directories(pre_directories, post_directories)
+
+            if results_directory is None:
+                post_directories = glob_directories(SB_BIN_PATH, 'Agent*')
+                results_directory = diff_directories(pre_directories, post_directories)
 
             if results_directory is not None:
                 stats = compute_stats(results_directory, agent_type, agent_stats)
