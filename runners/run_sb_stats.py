@@ -51,10 +51,16 @@ def extract_levels(source, destination=None):
     return destination
 
 
-def prepare_config(config_template, config_path, levels):
+def prepare_config(config_template, config_path, levels, notify_novelty):
     ''' Prepare a configuration file from a config template and a set of level paths. '''
 
     tree = ET.parse(config_template)
+
+    if notify_novelty is not None:
+        xpath = './trials/trial'
+        trial = tree.getroot().find(xpath)
+        trial.set('notify_novelty', str(notify_novelty))
+
     xpath = './trials/trial/game_level_set'
     level_set = tree.getroot().find(xpath)
     level_set.set('time_limit', '500000')
@@ -205,6 +211,7 @@ def run_performance_stats(novelties: dict,
                           agent_type: AgentType,
                           seed: int = None,
                           samples: Optional[int] = SAMPLES,
+                          notify_novelty: Optional[bool] = None,
                           bin_path: pathlib.Path = SB_BIN_PATH,
                           levels_path: pathlib.Path = SB_BIN_PATH,
                           stats_base_path: pathlib.Path = STATS_BASE_PATH,
@@ -224,7 +231,7 @@ def run_performance_stats(novelties: dict,
                 number_samples = min(number_samples, samples)
             levels = random.sample(levels, number_samples)
 
-            prepare_config(template, config, levels)
+            prepare_config(template, config, levels, notify_novelty)
             pre_directories = glob_directories(bin_path, 'Agent*')
             post_directories = None
 
