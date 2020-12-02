@@ -97,13 +97,14 @@ class RepairingHydraSBAgent(HydraAgent):
                 logger.info("Initiating repair number {}".format(self.revision_attempts))
                 try:
                     repair, consistency = self.meta_model_repair.repair(self.meta_model, last_obs)
+
+                    repair_description = ["Repair %s, %.2f" % (fluent, repair[i])
+                                          for i, fluent in enumerate(self.meta_model_repair.fluents_to_repair)]
+                    logger.info(
+                        "Repair done! Consistency: %.2f, Repair:\n %s" % (consistency, "\n".join(repair_description)))
                 except:
                     # TODO: fix this hack
                     logger.info("Repair failed!")
-                repair_description = ["Repair %s, %.2f" % (fluent, repair[i])
-                                      for i, fluent in enumerate(self.meta_model_repair.fluents_to_repair)]
-                logger.info("Repair done! Consistency: %.2f, Repair:\n %s" % (consistency, "\n".join(repair_description)))
-
 
         super().handle_game_playing(observation, raw_state)
 
