@@ -95,7 +95,11 @@ class RepairingHydraSBAgent(HydraAgent):
             if self.should_repair(last_obs):
                 self.revision_attempts += 1
                 logger.info("Initiating repair number {}".format(self.revision_attempts))
-                repair, consistency = self.meta_model_repair.repair(self.meta_model, last_obs)
+                try:
+                    repair, consistency = self.meta_model_repair.repair(self.meta_model, last_obs)
+                except:
+                    # TODO: fix this hack
+                    logger.info("Repair failed!")
                 repair_description = ["Repair %s, %.2f" % (fluent, repair[i])
                                       for i, fluent in enumerate(self.meta_model_repair.fluents_to_repair)]
                 logger.info("Repair done! Consistency: %.2f, Repair:\n %s" % (consistency, "\n".join(repair_description)))

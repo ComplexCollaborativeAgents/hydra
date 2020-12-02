@@ -540,11 +540,13 @@ class MetaModel():
 
         self.object_types["bird"].hyper_parameters["velocity_multiplier"] = self.constant_numeric_fluents["v_bird_multiplier"]
 
+        logger.debug("\n\n")
         # Add objects to problem
         for obj in sb_state.objects.items():
             # Get type
             type_str = obj[1]['type']
-            if 'bird' in type_str.lower():
+
+            if 'bird' in type_str.lower() or (get_x_coordinate(obj) <= get_slingshot_x(slingshot) and not 'slingshot' in type_str):
                 type = self.object_types["bird"]
             else:
                 if type_str in self.object_types:
@@ -553,7 +555,7 @@ class MetaModel():
                     logger.debug("Unknown object type: %s" % type_str)
                     # TODO Handle unknown objects in some way (Error? default object?)
                     continue
-
+            # print("(create pddl problem) Object_type: " + str(type_str) +"/" + str(type) + " [" + str(get_x_coordinate(obj)) + ", " + str(get_y_coordinate(obj, problem_params["groundOffset"])) + "] ")
             # Add object of this type to the problem
             type.add_object_to_problem(pddl_problem, obj, problem_params)
 
@@ -621,7 +623,7 @@ class MetaModel():
         for obj in sb_state.objects.items():
             # Get type
             type_str = obj[1]['type']
-            if 'bird' in type_str.lower():
+            if 'bird' in type_str.lower() or (get_x_coordinate(obj) <= get_slingshot_x(slingshot) and not 'slingshot' in type_str):
                 type = self.object_types["bird"]
             else:
                 if type_str in self.object_types:
@@ -630,6 +632,7 @@ class MetaModel():
                     logger.info("Unknown object type: %s" % type_str)
                     # TODO Handle unknown objects in some way (Error? default object?)
                     continue
+            # print("(create pddl state) Object_type: " + str(type_str) + "/" + str(type) + " [" + str(get_x_coordinate(obj)) + ", " + str(get_y_coordinate(obj, state_params["groundOffset"])) + "] ")
 
             # Add object of this type to the problem
             type.add_object_to_state(pddl_state, obj, state_params)
