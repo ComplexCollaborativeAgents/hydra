@@ -1,8 +1,6 @@
 import copy
 import math
 
-from scipy.stats import maxwell_gen
-
 from agent.perception.perception import ProcessedSBState
 from agent.planning.pddlplus_parser import *
 import settings
