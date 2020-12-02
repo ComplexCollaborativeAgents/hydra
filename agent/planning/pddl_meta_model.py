@@ -1,5 +1,8 @@
 import copy
 import math
+
+from scipy.stats import maxwell_gen
+
 from agent.perception.perception import ProcessedSBState
 from agent.planning.pddlplus_parser import *
 import settings
@@ -90,54 +93,62 @@ def estimate_launch_angle(slingshot, targetPoint, meta_model):
     X_OFFSET = 0.45
     Y_OFFSET = 0.6
 
-    ground_offset = slingshot[1]['polygon'].bounds[3]
+    default_min_angle = 0.0
+    default_max_angle = 90.0
 
-    scale = get_scale(slingshot)
+    try:
 
-    # print ('scale ', scale)
-    # System.out.println("scale " + scale)
-    # ref = Point2D(int(slingshot.X + X_OFFSET * slingshot.width), int(slingshot.Y + Y_OFFSET * slingshot.height))
-    ref = Point2D(int(get_slingshot_x(slingshot) + X_OFFSET * get_width(slingshot)), int(Y_OFFSET * get_height(slingshot)))
-    # print ('ref point', str(ref))
-    x = (targetPoint.X - ref.X)
-    y = (targetPoint.Y - ref.Y)
+        ground_offset = slingshot[1]['polygon'].bounds[3]
 
-    # print ('sling X', get_slingshot_x(slingshot))
-    # print ('sling Y', get_slingshot_y(ground_offset, slingshot))
+        scale = get_scale(slingshot)
 
-    # print ('X', x)
-    # print ('Y', y)
+        # print ('scale ', scale)
+        # System.out.println("scale " + scale)
+        # ref = Point2D(int(slingshot.X + X_OFFSET * slingshot.width), int(slingshot.Y + Y_OFFSET * slingshot.height))
+        ref = Point2D(int(get_slingshot_x(slingshot) + X_OFFSET * get_width(slingshot)), int(Y_OFFSET * get_height(slingshot)))
+        # print ('ref point', str(ref))
+        x = (targetPoint.X - ref.X)
+        y = (targetPoint.Y - ref.Y)
 
-    # gravity
-    g = 0.48 * meta_model.constant_numeric_fluents['gravity_factor'] / scale_factor * scale
-    # print('gravity', g)
-    # launch speed
-    v = _velocity * scale
-    # print ('launch speed ', v)
+        # print ('sling X', get_slingshot_x(slingshot))
+        # print ('sling Y', get_slingshot_y(ground_offset, slingshot))
 
-    solution_existence_factor = v ** 4 - g ** 2 * x ** 2 - 2 * y * g * v ** 2
+        # print ('X', x)
+        # print ('Y', y)
 
-    # the target point cannot be reached
-    if solution_existence_factor < 0:
-        logger.info('estimate launch angle: NO SOLUTION!')
-        return 0.0, 90.0
+        # gravity
+        g = 0.48 * meta_model.constant_numeric_fluents['gravity_factor'] / scale_factor * scale
+        # print('gravity', g)
+        # launch speed
+        v = _velocity * scale
+        # print ('launch speed ', v)
 
-    # solve cos theta from projectile equation
+        solution_existence_factor = v ** 4 - g ** 2 * x ** 2 - 2 * y * g * v ** 2
 
-    cos_theta_1 = math.sqrt(
-        (x ** 2 * v ** 2 - x ** 2 * y * g + x ** 2 * math.sqrt(v ** 4 - g ** 2 * x ** 2 - 2 * y * g * v ** 2)) / (2 * v ** 2 * (x ** 2 + y ** 2)))
-    cos_theta_2 = math.sqrt(
-        (x ** 2 * v ** 2 - x ** 2 * y * g - x ** 2 * math.sqrt(v ** 4 - g ** 2 * x ** 2 - 2 * y * g * v ** 2)) / (2 * v ** 2 * (x ** 2 + y ** 2)))
-    #        print ('cos_theta_1 ', cos_theta_1, ' cos_theta_2 ', cos_theta_2)
+        # the target point cannot be reached
+        if solution_existence_factor < 0:
+            logger.info('estimate launch angle: NO SOLUTION!')
+            return 0.0, 90.0
 
-    distance_between = math.sqrt(x ** 2 + y ** 2)  # ad-hoc patch
+        # solve cos theta from projectile equation
 
-    theta_1 = math.acos(cos_theta_1) + distance_between * 0.0001  # compensate the rounding error
-    # print('theta 1', math.degrees(theta_1))
-    theta_2 = math.acos(cos_theta_2) + distance_between * 0.00005  # compensate the rounding error
-    # print('theta 2', math.degrees(theta_2))
+        cos_theta_1 = math.sqrt(
+            (x ** 2 * v ** 2 - x ** 2 * y * g + x ** 2 * math.sqrt(v ** 4 - g ** 2 * x ** 2 - 2 * y * g * v ** 2)) / (2 * v ** 2 * (x ** 2 + y ** 2)))
+        cos_theta_2 = math.sqrt(
+            (x ** 2 * v ** 2 - x ** 2 * y * g - x ** 2 * math.sqrt(v ** 4 - g ** 2 * x ** 2 - 2 * y * g * v ** 2)) / (2 * v ** 2 * (x ** 2 + y ** 2)))
+        #        print ('cos_theta_1 ', cos_theta_1, ' cos_theta_2 ', cos_theta_2)
 
-    return math.floor(math.degrees(theta_1)), math.ceil(math.degrees(theta_2))
+        distance_between = math.sqrt(x ** 2 + y ** 2)  # ad-hoc patch
+
+        theta_1 = math.acos(cos_theta_1) + distance_between * 0.0001  # compensate the rounding error
+        # print('theta 1', math.degrees(theta_1))
+        theta_2 = math.acos(cos_theta_2) + distance_between * 0.00005  # compensate the rounding error
+        # print('theta 2', math.degrees(theta_2))
+
+        return math.floor(math.degrees(theta_1)), math.ceil(math.degrees(theta_2))
+
+    except:
+        return default_min_angle, default_max_angle
 
 ''' A generator for Pddl Objects '''
 class PddlObjectType():
