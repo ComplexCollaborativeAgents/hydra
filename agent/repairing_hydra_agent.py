@@ -120,10 +120,10 @@ class RepairingHydraSBAgent(HydraAgent):
             return False
         elif self.novelty_existence == 1:
             self.novelty_likelihood = 1
-            return True
+            return self.revision_attempts < settings.HYDRA_MODEL_REVISION_ATTEMPTS
         elif observation.hasUnknownObj():
             self.novelty_likelihood = 1
-            return True
+            return self.revision_attempts < settings.HYDRA_MODEL_REVISION_ATTEMPTS
         elif self.novelty_existence == -1:
             try:
                 cnn_novelty, cnn_prob = self.detector.detect(observation)
