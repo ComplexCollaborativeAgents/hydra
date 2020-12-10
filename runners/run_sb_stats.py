@@ -209,14 +209,16 @@ def run_sb_stats(extract=False, seed=None):
 
 def run_performance_stats(novelties: dict,
                           agent_type: AgentType,
-                          seed: int = None,
+                          seed: Optional[int] = None,
                           samples: Optional[int] = SAMPLES,
                           notify_novelty: Optional[bool] = None,
+                          suffix: Optional[str] = None,
                           bin_path: pathlib.Path = SB_BIN_PATH,
                           levels_path: pathlib.Path = SB_BIN_PATH,
                           stats_base_path: pathlib.Path = STATS_BASE_PATH,
                           template: pathlib.Path = SB_CONFIG_PATH / 'test_config.xml',
-                          config: pathlib.Path = SB_CONFIG_PATH / 'stats_config.xml'):
+                          config: pathlib.Path = SB_CONFIG_PATH / 'stats_config.xml',
+                          level_lookup: Optional[dict] = None):
     ''' Run science birds agent stats. '''
     if seed is not None:
         random.seed(seed)
@@ -230,6 +232,9 @@ def run_performance_stats(novelties: dict,
             if samples is not None:
                 number_samples = min(number_samples, samples)
             levels = random.sample(levels, number_samples)
+
+            if level_lookup:
+                levels = [levels_path / l for l in level_lookup[str(novelty)][str(novelty_type)]]
 
             prepare_config(template, config, levels, notify_novelty)
             pre_directories = glob_directories(bin_path, 'Agent*')
@@ -247,11 +252,15 @@ def run_performance_stats(novelties: dict,
 
             if results_directory is not None:
                 stats = compute_stats(results_directory, agent_type, agent_stats)
-                filename = "stats_novelty{}_type{}_agent{}.json".format(novelty, novelty_type, agent_type.name)
+                filename = "stats_novelty{}_type{}_agent{}".format(novelty, novelty_type, agent_type.name)
+                if suffix is None or len(suffix) == 0:
+                    current_suffix = ''
+                else:
+                    current_suffix = '_' + suffix
+                filename = "{}{}.json".format(filename, current_suffix)
                 with open(stats_base_path / filename, 'w') as f:
                     json.dump(stats, f, sort_keys=True, indent=4)
 
 
 if __name__ == '__main__':
     run_sb_stats(seed=0)
-
