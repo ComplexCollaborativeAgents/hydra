@@ -21,16 +21,6 @@ logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s
 logger = logging.getLogger("gym_experiment_runner")
 logger.setLevel(logging.INFO)
 
-# Map fluent name to environment name
-env_param_to_fluent = dict()
-env_param_to_fluent['gravity'] = 'gravity'
-env_param_to_fluent['force_mag'] = 'force_mag'
-env_param_to_fluent['length'] = 'l_pole'
-env_param_to_fluent['masscart'] = 'm_cart'
-env_param_to_fluent['masspole'] = 'm_pole'
-env_param_to_fluent['x_threshold'] = 'x_limit'
-env_param_to_fluent['theta_threshold_radians'] = 'angle_limit'
-
 ''' Create Gym Environment '''
 def _create_gym_env():
     return gym.make("CartPole-v1")
@@ -126,17 +116,12 @@ def _run_no_repair_experiment(env_param, fluent_name,
     result_file.close()
 
 ''' Run experiments iwth the repairing Hydra agent '''
-def run_repairing_agent_experiments():
-    injected_faults = [0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5]
-
+def run_repairing_agent_experiments(injected_faults = [0.8,1.0,1.2], env_param_to_fluent=dict(),
+                                    run_experiment_funcs=[_run_repairing_experiment,_run_oracle_experiment,_run_no_repair_experiment]):
     for env_param in env_param_to_fluent.keys():
         fluent_name = env_param_to_fluent[env_param]
-        logging.info("")
-        _run_repairing_experiment(env_param, fluent_name, injected_faults=injected_faults)
-
-        _run_oracle_experiment(env_param, fluent_name, injected_faults=injected_faults)
-
-        _run_no_repair_experiment(env_param, fluent_name, injected_faults=injected_faults)
+        for run_experiment_func in run_experiment_funcs:
+            run_experiment_func(env_param, fluent_name, injected_faults=injected_faults)
 
 #------------------ Experiments that are running via WSU's dispatcher/observer framework ------------------
 
@@ -167,20 +152,8 @@ class CartpoleOracleHydraAgentObserver(CartpoleHydraAgent):
         super().trial_start(trial_number, novelty_description)
         self.agent.planner.meta_model.constant_numeric_fluents[self.fluent_name]= self.fluent_value
 
-''' Run the Hydra agent with an oracle repair, i.e., modifying the meta_model params according to the injected fault'''
-def run_repairing_observer_experiments():
-    env_param_to_fluent = dict()
-    env_param_to_fluent['gravity'] = 'gravity'
-    env_param_to_fluent['force_mag'] = 'force_mag'
-    env_param_to_fluent['length'] = 'l_pole'
-    env_param_to_fluent['masscart'] = 'm_cart'
-    env_param_to_fluent['masspole'] = 'm_pole'
-
-    env_param_to_fluent['x_threshold'] = 'x_limit'
-    env_param_to_fluent['theta_threshold_radians'] = 'angle_limit'
-
-    injected_faults = [0.8, 0.9, 1.0, 1.1, 1.2]
-
+def run_repairing_observer_experiments(injected_faults = [0.8, 0.9, 1.0, 1.1, 1.2], env_param_to_fluent=dict()):
+    ''' Run the Hydra agent with an oracle repair, i.e., modifying the meta_model params according to the injected fault'''
     for env_param in env_param_to_fluent.keys():
         fluent_name = env_param_to_fluent[env_param]
         result_file = open(path.join(settings.ROOT_PATH, "data", "cartpole", "repair", "repairing_%s_wsu.csv" % env_param), "w")
@@ -237,5 +210,27 @@ def run_repairing_observer_experiments():
 
 
 if __name__ == '__main__':
-    run_repairing_agent_experiments() # Run the experiment directly on the agent
-    run_repairing_observer_experiments() # Run the experiment directoly on the observer that runs the agent TODO: have only one
+    # Types of injected faults. 1.0 means no fault.
+    injected_faults = [1.0]
+
+    # Map fluent name to environment name
+    env_param_to_fluent = dict()
+    env_param_to_fluent['gravity'] = 'gravity'
+    env_param_to_fluent['force_mag'] = 'force_mag'
+    env_param_to_fluent['length'] = 'l_pole'
+    env_param_to_fluent['masscart'] = 'm_cart'
+    env_param_to_fluent['masspole'] = 'm_pole'
+    env_param_to_fluent['x_threshold'] = 'x_limit'
+    env_param_to_fluent['theta_threshold_radians'] = 'angle_limit'
+
+    # Experiment types (these are functions that run an experiment
+    # run_experiment_funcs = [_run_repairing_experiment, _run_oracle_experiment, _run_no_repair_experiment]
+    run_experiment_funcs = [_run_repairing_experiment]
+
+    run_repairing_agent_experiments(injected_faults=injected_faults,
+                                    env_param_to_fluent={'gravity':'gravity'},
+                                    run_experiment_funcs=run_experiment_funcs) # Run the experiment directly on the agent
+    # MIN_STEPS_TO_REPLAN = 5
+    # run_repairing_agent_experiments(injected_faults, {'gravity': 'gravity'})  # Run the experiment directly on the agent
+
+    # run_repairing_observer_experiments(injected_faults, env_param_to_fluent) # Run the experiment directoly on the observer that runs the agent TODO: have only one

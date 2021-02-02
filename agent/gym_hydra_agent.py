@@ -9,6 +9,8 @@ import settings
 import matplotlib.pyplot as plt
 import random
 
+MIN_STEPS_TO_REPLAN = 40
+
 class GymHydraAgent:
     def __init__(self, env, starting_seed=False):
         self.env = env
@@ -35,7 +37,7 @@ class GymHydraAgent:
         if debug_info:
             initial_state_exec = (self.observation[0], self.observation[1], self.observation[2], self.observation[3], 0.00)
             state_values_list = (self.cartpole_planner.extract_state_values_from_trace("%s/docker_plan_trace.txt" % str(settings.CARTPOLE_PLANNING_DOCKER_PATH)))
-            # state_values_list.insert(0, initial_state_exec)
+            # state_values_list.insert(0, initialgy_state_exec)
             full_plan_trace = []
             # full_plan_trace.append(initial_state_exec)
         emergency_plan = False
@@ -71,13 +73,12 @@ class GymHydraAgent:
                 self.env.close()
                 break
 
-            if (itt >= 40):
+            if (itt >= MIN_STEPS_TO_REPLAN):
                 print (n_steps)
                 emergency_plan = False
 
                 temp_plan = copy.copy(plan)
                 self.meta_model.constant_numeric_fluents['time_limit'] = round((4.0 - ((n_steps-1)*0.02)), 2)
-                print("\nIntermediate time_limit = ", self.meta_model.constant_numeric_fluents['time_limit'])
                 plan = self.cartpole_planner.make_plan(self.observation, 0)
                 if (len(plan)) == 0:
                     emergency_plan = True

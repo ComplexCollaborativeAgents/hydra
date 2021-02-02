@@ -36,7 +36,7 @@ class RepairingGymHydraAgent(GymHydraAgent):
             repair, consistency = meta_model_repair.repair(self.meta_model, observation, delta_t=settings.CP_DELTA_T)
             repair_time = time.time()-start_time
             repair_description = ["Repair %s, %.2f" % (fluent, repair[i])
-                                  for i, fluent in enumerate(self.meta_model_repair.fluents_to_repair)]
+                                  for i, fluent in enumerate(meta_model_repair.fluents_to_repair)]
 
             logger.info("Repair done! Repair time %.2f, Consistency: %.2f, Repair:\n %s" % (
             repair_time, consistency, "\n".join(repair_description)))
