@@ -33,6 +33,7 @@ class HydraAgent():
         self.novelty_existence = -1
         self.consistency_scores_per_level = []
         self.consistency_scores_current_level = []
+        self.shot_num = 0
 
     def reinit(self):
         self.env.history = []
@@ -48,6 +49,7 @@ class HydraAgent():
         self.consistency_scores_per_level = []
         self.consistency_scores_current_level = []
         self.agent_stats = list() # TODO: Discuss this
+        self.shot_num = 0
 
     ''' Runs the agent. Returns False if the evaluation has not ended, and True if it has ended.'''
     def main_loop(self,max_actions=1000):
@@ -154,6 +156,7 @@ class HydraAgent():
             self.consistency_scores_per_level.insert(0,sum(self.consistency_scores_current_level)/len(self.consistency_scores_current_level))
             self.consistency_scores_current_level = []
         self.perception.new_level = True
+        self.shot_num = 0
         self.current_level = self.env.sb_client.load_next_available_level()
         # time.sleep(1)
         self.novelty_existence = self.env.sb_client.get_novelty_info()
@@ -173,6 +176,7 @@ class HydraAgent():
 
         self.current_level = self.env.sb_client.load_next_available_level()
         self.perception.new_level = True
+        self.shot_num=0
         # time.sleep(1)
         self.novelty_existence = self.env.sb_client.get_novelty_info()
         time.sleep(2 / settings.SB_SIM_SPEED)
@@ -182,6 +186,7 @@ class HydraAgent():
     def handle_game_playing(self, observation, raw_state):
         processed_state = self.perception.process_state(raw_state)
         observation.state = processed_state
+        self.shot_num += 1
         if processed_state:
             logger.info("[hydra_agent_server] :: Invoking Planner".format())
             simplifications = settings.SB_PLANNER_SIMPLIFICATION_SEQUENCE.copy()
@@ -207,7 +212,7 @@ class HydraAgent():
             observation.intermediate_states = list(self.env.intermediate_states)
             self.perception.process_observation(observation)
             if settings.DEBUG:
-                observation.log_observation('{}_{}'.format(self.current_level,self.planner.current_problem_prefix))
+                observation.log_observation('{}_{}_{}'.format(self.current_level,self.shot_num,self.planner.current_problem_prefix))
             logger.info("[hydra_agent_server] :: Reward {} Game State {}".format(reward, raw_state.game_state))
             # time.sleep(5)
         else:
