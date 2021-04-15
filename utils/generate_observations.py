@@ -4,9 +4,9 @@ from agent.hydra_agent import HydraAgent
 import sys
 
 
-def main(config='all_level_1_novelties.xml'):
+def main(config='all_level_0_novelties.xml'):
     settings.DEBUG=True
-    settings.SB_DEV_MODE=True
+    settings.SB_DEV_MODE=False
     settings.NO_PLANNING=True
     env = sb.ScienceBirds(None,launch=True,config=config)
     hydra = HydraAgent(env)
