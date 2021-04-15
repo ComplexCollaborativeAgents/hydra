@@ -146,4 +146,4 @@ if __name__ == '__main__':
     logreg = train_classifier()
     probs, errors = test_classifier(logreg)
 
-    pickle.dump(logreg,open('{}/data/science_birds/perception/logreg.p'.format(settings.ROOT_PATH), 'wb'))
+#    pickle.dump(logreg,open('{}/data/science_birds/perception/logreg.p'.format(settings.ROOT_PATH), 'wb'))

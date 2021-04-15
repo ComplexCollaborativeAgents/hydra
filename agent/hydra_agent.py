@@ -4,6 +4,7 @@ import random
 from agent.consistency.model_formulation import ConsistencyChecker
 from agent.planning.planner import Planner
 import time
+import datetime
 
 from agent.consistency.consistency_estimator import *
 from worlds.science_birds_interface.client.agent_client import GameState
@@ -34,6 +35,7 @@ class HydraAgent():
         self.consistency_scores_per_level = []
         self.consistency_scores_current_level = []
         self.shot_num = 0
+        self.trial_timestamp = datetime.datetime.now().strftime("%y%m%d%H%M%S")
 
     def reinit(self):
         self.env.history = []
@@ -50,6 +52,7 @@ class HydraAgent():
         self.consistency_scores_current_level = []
         self.agent_stats = list() # TODO: Discuss this
         self.shot_num = 0
+        self.trial_timestamp = datetime.datetime.now().strftime("%y%m%d%H%M%S")
 
     ''' Runs the agent. Returns False if the evaluation has not ended, and True if it has ended.'''
     def main_loop(self,max_actions=1000):
@@ -212,7 +215,7 @@ class HydraAgent():
             observation.intermediate_states = list(self.env.intermediate_states)
             self.perception.process_observation(observation)
             if settings.DEBUG:
-                observation.log_observation('{}_{}_{}'.format(self.current_level,self.shot_num,self.planner.current_problem_prefix))
+                observation.log_observation('{}_{}_{}_{}'.format(self.current_level,self.shot_num,self.trial_timestamp,self.planner.current_problem_prefix))
             logger.info("[hydra_agent_server] :: Reward {} Game State {}".format(reward, raw_state.game_state))
             # time.sleep(5)
         else:
@@ -238,8 +241,15 @@ class HydraAgent():
             active_bird = None
         try:
             pig_x, pig_y = get_random_pig_xy(problem)
-            min_angle, max_angle = estimate_launch_angle(self.planner.meta_model.get_slingshot(state), Point2D(pig_x, pig_y), self.meta_model)
-            default_time = self.meta_model.angle_to_action_time(min_angle, pddl_state)
+            if settings.SB_DEFAULT_SHOT == 'RANDOM_PIG':
+                min_angle, max_angle = estimate_launch_angle(self.planner.meta_model.get_slingshot(state), Point2D(pig_x, pig_y), self.meta_model)
+                default_time = self.meta_model.angle_to_action_time(min_angle, pddl_state)
+            elif settings.SB_DEFAULT_SHOT == 'RANDOM':
+                default_angle = random.randint(pddl_state.numeric_fluents[('angle',)], pddl_state.numeric_fluents[('max_angle',)])
+                default_time = self.meta_model.angle_to_action_time(default_angle, pddl_state)
+            else:
+                logger.info("invalid setting for SB_DEFAULT_SHOT, taking default angle of 20")
+                default_time = self.meta_model.angle_to_action_time(20, pddl_state)
         except:
             logger.info("Unable to shoot at a random pig, taking default angle of 20")
             default_time = self.meta_model.angle_to_action_time(20, pddl_state)
