@@ -211,17 +211,7 @@ def run_repairing_observer_experiments(injected_faults = [0.8, 0.9, 1.0, 1.1, 1.
 
 if __name__ == '__main__':
     # Types of injected faults. 1.0 means no fault.
-    injected_faults = [1.0]
-
-    # Map fluent name to environment name
-    env_param_to_fluent = dict()
-    env_param_to_fluent['gravity'] = 'gravity'
-    env_param_to_fluent['force_mag'] = 'force_mag'
-    env_param_to_fluent['length'] = 'l_pole'
-    env_param_to_fluent['masscart'] = 'm_cart'
-    env_param_to_fluent['masspole'] = 'm_pole'
-    env_param_to_fluent['x_threshold'] = 'x_limit'
-    env_param_to_fluent['theta_threshold_radians'] = 'angle_limit'
+    injected_faults = [0.9, 1.0, 1.1]
 
     # Experiment types (these are functions that run an experiment
     # run_experiment_funcs = [_run_repairing_experiment, _run_oracle_experiment, _run_no_repair_experiment]
@@ -230,7 +220,3 @@ if __name__ == '__main__':
     run_repairing_agent_experiments(injected_faults=injected_faults,
                                     env_param_to_fluent={'gravity':'gravity'},
                                     run_experiment_funcs=run_experiment_funcs) # Run the experiment directly on the agent
-    # MIN_STEPS_TO_REPLAN = 5
-    # run_repairing_agent_experiments(injected_faults, {'gravity': 'gravity'})  # Run the experiment directly on the agent
-
-    # run_repairing_observer_experiments(injected_faults, env_param_to_fluent) # Run the experiment directoly on the observer that runs the agent TODO: have only one
