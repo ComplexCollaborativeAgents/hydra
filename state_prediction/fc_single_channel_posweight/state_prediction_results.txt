@@ -1,0 +1,5 @@
+Epoch: 999
+AVG loss : tensor(123.3566, device='cuda:0', grad_fn=<DivBackward0>)
+AVG TRAIN Loss : tensor(112.4540, device='cuda:0') Acc:  tensor(0.9940, device='cuda:0') Neg:  tensor(0.9743, device='cuda:0')
+AVG VAL Loss : tensor(17846.6133, device='cuda:0') Acc:  tensor(0.9859, device='cuda:0') Neg:  tensor(0.9743, device='cuda:0')
+AVG TEST LOSS : tensor(89120.2656, device='cuda:0') Acc:  tensor(0.9699, device='cuda:0') Neg:  tensor(0.9724, device='cuda:0')
