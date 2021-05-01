@@ -1,13 +1,13 @@
 from agent.repairing_hydra_agent import RepairingHydraSBAgent
 from agent.hydra_agent import HydraAgent
 import pytest
-from agent.consistency.meta_model_repair import *
+from agent.repair.meta_model_repair import *
 from agent.planning.pddl_meta_model import *
 import worlds.science_birds as sb
 import pickle
 import tests.test_utils as test_utils
 import os.path as path
-from agent.consistency.sb_repair import ScienceBirdsConsistencyEstimator, ScienceBirdsMetaModelRepair
+from agent.repair.sb_repair import ScienceBirdsConsistencyEstimator, ScienceBirdsMetaModelRepair
 
 GRAVITY_FACTOR = "gravity_factor"
 BASE_LIFE_WOOD_MULTIPLIER = "base_life_wood_multiplier"

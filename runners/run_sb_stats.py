@@ -264,3 +264,4 @@ def run_performance_stats(novelties: dict,
 
 if __name__ == '__main__':
     run_sb_stats(seed=0)
+

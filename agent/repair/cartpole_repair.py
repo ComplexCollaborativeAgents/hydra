@@ -1,7 +1,6 @@
 from agent.consistency.sequence_consistency_estimator import SequenceConsistencyEstimator
-from agent.consistency.consistency_estimator import *
 
-from agent.consistency.meta_model_repair import *
+from agent.repair.meta_model_repair import *
 
 ''' Checks consistency by considering the location of the Cartpole fluents '''
 class CartpoleConsistencyEstimator(MetaModelBasedConsistencyEstimator):

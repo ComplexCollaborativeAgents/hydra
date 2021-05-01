@@ -33,6 +33,7 @@ class HydraAgent():
         self.novelty_existence = -1
         self.consistency_scores_per_level = []
         self.consistency_scores_current_level = []
+        self.agent_stats = agent_stats
 
     def reinit(self):
         self.env.history = []

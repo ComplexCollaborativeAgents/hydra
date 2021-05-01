@@ -1,11 +1,9 @@
 import pytest
-from agent.consistency.meta_model_repair import *
+from agent.repair.meta_model_repair import *
 from agent.gym_hydra_agent import GymHydraAgent
-from agent.planning.cartpole_pddl_meta_model import CartPoleMetaModel
 from agent.planning.simple_planner import *
 from agent.consistency.consistency_estimator import check_obs_consistency, DEFAULT_DELTA_T
-import matplotlib.pyplot
-from agent.consistency.cartpole_repair import CartpoleConsistencyEstimator
+from agent.repair.cartpole_repair import CartpoleConsistencyEstimator
 import gym
 import tests.test_utils as test_utils
 logger = test_utils.create_logger("test_model_repair")

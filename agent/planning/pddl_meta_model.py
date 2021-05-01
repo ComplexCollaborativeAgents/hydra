@@ -399,6 +399,7 @@ class MetaModel():
                                           'meta_stone_multiplier',
                                           'meta_ice_multiplier',
                                           'v_bird_multiplier'])
+        self.repair_deltas = [1.0] * len(self.repairable_constants)
 
         for (fluent, value) in [('active_bird', 0),
                                 ('angle_rate', 20),
