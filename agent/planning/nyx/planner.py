@@ -47,7 +47,7 @@ class Planner:
             for aa in state.get_applicable_happenings(parser.grounded_actions):
                 if aa == constants.TIME_PASSING_ACTION:
                     new_state = copy.deepcopy(state)
-                    for hp in state.get_applicable_happenings(parser.grounded_events)+state.get_applicable_happenings(parser.grounded_processes):
+                    for hp in state.get_applicable_happenings(parser.grounded_events)+state.get_applicable_happenings(parser.grounded_processes)+state.get_applicable_happenings(parser.grounded_events):
                         new_state = new_state.apply_happening(hp)
                     new_state.set_time(round(round(state.time,constants.NUMBER_PRECISION) + round(constants.DELTA_T,constants.NUMBER_PRECISION),constants.NUMBER_PRECISION))
                     new_state.predecessor_hashed = hash(VisitedState(state))

@@ -9,7 +9,7 @@ import settings
 import matplotlib.pyplot as plt
 import random
 
-MIN_STEPS_TO_REPLAN = 20
+MIN_STEPS_TO_REPLAN = 40
 
 class GymHydraAgent:
     def __init__(self, env, starting_seed=False):
@@ -61,7 +61,7 @@ class GymHydraAgent:
                 print ("\nSTEP: ", n_steps, str(round(n_steps*0.02,4)) + "s")
                 print (action)
                 print (self.observation)
-
+                print (full_plan_trace[-1])
                 print ((full_plan_trace[-2][0],full_plan_trace[-1][1],full_plan_trace[-2][2],full_plan_trace[-1][3])) if len(full_plan_trace) > 1 else print(full_plan_trace[-1])
                 print ("REWARD:", reward)
                 print (done)

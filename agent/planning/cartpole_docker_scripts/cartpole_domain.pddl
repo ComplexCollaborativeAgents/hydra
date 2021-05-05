@@ -46,10 +46,10 @@
     :parameters (?d - dummy)
     :precondition (and (ready) (not (total_failure)))
     :effect (and
-        (increase (x_dot) (* #t (x_ddot)) )
         (increase (x) (* #t (x_dot)) )
-        (increase (theta_dot) (* #t (theta_ddot)) )
         (increase (theta) (* #t (theta_dot)))
+        (increase (x_dot) (* #t (x_ddot)) )
+        (increase (theta_dot) (* #t (theta_ddot)) )
         (increase (elapsed_time) (* #t 1) )
     )
   )

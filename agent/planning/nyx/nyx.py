@@ -107,7 +107,7 @@ def runner(dom_file, prob_file, args_list: []):
 
     total_time = time.time() - start_time
 
-
+    my_plan = []
 
     if my_plnr.reached_goal_state is not None:
         my_plan = my_plnr.get_trajectory(my_plnr.reached_goal_state)
