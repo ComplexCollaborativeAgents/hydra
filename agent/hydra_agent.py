@@ -48,7 +48,7 @@ class HydraAgent():
         self.novelty_existence = -1
         self.consistency_scores_per_level = []
         self.consistency_scores_current_level = []
-        self.agent_stats = list() # TODO: Discuss this
+        # self.agent_stats = list() # TODO: Discuss this
 
     ''' Runs the agent. Returns False if the evaluation has not ended, and True if it has ended.'''
     def main_loop(self,max_actions=1000):
@@ -71,6 +71,7 @@ class HydraAgent():
                 self.stats_for_level = dict()
                 self.handle_game_playing(observation, raw_state)
                 self.agent_stats.append(self.stats_for_level)
+                # logger.info("HYDRA: appending stats {}".format(self.agent_stats))
             elif raw_state.game_state.value == GameState.WON.value:
                 self.handle_game_won()
             elif raw_state.game_state.value == GameState.LOST.value:

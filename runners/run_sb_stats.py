@@ -200,6 +200,92 @@ def compute_stats(results_path, agent, agent_stats = list()):
 
     return stats
 
+def compute_eval_stats(results_path, agent, agent_stats = list()):
+    ''' Inspect evaluation directory from science birds and generate a stats dict. (2021 Eval) '''
+    stats = {'levels': [], 'overall': None}
+
+    passed = 0
+    failed = 0
+    false_negatives = 0
+    false_positives = 0
+    true_negatives = 0
+    true_positives = 0
+    scores = []
+    bird_scores = collections.defaultdict(lambda: {"passed": 0, "failed": 0})
+
+
+    evaluation_data = list(results_path.glob('*_EvaluationData.csv'))
+    if len(evaluation_data) == 1:
+        evaluation_data = evaluation_data[0]
+        with open(evaluation_data) as f:
+            data = csv.DictReader(f)
+            for i, row in enumerate(data):
+                level_path = row['levelName']
+                birds = get_bird_count(os.path.join(SB_BIN_PATH, level_path))
+                status = row['LevelStatus']
+                if 'Pass' in status:
+                    passed += 1
+                    for bird in birds.keys():
+                        bird_scores[bird]['passed'] += 1
+                else:
+                    failed += 1
+                    status = 'Fail'
+                    for bird in birds.keys():
+                        bird_scores[bird]['failed'] += 1
+
+                score = float(row['Score'])
+                scores.append(score)
+                
+                # output if this level actually contained novelty TODO
+
+                level_stats = {'level': level_path,
+                               'score': score,
+                               'status': status,
+                               'birds_remaining': int(row['birdsRemaining']),
+                               'birds_start': int(row['birdsAtStart']),
+                               'pigs_remaining': int(row['pigsRemaining']),
+                               'pigs_start': int(row['pigsAtStart']),
+                               'birds': birds}
+
+                print("STATS: agent stats {}".format(agent_stats))
+
+                # Get agent stats
+                if i<len(agent_stats):
+                    agent_stats_for_level = agent_stats[i]
+                    for key in agent_stats_for_level:
+                        level_stats[key]= agent_stats_for_level[key]   # Novelty probability should be passed through here
+
+                # Categorize novelty detection result
+                if 'novelty_level_0' in level_path: # Is not novel - TODO: find a better way to determine non novel levels
+                    if level_stats['novelty_likelihood'] == 1:  # Detected novelty when there is none - false_positive
+                        false_positives += 1
+                    else:
+                        true_negatives += 1
+                else:   # This is a novel level
+                    if level_stats['novelty_likelihood'] == 1:
+                        true_positives += 1
+                    else:
+                        false_positives += 1
+
+                # Add to levels
+                stats['levels'].append(level_stats)
+
+    stats['overall'] = {
+        'passed': passed, 
+        'failed': failed,
+        'avg_score': 0 if len(scores) == 0 else numpy.average(scores),
+        'agent': agent.name,
+        'birds': bird_scores,
+        'false_negatives': false_negatives,
+        'false_positives': false_positives,
+        'true_negatives': true_negatives, 
+        'true_positives': true_positives
+    }
+
+    print("STATS: stats for {} are {}".format(results_path, stats['overall']))
+
+    return stats
+
 
 def run_sb_stats(extract=False, seed=None):
     ''' Run science birds agent stats. '''
@@ -261,6 +347,103 @@ def run_performance_stats(novelties: dict,
                 with open(stats_base_path / filename, 'w') as f:
                     json.dump(stats, f, sort_keys=True, indent=4)
 
+def run_eval_stats(novelties: dict,
+                          agent_type: AgentType,
+                          seed: Optional[int] = None,
+                          samples: Optional[int] = SAMPLES,
+                          notify_novelty: Optional[bool] = None,
+                          suffix: Optional[str] = None,
+                          bin_path: pathlib.Path = SB_BIN_PATH,
+                          levels_path: pathlib.Path = SB_BIN_PATH,
+                          stats_base_path: pathlib.Path = STATS_BASE_PATH,
+                          template: pathlib.Path = SB_CONFIG_PATH / 'test_config.xml',
+                          config: pathlib.Path = SB_CONFIG_PATH / 'stats_config.xml',
+                          level_lookup: Optional[dict] = None):
+    ''' Run science birds agent stats. '''
+    if seed is not None:
+        random.seed(seed)
+
+    results = []
+
+    for novelty, types in novelties.items():
+        for novelty_type in types:
+            pattern = 'Levels/novelty_level_{}/type{}/Levels/*.xml'.format(novelty, novelty_type)
+            levels = list(levels_path.glob(pattern))
+
+            number_samples = len(levels)
+            if samples is not None:
+                number_samples = min(number_samples, samples)
+
+            if level_lookup:
+                levels = [levels_path / l for l in level_lookup[str(novelty)][str(novelty_type)]]
+
+            prepare_config(template, config, levels, notify_novelty)
+            pre_directories = glob_directories(bin_path, 'Agent*')
+            post_directories = None
+
+            agent_stats = list()
+            with run_agent(config.name, agent_type, agent_stats=agent_stats) as env: # TODO: Typo?
+                post_directories = glob_directories(SB_BIN_PATH, 'Agent*')
+
+            # print("AFTER RUN: {}".format(agent_stats))
+
+            results_directory = diff_directories(pre_directories, post_directories)
+
+            if results_directory is None:
+                post_directories = glob_directories(SB_BIN_PATH, 'Agent*')
+                results_directory = diff_directories(pre_directories, post_directories)
+
+            if results_directory is not None:
+                results.append(compute_eval_stats(results_directory, agent_type, agent_stats=agent_stats))
+
+    # stat_results = {}
+
+    # # M1: avg number of False Negatives among CDTs
+    # # M2: % of CDTs across all trials
+
+    # # Collect CDTs
+    # CDTs = []
+    # for result in results:
+    #     print("STATS: Processing result: {}".format(result))
+    #     if result['overall']['true_positives'] > 0 and result['overall']['false_positives'] == 0:
+    #         CDTs.append(result)
+    #     print("------------------------------------------------------------------------------------")
+
+    # print("STATS: CDTs are: {}".format(CDTs))
+
+    # # For every CDT, count false negatives and average
+    # sum_false_neg = sum([cdt['overall']['false_negatives'] for cdt in CDTs])
+    # if len(CDTs) > 0:
+    #     stat_results['m1'] = sum_false_neg/len(CDTs)
+    # else:
+    #     stat_results['m1'] = 0
+
+    # # Determine % of CDTs
+    # if len(results) > 0:
+    #     stat_results['m2'] = len(CDTs) / len(results)
+    # else:
+    #     stat_results['m2'] = 0
+
+    # # M2.1: % of Trials with at least 1 False Positive
+    # # Do 1 - % of CDTs
+    # stat_results['m2.1'] = 1 - stat_results['m2']
+
+    # # M3 + M4: Ratio of agent post-novelty performance vs baseline agent pre-novelty performance (TODO: find pre performance records)
+
+    # # M5: Post novelty performance overall vs baseline agent
+
+    # # M6: Asymptotic performance vs baseline agent
+
+    # # M7: False positive rate and True positive rate    
+    
+    # stats_filename = os.path.join(STATS_BASE_PATH, "eval_2021_stats.json")
+
+    # with open(stats_filename, "w+") as f:
+    #     print("STATS: writing to {}".format(stats_filename))
+    #     json.dump(stat_results, f, indent=4)
+
+    return results
+        
 
 if __name__ == '__main__':
     run_sb_stats(seed=0)
