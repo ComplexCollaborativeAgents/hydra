@@ -45,14 +45,14 @@ class NoveltyExperimentRunner:
 '''
 
 TRIAL_START = 0
-NUM_TRIALS = 3
+NUM_TRIALS = 1
 PER_TRIAL = 1
-NOVELTIES = {1: [6, 7, 8, 9, 10]}
+NOVELTIES = {1: [6, 7, 8]}
 NOTIFY_NOVELTY  = True
 
 # NOTE: need to change the filename of LOOKUP_PATH to whatever config json file is output by utils/generate_eval_trial_sets
-# LOOKUP_PATH = pathlib.Path(__file__).parent.absolute() / "eval_sb_trials_b4_novelty_1.json"
-LOOKUP_PATH = pathlib.Path(__file__).parent.absolute() / "eval_sb_trials_short.json"
+# LOOKUP_PATH = pathlib.Path(__file__).parent.absolute() / "eval_sb_trials_test_full.json"
+LOOKUP_PATH = pathlib.Path(__file__).parent.absolute() / "eval_sb_trials_test_short.json"
 
 def load_lookup():
     with open(LOOKUP_PATH) as f:
@@ -66,6 +66,7 @@ if __name__ == "__main__":
     for agent in [AgentType.RepairingHydra]:
         for trial_set in range(TRIAL_START, TRIAL_START + NUM_TRIALS):
             random.seed()
+            print("Commencing Trial: {}".format(trial_set))
             result = run_eval_stats(NOVELTIES,
                                     agent_type=agent,
                                     samples=PER_TRIAL,
@@ -75,6 +76,9 @@ if __name__ == "__main__":
 
             trial_results.append(result)
 
+    """
+    Evaluation over all trial sets - as of 5/6/2021 we are not evaluating at this scope
+    -----------------------------------
 
     stat_results = {}
 
@@ -112,7 +116,15 @@ if __name__ == "__main__":
 
     # M2.1: % of Trials with at least 1 False Positive
     # Do 1 - % of CDTs
-    stat_results['m2.1'] = 1 - stat_results['m2']
+    trial_w_fp = 0
+    for result in results:
+        if result['overall']['false_positives'] > 0:
+            trial_w_fp += 1
+
+    if len(results) > 0:
+        stat_results['m2.1'] = trial_w_fp / len(results)
+    else:
+        stat_results['m2.1'] = 0
 
     # M3 + M4: Ratio of agent post-novelty performance vs baseline agent pre-novelty performance (TODO: find pre performance records)
 
@@ -123,3 +135,5 @@ if __name__ == "__main__":
     # M7: False positive rate and True positive rate    
 
     print(stat_results)
+    
+    """

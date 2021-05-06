@@ -426,7 +426,15 @@ def run_eval_stats(novelties: dict,
 
     # M2.1: % of Trials with at least 1 False Positive
     # Do 1 - % of CDTs
-    stat_results['m2.1'] = 1 - stat_results['m2']
+    trial_w_fp = 0
+    for result in results:
+        if result['overall']['false_positives'] > 0:
+            trial_w_fp += 1
+
+    if len(results) > 0:
+        stat_results['m2.1'] = trial_w_fp / len(results)
+    else:
+        stat_results['m2.1'] = 0
 
     # M3 + M4: Ratio of agent post-novelty performance vs baseline agent pre-novelty performance (TODO: find pre performance records)
 
