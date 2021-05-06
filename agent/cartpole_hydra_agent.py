@@ -23,8 +23,8 @@ class CartpoleHydraAgent:
 
         self.novelty_probability = 0.0
         self.novelty_type = 0
-        self.novelty_characterization = {'novelty_probability_threshold': 0.999999, # TODO: Re-think whether this makes sense,
-                                         'novelty_characterization_description': ''}
+        self.novelty_characterization = {'novelty_characterization_description': ''}
+        self.novelty_threshold = 0.999999
 
         self.plan_idx = 0
         self.steps = 0
@@ -32,16 +32,17 @@ class CartpoleHydraAgent:
         self.current_observation = CartPoleObservation()
         self.last_performance = 0.0
 
-    def episode_end(self, performance: float):
+    def episode_end(self, performance: float, feedback: dict = None):
         self.steps = 0
         self.plan_idx = 0
         self.plan = None
         self.observations_list.append(self.current_observation)
         self.current_observation = CartPoleObservation()
         self.last_performance = performance # Records the last performance value, to show impact
+        return self.novelty_probability, self.novelty_threshold, self.novelty_type, self.novelty_characterization
 
     def testing_instance(self, feature_vector: dict, novelty_indicator: bool = None) -> \
-            (dict, float, int, dict):
+            dict:
 
         observation = self.feature_vector_to_observation(feature_vector)
         if self.plan is None:
@@ -65,7 +66,7 @@ class CartpoleHydraAgent:
         self.current_observation.states.append(observation)
 
         label = self.action_to_label(action)
-        return label, self.novelty_probability, self.novelty_type, self.novelty_characterization
+        return label
 
     @staticmethod
     def feature_vector_to_observation(feature_vector: dict) -> np.ndarray:
@@ -88,7 +89,8 @@ class RepairingCartpoleHydraAgent(CartpoleHydraAgent):
         self.has_repaired = False
         self.detector = FocusedAnomalyDetector()
 
-    def episode_end(self, performance: float):
+    def episode_end(self, performance: float, feedback: dict = None)-> \
+            (float, float, int, dict):
         novelties = []
         novelty_likelihood=0.0
         try:
@@ -127,7 +129,7 @@ class RepairingCartpoleHydraAgent(CartpoleHydraAgent):
 
         self.novelty_probability = max(self.novelty_probability, novelty_likelihood)
 
-        super().episode_end(performance)
+        return super().episode_end(performance)
 
 
 class CartpoleHydraAgentObserver(WSUObserver):
@@ -140,16 +142,14 @@ class CartpoleHydraAgentObserver(WSUObserver):
         super().trial_start(trial_number, novelty_description)
         self.agent = self.agent_type()
 
-    def testing_episode_end(self, performance: float):
-        super().testing_episode_end(performance)
-        self.agent.episode_end(performance)
+    def testing_episode_end(self, performance: float, feedback: dict = None) -> \
+            (float, float, int, dict):
+        super().testing_episode_end(performance, feedback)
+        return self.agent.episode_end(performance, feedback)
 
     def testing_instance(self, feature_vector: dict, novelty_indicator: bool = None) -> \
-            (dict, float, int, dict):
+            dict:
         super().testing_instance(feature_vector, novelty_indicator)
-        action, novelty_probability, novelty_type, novelty_characterization = \
-            self.agent.testing_instance(feature_vector, novelty_indicator)
-        self.log.debug("Testing instance: sending action={}, novelty_probability={}, novelty_type={}, novelty_characterization={}".format(
-            action, novelty_probability, novelty_type, novelty_characterization
-        ))
-        return action, novelty_probability, novelty_type, novelty_characterization
+        action = self.agent.testing_instance(feature_vector, novelty_indicator)
+        self.log.debug("Testing instance: sending action={}".format(action))
+        return action

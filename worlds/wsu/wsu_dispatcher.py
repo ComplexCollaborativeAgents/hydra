@@ -46,7 +46,7 @@ class WSUObserver:
         return
 
     def training_instance(self, feature_vector: dict, feature_label: dict) ->  \
-            (dict, float, int, dict):
+            dict:
         """Process a training
 
         Parameters
@@ -62,11 +62,9 @@ class WSUObserver:
 
         Returns
         -------
-        dict, float, int, dict
+        dict
             A dictionary of your label prediction of the format {'action': label}.  This is
                 strictly enforced and the incorrect format will result in an exception being thrown.
-            A float of the probability of there being novelty.
-            Integer representing the predicted novelty level.
         """
         self.log.debug('Training Instance: feature_vector={}  feature_label={}'.format(
             feature_vector, feature_label))
@@ -74,24 +72,29 @@ class WSUObserver:
             self.possible_answers.append(copy.deepcopy(feature_label))
 
         label_prediction = random.choice(self.possible_answers)
-        novelty_probability = random.random()
-        novelty = 0
-        novelty_characterization = dict()
+        # novelty_probability = random.random()
+        # novelty = 0
+        # novelty_characterization = dict()
 
-        return label_prediction, novelty_probability, novelty, novelty_characterization
+        return label_prediction #, novelty_probability, novelty, novelty_characterization
 
-    def training_performance(self, performance: float):
+    def training_performance(self, performance: float, feedback: dict = None):
         """Provides the current performance on training after each instance.
 
         Parameters
         ----------
         performance : float
             The normalized performance score.
+        feedback : dict, optional
+            A dictionary that may provide additional feedback on your prediction based on the
+            budget set in the TA1. If there is no feedback, the object will be None.
         """
         self.log.debug('Training Performance: {}'.format(performance))
+        self.log.debug('Training Feedback: {}'.format(feedback))
         return
 
-    def training_episode_end(self, performance: float):
+    def training_episode_end(self, performance: float, feedback: dict = None) -> \
+            (float, float, int, dict):
         """Provides the final performance on the training episode and indicates that the training
         episode has ended.
 
@@ -99,9 +102,24 @@ class WSUObserver:
         ----------
         performance : float
             The final normalized performance score of the episode.
+
+        Returns
+        -------
+        float, float, int, dict
+            A float of the probability of there being novelty.
+            A float of the probability threshold for this to evaluate as novelty detected.
+            Integer representing the predicted novelty level.
+            A JSON-valid dict characterizing the novelty.
         """
         self.log.info('Training Episode End: performance={}'.format(performance))
-        return
+        self.log.debug('Training Feedback: {}'.format(feedback))
+
+        novelty_probability = random.random()
+        novelty_threshold = 0.8
+        novelty = 0
+        novelty_characterization = dict()
+
+        return novelty_probability, novelty_threshold, novelty, novelty_characterization
 
     def training_end(self):
         """This function is called when we have completed the training episodes.
@@ -172,7 +190,7 @@ class WSUObserver:
         return
 
     def testing_instance(self, feature_vector: dict, novelty_indicator: bool = None) -> \
-            (dict, float, int, dict):
+            dict:
         """Evaluate a testing instance.  Returns the predicted label or action, if you believe
         this episode is novel, and what novelty level you beleive it to be.
 
@@ -192,9 +210,6 @@ class WSUObserver:
         dict, float, int, dict
             A dictionary of your label prediction of the format {'action': label}.  This is
                 strictly enforced and the incorrect format will result in an exception being thrown.
-            A float of the probability of there being novelty.
-            Integer representing the predicted novelty level.
-            A JSON-valid dict characterizing the novelty.
         """
         self.log.debug('Testing Instance: feature_vector={}, novelty_indicator={}'.format(
             feature_vector, novelty_indicator))
@@ -204,31 +219,47 @@ class WSUObserver:
             self.possible_answers = [{'action': 'right'}, {'action': 'left'}]
 
         label_prediction = random.choice(self.possible_answers)
-        novelty_probability = random.random()
-        novelty = random.choice(list(range(4)))
-        novelty_characterization = dict()
+        # novelty_probability = random.random()
+        # novelty = random.choice(list(range(4)))
+        # novelty_characterization = dict()
 
-        return label_prediction, novelty_probability, novelty, novelty_characterization
+        return label_prediction #, novelty_probability, novelty, novelty_characterization
 
-    def testing_performance(self, performance: float):
+    def testing_performance(self, performance: float, feedback: dict = None):
         """Provides the current performance on training after each instance.
 
         Parameters
         ----------
         performance : float
             The normalized performance score.
+        feedback : dict, optional
+            A dictionary that may provide additional feedback on your prediction based on the
+            budget set in the TA1. If there is no feedback, the object will be None.
         """
         return
 
-    def testing_episode_end(self, performance: float):
+    def testing_episode_end(self, performance: float, feedback: dict = None) -> \
+            (float, float, int, dict):
         """Provides the final performance on the testing episode.
 
         Parameters
         ----------
         performance : float
             The final normalized performance score of the episode.
+        feedback : dict, optional
+            A dictionary that may provide additional feedback on your prediction based on the
+            budget set in the TA1. If there is no feedback, the object will be None.
+
+        Returns
+        -------
+        float, float, int, dict
+            A float of the probability of there being novelty.
+            A float of the probability threshold for this to evaluate as novelty detected.
+            Integer representing the predicted novelty level.
+            A JSON-valid dict characterizing the novelty.
         """
         self.log.info('Testing Episode End: performance={}'.format(performance))
+        self.log.info('Testing Episode End: performance={}'.format(feedback))
         return
 
     def trial_end(self):
@@ -318,14 +349,14 @@ class WSUDispatcher(TA2Logic):
     def training_episode_start(self, episode_number: int):
         self.__do_processing(self.delegate.training_episode_start, [episode_number])
 
-    def training_instance(self, feature_vector: dict, feature_label: dict) -> (dict, float, int, dict):
+    def training_instance(self, feature_vector: dict, feature_label: dict) -> dict:
         return self.__do_processing(self.delegate.training_instance, [feature_vector, feature_label])
 
-    def training_performance(self, performance: float):
-        self.__do_processing(self.delegate.training_performance, [performance])
+    def training_performance(self, performance: float, feedback: dict = None):
+        self.__do_processing(self.delegate.training_performance, [performance, feedback])
 
-    def training_episode_end(self, performance: float):
-        self.__do_processing(self.delegate.training_episode_end, [performance])
+    def training_episode_end(self, performance: float, feedback: dict = None) -> (float, float, int, dict):
+        return self.__do_processing(self.delegate.training_episode_end, [performance, feedback])
 
     def training_end(self):
         self.__do_processing(self.delegate.training_end)
@@ -349,14 +380,15 @@ class WSUDispatcher(TA2Logic):
         self.__do_processing(self.delegate.testing_episode_start, [episode_number])
 
     def testing_instance(self, feature_vector: dict, novelty_indicator: bool = None) -> \
-            (dict, float, int, dict):
+            dict:
         return self.__do_processing(self.delegate.testing_instance, [feature_vector, novelty_indicator])
 
-    def testing_performance(self, performance: float):
-        self.__do_processing(self.delegate.testing_performance, [performance])
+    def testing_performance(self, performance: float, feedback: dict = None):
+        self.__do_processing(self.delegate.testing_performance, [performance, feedback])
 
-    def testing_episode_end(self, performance: float):
-        self.__do_processing(self.delegate.testing_episode_end, [performance])
+    def testing_episode_end(self, performance: float, feedback: dict = None) -> \
+            (float, float, int, dict):
+        return self.__do_processing(self.delegate.testing_episode_end, [performance, feedback])
 
     def trial_end(self):
         self.__do_processing(self.delegate.trial_end)
