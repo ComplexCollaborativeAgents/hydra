@@ -259,7 +259,7 @@ class WSUObserver:
             A JSON-valid dict characterizing the novelty.
         """
         self.log.info('Testing Episode End: performance={}'.format(performance))
-        self.log.info('Testing Episode End: performance={}'.format(feedback))
+        self.log.info('Testing Episode End: feedback={}'.format(feedback))
         return
 
     def trial_end(self):
