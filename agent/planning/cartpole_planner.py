@@ -9,6 +9,7 @@ import subprocess
 import re
 from agent.planning.pddl_plus import *
 from agent.planning.cartpole_pddl_meta_model import *
+from agent.planning.nyx import nyx
 import datetime
 import time
 import copy
@@ -46,7 +47,6 @@ class CartPolePlanner():
         if isinstance(plan[0],SBShoot):
             return None
 
-
     def write_problem_file(self, pddl_problem):
         pddl_problem_file = "%s/cartpole_prob.pddl" % str(settings.CARTPOLE_PLANNING_DOCKER_PATH)
         exporter = PddlProblemExporter()
@@ -58,54 +58,20 @@ class CartPolePlanner():
             exporter.to_file(pddl_problem, "{}/trace/problems/{}_cartpole_problem.pddl".format(settings.CARTPOLE_PLANNING_DOCKER_PATH,
                                                           self.current_problem_prefix))
 
+
     def get_plan_actions(self,count=0):
-        chdir("%s"  % settings.CARTPOLE_PLANNING_DOCKER_PATH)
-        cartpole_domain_pddl_path = "{}/cartpole_domain.{}.pddl".format(settings.TMP_FOLDER, settings.HYDRA_INSTANCE_ID)
-        subprocess.run("cp cartpole_domain.pddl {}".format(cartpole_domain_pddl_path), shell=True)
-        cartpole_prob_pddl_path = "{}/cartpole_prob.{}.pddl".format(settings.TMP_FOLDER, settings.HYDRA_INSTANCE_ID)
-        subprocess.run("cp cartpole_prob.pddl {}".format(cartpole_prob_pddl_path), shell=True)
-        # print(cartpole_domain_pddl_path)
-        # print(cartpole_prob_pddl_path)
+        nyx.runner("%s/cartpole_domain.pddl" % str(settings.CARTPOLE_PLANNING_DOCKER_PATH),
+               "%s/cartpole_prob.pddl" % str(settings.CARTPOLE_PLANNING_DOCKER_PATH),
+               ['-vv', '-noplan', '-search:gbfs', '-th:%s' % str(self.meta_model.constant_numeric_fluents['time_limit']),
+                '-t:%s' % str(settings.CP_DELTA_T)])
 
-        completed_process = subprocess.run(('docker', 'build', '-t', 'upm_from_dockerfile', '.'), capture_output=True)
-        out_file = open("docker_build_trace.txt", "wb")
-        out_file.write(completed_process.stdout)
-        if len(completed_process.stderr)>0:
-            out_file.write(str.encode("\n Stderr: \n"))
-            out_file.write(completed_process.stderr)
-        out_file.close()
+        # nyx.runner("%s/../nyx/ex/cartpole/cartpole.pddl" % str(settings.CARTPOLE_PLANNING_DOCKER_PATH),
+        #            "%s/cartpole_prob.pddl" % str(settings.CARTPOLE_PLANNING_DOCKER_PATH),
+        #            ['-vv', '-noplan', '-search:gbfs',
+        #             '-th:%s' % str(self.meta_model.constant_numeric_fluents['time_limit']),
+        #             '-t:%s' % str(settings.CP_DELTA_T)])
 
-        docker_plan_time = time.perf_counter()
-        # print ("\n\n Running planner with parameters - Memory limit:", str(settings.PLANNER_MEMORY_LIMIT), "Delta T: ", str(settings.DELTA_T), "Timeout: ", (str(settings.TIMEOUT)+"s"), "Max plan length: ", str(self.meta_model.constant_numeric_fluents['time_limit']))
-        completed_process = subprocess.run(('docker', 'run', '--rm',
-                                            '-v', '{}:/home/UPMurphi-DFS/ex/cartpole/cartpole_domain.pddl'.format(cartpole_domain_pddl_path),
-                                            '-v', '{}:/home/UPMurphi-DFS/ex/cartpole/cartpole_prob.pddl'.format(cartpole_prob_pddl_path),
-                                            'upm_from_dockerfile', 'cartpole_domain.pddl',
-                                            'cartpole_prob.pddl', str(settings.CP_PLANNER_MEMORY_LIMIT), str(settings.CP_DELTA_T), (str(settings.CP_TIMEOUT)+"s"), str(math.ceil(self.meta_model.constant_numeric_fluents['time_limit'])),
-                                            '>', 'docker_plan_trace.txt'), capture_output=True)
-        completed_docker_plan_time = (time.perf_counter() - docker_plan_time)
-        out_file = open("docker_plan_trace.txt", "wb")
-        out_file.write(completed_process.stdout)
-
-        if len(completed_process.stderr)>0:
-            out_file.write(str.encode("\n Stderr: \n"))
-            out_file.write(completed_process.stderr)
-        out_file.close()
-
-        # subprocess.run(['docker', 'image', 'prune', '--force'])
-
-        plan_actions =  self.extract_actions_from_plan_trace("%s/docker_plan_trace.txt" % str(settings.CARTPOLE_PLANNING_DOCKER_PATH))
-
-        out_file = open("docker_plan_trace.txt", "a")
-        out_file.write("\n\nCUMULATIVE COMPILATION AND PLAN TIME: " + str(completed_docker_plan_time) + "\n\n")
-        out_file.close()
-
-        if settings.DEBUG:
-            cmd = "mkdir -p {}/trace/plan_output && cp {}/docker_plan_trace.txt {}/trace/plan_output/{}_plan_trace.txt".format(settings.CARTPOLE_PLANNING_DOCKER_PATH,
-                                                                                                                            settings.CARTPOLE_PLANNING_DOCKER_PATH,
-                                                                                                                            settings.CARTPOLE_PLANNING_DOCKER_PATH,
-                                                                                                                            self.current_problem_prefix)
-            subprocess.run(cmd, shell=True)
+        plan_actions =  self.extract_actions_from_plan_trace("%s/plan_cartpole_prob.pddl" % str(settings.CARTPOLE_PLANNING_DOCKER_PATH))
 
         if len(plan_actions) > 0:
             if (plan_actions[0].action_name == "syntax error") and (count < 1):
@@ -122,15 +88,15 @@ class CartPolePlanner():
         with open(plane_trace_file) as plan_trace_file:
             for i, line in enumerate(plan_trace_file):
                 # print(str(i) + " =====> " + str(line))
-                if "Out of memory" in line:
+                if "No Plan Found!" in line:
                     plan_actions.append(TimedAction("out of memory", 1.0))
                     # if the planner ran out of memory:
                     # change the goal to killing a single pig to make the problem easier and try again with one fewer pig
                     return plan_actions
-                if " time passing " in line:
+                if "time-passing" in line:
                     action_angle_time = (line.split(':')[1].split('[')[0].replace('(', '').replace(')', '').strip(),
-                                         float(str(lines_list[i+1].split('f:')[1].split(',')[0])),
-                                         float(line.split(':')[0].replace('; ','')))
+                                         float(str(lines_list[i+5].split('\"[\'f\']\",')[1].split(']')[0])),
+                                         float(line.split(':')[0].strip()))
                     # print (str(action_angle_time) + "\n")
 
                     action_name = "move_cart_right dummy_obj"
@@ -156,17 +122,17 @@ class CartPolePlanner():
         with open(plane_trace_file) as plan_trace_file:
             for ix, linex in enumerate(plan_trace_file):
                 # print(str(i) + " =====> " + str(line))
-                if " time passing " in linex:
-                    copy_line = copy.copy(lines_list2[ix + 1])
-                    copy_line2 = copy.copy(lines_list2[ix + 1])
-                    copy_line3 = copy.copy(lines_list2[ix + 1])
-                    copy_line4 = copy.copy(lines_list2[ix + 1])
+                if "time-passing" in linex:
+                    copy_line = copy.copy(lines_list2[ix + 5])
+                    copy_line2 = copy.copy(lines_list2[ix + 5])
+                    copy_line3 = copy.copy(lines_list2[ix + 5])
+                    copy_line4 = copy.copy(lines_list2[ix + 5])
 
-                    state_values = (float(str(copy_line.split('x:')[1].split(',')[0])),
-                                    float(str(copy_line2.split('x_do_t:')[1].split(',')[0])),
-                                    float(str(copy_line3.split('theta:')[1].split(',')[0])),
-                                    float(str(copy_line4.split('theta_do_t:')[1].split(',')[0])),
-                                    (float(linex.split(':')[0].split('[')[0].replace(';', '').strip())+0.02))
+                    state_values = (float(str(copy_line.split('\"[\'x\']\",')[1].split(']')[0])),
+                                    float(str(copy_line2.split('\"[\'x_dot\']\",')[1].split(']')[0])),
+                                    float(str(copy_line3.split('\"[\'theta\']\",')[1].split(']')[0])),
+                                    float(str(copy_line4.split('\"[\'theta_dot\']\",')[1].split(']')[0])),
+                                    (round(float(linex.split(':')[0].strip())+0.02, 4)))
                     # print (str(state_values) + "\n")
                     plan_values.append(state_values)
 

@@ -1,11 +1,11 @@
 import sklearn.metrics as metrics
 import numpy as np
-from agent.consistency.sb_repair import ScienceBirdsConsistencyEstimator, BirdLocationConsistencyEstimator, BlockNotDeadConsistencyEstimator
+from agent.repair.sb_repair import ScienceBirdsConsistencyEstimator, BirdLocationConsistencyEstimator, BlockNotDeadConsistencyEstimator
 import enum
 import pathlib
 from typing import List
 import matplotlib.pyplot as plt
-from agent.consistency.consistency_estimator import check_obs_consistency, ConsistencyEstimator
+from agent.consistency.consistency_estimator import check_obs_consistency
 from agent.consistency.fast_pddl_simulator import *
 
 

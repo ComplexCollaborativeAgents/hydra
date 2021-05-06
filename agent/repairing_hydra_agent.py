@@ -1,15 +1,15 @@
 from agent.hydra_agent import HydraAgent
-from agent.consistency.meta_model_repair import *
+from agent.repair.meta_model_repair import *
 from agent.gym_hydra_agent import GymHydraAgent
 import os.path as path
 from state_prediction.anomaly_detector import FocusedSBAnomalyDetector
-from agent.consistency.sb_repair import *
+from agent.repair.sb_repair import *
 
 
 logger = logging.getLogger("repairing_hydra_agent")
 
 from agent.planning.cartpole_pddl_meta_model import *
-from agent.consistency.cartpole_repair import *
+from agent.repair.cartpole_repair import *
 
 class RepairingGymHydraAgent(GymHydraAgent):
     def __init__(self, env, starting_seed=False):
@@ -36,7 +36,7 @@ class RepairingGymHydraAgent(GymHydraAgent):
             repair, consistency = meta_model_repair.repair(self.meta_model, observation, delta_t=settings.CP_DELTA_T)
             repair_time = time.time()-start_time
             repair_description = ["Repair %s, %.2f" % (fluent, repair[i])
-                                  for i, fluent in enumerate(self.meta_model_repair.fluents_to_repair)]
+                                  for i, fluent in enumerate(meta_model_repair.fluents_to_repair)]
 
             logger.info("Repair done! Repair time %.2f, Consistency: %.2f, Repair:\n %s" % (
             repair_time, consistency, "\n".join(repair_description)))
@@ -125,10 +125,10 @@ class RepairingHydraSBAgent(HydraAgent):
             return False
         elif self.novelty_existence == 1:
             self.novelty_likelihood = 1
-            return self.revision_attempts < settings.HYDRA_MODEL_REVISION_ATTEMPTS
+            return True
         elif observation.hasUnknownObj():
             self.novelty_likelihood = 1
-            return self.revision_attempts < settings.HYDRA_MODEL_REVISION_ATTEMPTS
+            return True
         elif self.novelty_existence == -1:
             try:
                 cnn_novelty, cnn_prob = self.detector.detect(observation)

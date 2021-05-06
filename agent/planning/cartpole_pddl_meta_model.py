@@ -134,8 +134,8 @@ class CartPoleMetaModel():
         for boolean_fluent in self.constant_boolean_fluents:
             if self.constant_boolean_fluents[boolean_fluent]:
                 pddl_problem.init.append([boolean_fluent])
-            else:
-                pddl_problem.init.append(['not',[boolean_fluent]])
+            # else:
+                # pddl_problem.init.append(['not',[boolean_fluent]])
 
 
         # MAIN COMPONENTS: X and THETA + derivatives
@@ -145,7 +145,9 @@ class CartPoleMetaModel():
         pddl_problem.init.append(['=', ['theta_dot'], round(obs_theta_dot, CartPoleMetaModel.PLANNER_PRECISION)])
         pddl_problem.init.append(['=', ['F'], round(self.constant_numeric_fluents['force_mag'], CartPoleMetaModel.PLANNER_PRECISION)])
 
-        calc_temp = (self.constant_numeric_fluents['force_mag'] + (self.constant_numeric_fluents['m_pole'] * self.constant_numeric_fluents['l_pole']) * obs_theta_dot ** 2 * math.sin(obs_theta)) / (self.constant_numeric_fluents['m_cart'] + self.constant_numeric_fluents['m_pole'])
+        calc_temp = (self.constant_numeric_fluents['force_mag'] + (self.constant_numeric_fluents['m_pole'] *
+                                                                   self.constant_numeric_fluents['l_pole']) *
+                     obs_theta_dot ** 2 * math.sin(obs_theta)) / (self.constant_numeric_fluents['m_cart'] + self.constant_numeric_fluents['m_pole'])
         calc_theta_ddot = (self.constant_numeric_fluents['gravity'] * math.sin(obs_theta) - math.cos(obs_theta) * calc_temp) / (self.constant_numeric_fluents['l_pole'] * (4.0 / 3.0 - self.constant_numeric_fluents['m_pole'] * math.cos(obs_theta) ** 2 / (self.constant_numeric_fluents['m_cart'] + self.constant_numeric_fluents['m_pole'])))
         calc_x_ddot = calc_temp - (self.constant_numeric_fluents['m_pole'] * self.constant_numeric_fluents['l_pole']) * calc_theta_ddot * math.cos(obs_theta) / (self.constant_numeric_fluents['m_cart'] + self.constant_numeric_fluents['m_pole'])
 
