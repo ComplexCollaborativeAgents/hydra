@@ -46,8 +46,8 @@ class RepairingGymHydraAgent(GymHydraAgent):
 
 ''' Repairing Hydra agent for the SB domain '''
 class RepairingHydraSBAgent(HydraAgent):
-    def __init__(self,env=None,agent_stats = list()):
-        super().__init__(env)
+    def __init__(self,env=None, agent_stats = list()):
+        super().__init__(env, agent_stats=agent_stats)
         self.consistency_estimator = ScienceBirdsConsistencyEstimator()
         self.detector = FocusedSBAnomalyDetector()
 
@@ -105,6 +105,11 @@ class RepairingHydraSBAgent(HydraAgent):
                 except:
                     # TODO: fix this hack
                     logger.info("Repair failed!")
+            
+        # In should_repair, self.novelty_likelihood is turned into a 1 if past 3 consistency scores are high enough (and is otherwise < 1).  
+        # 1 should be considered True, anything else should be considered False
+        self.stats_for_level["novelty_likelihood"] = self.novelty_likelihood 
+        logger.info("Novelty likelihood is {}".format(self.novelty_likelihood))
 
         super().handle_game_playing(observation, raw_state)
 

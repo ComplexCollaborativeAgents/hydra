@@ -17,6 +17,9 @@ bin/ScienceBirds_Linux
 #Pycharm
 .idea
 
+# VSCode IDE
+.vscode
+
 #OSX
 */*.app/*
 

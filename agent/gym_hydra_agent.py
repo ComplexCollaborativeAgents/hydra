@@ -36,8 +36,8 @@ class GymHydraAgent:
 
         if debug_info:
             initial_state_exec = (self.observation[0], self.observation[1], self.observation[2], self.observation[3], 0.00)
-            state_values_list = (self.cartpole_planner.extract_state_values_from_trace("%s/docker_plan_trace.txt" % str(settings.CARTPOLE_PLANNING_DOCKER_PATH)))
-            # state_values_list.insert(0, initialgy_state_exec)
+            state_values_list = (self.cartpole_planner.extract_state_values_from_trace("%s/plan_cartpole_prob.pddl" % str(settings.CARTPOLE_PLANNING_DOCKER_PATH)))
+            # state_values_list.insert(0, initial_state_exec)
             full_plan_trace = []
             # full_plan_trace.append(initial_state_exec)
         emergency_plan = False
@@ -58,10 +58,11 @@ class GymHydraAgent:
             # cartpole_obs.states.append(self.observation)
             if debug_info:
                 full_plan_trace.append(state_values_list[itt])
-                print ("\nSTEP: ", n_steps, str(n_steps*0.02)+"s")
+                print ("\nSTEP: ", n_steps, str(round(n_steps*0.02,4)) + "s")
                 print (action)
                 print (self.observation)
                 print (full_plan_trace[-1])
+                print ((full_plan_trace[-2][0],full_plan_trace[-1][1],full_plan_trace[-2][2],full_plan_trace[-1][3])) if len(full_plan_trace) > 1 else print(full_plan_trace[-1])
                 print ("REWARD:", reward)
                 print (done)
 
@@ -88,7 +89,7 @@ class GymHydraAgent:
                     # plan = self.cartpole_planner.make_plan(self.observation, 0)
 
                 if debug_info:
-                    state_values_list = (self.cartpole_planner.extract_state_values_from_trace("%s/docker_plan_trace.txt" % str(settings.CARTPOLE_PLANNING_DOCKER_PATH)))
+                    state_values_list = (self.cartpole_planner.extract_state_values_from_trace("%s/plan_cartpole_prob.pddl" % str(settings.CARTPOLE_PLANNING_DOCKER_PATH)))
 
                 itt = 0
 

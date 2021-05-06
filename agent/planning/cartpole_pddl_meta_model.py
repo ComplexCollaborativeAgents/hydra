@@ -134,8 +134,8 @@ class CartPoleMetaModel():
         for boolean_fluent in self.constant_boolean_fluents:
             if self.constant_boolean_fluents[boolean_fluent]:
                 pddl_problem.init.append([boolean_fluent])
-            else:
-                pddl_problem.init.append(['not',[boolean_fluent]])
+            # else:
+                # pddl_problem.init.append(['not',[boolean_fluent]])
 
 
         # MAIN COMPONENTS: X and THETA + derivatives
