@@ -17,7 +17,7 @@
   )
 
 
-  ; TEMP =  	(/ (+ (F) (* (* (m_pole) (l_pole)) (* (* (theta_dot) (theta_dot)) (SIN_THETA) ) ) ) (+ (m_cart) (m_pole)) )
+  ; TEMP =    (/ (+ (F) (* (* (m_pole) (l_pole)) (* (* (theta_dot) (theta_dot)) (SIN_THETA) ) ) ) (+ (m_cart) (m_pole)) )
   ; COS_THETA = (/ (- 32400 (* 4 (* (* (theta) 57.29578) (* (theta) 57.29578)))) (+ 32400 (* (* (theta) 57.29578) (* (theta) 57.29578))))
   ; SIN_THETA = (/ (* (* 4 (* (theta) 57.29578)) (- 180 (* (theta) 57.29578))) (- 40500 (* (* (theta) 57.29578) (- 180 (* (theta) 57.29578)))))
 
@@ -26,19 +26,19 @@
       :parameters (?d - dummy)
       :precondition (and (ready) (not (total_failure)))
       :effect (and
-      	(cart_available)
-      	(assign (theta_ddot)
-      		(/
-      			(- (* (gravity) (/ (* (* 4 (* (theta) 57.29578)) (- 180 (* (theta) 57.29578))) (- 40500 (* (* (theta) 57.29578) (- 180 (* (theta) 57.29578))))) ) (* (/ (- 32400 (* 4 (* (* (theta) 57.29578) (* (theta) 57.29578)))) (+ 32400 (* (* (theta) 57.29578) (* (theta) 57.29578)))) (/ (+ (F) (* (* (m_pole) (l_pole)) (* (* (theta_dot) (theta_dot)) (/ (* (* 4 (* (theta) 57.29578)) (- 180 (* (theta) 57.29578))) (- 40500 (* (* (theta) 57.29578) (- 180 (* (theta) 57.29578))))) ) ) ) (+ (m_cart) (m_pole)) ) ) )
-      			(* (l_pole) (- (/ 4.0 3.0) (/ (* (m_pole) (* (/ (- 32400 (* 4 (* (* (theta) 57.29578) (* (theta) 57.29578)))) (+ 32400 (* (* (theta) 57.29578) (* (theta) 57.29578)))) (/ (- 32400 (* 4 (* (* (theta) 57.29578) (* (theta) 57.29578)))) (+ 32400 (* (* (theta) 57.29578) (* (theta) 57.29578)))) )) (+ (m_cart) (m_pole)) ) ) )
-  			)
-      	)
-      	(assign (x_ddot)
-      		(-
-      			(/ (+ (F) (* (* (m_pole) (l_pole)) (* (* (theta_dot) (theta_dot)) (/ (* (* 4 (* (theta) 57.29578)) (- 180 (* (theta) 57.29578))) (- 40500 (* (* (theta) 57.29578) (- 180 (* (theta) 57.29578))))) ) ) ) (+ (m_cart) (m_pole)) )
-      			(/ (* (* (m_pole) (l_pole)) (* (theta_ddot) (/ (- 32400 (* 4 (* (* (theta) 57.29578) (* (theta) 57.29578)))) (+ 32400 (* (* (theta) 57.29578) (* (theta) 57.29578)))) )) (+ (m_cart) (m_pole)) )
-  			)
-      	)
+        (cart_available)
+        (assign (theta_ddot)
+          (/
+            (- (* (gravity) (/ (* (* 4 (* (theta) 57.29578)) (- 180 (* (theta) 57.29578))) (- 40500 (* (* (theta) 57.29578) (- 180 (* (theta) 57.29578))))) ) (* (/ (- 32400 (* 4 (* (* (theta) 57.29578) (* (theta) 57.29578)))) (+ 32400 (* (* (theta) 57.29578) (* (theta) 57.29578)))) (/ (+ (F) (* (* (m_pole) (l_pole)) (* (* (theta_dot) (theta_dot)) (/ (* (* 4 (* (theta) 57.29578)) (- 180 (* (theta) 57.29578))) (- 40500 (* (* (theta) 57.29578) (- 180 (* (theta) 57.29578))))) ) ) ) (+ (m_cart) (m_pole)) ) ) )
+            (* (l_pole) (- (/ 4.0 3.0) (/ (* (m_pole) (* (/ (- 32400 (* 4 (* (* (theta) 57.29578) (* (theta) 57.29578)))) (+ 32400 (* (* (theta) 57.29578) (* (theta) 57.29578)))) (/ (- 32400 (* 4 (* (* (theta) 57.29578) (* (theta) 57.29578)))) (+ 32400 (* (* (theta) 57.29578) (* (theta) 57.29578)))) )) (+ (m_cart) (m_pole)) ) ) )
+        )
+        )
+        (assign (x_ddot)
+          (-
+            (/ (+ (F) (* (* (m_pole) (l_pole)) (* (* (theta_dot) (theta_dot)) (/ (* (* 4 (* (theta) 57.29578)) (- 180 (* (theta) 57.29578))) (- 40500 (* (* (theta) 57.29578) (- 180 (* (theta) 57.29578))))) ) ) ) (+ (m_cart) (m_pole)) )
+            (/ (* (* (m_pole) (l_pole)) (* (theta_ddot) (/ (- 32400 (* 4 (* (* (theta) 57.29578) (* (theta) 57.29578)))) (+ 32400 (* (* (theta) 57.29578) (* (theta) 57.29578)))) )) (+ (m_cart) (m_pole)) )
+        )
+        )
       )
   )
 
@@ -58,29 +58,29 @@
   (:action move_cart_left
     :parameters (?d - dummy)
     :precondition (and
-    	(ready)
-    	(= (F) (force_mag))
-    	(cart_available)
-    	(not (total_failure))
-	)
+      (ready)
+      (= (F) (force_mag))
+      (cart_available)
+      (not (total_failure))
+  )
     :effect (and
       (assign (F) (- 0.0 (force_mag)))
       (not (cart_available))
-  	)
+    )
   )
 
   (:action move_cart_right
     :parameters (?d - dummy)
     :precondition (and
-    	(ready)
-    	(= (F) (- 0.0 (force_mag)))
-    	(cart_available)
-    	(not (total_failure))
-	)
+      (ready)
+      (= (F) (- 0.0 (force_mag)))
+      (cart_available)
+      (not (total_failure))
+  )
     :effect (and
       (assign (F) (force_mag))
       (not (cart_available))
-  	)
+    )
   )
 
   ; (:event entered_goal_region
@@ -105,7 +105,7 @@
           (not (total_failure))
       )
       :effect (and
-      	  ; (not (pole_position))
+          ; (not (pole_position))
           (total_failure)
       )
   )
