@@ -44,23 +44,15 @@ class NoveltyExperimentRunner:
         return is_novel, score
 '''
 
-
-
-# M1: avg number of False Negatives ()
-# M2: % of correctly detected trials ()
-# M2.1: % trials with at least 1 false positive level
-
-# Parameters: 
-# before novelty, after novelty
-# Levels need same type/level of novelty
-
 TRIAL_START = 0
-NUM_TRIALS = 4
+NUM_TRIALS = 3
 PER_TRIAL = 1
-NOVELTIES = {1: [6]}
+NOVELTIES = {1: [6, 7, 8, 9, 10]}
 NOTIFY_NOVELTY  = True
 
-LOOKUP_PATH = pathlib.Path(__file__).parent.absolute() / "eval_sb_trials_b4_novelty_1.json"
+# NOTE: need to change the filename of LOOKUP_PATH to whatever config json file is output by utils/generate_eval_trial_sets
+# LOOKUP_PATH = pathlib.Path(__file__).parent.absolute() / "eval_sb_trials_b4_novelty_1.json"
+LOOKUP_PATH = pathlib.Path(__file__).parent.absolute() / "eval_sb_trials_short.json"
 
 def load_lookup():
     with open(LOOKUP_PATH) as f:
@@ -72,14 +64,14 @@ if __name__ == "__main__":
     trial_results = []
 
     for agent in [AgentType.RepairingHydra]:
-        for trial in range(TRIAL_START, TRIAL_START + NUM_TRIALS):
+        for trial_set in range(TRIAL_START, TRIAL_START + NUM_TRIALS):
             random.seed()
             result = run_eval_stats(NOVELTIES,
                                     agent_type=agent,
                                     samples=PER_TRIAL,
-                                    suffix=str(trial),
+                                    suffix=str(trial_set),
                                     notify_novelty=NOTIFY_NOVELTY,
-                                    level_lookup=lookup[trial])
+                                    level_lookup=lookup[trial_set])
 
             trial_results.append(result)
 
