@@ -8,12 +8,13 @@ import settings
 
 from agent.consistency.focused_anomaly_detector import FocusedAnomalyDetector
 
+import pdb
 
 class FocusedSBAnomalyDetector(FocusedAnomalyDetector):
     def __init__(self, threshold=0.5):
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
         self.state_predictor = MyCNN(self.device)
-        self.state_predictor.load_state_dict(torch.load('{}/state_prediction/fc_single_channel_posweight/pretrained_model.pt'.format(settings.ROOT_PATH),
+        self.state_predictor.load_state_dict(torch.load('{}/state_prediction/fc_single_channel_posweight/pretrained_model_fc.pt'.format(settings.ROOT_PATH),
                                                         map_location=self.device))
         with open('{}/state_prediction/fc_single_channel_posweight/fc_pretrained_novelty_detector.pickle'.format(settings.ROOT_PATH), 'rb') as f:
             novelty_detector_info = pickle.load(f)
@@ -33,16 +34,18 @@ class FocusedSBAnomalyDetector(FocusedAnomalyDetector):
     def detect(self, sb_ob):
         state, action, next_state = self.convert_to_images(sb_ob)
         state = self.transform_s(state)
-        action = self.transform_a(action)
+        action = self.transform_a(action).to(self.device)
         next_state = self.transform_s(next_state[-1])
 
-        state_resized = (state.sum(axis=0).reshape(-1) > 0).type(torch.float32)
+        state_resized = (state.sum(axis=0).reshape(-1) > 0).type(torch.float32).to(self.device)
         next_state_resized = (next_state.sum(axis=0).reshape(-1) > 0).type(torch.float32)
+
         y_hat = self.state_predictor(state_resized.unsqueeze(0), action.unsqueeze(0)).squeeze()
-        x = self.novelty_features(state_resized, y_hat, next_state_resized)
+        x = self.novelty_features(state_resized.cpu(), y_hat.cpu(), next_state_resized)
         prob = self.novelty_detector.predict_proba(x).squeeze()[1]
         y_hat = self.novelty_detector.predict(x).squeeze()
         # returning empty or non-empty list to keep with cart-pole assumption
+        # print(prob, y_hat)
         if prob > self.threshold:
             return [True], prob
         return [], prob
@@ -64,7 +67,7 @@ class FocusedSBAnomalyDetector(FocusedAnomalyDetector):
         x = np.r_[err_changed, err_unchanged, err_predicted_changed, err_predicted_unchanged]
         x[np.isnan(x)] = 0
         x = (x - self.novelty_feature_mu) / self.novelty_feature_std
-        
+
         return x.reshape(1, -1)
 
     def convert_to_images(self, sb_obs):
