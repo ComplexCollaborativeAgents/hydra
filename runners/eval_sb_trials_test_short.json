@@ -1,0 +1,954 @@
+[
+    {
+        "1": {
+            "10": [
+                "Levels/novelty_level_0/type2/Levels/00905_0_0_2_0.xml",
+                "Levels/novelty_level_1/type10/Levels/00803_5_0_10_1.xml",
+                "Levels/novelty_level_1/type10/Levels/01723_1_0_10_1.xml"
+            ],
+            "6": [
+                "Levels/novelty_level_0/type2/Levels/00808_0_0_2_0.xml",
+                "Levels/novelty_level_1/type6/Levels/01535_12_0_6_1.xml",
+                "Levels/novelty_level_1/type6/Levels/01549_3_0_6_1.xml"
+            ],
+            "7": [
+                "Levels/novelty_level_0/type2/Levels/01518_0_0_2_0.xml",
+                "Levels/novelty_level_1/type7/Levels/01719_5_0_7_1.xml",
+                "Levels/novelty_level_1/type7/Levels/01763_13_0_7_1.xml"
+            ],
+            "8": [
+                "Levels/novelty_level_0/type2/Levels/01000_0_0_2_0.xml",
+                "Levels/novelty_level_1/type8/Levels/01003_11_0_8_1.xml",
+                "Levels/novelty_level_1/type8/Levels/01713_2_0_8_1.xml"
+            ],
+            "9": [
+                "Levels/novelty_level_0/type2/Levels/01543_0_0_2_0.xml",
+                "Levels/novelty_level_1/type9/Levels/01539_1_0_9_1.xml",
+                "Levels/novelty_level_1/type9/Levels/01739_1_0_9_1.xml"
+            ]
+        },
+        "2": {
+            "10": [
+                "Levels/novelty_level_0/type2/Levels/01203_0_0_2_0.xml",
+                "Levels/novelty_level_2/type10/Levels/00505_6_0_10_2.xml",
+                "Levels/novelty_level_2/type10/Levels/01548_3_0_10_2.xml"
+            ],
+            "6": [
+                "Levels/novelty_level_0/type2/Levels/01540_0_0_2_0.xml",
+                "Levels/novelty_level_2/type6/Levels/01710_1_0_6_2.xml",
+                "Levels/novelty_level_2/type6/Levels/01102_2_0_6_2.xml"
+            ],
+            "7": [
+                "Levels/novelty_level_0/type2/Levels/01745_0_0_2_0.xml",
+                "Levels/novelty_level_2/type7/Levels/00906_5_0_7_2.xml",
+                "Levels/novelty_level_2/type7/Levels/00905_4_0_7_2.xml"
+            ],
+            "8": [
+                "Levels/novelty_level_0/type2/Levels/01202_0_0_2_0.xml",
+                "Levels/novelty_level_2/type8/Levels/01551_6_0_8_2.xml",
+                "Levels/novelty_level_2/type8/Levels/01723_5_0_8_2.xml"
+            ],
+            "9": [
+                "Levels/novelty_level_0/type2/Levels/01516_0_0_2_0.xml",
+                "Levels/novelty_level_2/type9/Levels/01713_5_0_9_2.xml",
+                "Levels/novelty_level_2/type9/Levels/01100_6_0_9_2.xml"
+            ]
+        },
+        "3": {
+            "6": [
+                "Levels/novelty_level_0/type2/Levels/01538_0_0_2_0.xml",
+                "Levels/novelty_level_3/type6/Levels/00901_1_0_6_3.xml",
+                "Levels/novelty_level_3/type6/Levels/01748_1_0_6_3.xml"
+            ],
+            "7": [
+                "Levels/novelty_level_0/type2/Levels/01720_0_0_2_0.xml",
+                "Levels/novelty_level_3/type7/Levels/01508_1_0_7_3.xml",
+                "Levels/novelty_level_3/type7/Levels/01719_1_0_7_3.xml"
+            ]
+        }
+    },
+    {
+        "1": {
+            "10": [
+                "Levels/novelty_level_0/type2/Levels/01537_0_0_2_0.xml",
+                "Levels/novelty_level_1/type10/Levels/01743_2_0_10_1.xml",
+                "Levels/novelty_level_1/type10/Levels/00604_5_0_10_1.xml"
+            ],
+            "6": [
+                "Levels/novelty_level_0/type2/Levels/00703_0_0_2_0.xml",
+                "Levels/novelty_level_1/type6/Levels/00505_6_0_6_1.xml",
+                "Levels/novelty_level_1/type6/Levels/01705_2_0_6_1.xml"
+            ],
+            "7": [
+                "Levels/novelty_level_0/type2/Levels/01552_0_0_2_0.xml",
+                "Levels/novelty_level_1/type7/Levels/01752_12_0_7_1.xml",
+                "Levels/novelty_level_1/type7/Levels/01522_11_0_7_1.xml"
+            ],
+            "8": [
+                "Levels/novelty_level_0/type2/Levels/01306_0_0_2_0.xml",
+                "Levels/novelty_level_1/type8/Levels/01752_6_0_8_1.xml",
+                "Levels/novelty_level_1/type8/Levels/01559_13_0_8_1.xml"
+            ],
+            "9": [
+                "Levels/novelty_level_0/type2/Levels/00505_0_0_2_0.xml",
+                "Levels/novelty_level_1/type9/Levels/01103_1_0_9_1.xml",
+                "Levels/novelty_level_1/type9/Levels/00601_2_0_9_1.xml"
+            ]
+        },
+        "2": {
+            "10": [
+                "Levels/novelty_level_0/type2/Levels/01519_0_0_2_0.xml",
+                "Levels/novelty_level_2/type10/Levels/01523_2_0_10_2.xml",
+                "Levels/novelty_level_2/type10/Levels/01756_2_0_10_2.xml"
+            ],
+            "6": [
+                "Levels/novelty_level_0/type2/Levels/01300_0_0_2_0.xml",
+                "Levels/novelty_level_2/type6/Levels/01544_4_0_6_2.xml",
+                "Levels/novelty_level_2/type6/Levels/01703_3_0_6_2.xml"
+            ],
+            "7": [
+                "Levels/novelty_level_0/type2/Levels/01515_0_0_2_0.xml",
+                "Levels/novelty_level_2/type7/Levels/01761_3_0_7_2.xml",
+                "Levels/novelty_level_2/type7/Levels/01529_3_0_7_2.xml"
+            ],
+            "8": [
+                "Levels/novelty_level_0/type2/Levels/01517_0_0_2_0.xml",
+                "Levels/novelty_level_2/type8/Levels/01103_3_0_8_2.xml",
+                "Levels/novelty_level_2/type8/Levels/01758_2_0_8_2.xml"
+            ],
+            "9": [
+                "Levels/novelty_level_0/type2/Levels/01506_0_0_2_0.xml",
+                "Levels/novelty_level_2/type9/Levels/01759_5_0_9_2.xml",
+                "Levels/novelty_level_2/type9/Levels/01518_7_0_9_2.xml"
+            ]
+        },
+        "3": {
+            "6": [
+                "Levels/novelty_level_0/type2/Levels/01546_0_0_2_0.xml",
+                "Levels/novelty_level_3/type6/Levels/01536_1_0_6_3.xml",
+                "Levels/novelty_level_3/type6/Levels/01002_1_0_6_3.xml"
+            ],
+            "7": [
+                "Levels/novelty_level_0/type2/Levels/01525_0_0_2_0.xml",
+                "Levels/novelty_level_3/type7/Levels/01537_1_0_7_3.xml",
+                "Levels/novelty_level_3/type7/Levels/00506_1_0_7_3.xml"
+            ]
+        }
+    },
+    {
+        "1": {
+            "10": [
+                "Levels/novelty_level_0/type2/Levels/00900_0_0_2_0.xml",
+                "Levels/novelty_level_1/type10/Levels/01725_1_0_10_1.xml",
+                "Levels/novelty_level_1/type10/Levels/01748_1_0_10_1.xml"
+            ],
+            "6": [
+                "Levels/novelty_level_0/type2/Levels/01556_0_0_2_0.xml",
+                "Levels/novelty_level_1/type6/Levels/01719_14_0_6_1.xml",
+                "Levels/novelty_level_1/type6/Levels/01745_2_0_6_1.xml"
+            ],
+            "7": [
+                "Levels/novelty_level_0/type2/Levels/00502_0_0_2_0.xml",
+                "Levels/novelty_level_1/type7/Levels/01005_12_0_7_1.xml",
+                "Levels/novelty_level_1/type7/Levels/01545_12_0_7_1.xml"
+            ],
+            "8": [
+                "Levels/novelty_level_0/type2/Levels/01558_0_0_2_0.xml",
+                "Levels/novelty_level_1/type8/Levels/01523_5_0_8_1.xml",
+                "Levels/novelty_level_1/type8/Levels/01554_2_0_8_1.xml"
+            ],
+            "9": [
+                "Levels/novelty_level_0/type2/Levels/01553_0_0_2_0.xml",
+                "Levels/novelty_level_1/type9/Levels/01714_2_0_9_1.xml",
+                "Levels/novelty_level_1/type9/Levels/00600_3_0_9_1.xml"
+            ]
+        },
+        "2": {
+            "10": [
+                "Levels/novelty_level_0/type2/Levels/01729_0_0_2_0.xml",
+                "Levels/novelty_level_2/type10/Levels/00901_11_0_10_2.xml",
+                "Levels/novelty_level_2/type10/Levels/01545_5_0_10_2.xml"
+            ],
+            "6": [
+                "Levels/novelty_level_0/type2/Levels/01738_0_0_2_0.xml",
+                "Levels/novelty_level_2/type6/Levels/01000_5_0_6_2.xml",
+                "Levels/novelty_level_2/type6/Levels/01001_4_0_6_2.xml"
+            ],
+            "7": [
+                "Levels/novelty_level_0/type2/Levels/01302_0_0_2_0.xml",
+                "Levels/novelty_level_2/type7/Levels/01529_4_0_7_2.xml",
+                "Levels/novelty_level_2/type7/Levels/01206_4_0_7_2.xml"
+            ],
+            "8": [
+                "Levels/novelty_level_0/type2/Levels/01758_0_0_2_0.xml",
+                "Levels/novelty_level_2/type8/Levels/01745_5_0_8_2.xml",
+                "Levels/novelty_level_2/type8/Levels/00604_11_0_8_2.xml"
+            ],
+            "9": [
+                "Levels/novelty_level_0/type2/Levels/01736_0_0_2_0.xml",
+                "Levels/novelty_level_2/type9/Levels/00803_6_0_9_2.xml",
+                "Levels/novelty_level_2/type9/Levels/01748_8_0_9_2.xml"
+            ]
+        },
+        "3": {
+            "6": [
+                "Levels/novelty_level_0/type2/Levels/01740_0_0_2_0.xml",
+                "Levels/novelty_level_3/type6/Levels/01706_1_0_6_3.xml",
+                "Levels/novelty_level_3/type6/Levels/01537_1_0_6_3.xml"
+            ],
+            "7": [
+                "Levels/novelty_level_0/type2/Levels/01705_0_0_2_0.xml",
+                "Levels/novelty_level_3/type7/Levels/01557_1_0_7_3.xml",
+                "Levels/novelty_level_3/type7/Levels/01551_1_0_7_3.xml"
+            ]
+        }
+    },
+    {
+        "1": {
+            "10": [
+                "Levels/novelty_level_0/type2/Levels/01407_0_0_2_0.xml",
+                "Levels/novelty_level_1/type10/Levels/01718_1_0_10_1.xml",
+                "Levels/novelty_level_1/type10/Levels/01716_1_0_10_1.xml"
+            ],
+            "6": [
+                "Levels/novelty_level_0/type2/Levels/01522_0_0_2_0.xml",
+                "Levels/novelty_level_1/type6/Levels/01706_4_0_6_1.xml",
+                "Levels/novelty_level_1/type6/Levels/01200_2_0_6_1.xml"
+            ],
+            "7": [
+                "Levels/novelty_level_0/type2/Levels/01539_0_0_2_0.xml",
+                "Levels/novelty_level_1/type7/Levels/01504_2_0_7_1.xml",
+                "Levels/novelty_level_1/type7/Levels/01102_5_0_7_1.xml"
+            ],
+            "8": [
+                "Levels/novelty_level_0/type2/Levels/00706_0_0_2_0.xml",
+                "Levels/novelty_level_1/type8/Levels/01512_6_0_8_1.xml",
+                "Levels/novelty_level_1/type8/Levels/01200_11_0_8_1.xml"
+            ],
+            "9": [
+                "Levels/novelty_level_0/type2/Levels/01760_0_0_2_0.xml",
+                "Levels/novelty_level_1/type9/Levels/01559_3_0_9_1.xml",
+                "Levels/novelty_level_1/type9/Levels/01551_2_0_9_1.xml"
+            ]
+        },
+        "2": {
+            "10": [
+                "Levels/novelty_level_0/type2/Levels/01507_0_0_2_0.xml",
+                "Levels/novelty_level_2/type10/Levels/01759_5_0_10_2.xml",
+                "Levels/novelty_level_2/type10/Levels/01759_2_0_10_2.xml"
+            ],
+            "6": [
+                "Levels/novelty_level_0/type2/Levels/01503_0_0_2_0.xml",
+                "Levels/novelty_level_2/type6/Levels/01527_5_0_6_2.xml",
+                "Levels/novelty_level_2/type6/Levels/00706_3_0_6_2.xml"
+            ],
+            "7": [
+                "Levels/novelty_level_0/type2/Levels/01521_0_0_2_0.xml",
+                "Levels/novelty_level_2/type7/Levels/01518_3_0_7_2.xml",
+                "Levels/novelty_level_2/type7/Levels/01701_5_0_7_2.xml"
+            ],
+            "8": [
+                "Levels/novelty_level_0/type2/Levels/01735_0_0_2_0.xml",
+                "Levels/novelty_level_2/type8/Levels/01702_2_0_8_2.xml",
+                "Levels/novelty_level_2/type8/Levels/01407_1_0_8_2.xml"
+            ],
+            "9": [
+                "Levels/novelty_level_0/type2/Levels/01509_0_0_2_0.xml",
+                "Levels/novelty_level_2/type9/Levels/01524_6_0_9_2.xml",
+                "Levels/novelty_level_2/type9/Levels/01544_13_0_9_2.xml"
+            ]
+        },
+        "3": {
+            "6": [
+                "Levels/novelty_level_0/type2/Levels/01006_0_0_2_0.xml",
+                "Levels/novelty_level_3/type6/Levels/01750_1_0_6_3.xml",
+                "Levels/novelty_level_3/type6/Levels/01741_1_0_6_3.xml"
+            ],
+            "7": [
+                "Levels/novelty_level_0/type2/Levels/01526_0_0_2_0.xml",
+                "Levels/novelty_level_3/type7/Levels/01519_1_0_7_3.xml",
+                "Levels/novelty_level_3/type7/Levels/01755_1_0_7_3.xml"
+            ]
+        }
+    },
+    {
+        "1": {
+            "10": [
+                "Levels/novelty_level_0/type2/Levels/01751_0_0_2_0.xml",
+                "Levels/novelty_level_1/type10/Levels/01544_3_0_10_1.xml",
+                "Levels/novelty_level_1/type10/Levels/01560_5_0_10_1.xml"
+            ],
+            "6": [
+                "Levels/novelty_level_0/type2/Levels/01550_0_0_2_0.xml",
+                "Levels/novelty_level_1/type6/Levels/01201_1_0_6_1.xml",
+                "Levels/novelty_level_1/type6/Levels/01701_11_0_6_1.xml"
+            ],
+            "7": [
+                "Levels/novelty_level_0/type2/Levels/00601_0_0_2_0.xml",
+                "Levels/novelty_level_1/type7/Levels/00600_4_0_7_1.xml",
+                "Levels/novelty_level_1/type7/Levels/00803_5_0_7_1.xml"
+            ],
+            "8": [
+                "Levels/novelty_level_0/type2/Levels/01305_0_0_2_0.xml",
+                "Levels/novelty_level_1/type8/Levels/01107_5_0_8_1.xml",
+                "Levels/novelty_level_1/type8/Levels/00803_5_0_8_1.xml"
+            ],
+            "9": [
+                "Levels/novelty_level_0/type2/Levels/01725_0_0_2_0.xml",
+                "Levels/novelty_level_1/type9/Levels/00603_3_0_9_1.xml",
+                "Levels/novelty_level_1/type9/Levels/01407_2_0_9_1.xml"
+            ]
+        },
+        "2": {
+            "10": [
+                "Levels/novelty_level_0/type2/Levels/01726_0_0_2_0.xml",
+                "Levels/novelty_level_2/type10/Levels/00904_8_0_10_2.xml",
+                "Levels/novelty_level_2/type10/Levels/01206_6_0_10_2.xml"
+            ],
+            "6": [
+                "Levels/novelty_level_0/type2/Levels/00702_0_0_2_0.xml",
+                "Levels/novelty_level_2/type6/Levels/01713_3_0_6_2.xml",
+                "Levels/novelty_level_2/type6/Levels/01509_1_0_6_2.xml"
+            ],
+            "7": [
+                "Levels/novelty_level_0/type2/Levels/01554_0_0_2_0.xml",
+                "Levels/novelty_level_2/type7/Levels/01753_1_0_7_2.xml",
+                "Levels/novelty_level_2/type7/Levels/01406_4_0_7_2.xml"
+            ],
+            "8": [
+                "Levels/novelty_level_0/type2/Levels/01706_0_0_2_0.xml",
+                "Levels/novelty_level_2/type8/Levels/01755_6_0_8_2.xml",
+                "Levels/novelty_level_2/type8/Levels/01559_1_0_8_2.xml"
+            ],
+            "9": [
+                "Levels/novelty_level_0/type2/Levels/01703_0_0_2_0.xml",
+                "Levels/novelty_level_2/type9/Levels/01700_1_0_9_2.xml",
+                "Levels/novelty_level_2/type9/Levels/00803_5_0_9_2.xml"
+            ]
+        },
+        "3": {
+            "6": [
+                "Levels/novelty_level_0/type2/Levels/01718_0_0_2_0.xml",
+                "Levels/novelty_level_3/type6/Levels/01537_1_0_6_3.xml",
+                "Levels/novelty_level_3/type6/Levels/01307_1_0_6_3.xml"
+            ],
+            "7": [
+                "Levels/novelty_level_0/type2/Levels/01717_0_0_2_0.xml",
+                "Levels/novelty_level_3/type7/Levels/01750_1_0_7_3.xml",
+                "Levels/novelty_level_3/type7/Levels/01303_1_0_7_3.xml"
+            ]
+        }
+    },
+    {
+        "1": {
+            "10": [
+                "Levels/novelty_level_0/type2/Levels/01549_0_0_2_0.xml",
+                "Levels/novelty_level_1/type10/Levels/01529_5_0_10_1.xml",
+                "Levels/novelty_level_1/type10/Levels/01718_5_0_10_1.xml"
+            ],
+            "6": [
+                "Levels/novelty_level_0/type2/Levels/01541_0_0_2_0.xml",
+                "Levels/novelty_level_1/type6/Levels/01561_5_0_6_1.xml",
+                "Levels/novelty_level_1/type6/Levels/01755_2_0_6_1.xml"
+            ],
+            "7": [
+                "Levels/novelty_level_0/type2/Levels/01204_0_0_2_0.xml",
+                "Levels/novelty_level_1/type7/Levels/01207_6_0_7_1.xml",
+                "Levels/novelty_level_1/type7/Levels/01701_13_0_7_1.xml"
+            ],
+            "8": [
+                "Levels/novelty_level_0/type2/Levels/01403_0_0_2_0.xml",
+                "Levels/novelty_level_1/type8/Levels/01561_2_0_8_1.xml",
+                "Levels/novelty_level_1/type8/Levels/01003_2_0_8_1.xml"
+            ],
+            "9": [
+                "Levels/novelty_level_0/type2/Levels/00800_0_0_2_0.xml",
+                "Levels/novelty_level_1/type9/Levels/01710_1_0_9_1.xml",
+                "Levels/novelty_level_1/type9/Levels/01553_3_0_9_1.xml"
+            ]
+        },
+        "2": {
+            "10": [
+                "Levels/novelty_level_0/type2/Levels/01557_0_0_2_0.xml",
+                "Levels/novelty_level_2/type10/Levels/01748_2_0_10_2.xml",
+                "Levels/novelty_level_2/type10/Levels/01518_1_0_10_2.xml"
+            ],
+            "6": [
+                "Levels/novelty_level_0/type2/Levels/00700_0_0_2_0.xml",
+                "Levels/novelty_level_2/type6/Levels/01406_3_0_6_2.xml",
+                "Levels/novelty_level_2/type6/Levels/01551_5_0_6_2.xml"
+            ],
+            "7": [
+                "Levels/novelty_level_0/type2/Levels/01524_0_0_2_0.xml",
+                "Levels/novelty_level_2/type7/Levels/01305_1_0_7_2.xml",
+                "Levels/novelty_level_2/type7/Levels/00506_5_0_7_2.xml"
+            ],
+            "8": [
+                "Levels/novelty_level_0/type2/Levels/00803_0_0_2_0.xml",
+                "Levels/novelty_level_2/type8/Levels/01540_1_0_8_2.xml",
+                "Levels/novelty_level_2/type8/Levels/00601_3_0_8_2.xml"
+            ],
+            "9": [
+                "Levels/novelty_level_0/type2/Levels/01728_0_0_2_0.xml",
+                "Levels/novelty_level_2/type9/Levels/01404_2_0_9_2.xml",
+                "Levels/novelty_level_2/type9/Levels/00600_3_0_9_2.xml"
+            ]
+        },
+        "3": {
+            "6": [
+                "Levels/novelty_level_0/type2/Levels/00503_0_0_2_0.xml",
+                "Levels/novelty_level_3/type6/Levels/01518_1_0_6_3.xml",
+                "Levels/novelty_level_3/type6/Levels/00602_1_0_6_3.xml"
+            ],
+            "7": [
+                "Levels/novelty_level_0/type2/Levels/01702_0_0_2_0.xml",
+                "Levels/novelty_level_3/type7/Levels/01762_1_0_7_3.xml",
+                "Levels/novelty_level_3/type7/Levels/01529_1_0_7_3.xml"
+            ]
+        }
+    },
+    {
+        "1": {
+            "10": [
+                "Levels/novelty_level_0/type2/Levels/00701_0_0_2_0.xml",
+                "Levels/novelty_level_1/type10/Levels/00507_5_0_10_1.xml",
+                "Levels/novelty_level_1/type10/Levels/00801_5_0_10_1.xml"
+            ],
+            "6": [
+                "Levels/novelty_level_0/type2/Levels/01737_0_0_2_0.xml",
+                "Levels/novelty_level_1/type6/Levels/00800_5_0_6_1.xml",
+                "Levels/novelty_level_1/type6/Levels/00807_5_0_6_1.xml"
+            ],
+            "7": [
+                "Levels/novelty_level_0/type2/Levels/00705_0_0_2_0.xml",
+                "Levels/novelty_level_1/type7/Levels/01745_2_0_7_1.xml",
+                "Levels/novelty_level_1/type7/Levels/01200_11_0_7_1.xml"
+            ],
+            "8": [
+                "Levels/novelty_level_0/type2/Levels/01733_0_0_2_0.xml",
+                "Levels/novelty_level_1/type8/Levels/00501_2_0_8_1.xml",
+                "Levels/novelty_level_1/type8/Levels/01737_2_0_8_1.xml"
+            ],
+            "9": [
+                "Levels/novelty_level_0/type2/Levels/01533_0_0_2_0.xml",
+                "Levels/novelty_level_1/type9/Levels/01407_1_0_9_1.xml",
+                "Levels/novelty_level_1/type9/Levels/00801_1_0_9_1.xml"
+            ]
+        },
+        "2": {
+            "10": [
+                "Levels/novelty_level_0/type2/Levels/00603_0_0_2_0.xml",
+                "Levels/novelty_level_2/type10/Levels/01205_5_0_10_2.xml",
+                "Levels/novelty_level_2/type10/Levels/01508_2_0_10_2.xml"
+            ],
+            "6": [
+                "Levels/novelty_level_0/type2/Levels/01707_0_0_2_0.xml",
+                "Levels/novelty_level_2/type6/Levels/01102_5_0_6_2.xml",
+                "Levels/novelty_level_2/type6/Levels/01752_4_0_6_2.xml"
+            ],
+            "7": [
+                "Levels/novelty_level_0/type2/Levels/01405_0_0_2_0.xml",
+                "Levels/novelty_level_2/type7/Levels/01513_2_0_7_2.xml",
+                "Levels/novelty_level_2/type7/Levels/01736_2_0_7_2.xml"
+            ],
+            "8": [
+                "Levels/novelty_level_0/type2/Levels/01520_0_0_2_0.xml",
+                "Levels/novelty_level_2/type8/Levels/01740_4_0_8_2.xml",
+                "Levels/novelty_level_2/type8/Levels/01549_6_0_8_2.xml"
+            ],
+            "9": [
+                "Levels/novelty_level_0/type2/Levels/01723_0_0_2_0.xml",
+                "Levels/novelty_level_2/type9/Levels/01712_2_0_9_2.xml",
+                "Levels/novelty_level_2/type9/Levels/01501_6_0_9_2.xml"
+            ]
+        },
+        "3": {
+            "6": [
+                "Levels/novelty_level_0/type2/Levels/01719_0_0_2_0.xml",
+                "Levels/novelty_level_3/type6/Levels/01762_1_0_6_3.xml",
+                "Levels/novelty_level_3/type6/Levels/01763_1_0_6_3.xml"
+            ],
+            "7": [
+                "Levels/novelty_level_0/type2/Levels/01746_0_0_2_0.xml",
+                "Levels/novelty_level_3/type7/Levels/00803_1_0_7_3.xml",
+                "Levels/novelty_level_3/type7/Levels/01307_1_0_7_3.xml"
+            ]
+        }
+    },
+    {
+        "1": {
+            "10": [
+                "Levels/novelty_level_0/type2/Levels/00901_0_0_2_0.xml",
+                "Levels/novelty_level_1/type10/Levels/00500_5_0_10_1.xml",
+                "Levels/novelty_level_1/type10/Levels/01745_5_0_10_1.xml"
+            ],
+            "6": [
+                "Levels/novelty_level_0/type2/Levels/01500_0_0_2_0.xml",
+                "Levels/novelty_level_1/type6/Levels/01404_11_0_6_1.xml",
+                "Levels/novelty_level_1/type6/Levels/01531_7_0_6_1.xml"
+            ],
+            "7": [
+                "Levels/novelty_level_0/type2/Levels/01716_0_0_2_0.xml",
+                "Levels/novelty_level_1/type7/Levels/01535_11_0_7_1.xml",
+                "Levels/novelty_level_1/type7/Levels/01702_6_0_7_1.xml"
+            ],
+            "8": [
+                "Levels/novelty_level_0/type2/Levels/01743_0_0_2_0.xml",
+                "Levels/novelty_level_1/type8/Levels/01545_1_0_8_1.xml",
+                "Levels/novelty_level_1/type8/Levels/01521_1_0_8_1.xml"
+            ],
+            "9": [
+                "Levels/novelty_level_0/type2/Levels/00504_0_0_2_0.xml",
+                "Levels/novelty_level_1/type9/Levels/01725_3_0_9_1.xml",
+                "Levels/novelty_level_1/type9/Levels/01100_1_0_9_1.xml"
+            ]
+        },
+        "2": {
+            "10": [
+                "Levels/novelty_level_0/type2/Levels/01750_0_0_2_0.xml",
+                "Levels/novelty_level_2/type10/Levels/01755_6_0_10_2.xml",
+                "Levels/novelty_level_2/type10/Levels/01706_12_0_10_2.xml"
+            ],
+            "6": [
+                "Levels/novelty_level_0/type2/Levels/00806_0_0_2_0.xml",
+                "Levels/novelty_level_2/type6/Levels/01732_4_0_6_2.xml",
+                "Levels/novelty_level_2/type6/Levels/01204_2_0_6_2.xml"
+            ],
+            "7": [
+                "Levels/novelty_level_0/type2/Levels/01406_0_0_2_0.xml",
+                "Levels/novelty_level_2/type7/Levels/00607_1_0_7_2.xml",
+                "Levels/novelty_level_2/type7/Levels/01540_3_0_7_2.xml"
+            ],
+            "8": [
+                "Levels/novelty_level_0/type2/Levels/01400_0_0_2_0.xml",
+                "Levels/novelty_level_2/type8/Levels/01733_6_0_8_2.xml",
+                "Levels/novelty_level_2/type8/Levels/00705_1_0_8_2.xml"
+            ],
+            "9": [
+                "Levels/novelty_level_0/type2/Levels/00507_0_0_2_0.xml",
+                "Levels/novelty_level_2/type9/Levels/01101_1_0_9_2.xml",
+                "Levels/novelty_level_2/type9/Levels/01757_1_0_9_2.xml"
+            ]
+        },
+        "3": {
+            "6": [
+                "Levels/novelty_level_0/type2/Levels/01508_0_0_2_0.xml",
+                "Levels/novelty_level_3/type6/Levels/00702_1_0_6_3.xml",
+                "Levels/novelty_level_3/type6/Levels/01521_1_0_6_3.xml"
+            ],
+            "7": [
+                "Levels/novelty_level_0/type2/Levels/01200_0_0_2_0.xml",
+                "Levels/novelty_level_3/type7/Levels/01728_1_0_7_3.xml",
+                "Levels/novelty_level_3/type7/Levels/01523_1_0_7_3.xml"
+            ]
+        }
+    },
+    {
+        "1": {
+            "10": [
+                "Levels/novelty_level_0/type2/Levels/01712_0_0_2_0.xml",
+                "Levels/novelty_level_1/type10/Levels/01300_5_0_10_1.xml",
+                "Levels/novelty_level_1/type10/Levels/01302_5_0_10_1.xml"
+            ],
+            "6": [
+                "Levels/novelty_level_0/type2/Levels/00707_0_0_2_0.xml",
+                "Levels/novelty_level_1/type6/Levels/01711_2_0_6_1.xml",
+                "Levels/novelty_level_1/type6/Levels/01722_5_0_6_1.xml"
+            ],
+            "7": [
+                "Levels/novelty_level_0/type2/Levels/01721_0_0_2_0.xml",
+                "Levels/novelty_level_1/type7/Levels/01716_2_0_7_1.xml",
+                "Levels/novelty_level_1/type7/Levels/01718_5_0_7_1.xml"
+            ],
+            "8": [
+                "Levels/novelty_level_0/type2/Levels/01504_0_0_2_0.xml",
+                "Levels/novelty_level_1/type8/Levels/01000_8_0_8_1.xml",
+                "Levels/novelty_level_1/type8/Levels/01702_2_0_8_1.xml"
+            ],
+            "9": [
+                "Levels/novelty_level_0/type2/Levels/00902_0_0_2_0.xml",
+                "Levels/novelty_level_1/type9/Levels/00701_2_0_9_1.xml",
+                "Levels/novelty_level_1/type9/Levels/01404_3_0_9_1.xml"
+            ]
+        },
+        "2": {
+            "10": [
+                "Levels/novelty_level_0/type2/Levels/01535_0_0_2_0.xml",
+                "Levels/novelty_level_2/type10/Levels/01103_3_0_10_2.xml",
+                "Levels/novelty_level_2/type10/Levels/01556_8_0_10_2.xml"
+            ],
+            "6": [
+                "Levels/novelty_level_0/type2/Levels/01747_0_0_2_0.xml",
+                "Levels/novelty_level_2/type6/Levels/01106_4_0_6_2.xml",
+                "Levels/novelty_level_2/type6/Levels/00601_2_0_6_2.xml"
+            ],
+            "7": [
+                "Levels/novelty_level_0/type2/Levels/01700_0_0_2_0.xml",
+                "Levels/novelty_level_2/type7/Levels/01521_4_0_7_2.xml",
+                "Levels/novelty_level_2/type7/Levels/01739_5_0_7_2.xml"
+            ],
+            "8": [
+                "Levels/novelty_level_0/type2/Levels/01530_0_0_2_0.xml",
+                "Levels/novelty_level_2/type8/Levels/01556_8_0_8_2.xml",
+                "Levels/novelty_level_2/type8/Levels/00808_1_0_8_2.xml"
+            ],
+            "9": [
+                "Levels/novelty_level_0/type2/Levels/01739_0_0_2_0.xml",
+                "Levels/novelty_level_2/type9/Levels/01524_2_0_9_2.xml",
+                "Levels/novelty_level_2/type9/Levels/01710_6_0_9_2.xml"
+            ]
+        },
+        "3": {
+            "6": [
+                "Levels/novelty_level_0/type2/Levels/01741_0_0_2_0.xml",
+                "Levels/novelty_level_3/type6/Levels/00808_1_0_6_3.xml",
+                "Levels/novelty_level_3/type6/Levels/01002_1_0_6_3.xml"
+            ],
+            "7": [
+                "Levels/novelty_level_0/type2/Levels/01763_0_0_2_0.xml",
+                "Levels/novelty_level_3/type7/Levels/01539_1_0_7_3.xml",
+                "Levels/novelty_level_3/type7/Levels/00601_1_0_7_3.xml"
+            ]
+        }
+    },
+    {
+        "1": {
+            "10": [
+                "Levels/novelty_level_0/type2/Levels/01207_0_0_2_0.xml",
+                "Levels/novelty_level_1/type10/Levels/01552_5_0_10_1.xml",
+                "Levels/novelty_level_1/type10/Levels/01555_5_0_10_1.xml"
+            ],
+            "6": [
+                "Levels/novelty_level_0/type2/Levels/01710_0_0_2_0.xml",
+                "Levels/novelty_level_1/type6/Levels/01562_14_0_6_1.xml",
+                "Levels/novelty_level_1/type6/Levels/01549_4_0_6_1.xml"
+            ],
+            "7": [
+                "Levels/novelty_level_0/type2/Levels/01756_0_0_2_0.xml",
+                "Levels/novelty_level_1/type7/Levels/01516_4_0_7_1.xml",
+                "Levels/novelty_level_1/type7/Levels/01547_8_0_7_1.xml"
+            ],
+            "8": [
+                "Levels/novelty_level_0/type2/Levels/01755_0_0_2_0.xml",
+                "Levels/novelty_level_1/type8/Levels/01200_2_0_8_1.xml",
+                "Levels/novelty_level_1/type8/Levels/00503_2_0_8_1.xml"
+            ],
+            "9": [
+                "Levels/novelty_level_0/type2/Levels/01107_0_0_2_0.xml",
+                "Levels/novelty_level_1/type9/Levels/01763_2_0_9_1.xml",
+                "Levels/novelty_level_1/type9/Levels/01556_2_0_9_1.xml"
+            ]
+        },
+        "2": {
+            "10": [
+                "Levels/novelty_level_0/type2/Levels/01106_0_0_2_0.xml",
+                "Levels/novelty_level_2/type10/Levels/01555_13_0_10_2.xml",
+                "Levels/novelty_level_2/type10/Levels/01759_2_0_10_2.xml"
+            ],
+            "6": [
+                "Levels/novelty_level_0/type2/Levels/00501_0_0_2_0.xml",
+                "Levels/novelty_level_2/type6/Levels/01552_4_0_6_2.xml",
+                "Levels/novelty_level_2/type6/Levels/01752_5_0_6_2.xml"
+            ],
+            "7": [
+                "Levels/novelty_level_0/type2/Levels/00704_0_0_2_0.xml",
+                "Levels/novelty_level_2/type7/Levels/01207_3_0_7_2.xml",
+                "Levels/novelty_level_2/type7/Levels/01726_2_0_7_2.xml"
+            ],
+            "8": [
+                "Levels/novelty_level_0/type2/Levels/01727_0_0_2_0.xml",
+                "Levels/novelty_level_2/type8/Levels/01521_1_0_8_2.xml",
+                "Levels/novelty_level_2/type8/Levels/01719_14_0_8_2.xml"
+            ],
+            "9": [
+                "Levels/novelty_level_0/type2/Levels/01523_0_0_2_0.xml",
+                "Levels/novelty_level_2/type9/Levels/01724_1_0_9_2.xml",
+                "Levels/novelty_level_2/type9/Levels/01757_5_0_9_2.xml"
+            ]
+        },
+        "3": {
+            "6": [
+                "Levels/novelty_level_0/type2/Levels/01401_0_0_2_0.xml",
+                "Levels/novelty_level_3/type6/Levels/00900_1_0_6_3.xml",
+                "Levels/novelty_level_3/type6/Levels/01542_1_0_6_3.xml"
+            ],
+            "7": [
+                "Levels/novelty_level_0/type2/Levels/01544_0_0_2_0.xml",
+                "Levels/novelty_level_3/type7/Levels/00504_1_0_7_3.xml",
+                "Levels/novelty_level_3/type7/Levels/01517_1_0_7_3.xml"
+            ]
+        }
+    },
+    {
+        "1": {
+            "10": [
+                "Levels/novelty_level_0/type2/Levels/01104_0_0_2_0.xml",
+                "Levels/novelty_level_1/type10/Levels/01725_1_0_10_1.xml",
+                "Levels/novelty_level_1/type10/Levels/01732_5_0_10_1.xml"
+            ],
+            "6": [
+                "Levels/novelty_level_0/type2/Levels/01748_0_0_2_0.xml",
+                "Levels/novelty_level_1/type6/Levels/00501_11_0_6_1.xml",
+                "Levels/novelty_level_1/type6/Levels/01301_6_0_6_1.xml"
+            ],
+            "7": [
+                "Levels/novelty_level_0/type2/Levels/01704_0_0_2_0.xml",
+                "Levels/novelty_level_1/type7/Levels/01521_8_0_7_1.xml",
+                "Levels/novelty_level_1/type7/Levels/01517_11_0_7_1.xml"
+            ],
+            "8": [
+                "Levels/novelty_level_0/type2/Levels/01545_0_0_2_0.xml",
+                "Levels/novelty_level_1/type8/Levels/01703_5_0_8_1.xml",
+                "Levels/novelty_level_1/type8/Levels/01545_12_0_8_1.xml"
+            ],
+            "9": [
+                "Levels/novelty_level_0/type2/Levels/01307_0_0_2_0.xml",
+                "Levels/novelty_level_1/type9/Levels/01201_3_0_9_1.xml",
+                "Levels/novelty_level_1/type9/Levels/00507_3_0_9_1.xml"
+            ]
+        },
+        "2": {
+            "10": [
+                "Levels/novelty_level_0/type2/Levels/01548_0_0_2_0.xml",
+                "Levels/novelty_level_2/type10/Levels/01719_6_0_10_2.xml",
+                "Levels/novelty_level_2/type10/Levels/01539_2_0_10_2.xml"
+            ],
+            "6": [
+                "Levels/novelty_level_0/type2/Levels/01759_0_0_2_0.xml",
+                "Levels/novelty_level_2/type6/Levels/00907_2_0_6_2.xml",
+                "Levels/novelty_level_2/type6/Levels/00803_3_0_6_2.xml"
+            ],
+            "7": [
+                "Levels/novelty_level_0/type2/Levels/00604_0_0_2_0.xml",
+                "Levels/novelty_level_2/type7/Levels/01710_3_0_7_2.xml",
+                "Levels/novelty_level_2/type7/Levels/00502_4_0_7_2.xml"
+            ],
+            "8": [
+                "Levels/novelty_level_0/type2/Levels/01560_0_0_2_0.xml",
+                "Levels/novelty_level_2/type8/Levels/01706_12_0_8_2.xml",
+                "Levels/novelty_level_2/type8/Levels/01550_2_0_8_2.xml"
+            ],
+            "9": [
+                "Levels/novelty_level_0/type2/Levels/01754_0_0_2_0.xml",
+                "Levels/novelty_level_2/type9/Levels/01549_1_0_9_2.xml",
+                "Levels/novelty_level_2/type9/Levels/01702_6_0_9_2.xml"
+            ]
+        },
+        "3": {
+            "6": [
+                "Levels/novelty_level_0/type2/Levels/01555_0_0_2_0.xml",
+                "Levels/novelty_level_3/type6/Levels/01726_1_0_6_3.xml",
+                "Levels/novelty_level_3/type6/Levels/01756_1_0_6_3.xml"
+            ],
+            "7": [
+                "Levels/novelty_level_0/type2/Levels/01512_0_0_2_0.xml",
+                "Levels/novelty_level_3/type7/Levels/00602_1_0_7_3.xml",
+                "Levels/novelty_level_3/type7/Levels/01106_1_0_7_3.xml"
+            ]
+        }
+    },
+    {
+        "1": {
+            "10": [
+                "Levels/novelty_level_0/type2/Levels/01714_0_0_2_0.xml",
+                "Levels/novelty_level_1/type10/Levels/01728_5_0_10_1.xml",
+                "Levels/novelty_level_1/type10/Levels/01746_1_0_10_1.xml"
+            ],
+            "6": [
+                "Levels/novelty_level_0/type2/Levels/01562_0_0_2_0.xml",
+                "Levels/novelty_level_1/type6/Levels/01404_1_0_6_1.xml",
+                "Levels/novelty_level_1/type6/Levels/01745_5_0_6_1.xml"
+            ],
+            "7": [
+                "Levels/novelty_level_0/type2/Levels/01732_0_0_2_0.xml",
+                "Levels/novelty_level_1/type7/Levels/00905_4_0_7_1.xml",
+                "Levels/novelty_level_1/type7/Levels/01542_2_0_7_1.xml"
+            ],
+            "8": [
+                "Levels/novelty_level_0/type2/Levels/01004_0_0_2_0.xml",
+                "Levels/novelty_level_1/type8/Levels/01555_13_0_8_1.xml",
+                "Levels/novelty_level_1/type8/Levels/01005_11_0_8_1.xml"
+            ],
+            "9": [
+                "Levels/novelty_level_0/type2/Levels/01528_0_0_2_0.xml",
+                "Levels/novelty_level_1/type9/Levels/01705_2_0_9_1.xml",
+                "Levels/novelty_level_1/type9/Levels/01708_1_0_9_1.xml"
+            ]
+        },
+        "2": {
+            "10": [
+                "Levels/novelty_level_0/type2/Levels/01002_0_0_2_0.xml",
+                "Levels/novelty_level_2/type10/Levels/01530_3_0_10_2.xml",
+                "Levels/novelty_level_2/type10/Levels/01710_12_0_10_2.xml"
+            ],
+            "6": [
+                "Levels/novelty_level_0/type2/Levels/01527_0_0_2_0.xml",
+                "Levels/novelty_level_2/type6/Levels/00505_2_0_6_2.xml",
+                "Levels/novelty_level_2/type6/Levels/01723_1_0_6_2.xml"
+            ],
+            "7": [
+                "Levels/novelty_level_0/type2/Levels/01547_0_0_2_0.xml",
+                "Levels/novelty_level_2/type7/Levels/01753_3_0_7_2.xml",
+                "Levels/novelty_level_2/type7/Levels/01536_1_0_7_2.xml"
+            ],
+            "8": [
+                "Levels/novelty_level_0/type2/Levels/01502_0_0_2_0.xml",
+                "Levels/novelty_level_2/type8/Levels/01550_12_0_8_2.xml",
+                "Levels/novelty_level_2/type8/Levels/01732_13_0_8_2.xml"
+            ],
+            "9": [
+                "Levels/novelty_level_0/type2/Levels/01105_0_0_2_0.xml",
+                "Levels/novelty_level_2/type9/Levels/00707_8_0_9_2.xml",
+                "Levels/novelty_level_2/type9/Levels/01202_11_0_9_2.xml"
+            ]
+        },
+        "3": {
+            "6": [
+                "Levels/novelty_level_0/type2/Levels/01753_0_0_2_0.xml",
+                "Levels/novelty_level_3/type6/Levels/01519_1_0_6_3.xml",
+                "Levels/novelty_level_3/type6/Levels/01515_1_0_6_3.xml"
+            ],
+            "7": [
+                "Levels/novelty_level_0/type2/Levels/01003_0_0_2_0.xml",
+                "Levels/novelty_level_3/type7/Levels/01407_1_0_7_3.xml",
+                "Levels/novelty_level_3/type7/Levels/00607_1_0_7_3.xml"
+            ]
+        }
+    },
+    {
+        "1": {
+            "10": [
+                "Levels/novelty_level_0/type2/Levels/01534_0_0_2_0.xml",
+                "Levels/novelty_level_1/type10/Levels/01733_5_0_10_1.xml",
+                "Levels/novelty_level_1/type10/Levels/01762_5_0_10_1.xml"
+            ],
+            "6": [
+                "Levels/novelty_level_0/type2/Levels/01005_0_0_2_0.xml",
+                "Levels/novelty_level_1/type6/Levels/01703_6_0_6_1.xml",
+                "Levels/novelty_level_1/type6/Levels/01537_2_0_6_1.xml"
+            ],
+            "7": [
+                "Levels/novelty_level_0/type2/Levels/00903_0_0_2_0.xml",
+                "Levels/novelty_level_1/type7/Levels/01101_1_0_7_1.xml",
+                "Levels/novelty_level_1/type7/Levels/00700_5_0_7_1.xml"
+            ],
+            "8": [
+                "Levels/novelty_level_0/type2/Levels/01205_0_0_2_0.xml",
+                "Levels/novelty_level_1/type8/Levels/01527_12_0_8_1.xml",
+                "Levels/novelty_level_1/type8/Levels/01544_14_0_8_1.xml"
+            ],
+            "9": [
+                "Levels/novelty_level_0/type2/Levels/01100_0_0_2_0.xml",
+                "Levels/novelty_level_1/type9/Levels/01716_3_0_9_1.xml",
+                "Levels/novelty_level_1/type9/Levels/01738_2_0_9_1.xml"
+            ]
+        },
+        "2": {
+            "10": [
+                "Levels/novelty_level_0/type2/Levels/00500_0_0_2_0.xml",
+                "Levels/novelty_level_2/type10/Levels/01720_5_0_10_2.xml",
+                "Levels/novelty_level_2/type10/Levels/01100_2_0_10_2.xml"
+            ],
+            "6": [
+                "Levels/novelty_level_0/type2/Levels/00801_0_0_2_0.xml",
+                "Levels/novelty_level_2/type6/Levels/01518_4_0_6_2.xml",
+                "Levels/novelty_level_2/type6/Levels/01400_1_0_6_2.xml"
+            ],
+            "7": [
+                "Levels/novelty_level_0/type2/Levels/01511_0_0_2_0.xml",
+                "Levels/novelty_level_2/type7/Levels/01707_3_0_7_2.xml",
+                "Levels/novelty_level_2/type7/Levels/00906_4_0_7_2.xml"
+            ],
+            "8": [
+                "Levels/novelty_level_0/type2/Levels/01701_0_0_2_0.xml",
+                "Levels/novelty_level_2/type8/Levels/01533_3_0_8_2.xml",
+                "Levels/novelty_level_2/type8/Levels/01746_11_0_8_2.xml"
+            ],
+            "9": [
+                "Levels/novelty_level_0/type2/Levels/00602_0_0_2_0.xml",
+                "Levels/novelty_level_2/type9/Levels/01006_2_0_9_2.xml",
+                "Levels/novelty_level_2/type9/Levels/01550_6_0_9_2.xml"
+            ]
+        },
+        "3": {
+            "6": [
+                "Levels/novelty_level_0/type2/Levels/01007_0_0_2_0.xml",
+                "Levels/novelty_level_3/type6/Levels/01542_1_0_6_3.xml",
+                "Levels/novelty_level_3/type6/Levels/01727_1_0_6_3.xml"
+            ],
+            "7": [
+                "Levels/novelty_level_0/type2/Levels/00805_0_0_2_0.xml",
+                "Levels/novelty_level_3/type7/Levels/01761_1_0_7_3.xml",
+                "Levels/novelty_level_3/type7/Levels/01202_1_0_7_3.xml"
+            ]
+        }
+    },
+    {
+        "1": {
+            "10": [
+                "Levels/novelty_level_0/type2/Levels/01734_0_0_2_0.xml",
+                "Levels/novelty_level_1/type10/Levels/01535_5_0_10_1.xml",
+                "Levels/novelty_level_1/type10/Levels/00800_5_0_10_1.xml"
+            ],
+            "6": [
+                "Levels/novelty_level_0/type2/Levels/01103_0_0_2_0.xml",
+                "Levels/novelty_level_1/type6/Levels/01702_5_0_6_1.xml",
+                "Levels/novelty_level_1/type6/Levels/01711_12_0_6_1.xml"
+            ],
+            "7": [
+                "Levels/novelty_level_0/type2/Levels/01724_0_0_2_0.xml",
+                "Levels/novelty_level_1/type7/Levels/01404_6_0_7_1.xml",
+                "Levels/novelty_level_1/type7/Levels/01554_7_0_7_1.xml"
+            ],
+            "8": [
+                "Levels/novelty_level_0/type2/Levels/01001_0_0_2_0.xml",
+                "Levels/novelty_level_1/type8/Levels/01003_2_0_8_1.xml",
+                "Levels/novelty_level_1/type8/Levels/01554_13_0_8_1.xml"
+            ],
+            "9": [
+                "Levels/novelty_level_0/type2/Levels/01722_0_0_2_0.xml",
+                "Levels/novelty_level_1/type9/Levels/00704_3_0_9_1.xml",
+                "Levels/novelty_level_1/type9/Levels/01533_3_0_9_1.xml"
+            ]
+        },
+        "2": {
+            "10": [
+                "Levels/novelty_level_0/type2/Levels/01402_0_0_2_0.xml",
+                "Levels/novelty_level_2/type10/Levels/01555_13_0_10_2.xml",
+                "Levels/novelty_level_2/type10/Levels/01300_5_0_10_2.xml"
+            ],
+            "6": [
+                "Levels/novelty_level_0/type2/Levels/01749_0_0_2_0.xml",
+                "Levels/novelty_level_2/type6/Levels/00900_4_0_6_2.xml",
+                "Levels/novelty_level_2/type6/Levels/01513_2_0_6_2.xml"
+            ],
+            "7": [
+                "Levels/novelty_level_0/type2/Levels/01531_0_0_2_0.xml",
+                "Levels/novelty_level_2/type7/Levels/00503_5_0_7_2.xml",
+                "Levels/novelty_level_2/type7/Levels/01707_1_0_7_2.xml"
+            ],
+            "8": [
+                "Levels/novelty_level_0/type2/Levels/01711_0_0_2_0.xml",
+                "Levels/novelty_level_2/type8/Levels/01763_5_0_8_2.xml",
+                "Levels/novelty_level_2/type8/Levels/00907_2_0_8_2.xml"
+            ],
+            "9": [
+                "Levels/novelty_level_0/type2/Levels/01709_0_0_2_0.xml",
+                "Levels/novelty_level_2/type9/Levels/01550_12_0_9_2.xml",
+                "Levels/novelty_level_2/type9/Levels/01747_5_0_9_2.xml"
+            ]
+        },
+        "3": {
+            "6": [
+                "Levels/novelty_level_0/type2/Levels/01501_0_0_2_0.xml",
+                "Levels/novelty_level_3/type6/Levels/01305_1_0_6_3.xml",
+                "Levels/novelty_level_3/type6/Levels/00902_1_0_6_3.xml"
+            ],
+            "7": [
+                "Levels/novelty_level_0/type2/Levels/00506_0_0_2_0.xml",
+                "Levels/novelty_level_3/type7/Levels/00601_1_0_7_3.xml",
+                "Levels/novelty_level_3/type7/Levels/00901_1_0_7_3.xml"
+            ]
+        }
+    }
+]
