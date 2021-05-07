@@ -247,7 +247,7 @@ def compute_eval_stats(results_path, agent, agent_stats = list()):
                                'pigs_start': int(row['pigsAtStart']),
                                'birds': birds}
 
-                print("STATS: agent stats {}".format(agent_stats))
+                # print("STATS: agent stats {}".format(agent_stats))
 
                 # Get agent stats
                 if i<len(agent_stats):
@@ -396,51 +396,59 @@ def run_eval_stats(novelties: dict,
             if results_directory is not None:
                 results.append(compute_eval_stats(results_directory, agent_type, agent_stats=agent_stats))
 
-    # stat_results = {}
+    stat_results = {}
 
-    # # M1: avg number of False Negatives among CDTs
-    # # M2: % of CDTs across all trials
+    # M1: avg number of False Negatives among CDTs
+    # M2: % of CDTs across all trials
 
-    # # Collect CDTs
-    # CDTs = []
-    # for result in results:
-    #     print("STATS: Processing result: {}".format(result))
-    #     if result['overall']['true_positives'] > 0 and result['overall']['false_positives'] == 0:
-    #         CDTs.append(result)
-    #     print("------------------------------------------------------------------------------------")
+    # Collect CDTs
+    CDTs = []
+    for result in results:
+        print("STATS: Processing result: {}".format(result))
+        if result['overall']['true_positives'] > 0 and result['overall']['false_positives'] == 0:
+            CDTs.append(result)
+        print("------------------------------------------------------------------------------------")
 
-    # print("STATS: CDTs are: {}".format(CDTs))
+    print("STATS: CDTs are: {}".format(CDTs))
 
-    # # For every CDT, count false negatives and average
-    # sum_false_neg = sum([cdt['overall']['false_negatives'] for cdt in CDTs])
-    # if len(CDTs) > 0:
-    #     stat_results['m1'] = sum_false_neg/len(CDTs)
-    # else:
-    #     stat_results['m1'] = 0
+    # For every CDT, count false negatives and average
+    sum_false_neg = sum([cdt['overall']['false_negatives'] for cdt in CDTs])
+    if len(CDTs) > 0:
+        stat_results['m1'] = sum_false_neg/len(CDTs)
+    else:
+        stat_results['m1'] = 0
 
-    # # Determine % of CDTs
-    # if len(results) > 0:
-    #     stat_results['m2'] = len(CDTs) / len(results)
-    # else:
-    #     stat_results['m2'] = 0
+    # Determine % of CDTs
+    if len(results) > 0:
+        stat_results['m2'] = len(CDTs) / len(results)
+    else:
+        stat_results['m2'] = 0
 
-    # # M2.1: % of Trials with at least 1 False Positive
-    # # Do 1 - % of CDTs
-    # stat_results['m2.1'] = 1 - stat_results['m2']
+    # M2.1: % of Trials with at least 1 False Positive
+    # Do 1 - % of CDTs
+    trial_w_fp = 0
+    for result in results:
+        if result['overall']['false_positives'] > 0:
+            trial_w_fp += 1
 
-    # # M3 + M4: Ratio of agent post-novelty performance vs baseline agent pre-novelty performance (TODO: find pre performance records)
+    if len(results) > 0:
+        stat_results['m2.1'] = trial_w_fp / len(results)
+    else:
+        stat_results['m2.1'] = 0
 
-    # # M5: Post novelty performance overall vs baseline agent
+    # M3 + M4: Ratio of agent post-novelty performance vs baseline agent pre-novelty performance (TODO: find pre performance records)
 
-    # # M6: Asymptotic performance vs baseline agent
+    # M5: Post novelty performance overall vs baseline agent
 
-    # # M7: False positive rate and True positive rate    
+    # M6: Asymptotic performance vs baseline agent
+
+    # M7: False positive rate and True positive rate    
     
-    # stats_filename = os.path.join(STATS_BASE_PATH, "eval_2021_stats.json")
+    stats_filename = os.path.join(STATS_BASE_PATH, "eval_trial{}_stats.json".format(suffix))
 
-    # with open(stats_filename, "w+") as f:
-    #     print("STATS: writing to {}".format(stats_filename))
-    #     json.dump(stat_results, f, indent=4)
+    with open(stats_filename, "w+") as f:
+        print("STATS: writing to {}".format(stats_filename))
+        json.dump(stat_results, f, indent=4)
 
     return results
         
