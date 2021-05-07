@@ -18,4 +18,4 @@ def start_wsu_interface():
 
 
 if __name__ == '__main__':
-    start_gym_interface()
+    start_wsu_interface()

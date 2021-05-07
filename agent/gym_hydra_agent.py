@@ -24,7 +24,7 @@ class GymHydraAgent:
 
     def run(self, debug_info=False, max_actions=1000):
         self.meta_model.constant_numeric_fluents['time_limit'] = 4.0
-        print("TIME_LIMIT", self.meta_model.constant_numeric_fluents['time_limit'])
+        # print("TIME_LIMIT", self.meta_model.constant_numeric_fluents['time_limit'])
         plan = self.cartpole_planner.make_plan(self.observation, 0)
         # print("\n\nPLAN LENGTH: ", len(plan))
         if debug_info:
@@ -62,7 +62,7 @@ class GymHydraAgent:
                 print (action)
                 print (self.observation)
                 print (full_plan_trace[-1])
-                print ((full_plan_trace[-2][0],full_plan_trace[-1][1],full_plan_trace[-2][2],full_plan_trace[-1][3])) if len(full_plan_trace) > 1 else print(full_plan_trace[-1])
+                # print ((full_plan_trace[-2][0],full_plan_trace[-1][1],full_plan_trace[-2][2],full_plan_trace[-1][3])) if len(full_plan_trace) > 1 else print(full_plan_trace[-1])
                 print ("REWARD:", reward)
                 print (done)
 
@@ -75,7 +75,7 @@ class GymHydraAgent:
                 break
 
             if (itt >= MIN_STEPS_TO_REPLAN):
-                print (n_steps)
+                # print (n_steps)
                 emergency_plan = False
 
                 temp_plan = copy.copy(plan)

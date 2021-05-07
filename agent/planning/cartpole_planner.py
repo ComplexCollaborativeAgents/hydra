@@ -65,12 +65,6 @@ class CartPolePlanner():
                ['-vv', '-noplan', '-search:gbfs', '-th:%s' % str(self.meta_model.constant_numeric_fluents['time_limit']),
                 '-t:%s' % str(settings.CP_DELTA_T)])
 
-        # nyx.runner("%s/../nyx/ex/cartpole/cartpole.pddl" % str(settings.CARTPOLE_PLANNING_DOCKER_PATH),
-        #            "%s/cartpole_prob.pddl" % str(settings.CARTPOLE_PLANNING_DOCKER_PATH),
-        #            ['-vv', '-noplan', '-search:gbfs',
-        #             '-th:%s' % str(self.meta_model.constant_numeric_fluents['time_limit']),
-        #             '-t:%s' % str(settings.CP_DELTA_T)])
-
         plan_actions =  self.extract_actions_from_plan_trace("%s/plan_cartpole_prob.pddl" % str(settings.CARTPOLE_PLANNING_DOCKER_PATH))
 
         if len(plan_actions) > 0:
