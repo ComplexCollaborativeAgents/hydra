@@ -137,7 +137,7 @@ class RepairingHydraSBAgent(HydraAgent):
                 return False
 
             self.consistency_scores_current_level.append(cnn_prob)
-            if len(self.consistency_scores_per_level) < 2 or len(self.consistency_scores_current_level) != 1:
+            if len(self.consistency_scores_per_level) < 2 or len(self.consistency_scores_current_level) != 1: # Try to repair only after 2 levels have passed & it's the first shot of the level
                 return False
             logger.info("CNN novelty likelihoods last shot: %.3f, previous problem: %.3f, two problems ago: %.3f, last problem solved? %s" % (cnn_prob,  self.consistency_scores_per_level[0], self.consistency_scores_per_level[1], self.completed_levels[-1]))
             if self.revision_attempts < settings.HYDRA_MODEL_REVISION_ATTEMPTS and\
