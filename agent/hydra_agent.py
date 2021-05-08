@@ -8,6 +8,7 @@ import time
 from agent.consistency.consistency_estimator import *
 from worlds.science_birds_interface.client.agent_client import GameState
 from agent.planning.pddl_meta_model import *
+import datetime
 
 # TODO: Maybe push this to the settings file? then every module just adds a logger
 logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
