@@ -16,6 +16,8 @@ def main(config='all_level_0_novelties.xml'):
 if __name__ == '__main__':
     print(len(sys.argv))
     print(sys.argv)
-    if len(sys.argv)==2 and sys.argv[1]=='--random':
+    if len(sys.argv)>=2 and sys.argv[1]=='--random':
         settings.SB_DEFAULT_SHOT = 'RANDOM'
-    main()
+    if len(sys.argv)>=4 and sys.argv[2]=='--config-file':
+        config_file = sys.argv[3].strip()
+    main(config =config_file)
