@@ -80,11 +80,11 @@ if __name__ == "__main__":
                     next_level = ""
                     if index < LEVELS_BEFORE_NOVELTY:   # append non novelty
                         next_index = random.randrange(len(non_novelty_levels))
-                        next_level = non_novelty_levels.pop(next_index)    # Pop random level from non novelty level
+                        next_level = non_novelty_levels[next_index]    # Pop random level from non novelty level
                         print("Appending non-novelty level {}".format(next_level))
                     else:   # append novelty
                         next_index = random.randrange(len(novelty_type_levels))
-                        next_level = os.path.join(novelty_path, novelty_type, 'Levels', novelty_type_levels.pop(next_index))    # Pop random level from novelty type
+                        next_level = os.path.join(novelty_path, novelty_type, 'Levels', novelty_type_levels[next_index])    # Pop random level from novelty type
                         print("Appending novelty level {}".format(next_level))
 
                     trial_levels.append(next_level)
