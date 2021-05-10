@@ -7,54 +7,54 @@ class MyCNN(nn.Module):
         super().__init__()
 
         self.conv0 = nn.Sequential(
-            nn.Linear(84*48*13, 4096),
+            nn.Linear(84*48*13, 1024),
             nn.ReLU(),
         )
         self.conv1 = nn.Sequential(
-            nn.Linear(4096, 2048),
+            nn.Linear(1024, 512),
             nn.ReLU(),
         )
         self.conv2 = nn.Sequential(
-            nn.Linear(2048, 1024),
+            nn.Linear(512, 256),
             nn.ReLU(),
         )
         self.conv3 = nn.Sequential(
-            nn.Linear(1024, 512),
+            nn.Linear(256, 128),
             nn.ReLU()
         )
 
 
         self.fc0 = nn.Sequential(
-            nn.Linear(512, 2048),
+            nn.Linear(128, 512),
             nn.ReLU()
         )
 
-        self.dec = nn.Linear(2048, 2048, bias=True)
-        self.x_enc = nn.Linear(2048, 2048, bias=False)
-        self.u_enc = nn.Linear(5, 2048, bias=False)
+        self.dec = nn.Linear(512, 512, bias=True)
+        self.x_enc = nn.Linear(512, 512, bias=False)
+        self.u_enc = nn.Linear(5, 512, bias=False)
 
         self.fc1 = nn.Sequential(
-            nn.Linear(2048, 512),
+            nn.Linear(512, 128),
             nn.ReLU()
         )
 
         self.deconv0 = nn.Sequential(
-            nn.Linear(512, 1024),
+            nn.Linear(128, 256),
             nn.ReLU(),
         )
 
         self.deconv1 = nn.Sequential(
-            nn.Linear(1024, 2048),
+            nn.Linear(256, 512),
             nn.ReLU(),
         )
 
         self.deconv2 = nn.Sequential(
-            nn.Linear(2048, 4096),
+            nn.Linear(512, 1024),
             nn.ReLU(),
         )
 
         self.deconv3 = nn.Sequential(
-            nn.Linear(4096, 84*48*13),
+            nn.Linear(1024, 84*48*13),
         )
 
         self.to(device)
