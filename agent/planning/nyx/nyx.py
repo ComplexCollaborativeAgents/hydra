@@ -3,9 +3,11 @@
 # from agent.planning.nyx.PDDL import PDDL_Parser
 from agent.planning.nyx.planner import Planner
 import agent.planning.nyx.syntax.constants as constants
+import settings
 import sys
 import time
-import os
+import os, shutil
+from datetime import datetime
 
 sys.dont_write_bytecode = True
 
@@ -43,6 +45,8 @@ def process_arguments(cl_arguments):
             constants.TIME_HORIZON = float(arg_list[1])
         elif arg_list[0] == '-pi':
             constants.PRINT_INFO = float(arg_list[1])
+        elif arg_list[0] == '-to':
+            constants.TIMEOUT = float(arg_list[1])
         elif arg_list[0] == '-search':
             constants.SEARCH_BFS = False
             if arg_list[1] == 'bfs':
@@ -116,8 +120,10 @@ def runner(dom_file, prob_file, args_list: []):
         print('\n=================================================\n')
         print('\tNo Plan Found!')
         print('\t\tTime: ' + str(round(total_time,3)))
+        print('\t\tStates Explored: ' + str(my_plnr.explored_states))
         print('\n=================================================\n')
-        # exit(1)
+        shutil.copy(prob_file, os.path.dirname(prob_file)+"/trace/problems/cartpole_prob_" +
+                    str(len([name for name in os.listdir(os.path.dirname(prob_file)+"/trace/problems/") if os.path.isfile(os.path.join(os.path.dirname(prob_file)+"/trace/problems/", name))])) + ".pddl")
 
     # if constants.NO_PLAN:
     #     print('\n=================================================\n')
@@ -172,4 +178,7 @@ def runner(dom_file, prob_file, args_list: []):
 # Main
 #-----------------------------------------------
 if __name__ == '__main__':
-    runner(sys.argv[1], sys.argv[2], sys.argv[3:])
+    # runner(sys.argv[1], sys.argv[2], sys.argv[3:])
+    runner("%s/cartpole_domain.pddl" % str(settings.CARTPOLE_PLANNING_DOCKER_PATH),
+               "%s/cartpole_prob_35.pddl" % (str(settings.CARTPOLE_PLANNING_DOCKER_PATH)+"/trace/problems"),
+               ['-search:gbfs', '-th:4', '-t:%s' % str(settings.CP_DELTA_T)])
