@@ -15,7 +15,7 @@ header = \
   <novelty_detection_measurement step="1" measure_in_training="False" measure_in_testing="False" />
   <trials>
     <trial id="0" number_of_executions="1" checkpoint_time_limit="200" checkpoint_interaction_limit="200" notify_novelty="False">
-      <game_level_set mode="training" time_limit="1200" total_interaction_limit="500000" attempt_limit_per_level="1" allow_level_selection="False">'''
+      <game_level_set mode="training" time_limit="700000" total_interaction_limit="500000" attempt_limit_per_level="1" allow_level_selection="False">'''
 
 footer = \
 '''
@@ -146,4 +146,4 @@ if __name__ == '__main__':
     logreg = train_classifier()
     probs, errors = test_classifier(logreg)
 
-    pickle.dump(logreg,open('{}/data/science_birds/perception/logreg.p'.format(settings.ROOT_PATH), 'wb'))
+#    pickle.dump(logreg,open('{}/data/science_birds/perception/logreg.p'.format(settings.ROOT_PATH), 'wb'))

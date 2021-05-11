@@ -1,6 +1,6 @@
 import os
 
-from state_prediction.anomaly_detector import FocusedSBAnomalyDetector
+from state_prediction.anomaly_detector_fc_multichannel import FocusedSBAnomalyDetector
 
 os.environ['LANG'] = 'en_US'
 os.environ['PYOPENGL_PLATFORM'] = 'egl' # Uncommnet this line while running remotely
