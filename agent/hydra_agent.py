@@ -127,6 +127,7 @@ class HydraAgent():
     ''' Handle what happens when the agent receives a EVALUATION_TERMINATED request'''
     def handle_evaluation_terminated(self):
         # store info and disconnect the agent as the evaluation is finished
+        self.agent_stats.append(self.stats_for_level)
         logger.info("Evaluation complete.")
         return True
 

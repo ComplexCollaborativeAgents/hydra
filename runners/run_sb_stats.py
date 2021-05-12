@@ -445,10 +445,12 @@ def run_eval_stats(novelties: dict,
     # M7: False positive rate and True positive rate    
     
     stats_filename = os.path.join(STATS_BASE_PATH, "eval_trial{}_stats.json".format(suffix))
-
+    print("States file name = {}".format(stats_filename))
     with open(stats_filename, "w+") as f:
         print("STATS: writing to {}".format(stats_filename))
         json.dump(stat_results, f, indent=4)
+
+        json.dump(results,f, indent=3)
 
     return results
         

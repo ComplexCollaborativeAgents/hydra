@@ -85,6 +85,11 @@ class RepairingHydraSBAgent(HydraAgent):
                                       sum(self.stats_for_level[NN_PROB]) / len(self.stats_for_level[NN_PROB]))
 
 
+    def handle_evaluation_terminated(self):
+        ''' Handle what happens when the agent receives a EVALUATION_TERMINATED request'''
+        self.process_final_observation()
+        return super().handle_evaluation_terminated()
+
     def handle_game_won(self):
         self.process_final_observation()
         super().handle_game_won()
@@ -138,6 +143,10 @@ class RepairingHydraSBAgent(HydraAgent):
                     self.novelty_likelihood = 1.0
                 else:
                     self.novelty_likelihood = cnn_prob
+
+        # Record current novelty likelihood estimate
+        self.stats_for_level["novelty_likelihood"]=self.novelty_likelihood
+
 
     ''' Handle what happens when the agent receives a PLAYING request'''
     def handle_game_playing(self, observation, raw_state):
