@@ -265,7 +265,7 @@ def compute_eval_stats(results_path, agent, agent_stats = list()):
                     if level_stats['novelty_likelihood'] == 1:
                         true_positives += 1
                     else:
-                        false_positives += 1
+                        false_negatives += 1
 
                 # Add to levels
                 stats['levels'].append(level_stats)
