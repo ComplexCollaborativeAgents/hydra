@@ -5,10 +5,11 @@ import shortuuid
 
 # Create your own local_settings.py file in this directory if you want
 # to override this variable and not run headless
-HEADLESS = True
+HEADLESS = False
 SCREENSHOT = False
 DEBUG = False
-NO_PLANNING = False
+NO_PLANNING = True
+NO_REPAIR = True
 SB_DEV_MODE = True
 
 SB_PLANNER_MEMORY_LIMIT = 50 # memory limit for UPMurphi (in MB)

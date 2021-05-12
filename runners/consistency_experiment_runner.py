@@ -41,7 +41,7 @@ def run_consistency_stats(consistency_checker_types: List[ConsistencyCheckerType
     is_novel = "True"
     obs_path = pathlib.Path(observations_path) / 'novel'
     obs_files = list(obs_path.glob('*_observation.p'))
-    obs_files = random.sample(obs_files, samples)
+    obs_files = random.sample(obs_files, min(len(obs_files), samples))
 
     for consistency_checker_type in consistency_checker_types:
         results_file_name = results_file_template.format(alg_name=consistency_checker_type.name)

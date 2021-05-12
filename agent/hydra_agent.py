@@ -32,11 +32,10 @@ class HydraAgent():
         self.cumulative_plan_time = 0.0
         self.overall_plan_time = 0.0
         self.novelty_existence = -1
-        self.consistency_scores_per_level = []
-        self.consistency_scores_current_level = []
         self.agent_stats = agent_stats
         self.shot_num = 0
         self.trial_timestamp = datetime.datetime.now().strftime("%y%m%d%H%M%S")
+        self.stats_for_level = dict()
 
     def reinit(self):
         self.env.history = []
@@ -49,11 +48,10 @@ class HydraAgent():
         self.cumulative_plan_time = 0.0
         self.overall_plan_time = 0.0
         self.novelty_existence = -1
-        self.consistency_scores_per_level = []
-        self.consistency_scores_current_level = []
         # self.agent_stats = list() # TODO: Discuss this
         self.shot_num = 0
         self.trial_timestamp = datetime.datetime.now().strftime("%y%m%d%H%M%S")
+        self.stats_for_level = dict()
 
     ''' Runs the agent. Returns False if the evaluation has not ended, and True if it has ended.'''
     def main_loop(self,max_actions=1000):
@@ -73,9 +71,7 @@ class HydraAgent():
             raw_state = self.env.get_current_state()
 
             if raw_state.game_state.value == GameState.PLAYING.value:
-                self.stats_for_level = dict()
                 self.handle_game_playing(observation, raw_state)
-                self.agent_stats.append(self.stats_for_level)
             elif raw_state.game_state.value == GameState.WON.value:
                 self.handle_game_won()
             elif raw_state.game_state.value == GameState.LOST.value:
@@ -156,9 +152,10 @@ class HydraAgent():
             (time.perf_counter() - self.overall_plan_time))))
         cumulative_plan_time = 0
         overall_plan_time = time.perf_counter()
-        if self.consistency_scores_current_level:
-            self.consistency_scores_per_level.insert(0,sum(self.consistency_scores_current_level)/len(self.consistency_scores_current_level))
-            self.consistency_scores_current_level = []
+
+        self.agent_stats.append(self.stats_for_level)
+        self.stats_for_level = dict()
+
         self.perception.new_level = True
         self.shot_num = 0
         self.current_level = self.env.sb_client.load_next_available_level()
@@ -181,6 +178,8 @@ class HydraAgent():
         self.current_level = self.env.sb_client.load_next_available_level()
         self.perception.new_level = True
         self.shot_num=0
+        self.agent_stats.append(self.stats_for_level)
+        self.stats_for_level = dict()
         # time.sleep(1)
         self.novelty_existence = self.env.sb_client.get_novelty_info()
         time.sleep(2 / settings.SB_SIM_SPEED)
