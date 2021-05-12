@@ -260,7 +260,13 @@ class WSUObserver:
         """
         self.log.info('Testing Episode End: performance={}'.format(performance))
         self.log.info('Testing Episode End: feedback={}'.format(feedback))
-        return
+        
+        novelty_probability = random.random()
+        novelty_threshold = 0.8
+        novelty = 0
+        novelty_characterization = dict()
+
+        return novelty_probability, novelty_threshold, novelty, novelty_characterization
 
     def trial_end(self):
         """This is called at the end of each trial.
