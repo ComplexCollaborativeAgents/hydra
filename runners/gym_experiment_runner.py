@@ -159,7 +159,7 @@ def run_repairing_observer_experiments(injected_faults = [0.8, 0.9, 1.0, 1.1, 1.
         result_file = open(path.join(settings.ROOT_PATH, "data", "cartpole", "repair", "repairing_%s_wsu.csv" % env_param), "w")
         result_file.write("Fluent\t Value\t Run\t Agent\t Iteration\t Reward\t Runtime\n")
         env_nominal_value = CartPoleMetaModel().constant_numeric_fluents[fluent_name]
-        max_iterations = 5
+        max_iterations = 1
         for fault_factor in injected_faults:
             env_param_value = env_nominal_value * fault_factor
             for i in range(max_iterations):
@@ -176,47 +176,46 @@ def run_repairing_observer_experiments(injected_faults = [0.8, 0.9, 1.0, 1.1, 1.
                     "%s\t %s\t %d\t %.2f\t %.2f\n" % (exp_name, "Repairing", i, repair_performance, runtime))
                 result_file.flush()
 
-                # No repair
-                observer = CartpoleHydraAgentObserver(agent_type=CartpoleHydraAgent)
-                env = FaultyGymCartpoleDispatcher(observer, render=True)
-                env.inject_fault(env_param, env_param_value)
+                # # No repair
+                # observer = CartpoleHydraAgentObserver(agent_type=CartpoleHydraAgent)
+                # env = FaultyGymCartpoleDispatcher(observer, render=True)
+                # env.inject_fault(env_param, env_param_value)
+                #
+                # start_time = time.time()
+                # env.run()
+                # runtime = time.time() - start_time
+                # repair_performance = observer.agent.last_performance
+                # exp_name = "%s\t %s\t %s" % (env_param, fault_factor, i)
+                # result_file.write(
+                #     "%s\t %s\t %d\t %.2f\t %.2f\n" % (exp_name, " No repair", i, repair_performance, runtime))
+                # result_file.flush()
 
-                start_time = time.time()
-                env.run()
-                runtime = time.time() - start_time
-                repair_performance = observer.agent.last_performance
-                exp_name = "%s\t %s\t %s" % (env_param, fault_factor, i)
-                result_file.write(
-                    "%s\t %s\t %d\t %.2f\t %.2f\n" % (exp_name, " No repair", i, repair_performance, runtime))
-                result_file.flush()
 
-
-                # Oracle
-                observer = CartpoleOracleHydraAgentObserver(env_param_to_fluent[env_param], round(env_param_value,
-                                                                                                  CartPoleMetaModel.PLANNER_PRECISION))
-                env = FaultyGymCartpoleDispatcher(observer, render=True)
-                env.inject_fault(env_param, env_param_value)
-
-                start_time = time.time()
-                env.run()
-                runtime = time.time() - start_time
-                repair_performance = observer.agent.last_performance
-                exp_name = "%s\t %s\t %s" % (env_param, fault_factor, i)
-                result_file.write(
-                    "%s\t %s\t %d\t %.2f\t %.2f\n" % (exp_name, "Oracle", i, repair_performance, runtime))
-                result_file.flush()
+                # # Oracle
+                # observer = CartpoleOracleHydraAgentObserver(env_param_to_fluent[env_param], round(env_param_value,
+                #                                                                                   CartPoleMetaModel.PLANNER_PRECISION))
+                # env = FaultyGymCartpoleDispatcher(observer, render=True)
+                # env.inject_fault(env_param, env_param_value)
+                #
+                # start_time = time.time()
+                # env.run()
+                # runtime = time.time() - start_time
+                # repair_performance = observer.agent.last_performance
+                # exp_name = "%s\t %s\t %s" % (env_param, fault_factor, i)
+                # result_file.write(
+                #     "%s\t %s\t %d\t %.2f\t %.2f\n" % (exp_name, "Oracle", i, repair_performance, runtime))
+                # result_file.flush()
 
         result_file.close()
 
 
 if __name__ == '__main__':
     # Types of injected faults. 1.0 means no fault.
-    injected_faults = [0.9, 1.0, 1.1]
+    injected_faults = [0.5, 1.5]
 
     # Experiment types (these are functions that run an experiment
     # run_experiment_funcs = [_run_repairing_experiment, _run_oracle_experiment, _run_no_repair_experiment]
     run_experiment_funcs = [_run_repairing_experiment]
 
-    run_repairing_agent_experiments(injected_faults=injected_faults,
-                                    env_param_to_fluent={'gravity':'gravity'},
-                                    run_experiment_funcs=run_experiment_funcs) # Run the experiment directly on the agent
+    run_repairing_observer_experiments(injected_faults=injected_faults,
+                                    env_param_to_fluent={'gravity':'gravity'}) # Run the experiment directly on the agent

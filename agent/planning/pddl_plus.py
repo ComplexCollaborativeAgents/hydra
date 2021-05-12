@@ -388,7 +388,7 @@ class PddlPlusGrounder():
 class TimedAction():
     def __init__(self, action_name: str, start_at : float):
         self.action_name = action_name
-        self.start_at = start_at
+        self.start_at = round(start_at, 8)
 
     def __str__(self):
         return "t=%s, %s" % (self.start_at, self.action_name)

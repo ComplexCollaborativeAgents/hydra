@@ -73,7 +73,6 @@ class Planner:
                     print(new_state)
 
             if (time.time()-start_solve_time) >= constants.TIMEOUT:
-                print("\n\nTIMEOUT REACHED\n\n")
                 return None
 
         return None
