@@ -78,6 +78,7 @@ def test_UPenn_consistency_science_birds():
             true_positives += 1
         else:
             false_negatives += 1
+
     assert(true_positives >= 4)
     assert(true_negatives >= 7)
     assert(false_positives <= 2)
