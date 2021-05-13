@@ -159,7 +159,7 @@ def run_repairing_observer_experiments(injected_faults = [0.8, 0.9, 1.0, 1.1, 1.
         result_file = open(path.join(settings.ROOT_PATH, "data", "cartpole", "repair", "repairing_%s_wsu.csv" % env_param), "w")
         result_file.write("Fluent\t Value\t Run\t Agent\t Iteration\t Reward\t Runtime\n")
         env_nominal_value = CartPoleMetaModel().constant_numeric_fluents[fluent_name]
-        max_iterations = 5
+        max_iterations = 1
         for fault_factor in injected_faults:
             env_param_value = env_nominal_value * fault_factor
             for i in range(max_iterations):
@@ -211,12 +211,11 @@ def run_repairing_observer_experiments(injected_faults = [0.8, 0.9, 1.0, 1.1, 1.
 
 if __name__ == '__main__':
     # Types of injected faults. 1.0 means no fault.
-    injected_faults = [0.9, 1.0, 1.1]
+    injected_faults = [0.5, 1.5]
 
     # Experiment types (these are functions that run an experiment
     # run_experiment_funcs = [_run_repairing_experiment, _run_oracle_experiment, _run_no_repair_experiment]
-    run_experiment_funcs = [_run_repairing_experiment]
+    # run_experiment_funcs = [_run_repairing_experiment]
 
-    run_repairing_agent_experiments(injected_faults=injected_faults,
-                                    env_param_to_fluent={'gravity':'gravity'},
-                                    run_experiment_funcs=run_experiment_funcs) # Run the experiment directly on the agent
+    run_repairing_observer_experiments(injected_faults=injected_faults,
+                                    env_param_to_fluent={'gravity':'gravity'}) # Run the experiment directly on the agent
