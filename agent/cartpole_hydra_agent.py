@@ -53,12 +53,14 @@ class CartpoleHydraAgent:
             # self.meta_model.constant_numeric_fluents['time_limit'] = 4.0
             self.meta_model.constant_numeric_fluents['time_limit'] = max(0.02, min(4.0, round((4.0 - ((self.steps) * 0.02)), 2)))
             self.plan = self.cartpole_planner.make_plan(observation, 0)
+            self.current_observation = CartPoleObservation()
             if len(self.plan) == 0:
                 self.plan_idx = 999
 
         if self.plan_idx >= self.replan_idx:
             self.meta_model.constant_numeric_fluents['time_limit'] = max(0.02, min(4.0, round((4.0 - ((self.steps) * 0.02)), 2)))
             new_plan = self.cartpole_planner.make_plan(observation, 0)
+            self.current_observation = CartPoleObservation()
             if len(new_plan) != 0:
                 self.plan = new_plan
                 self.plan_idx = 0
