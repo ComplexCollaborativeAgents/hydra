@@ -15,9 +15,9 @@ class FocusedSBAnomalyDetector(FocusedAnomalyDetector):
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
         self.device = 'cpu'
         self.state_predictor = MyCNN(self.device)
-        self.state_predictor.load_state_dict(torch.load('{}/state_prediction/fc_multi_channel_posweight/pretrained_model_fc.pt'.format(settings.ROOT_PATH),
+        self.state_predictor.load_state_dict(torch.load('{}/state_prediction/fc_multi_channel_posweight_v2/pretrained_model_fc.pt'.format(settings.ROOT_PATH),
                                                         map_location=self.device))
-        with open('{}/state_prediction/fc_multi_channel_posweight/fc_pretrained_novelty_detector.pickle'.format(settings.ROOT_PATH), 'rb') as f:
+        with open('{}/state_prediction/fc_multi_channel_posweight_v2/fc_pretrained_novelty_detector.pickle'.format(settings.ROOT_PATH), 'rb') as f:
             novelty_detector_info = pickle.load(f)
         self.novelty_detector = novelty_detector_info['clf']
         self.novelty_feature_mu = novelty_detector_info['x_mu']
