@@ -72,6 +72,9 @@ class Planner:
                 if constants.PRINT_ALL_STATES:
                     print(new_state)
 
+            if (time.time()-start_solve_time) >= constants.TIMEOUT:
+                return None
+
         return None
 
     def enqueue_state(self, n_state):
