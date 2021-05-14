@@ -63,6 +63,9 @@ class CartPoleMetaModel():
 
     ''' Sets the default meta-model'''
     def __init__(self):
+
+        self.delta_t = 0.02
+
         # TODO: Read this from file instead of hard coding
         self.hyper_parameters = dict() # These are parameters that do not appear in the PDDL files
 
@@ -91,7 +94,7 @@ class CartPoleMetaModel():
                                 ('gravity', 9.81),
                                 ('time_limit', 1.0),
                                 # ('angle_limit', 0.20944),
-                                ('angle_limit', 0.20),
+                                ('angle_limit', 0.205),
                                 ('x_limit', 2.4)]:
             self.constant_numeric_fluents[fluent]=value
 

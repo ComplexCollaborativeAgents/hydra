@@ -2,6 +2,7 @@
     This module provides very basic capabilities for simulating PDDL+ domain behavior, 
     including actions, events, and processes.
 '''
+import settings
 from agent.planning.pddl_meta_model import *
 from agent.consistency.observation import *
 from agent.planning.pddl_plus import is_op
@@ -355,6 +356,11 @@ class PddlPlusSimulator():
         problem = meta_model.create_pddl_problem(observation.get_initial_state())
         domain = meta_model.create_pddl_domain(observation.get_initial_state())
         domain = PddlPlusGrounder().ground_domain(domain,problem) # Simulator accepts only grounded domains
+
+        # act_start_idx = 0
+        # if meta_model.constant_numeric_fluents['time_limit']/settings.CP_DELTA_T < 200:
+        #     act_start_idx = int(200 - (meta_model.constant_numeric_fluents['time_limit']/delta_t))
+
         plan = observation.get_pddl_plan(meta_model)
 
         (_,_,trace,) = self.simulate(plan, problem, domain, delta_t=delta_t)
