@@ -368,22 +368,37 @@ def run_eval_stats(novelties: dict,
     for novelty, types in novelties.items():
         for novelty_type in types:
             pattern = 'Levels/novelty_level_{}/type{}/Levels/*.xml'.format(novelty, novelty_type)
-            levels = list(levels_path.glob(pattern))
+
+            if level_lookup:
+                levels = [levels_path / l for l in level_lookup[str(novelty)][str(novelty_type)]]
+            else:
+                levels = list(levels_path.glob(pattern))
 
             number_samples = len(levels)
             if samples is not None:
                 number_samples = min(number_samples, samples)
+            sampled_levels = random.sample(levels,number_samples)
 
-            if level_lookup:
-                levels = [levels_path / l for l in level_lookup[str(novelty)][str(novelty_type)]]
-
-            prepare_config(template, config, levels, notify_novelty)
+            prepare_config(template, config, sampled_levels, notify_novelty)
             pre_directories = glob_directories(bin_path, 'Agent*')
             post_directories = None
+
+            import cProfile, pstats, io
+            from pstats import SortKey
+            pr = cProfile.Profile()
+            pr.enable()
 
             agent_stats = list()
             with run_agent(config.name, agent_type, agent_stats=agent_stats) as env: # TODO: Typo?
                 post_directories = glob_directories(SB_BIN_PATH, 'Agent*')
+
+            pr.disable()
+            s = io.StringIO()
+            sortby = SortKey.CUMULATIVE
+            ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
+            ps.print_stats()
+            print(s.getvalue())
+
 
 
             results_directory = diff_directories(pre_directories, post_directories)
