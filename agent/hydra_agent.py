@@ -1,7 +1,3 @@
-#from agent.policy_learning.sarsa import SarsaLearner
-import random
-
-from agent.consistency.model_formulation import ConsistencyChecker
 from agent.planning.planner import Planner
 import time
 

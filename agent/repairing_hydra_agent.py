@@ -128,9 +128,11 @@ class RepairingHydraSBAgent(HydraAgent):
 
                 self.stats_for_level[NN_PROB].append(cnn_prob)
 
-                pddl_prob = check_obs_consistency(observation, self.meta_model, self.consistency_estimator,
-                                          simulator=RefinedPddlPlusSimulator(),
-                                          delta_t=settings.SB_DELTA_T)
+                if settings.NO_PDDL_CONSISTENCY:
+                    pddl_prob = 1.0
+                else:
+                    pddl_prob = check_obs_consistency(observation, self.meta_model, self.consistency_estimator,
+                                              simulator=RefinedPddlPlusSimulator())
                 self.stats_for_level["pddl_novelty_likelihood"].append(pddl_prob)
 
                 # If we already played at least two levels and novelty keeps being detected, mark this as a very high novelty likelihood

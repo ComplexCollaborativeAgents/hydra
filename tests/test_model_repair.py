@@ -72,12 +72,12 @@ def test_repair_gravity_in_agent(save_obs=False,plot_obs_vs_exp=False):
             obs_with_rewards = obs_with_rewards+1
             # No need to fix the model - we're winning! #TODO: This is an assumption: better to replace this with a good novelty detection mechanism
         else:
-            consistency = check_obs_consistency(observation, meta_model, consistency_checker, delta_t=DEFAULT_DELTA_T)
+            consistency = check_obs_consistency(observation, meta_model, consistency_checker)
             meta_model_repair = GreedyBestFirstSearchMetaModelRepair(fluents_to_repair, consistency_checker, repair_deltas,
                                                                      consistency_threshold=desired_precision)
             repair, _ = meta_model_repair.repair(meta_model, observation, delta_t=DEFAULT_DELTA_T)
             logger.info("Repair done (%s), iteration %d" % (repair,iteration))
-            consistency_after = check_obs_consistency(observation, meta_model, consistency_checker, delta_t=DEFAULT_DELTA_T)
+            consistency_after = check_obs_consistency(observation, meta_model, consistency_checker)
             assert consistency >= consistency_after # TODO: This actually may fail, because current model may be best, but we look for a different one
 
         # Run agent with repaired model
@@ -130,14 +130,11 @@ def _test_repair_gravity_offline(meta_model_repair):
     consistency_estimator = ScienceBirdsConsistencyEstimator()
     # Verify correct model is more consistent
     meta_model = MetaModel()
-    good_consistency = check_obs_consistency(observation, meta_model, consistency_estimator, delta_t=DEFAULT_DELTA_T,
-                                             plot_obs_vs_exp=True)
+    good_consistency = check_obs_consistency(observation, meta_model, consistency_estimator, plot_obs_vs_exp=True)
     _inject_fault_to_meta_model(meta_model)
-    bad_consistency = check_obs_consistency(observation, meta_model, consistency_estimator, delta_t=DEFAULT_DELTA_T,
-                                            plot_obs_vs_exp=True)
+    bad_consistency = check_obs_consistency(observation, meta_model, consistency_estimator, plot_obs_vs_exp=True)
     assert bad_consistency > good_consistency
     meta_model_repair.repair(meta_model, observation, delta_t=DEFAULT_DELTA_T)
     repaired_consistency = check_obs_consistency(observation, meta_model, consistency_estimator,
-                                                 delta_t=DEFAULT_DELTA_T,
                                                  plot_obs_vs_exp=True)
     assert bad_consistency > repaired_consistency

@@ -79,8 +79,7 @@ def run_experiments(exp_name, consistency_checker, obs_files, outfile):
     meta_model = MetaModel()
     for obs_file in obs_files:
         obs = pickle.load(open(obs_file, "rb"))
-        consistency_value = check_obs_consistency(obs, meta_model, consistency_checker, simulator=simulator,
-                                                  delta_t=delta_t)
+        consistency_value = check_obs_consistency(obs, meta_model, consistency_checker, simulator=simulator)
         results_line = "{}\n".format(DELIMITER.join((exp_name , obs_file.name, str(consistency_value))))
         logger.info(results_line)
         outfile.write(results_line)
