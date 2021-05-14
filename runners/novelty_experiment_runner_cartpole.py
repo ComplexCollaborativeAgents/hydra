@@ -14,13 +14,7 @@ from runners import constants
 class NoveltyExperimentGymCartpoleDispatcher(GymCartpoleDispatcher):
     def __init__(self, delegate: WSUObserver, model_id: str = 'CartPole-v1', render: bool = False):
         super().__init__(delegate, model_id, render)
-        self._env_params = {
-            'gravity': 9.8,
-            'masscart': 1,
-            'masspole': 0.1,
-            'length': 0.5,
-            'force_mag': 10.0
-        }
+        self._env_params = dict()
         self._results = pandas.DataFrame(
             columns=['episode_num', 'novelty_probability', 'novelty_threshold', 'novelty', 'novelty_characterization',
                      'performance'])
@@ -31,8 +25,7 @@ class NoveltyExperimentGymCartpoleDispatcher(GymCartpoleDispatcher):
 
     def set_novelty(self, novelties={}):
         for param in novelties:
-            value = self._env_params[param]
-            self._env_params[param] = value * novelties[param]
+            self._env_params[param] = novelties[param]
 
     def set_is_known(self, is_known: bool = False):
         self._is_known = is_known
@@ -94,7 +87,7 @@ class NoveltyExperimentGymCartpoleDispatcher(GymCartpoleDispatcher):
             'novelty_threshold': [novelty_threshold],
             'novelty': [novelty],
             'novelty_characterization': ['nothing'],
-            'performance': [performance]
+            'performance': [performance/constants.MAX_SCORE]
         }
         )
         self._results = self._results.append(result)
@@ -114,41 +107,6 @@ class NoveltyExperimentRunnerCartpole:
             columns=['trial_num', 'episode_num', 'type', 'novelty_probability', 'novelty_threshold', 'novelty',
                      'novelty_characterization', 'performance'])
 
-    # def run_non_novelty_performance_subtrial(self, episode_range, trial_num,
-    #                                          novelty={'level': 2, 'config': {'gravity': 0.9}}):
-    #     observer = CartpoleHydraAgentObserver(agent_type=RepairingCartpoleHydraAgent)
-    #     env_dispatcher = NoveltyExperimentGymCartpoleDispatcher(observer, render=True)
-    #     results = env_dispatcher.run_trial(episode_range=episode_range)
-    #     results['trial_num'] = trial_num
-    #     results['type'] = constants.NON_NOVELTY_PERFORMANCE
-    #     results['level'] = novelty['level']
-    #     results['env_config'] = str(env_dispatcher.get_env_params())
-    #     self._results_dataframe = self._results_dataframe.append(results)
-    #
-    # def run_unknown_novelty_subtrial(self, episode_range, trial_num, novelty={'level': 2, 'config': {'gravity': 0.9}}):
-    #     observer = CartpoleHydraAgentObserver(agent_type=RepairingCartpoleHydraAgent)
-    #     env_dispatcher = NoveltyExperimentGymCartpoleDispatcher(observer, render=True)
-    #     env_dispatcher.set_novelty(novelty['config'])
-    #     env_dispatcher.set_is_known(False)
-    #     results = env_dispatcher.run_trial(episode_range=episode_range)
-    #     results['trial_num'] = trial_num
-    #     results['type'] = constants.UNKNOWN_NOVELTY
-    #     results['level'] = novelty['level']
-    #     results['env_config'] = str(env_dispatcher.get_env_params())
-    #     self._results_dataframe = self._results_dataframe.append(results)
-    #
-    # def run_known_novelty_subtrial(self, episode_range, trial_num, novelty={'level': 2, 'config': {'gravity': 0.9}}):
-    #     observer = CartpoleHydraAgentObserver(agent_type=RepairingCartpoleHydraAgent)
-    #     env_dispatcher = NoveltyExperimentGymCartpoleDispatcher(observer, render=True)
-    #     env_dispatcher.set_novelty(novelty['config'])
-    #     env_dispatcher.set_is_known(True)
-    #     results = env_dispatcher.run_trial(episode_range=episode_range)
-    #     results['trial_num'] = trial_num
-    #     results['type'] = constants.KNOWN_NOVELTY
-    #     results['level'] = novelty['level']
-    #     results['env_config'] = str(env_dispatcher.get_env_params())
-    #     self._results_dataframe = self._results_dataframe.append(results)
-
     def run_experiment_subtrial(self, episode_range, trial_num, type, novelty_id, novelty):
         observer = CartpoleHydraAgentObserver(agent_type=RepairingCartpoleHydraAgent)
         env_dispatcher = NoveltyExperimentGymCartpoleDispatcher(observer, render=True)
@@ -163,41 +121,44 @@ class NoveltyExperimentRunnerCartpole:
         results['novelty_id'] = novelty_id
         results['type'] = type
         results['level'] = novelty['level']
-        results['env_config'] = str(env_dispatcher.get_env_params())
+        results['env_config'] = str(novelty['config'])
         #return results
         self._results_dataframe = self._results_dataframe.append(results)
 
 
-    def run_experiment(self, file):
+    def run_experiment(self, file, novelty_config=None):
         results_file = open(path.join(settings.ROOT_PATH, "data", "cartpole", "test", "repairing_test_wsu.csv"), "a")
-        novelties = NoveltyExperimentRunnerCartpole.generate_novelty_configs()
-        novelty_id = 0
-        for novelty in novelties:
+
+        if novelty_config is None:
+            novelties_config = NoveltyExperimentRunnerCartpole.generate_novelty_configs()
+        else:
+            novelties_config = [novelty_config]
+
+        for novelty in novelties_config:
             for trial in range(0, self._number_of_experiment_trials):
                 episode_num = 0
                 self.run_experiment_subtrial(
                     episode_range=range(episode_num, episode_num + self._non_novelty_performance_trial_length),
                     trial_num=trial,
                     type=constants.NON_NOVELTY_PERFORMANCE,
-                    novelty_id=novelty_id,
+                    novelty_id=novelty['uid'],
                     novelty=novelty)
                 #results.to_csv(results_file)
                 episode_num = episode_num + self._non_novelty_performance_trial_length
                 self.run_experiment_subtrial(
-                    episode_range=range(episode_num, episode_num + self._non_novelty_performance_trial_length),
+                    episode_range=range(episode_num, episode_num + self._novelty_trial_length),
                     trial_num=trial,
                     type=constants.UNKNOWN_NOVELTY,
-                    novelty_id=novelty_id,
+                    novelty_id=novelty['uid'],
                     novelty=novelty)
                 #results.to_csv(results_file)
                 self.run_experiment_subtrial(
-                    episode_range=range(episode_num, episode_num + self._non_novelty_performance_trial_length),
+                    episode_range=range(episode_num, episode_num + self._novelty_trial_length),
                     trial_num=trial,
                     type=constants.KNOWN_NOVELTY,
-                    novelty_id=novelty_id,
+                    novelty_id=novelty['uid'],
                     novelty=novelty)
                 #results.to_csv(results_file)
-            novelty_id += 1
         results_file = open(path.join(settings.ROOT_PATH, "data", "cartpole", "test", "repairing_test_wsu.csv"), "w")
         self._results_dataframe.to_csv(results_file)
 
@@ -206,27 +167,58 @@ class NoveltyExperimentRunnerCartpole:
         novelty_config = {
             'levels': {
                 #1: ['masscart', 'masspole', 'length'],
-                1: ['masscart'],
-                2: ['gravity']
+                1: [constants.MASSCART],
+                2: [constants.GRAVITY]
             },
             'values': range(8, 13)
         }
 
         novelties = []
+        uid = 0
         for level in novelty_config['levels'].keys():
             for param in novelty_config['levels'][level]:
                 for value in novelty_config['values']:
                     novelty = {
+                        'uid': uid,
                         'level': level,
-                        'config': {param: value / 10}
+                        'config': {param: constants.ENV_PARAMS_NOMINAL[param] * value / 10}
                     }
                     novelties.append(novelty)
+                    uid = uid+1
         return novelties
+
+    @staticmethod
+    def categorize_examples_for_novelty_detection(dataframe):
+        dataframe['is_novel'] = numpy.where(dataframe['novelty_probability'] < dataframe['novelty_threshold'], False,
+                                             True)
+        dataframe['TN'] = numpy.where((dataframe['type'] == constants.NON_NOVELTY_PERFORMANCE) & (dataframe['is_novel'] == False), 1, 0)
+        dataframe['FP'] = numpy.where((dataframe['type'] == constants.NON_NOVELTY_PERFORMANCE) & (dataframe['is_novel'] == True), 1, 0)
+        dataframe['TP'] = numpy.where((((dataframe['type'] == constants.UNKNOWN_NOVELTY) | (dataframe['type'] == constants.KNOWN_NOVELTY)) & (dataframe['is_novel'] == True)),
+                                       1, 0)
+        dataframe['FN'] = numpy.where((((dataframe['type'] == constants.UNKNOWN_NOVELTY) | (dataframe['type'] == constants.KNOWN_NOVELTY)) & (dataframe['is_novel'] == False)),
+                                       1, 0)
+        return dataframe
+
+    @staticmethod
+    def get_trials_summary(dataframe):
+        trials = dataframe[['trial_num', 'novelty_id', 'env_config', 'FN', 'FP', 'TN', 'TP', 'performance']].groupby(['novelty_id', 'trial_num']).agg(
+            {'FN': numpy.sum, 'FP': numpy.sum, 'TN': numpy.sum, 'TP': numpy.sum, 'performance': numpy.mean})
+        trials['is_CDT'] = numpy.where((trials['TP'] > 1) & (trials['FP'] == 0), True, False)
+        cdt = trials[trials['is_CDT'] == True]
+        return trials, cdt
+
+    @staticmethod
+    def get_program_metrics(cdt: pandas.DataFrame, trials: pandas.DataFrame):
+        M1 = cdt['FN'].mean()
+        M2 = len(cdt)/len(trials)
+        M21 = len(numpy.where(trials['FP'] >= 1))/len(trials)
+        return M1, M2, M21
+
 
 
 if __name__ == '__main__':
-    experiment_runner = NoveltyExperimentRunnerCartpole(number_of_experiment_trials=1,
+    experiment_runner = NoveltyExperimentRunnerCartpole(number_of_experiment_trials=3,
                                                         non_novelty_learning_trial_length=0,
-                                                        non_novelty_performance_trial_length=1,
-                                                        novelty_trial_length=1)
-    experiment_runner.run_experiment(file=open(path.join(settings.ROOT_PATH, "data", "cartpole", "test", "repairing_test_wsu.csv"), "w"))
+                                                        non_novelty_performance_trial_length=5,
+                                                        novelty_trial_length=10)
+    experiment_runner.run_experiment(novelty_config={'uid': 0, 'level': 2, 'config': {'gravity': 12}}, file=open(path.join(settings.ROOT_PATH, "data", "cartpole", "test", "repairing_test_wsu.csv"), "w"))
