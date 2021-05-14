@@ -4,51 +4,9 @@
 from agent.consistency.pddl_plus_simulator import *
 from agent.planning.domain_analyzer import DomainAnalyzer
 
-''' A simplistic, probably not complete and sound, simulator for PDDL+ processes
- TODO: Replace this with a call to VAL. '''
-class RefinedPddlPlusSimulator(PddlPlusSimulator):
-    ''' Simulate running the given plan from the start state '''
-    def simulate(self, plan_to_simulate: PddlPlusPlan, problem: PddlPlusProblem, domain: PddlPlusDomain, delta_t:float, max_t:float = 1000, max_iterations: float = 1000):
-        # Remove inapplicable events
-        unused_events = self.find_inapplicable_events(domain, problem)
-        for event in unused_events:
-            domain.events.remove(event)
-
-        return super().simulate(plan_to_simulate, problem, domain, delta_t, max_t, max_iterations)
-
-    ''' Finds all the effects that are not applicable in the current problem '''
-    def find_inapplicable_events(self, grounded_domain: PddlPlusDomain, grounded_problem: PddlPlusProblem):
-        domain_analyzer = DomainAnalyzer()
-        initial_state = PddlPlusState(grounded_problem.init)
-
-        world_changes = list()
-        world_changes.extend(grounded_domain.actions)
-        world_changes.extend(grounded_domain.events)
-        world_changes.extend(grounded_domain.processes)
-
-        fluents_in_effects = set()
-        for world_change in world_changes:
-            domain_analyzer.add_fluents_from_effects(world_change.effects, fluents_in_effects)
-
-        sim = PddlPlusSimulator()
-        fluents_in_precondition = set()
-        inapplicable_events = set()
-        for event in grounded_domain.events:
-            for precondition in event.preconditions:
-                fluents_in_precondition.clear()
-                domain_analyzer.add_fluents_in_precondition(precondition, fluents_in_precondition)
-
-                # if event's preconditions constants
-                if len(set(fluents_in_effects).intersection(fluents_in_precondition)) == 0:
-                    if sim.preconditions_hold(initial_state, [precondition]) == False:
-                        inapplicable_events.add(event)
-                        break
-
-        return inapplicable_events
-
-
-''' A PDDL+ sim that caches calls to evaluate formulaes to gain efficiency  '''
 class CachingPddlPlusSimulator(PddlPlusSimulator):
+    ''' A PDDL+ sim that caches calls to evaluate formulaes to gain efficiency  '''
+
     def __init__(self, allow_cascading_effects=False, apply_domain_refiner=True):
         self.context = dict()
         self.apply_domain_refiner = apply_domain_refiner

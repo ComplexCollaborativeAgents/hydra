@@ -2,7 +2,7 @@ import matplotlib
 from agent.consistency.pddl_plus_simulator import *
 from agent.perception.perception import *
 from tests import test_utils
-
+from agent.consistency.fast_pddl_simulator import *
 
 # Defaults
 DEFAULT_DELTA_T = settings.SB_DELTA_T
@@ -186,7 +186,7 @@ def diff_pddl_states(state1, state2):
 def check_obs_consistency(observation,
                           meta_model,
                           consistency_checker : MetaModelBasedConsistencyEstimator,
-                          simulator : PddlPlusSimulator = PddlPlusSimulator(),
+                          simulator : PddlPlusSimulator = CachingPddlPlusSimulator(),
                           plot_obs_vs_exp = DEFAULT_PLOT_OBS_VS_EXP,
                           speedup_factor = 1.0):
     if plot_obs_vs_exp:

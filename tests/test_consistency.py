@@ -8,6 +8,7 @@ from agent.planning.planner import *
 from agent.perception.perception import *
 import tests.test_utils as test_utils
 from tests.test_utils import create_logger
+from state_prediction.anomaly_detector_fc_multichannel import FocusedSBAnomalyDetector
 
 logger = create_logger("test_consistency")
 
@@ -234,7 +235,7 @@ def test_offline_consistency_check():
     # Check consistent with correct model
     import time
     meta_model = MetaModel()
-    consistency_estimator = ScienceBirdsConsistencyEstimator()
+    consistency_estimator = ScienceBirdsConsistencyEstimator(use_simplified_problems=True)
     iterations = 1
     should_profile = False
 
@@ -249,13 +250,22 @@ def test_offline_consistency_check():
         for i in range(iterations):
             print(" -- Obs file {}, Iteration {} --".format(obs_file_name, i))
             start = time.time()
+            consistency_estimator = ScienceBirdsConsistencyEstimator(use_simplified_problems=True)
             consistency = check_obs_consistency(our_observation, meta_model,
                                                 consistency_estimator,
                                                 simulator=CachingPddlPlusSimulator(),
                                                 speedup_factor=1.0,
                                                 plot_obs_vs_exp=plot_me)
-            print("Runtime = {} ".format(time.time()-start))
+            print("Simplified: Runtime = {} ".format(time.time()-start))
 
+            start = time.time()
+            consistency_estimator = ScienceBirdsConsistencyEstimator(use_simplified_problems=False)
+            consistency = check_obs_consistency(our_observation, meta_model,
+                                                consistency_estimator,
+                                                simulator=CachingPddlPlusSimulator(),
+                                                speedup_factor=1.0,
+                                                plot_obs_vs_exp=plot_me)
+            print("Not simplified: Runtime = {} ".format(time.time() - start))
 
         if should_profile == True:
             pr.disable()
