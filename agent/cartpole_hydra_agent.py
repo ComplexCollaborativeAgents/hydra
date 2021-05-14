@@ -20,7 +20,7 @@ class CartpoleHydraAgent:
         self.log = logging.getLogger(__name__).getChild('CartpoleHydraAgent')
 
         self.observations_list = []
-        self.replan_idx = 40
+        self.replan_idx = 25
 
         self.novelty_probability = 0.0
         self.novelty_type = 0
