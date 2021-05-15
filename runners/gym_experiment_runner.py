@@ -191,31 +191,41 @@ def run_repairing_observer_experiments(injected_faults = [0.8, 0.9, 1.0, 1.1, 1.
                 result_file.flush()
 
 
-                # Oracle
-                observer = CartpoleOracleHydraAgentObserver(env_param_to_fluent[env_param], round(env_param_value,
-                                                                                                  CartPoleMetaModel.PLANNER_PRECISION))
-                env = FaultyGymCartpoleDispatcher(observer, render=True)
-                env.inject_fault(env_param, env_param_value)
-
-                start_time = time.time()
-                env.run()
-                runtime = time.time() - start_time
-                repair_performance = observer.agent.last_performance
-                exp_name = "%s\t %s\t %s" % (env_param, fault_factor, i)
-                result_file.write(
-                    "%s\t %s\t %d\t %.2f\t %.2f\n" % (exp_name, "Oracle", i, repair_performance, runtime))
-                result_file.flush()
+                # # Oracle
+                # observer = CartpoleOracleHydraAgentObserver(env_param_to_fluent[env_param], round(env_param_value,
+                #                                                                                   CartPoleMetaModel.PLANNER_PRECISION))
+                # env = FaultyGymCartpoleDispatcher(observer, render=True)
+                # env.inject_fault(env_param, env_param_value)
+                #
+                # start_time = time.time()
+                # env.run()
+                # runtime = time.time() - start_time
+                # repair_performance = observer.agent.last_performance
+                # exp_name = "%s\t %s\t %s" % (env_param, fault_factor, i)
+                # result_file.write(
+                #     "%s\t %s\t %d\t %.2f\t %.2f\n" % (exp_name, "Oracle", i, repair_performance, runtime))
+                # result_file.flush()
 
         result_file.close()
 
 
 if __name__ == '__main__':
     # Types of injected faults. 1.0 means no fault.
-    injected_faults = [0.5, 1.5]
+    injected_faults = [0.5, 2.0]
+
+    # Map fluent name to environment name
+    env_param_to_fluent = dict()
+    env_param_to_fluent['gravity'] = 'gravity'
+    # env_param_to_fluent['force_mag'] = 'force_mag'
+    # env_param_to_fluent['length'] = 'l_pole'
+    # env_param_to_fluent['masscart'] = 'm_cart'
+    # env_param_to_fluent['masspole'] = 'm_pole'
+    # env_param_to_fluent['x_threshold'] = 'x_limit'
+    # env_param_to_fluent['theta_threshold_radians'] = 'angle_limit'
 
     # Experiment types (these are functions that run an experiment
     # run_experiment_funcs = [_run_repairing_experiment, _run_oracle_experiment, _run_no_repair_experiment]
     # run_experiment_funcs = [_run_repairing_experiment]
 
     run_repairing_observer_experiments(injected_faults=injected_faults,
-                                    env_param_to_fluent={'gravity':'gravity'}) # Run the experiment directly on the agent
+                                    env_param_to_fluent=env_param_to_fluent) # Run the experiment directly on the agent
