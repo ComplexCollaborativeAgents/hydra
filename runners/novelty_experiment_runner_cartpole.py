@@ -8,6 +8,8 @@ from agent.cartpole_hydra_agent import CartpoleHydraAgent, CartpoleHydraAgentObs
 import pandas, numpy
 import time
 from runners import constants
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 
 
@@ -214,11 +216,20 @@ class NoveltyExperimentRunnerCartpole:
         M21 = len(numpy.where(trials['FP'] >= 1))/len(trials)
         return M1, M2, M21
 
+    @staticmethod
+    def plot_experiment_results(df, novelty_episode_number):
+        plt.figure(figsize=(16, 9))
+        sns.lineplot(data=df, y='performance', x='episode_num', hue='type', ci=95)
+        plt.axvline(x=novelty_episode_number, color='red')
+        plt.title("Experiment results", fontsize=20)
+        plt.xlabel("episodes", fontsize=15)
+        plt.ylabel("performance", fontsize=15)
+
 
 
 if __name__ == '__main__':
-    experiment_runner = NoveltyExperimentRunnerCartpole(number_of_experiment_trials=3,
+    experiment_runner = NoveltyExperimentRunnerCartpole(number_of_experiment_trials=10,
                                                         non_novelty_learning_trial_length=0,
                                                         non_novelty_performance_trial_length=5,
-                                                        novelty_trial_length=10)
-    experiment_runner.run_experiment(novelty_config={'uid': 0, 'level': 2, 'config': {'gravity': 12}}, file=open(path.join(settings.ROOT_PATH, "data", "cartpole", "test", "repairing_test_wsu.csv"), "w"))
+                                                        novelty_trial_length=15)
+    experiment_runner.run_experiment(novelty_config={'uid': 0, 'level': 2, 'config': {'length': 0.3}}, file=open(path.join(settings.ROOT_PATH, "data", "cartpole", "test", "length_3.csv"), "w"))
