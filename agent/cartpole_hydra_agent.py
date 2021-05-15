@@ -31,7 +31,7 @@ class CartpoleHydraAgent:
         self.steps = 0
         self.plan = None
         self.current_observation = CartPoleObservation()
-        self.last_performance = 0.0
+        self.last_performance = []
 
     def episode_end(self, performance: float, feedback: dict = None):
         self.steps = 0
@@ -39,7 +39,7 @@ class CartpoleHydraAgent:
         self.plan = None
         self.observations_list.append(self.current_observation)
         self.current_observation = CartPoleObservation()
-        self.last_performance = performance # Records the last performance value, to show impact
+        self.last_performance.append(performance) # Records the last performance value, to show impact
         return self.novelty_probability, self.novelty_threshold, self.novelty_type, self.novelty_characterization
 
     def testing_instance(self, feature_vector: dict, novelty_indicator: bool = None) -> \

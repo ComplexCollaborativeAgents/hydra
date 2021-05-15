@@ -156,10 +156,10 @@ def run_repairing_observer_experiments(injected_faults = [0.8, 0.9, 1.0, 1.1, 1.
     ''' Run the Hydra agent with an oracle repair, i.e., modifying the meta_model params according to the injected fault'''
     for env_param in env_param_to_fluent.keys():
         fluent_name = env_param_to_fluent[env_param]
-        result_file = open(path.join(settings.ROOT_PATH, "data", "cartpole", "repair", "repairing_%s_wsu.csv" % env_param), "w")
-        result_file.write("Fluent\t Value\t Run\t Agent\t Iteration\t Reward\t Runtime\n")
+        result_file = open(path.join(settings.ROOT_PATH, "data", "cartpole", "repair", "repairing_%s_wsu_detector_test.csv" % env_param), "w")
+        result_file.write("Fluent\t Value\t Run\t Agent\t Iteration\t Rewards\t\t Avg.Reward\t Runtime\n")
         env_nominal_value = CartPoleMetaModel().constant_numeric_fluents[fluent_name]
-        max_iterations = 1
+        max_iterations = 5
         for fault_factor in injected_faults:
             env_param_value = env_nominal_value * fault_factor
             for i in range(max_iterations):
@@ -170,10 +170,10 @@ def run_repairing_observer_experiments(injected_faults = [0.8, 0.9, 1.0, 1.1, 1.
                 start_time = time.time()
                 env.run()
                 runtime = time.time() - start_time
-                repair_performance = observer.agent.last_performance
+                repair_performance = str(observer.agent.last_performance)
                 exp_name = "%s\t %s\t %s" % (env_param, fault_factor, i)
                 result_file.write(
-                    "%s\t %s\t %d\t %.2f\t %.2f\n" % (exp_name, "Repairing", i, repair_performance, runtime))
+                    "%s\t %s\t %d\t %s\t %.2f\t %.2f\n" % (exp_name, "Repairing", i, repair_performance, sum(observer.agent.last_performance)/len(observer.agent.last_performance), runtime))
                 result_file.flush()
 
                 # No repair
@@ -184,10 +184,10 @@ def run_repairing_observer_experiments(injected_faults = [0.8, 0.9, 1.0, 1.1, 1.
                 start_time = time.time()
                 env.run()
                 runtime = time.time() - start_time
-                repair_performance = observer.agent.last_performance
+                repair_performance = str(observer.agent.last_performance)
                 exp_name = "%s\t %s\t %s" % (env_param, fault_factor, i)
                 result_file.write(
-                    "%s\t %s\t %d\t %.2f\t %.2f\n" % (exp_name, " No repair", i, repair_performance, runtime))
+                    "%s\t %s\t %d\t %s\t %.2f\t %.2f\n" % (exp_name, " No repair", i, repair_performance, sum(observer.agent.last_performance)/len(observer.agent.last_performance), runtime))
                 result_file.flush()
 
 
@@ -215,13 +215,13 @@ if __name__ == '__main__':
 
     # Map fluent name to environment name
     env_param_to_fluent = dict()
-    env_param_to_fluent['gravity'] = 'gravity'
-    # env_param_to_fluent['force_mag'] = 'force_mag'
     # env_param_to_fluent['length'] = 'l_pole'
     # env_param_to_fluent['masscart'] = 'm_cart'
     # env_param_to_fluent['masspole'] = 'm_pole'
     # env_param_to_fluent['x_threshold'] = 'x_limit'
     # env_param_to_fluent['theta_threshold_radians'] = 'angle_limit'
+    env_param_to_fluent['gravity'] = 'gravity'
+    # env_param_to_fluent['force_mag'] = 'force_mag'
 
     # Experiment types (these are functions that run an experiment
     # run_experiment_funcs = [_run_repairing_experiment, _run_oracle_experiment, _run_no_repair_experiment]
