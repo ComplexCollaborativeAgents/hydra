@@ -164,7 +164,7 @@ if __name__ == '__main__':
 
     algs_to_test = [ConsistencyCheckerType.ScienceBirds]
     results_file_template = STATS_FILE_TEMPLATE
-    run_consistency_stats(algs_to_test, results_file_template=results_file_template, samples=1, seed=0)
+    run_consistency_stats(algs_to_test, results_file_template=results_file_template, samples=50, seed=0)
     # logger.info("Experiment Done! Now analyzing...")
     # for alg in algs_to_test:
     #     results_file_name = results_file_template.format(exp_name=alg.name)

@@ -5,11 +5,11 @@ import shortuuid
 
 # Create your own local_settings.py file in this directory if you want
 # to override this variable and not run headless
-HEADLESS = False
+HEADLESS = True
 SCREENSHOT = False
 DEBUG = False
-NO_PLANNING = True
-NO_REPAIR = True
+NO_PLANNING = False
+NO_REPAIR = False
 NO_PDDL_CONSISTENCY=False
 SB_DEV_MODE = True
 
