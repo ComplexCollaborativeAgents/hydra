@@ -387,7 +387,7 @@ class MetaModel():
     ''' Sets the default meta-model'''
     def __init__(self):
 
-        self.delta_t = 0.05
+        self.delta_t = settings.SB_DELTA_T
 
         # TODO: Read this from file instead of hard coding
         self.hyper_parameters = dict() # These are parameters that do not appear in the PDDL files

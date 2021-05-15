@@ -23,8 +23,8 @@ CP_NOVEL_OBS = 3
 
 
 # Constants for ScienceBirds
-SB_NON_NOVEL_OBS_DIR = path.join(settings.ROOT_PATH, 'data', 'science_birds', 'consistency', 'dynamics', 'non_novel')
-SB_NOVEL_OBS_DIR = path.join(settings.ROOT_PATH, 'data', 'science_birds', 'consistency', 'dynamics', 'novel')
+SB_NON_NOVEL_OBS_DIR = path.join(settings.ROOT_PATH, 'data', 'science_birds', 'consistency', 'non_novel')
+SB_NOVEL_OBS_DIR = path.join(settings.ROOT_PATH, 'data', 'science_birds', 'consistency', 'novel')
 
 SB_NON_NOVEL_TESTS = listdir(SB_NON_NOVEL_OBS_DIR)
 SB_NOVEL_TESTS = listdir(SB_NOVEL_OBS_DIR)
@@ -62,22 +62,30 @@ def test_UPenn_consistency_science_birds():
     true_positives = 0
     false_negatives = 0
     false_positives = 0
+
+    print("Non novel cases:")
     for ob_file in SB_NON_NOVEL_TESTS:
         #load file
         sb_ob : ScienceBirdsObservation = pickle.load(open(path.join(SB_NON_NOVEL_OBS_DIR, ob_file), "rb"))
         novelties, novelty_likelihood = detector.detect(sb_ob)
+        print("file={}, novelties found={}, novelty likelihood={}".format(ob_file, len(novelties), novelty_likelihood))
         if not novelties:
             true_negatives += 1
         else:
             false_positives += 1
 
+    print("Novel cases:")
     for ob_file in SB_NOVEL_TESTS:
         sb_ob : ScienceBirdsObservation = pickle.load(open(path.join(SB_NOVEL_OBS_DIR, ob_file), "rb"))
         novelties, novelty_likelihood = detector.detect(sb_ob)
+        print("file={}, novelties found={}, novelty likelihood={}".format(ob_file, len(novelties), novelty_likelihood))
         if novelties:
             true_positives += 1
         else:
             false_negatives += 1
+
+    print("tp={}, tn={}, fp={}, fn={}".format(true_positives, true_negatives, false_positives, false_negatives))
+
     assert(true_positives >= 4)
     assert(true_negatives >= 7)
     assert(false_positives <= 2)

@@ -113,11 +113,11 @@ def test_repair_gravity_offline():
     # Verify correct model is more consistent
     meta_model = CartPoleMetaModel()
     consistency_checker = CartpoleConsistencyEstimator()
-    good_consistency = check_obs_consistency(observation, meta_model, consistency_checker, delta_t=DEFAULT_DELTA_T)
+    good_consistency = check_obs_consistency(observation, meta_model, consistency_checker)
 
     _inject_fault_to_meta_model(meta_model, GRAVITY)
 
-    bad_consistency = check_obs_consistency(observation, meta_model, consistency_checker, delta_t=DEFAULT_DELTA_T)
+    bad_consistency = check_obs_consistency(observation, meta_model, consistency_checker)
 
     assert bad_consistency > good_consistency
 
@@ -129,7 +129,7 @@ def test_repair_gravity_offline():
                                                              consistency_threshold=desired_precision)
 
     meta_model_repair.repair(meta_model, observation, delta_t=DEFAULT_DELTA_T)
-    repaired_consistency = check_obs_consistency(observation, meta_model, consistency_checker, delta_t=DEFAULT_DELTA_T)
+    repaired_consistency = check_obs_consistency(observation, meta_model, consistency_checker)
     assert bad_consistency > repaired_consistency
 
 
@@ -185,12 +185,12 @@ def test_repair_bad_gravity_in_gym(launch_cartpole_sample_level):
             break
             # No need to fix the model - we're winning! #TODO: This is an assumption: better to replace this with a good novelty detection mechanism
         else:
-            consistency = check_obs_consistency(observation, meta_model, consistency_checker, delta_t=meta_model.delta_t)
+            consistency = check_obs_consistency(observation, meta_model, consistency_checker)
             meta_model_repair = GreedyBestFirstSearchMetaModelRepair(fluents_to_repair, consistency_checker, repair_deltas,
                                                                      consistency_threshold=desired_precision)
             repair, _ = meta_model_repair.repair(meta_model, observation, delta_t=meta_model.delta_t)
             logger.info("Repair done (%s), iteration %d" % (repair,iteration))
-            consistency_after = check_obs_consistency(observation, meta_model, consistency_checker, delta_t=meta_model.delta_t)
+            consistency_after = check_obs_consistency(observation, meta_model, consistency_checker)
             assert consistency >= consistency_after # TODO: This actually may fail, because current model may be best, but we look for a different one
 
         # Run agent with repaired model

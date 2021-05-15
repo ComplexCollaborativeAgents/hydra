@@ -1,4 +1,3 @@
-from agent.consistency.fast_pddl_simulator import RefinedPddlPlusSimulator, CachingPddlPlusSimulator
 from agent.consistency.consistency_estimator import *
 from agent.planning.pddl_meta_model import *
 import heapq
@@ -17,7 +16,7 @@ class MetaModelRepair(): # TODO: Remove this class
                pddl_meta_model,
                observation, delta_t=1.0):
 
-        simulator = RefinedPddlPlusSimulator()
+        simulator = CachingPddlPlusSimulator()
         sb_state = observation.state
         pddl_plan = observation.get_pddl_plan(pddl_meta_model)
         observed_states = observation.get_trace(pddl_meta_model)

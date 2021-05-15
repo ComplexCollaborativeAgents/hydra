@@ -58,10 +58,30 @@ class BlockNotDeadConsistencyEstimator(MetaModelBasedConsistencyEstimator):
 
 ''' Checks consistency for SB '''
 class ScienceBirdsConsistencyEstimator(MetaModelBasedConsistencyEstimator):
-    def __init__(self):
+    def __init__(self, use_simplified_problems=True):
         self.consistency_estimators = list()
+        self.use_simplified_problems = use_simplified_problems
         self.consistency_estimators.append(BirdLocationConsistencyEstimator())
         self.consistency_estimators.append(BlockNotDeadConsistencyEstimator())
+
+    def compute_consistency(self, observation, meta_model : MetaModel, simulator : PddlPlusSimulator, delta_t):
+        ''' Computes the consistency of a given observation w.r.t the given meta model using the given simulator
+        NOTICE: Using here the simplified problem due to SB domain's complexity
+        '''
+        try:
+            problem = meta_model.create_pddl_problem(observation.get_initial_state())
+            if self.use_simplified_problems:
+                problem = meta_model.create_simplified_problem(problem)
+            domain = meta_model.create_pddl_domain(observation.get_initial_state())
+            domain = PddlPlusGrounder().ground_domain(domain, problem)  # Simulator accepts only grounded domains
+            plan = observation.get_pddl_plan(meta_model)
+            (_, _, expected_trace,) = simulator.simulate(plan, problem, domain, delta_t=delta_t)
+
+            observed_seq = observation.get_trace(meta_model)
+            consistency = self.estimate_consistency(expected_trace, observed_seq, delta_t)
+        except InconsistentPlanError: # Sometimes the repair makes the executed plan be inconsistent, e.g., its preconditions are not satisfied
+            consistency = MetaModelBasedConsistencyEstimator.PLAN_FAILED_CONSISTENCY_VALUE
+        return  consistency
 
     def estimate_consistency(self, simulation_trace: list, state_seq: list, delta_t: float = DEFAULT_DELTA_T):
         max_inconsistency = 0
@@ -72,10 +92,9 @@ class ScienceBirdsConsistencyEstimator(MetaModelBasedConsistencyEstimator):
 
         return max_inconsistency
 
-'''
- The meta model repair used for ScienceBirds. 
-'''
 class ScienceBirdsMetaModelRepair(GreedyBestFirstSearchMetaModelRepair):
+    ''' The meta model repair used for ScienceBirds. '''
+
     def __init__(self, meta_model = MetaModel(),
                  consistency_threshold=settings.SB_CONSISTENCY_THRESHOLD,
                  time_limit=settings.SB_REPAIR_TIMEOUT,
@@ -88,9 +107,7 @@ class ScienceBirdsMetaModelRepair(GreedyBestFirstSearchMetaModelRepair):
                          max_iterations=max_iterations,
                          time_limit=time_limit)
 
-'''
- The meta model repair used for ScienceBirds. 
-'''
+
 class ScienceBirdsFocusedMetaModelRepair(FocusedMetaModelRepair):
     def __init__(self, meta_model = MetaModel(),
                  consistency_threshold=settings.SB_CONSISTENCY_THRESHOLD,

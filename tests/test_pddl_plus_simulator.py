@@ -178,16 +178,6 @@ def test_fast_sim():
     vanilla_sim_expected_trace, _ = simulator.get_expected_trace(observation, meta_model, delta_t)
     vanilla_sim_consistency = consistency_estimator.estimate_consistency(vanilla_sim_expected_trace, observed_seq, delta_t)
 
-    simulator = RefinedPddlPlusSimulator()
-    refined_sim_expected_trace, _ = simulator.get_expected_trace(observation, meta_model, delta_t)
-    refined_sim_consistency = consistency_estimator.estimate_consistency(refined_sim_expected_trace, observed_seq, delta_t)
-
-    assert(vanilla_sim_consistency==refined_sim_consistency)
-    assert(len(vanilla_sim_expected_trace)==len(refined_sim_expected_trace))
-    for i, trace_item in enumerate(vanilla_sim_expected_trace):
-        other_trace_item = refined_sim_expected_trace[i]
-        assert(trace_item[0]==other_trace_item[0])
-
     simulator = CachingPddlPlusSimulator()
     caching_sim_expected_trace, _ = simulator.get_expected_trace(observation, meta_model, delta_t)
     caching_sim_consistency = consistency_estimator.estimate_consistency(caching_sim_expected_trace, observed_seq, delta_t)
