@@ -1,3 +1,4 @@
+import copy
 from typing import List
 
 import os
@@ -76,7 +77,8 @@ class FocusedAnomalyDetector():
                 next_anomly_idx = i+1
 
                 if len(anomaly_list) == anomaly_count:  ## returns if we have 10/anomaly_count contiguous anomalies
-                    anomalies.append(FocusedAnomaly(anomaly_list))  # TODO: Replace 1.0 with some funciton of anomaly_prob
+                    print("\n\n\n" + str(anomaly_list))
+                    anomalies.append(FocusedAnomaly(copy.deepcopy(anomaly_list)))  # TODO: Replace 1.0 with some funciton of anomaly_prob
                     anomaly_list.clear()
                     break
 
