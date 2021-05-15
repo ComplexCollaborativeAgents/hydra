@@ -58,7 +58,7 @@ class BlockNotDeadConsistencyEstimator(MetaModelBasedConsistencyEstimator):
 
         # Rationale: having more blocks make the life of a block less predictable
         return BlockNotDeadConsistencyEstimator.MIN_BLOCK_NOT_DEAD \
-               + blocks_not_dead/len(blocks_in_sim)*BlockNotDeadConsistencyEstimator.MAX_INCREMENTS
+               + blocks_not_dead/len(blocks_in_sim)*BlockNotDeadConsistencyEstimator.MAX_INCREMENT
 
         # TODO: Consider checking also the reverse condition
 
