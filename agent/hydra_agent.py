@@ -1,7 +1,3 @@
-#from agent.policy_learning.sarsa import SarsaLearner
-import random
-
-from agent.consistency.model_formulation import ConsistencyChecker
 from agent.planning.planner import Planner
 import time
 
@@ -32,11 +28,10 @@ class HydraAgent():
         self.cumulative_plan_time = 0.0
         self.overall_plan_time = 0.0
         self.novelty_existence = -1
-        self.consistency_scores_per_level = []
-        self.consistency_scores_current_level = []
         self.agent_stats = agent_stats
         self.shot_num = 0
         self.trial_timestamp = datetime.datetime.now().strftime("%y%m%d%H%M%S")
+        self.stats_for_level = dict()
 
     def reinit(self):
         self.env.history = []
@@ -49,11 +44,10 @@ class HydraAgent():
         self.cumulative_plan_time = 0.0
         self.overall_plan_time = 0.0
         self.novelty_existence = -1
-        self.consistency_scores_per_level = []
-        self.consistency_scores_current_level = []
         # self.agent_stats = list() # TODO: Discuss this
         self.shot_num = 0
         self.trial_timestamp = datetime.datetime.now().strftime("%y%m%d%H%M%S")
+        self.stats_for_level = dict()
 
     ''' Runs the agent. Returns False if the evaluation has not ended, and True if it has ended.'''
     def main_loop(self,max_actions=1000):
@@ -73,9 +67,7 @@ class HydraAgent():
             raw_state = self.env.get_current_state()
 
             if raw_state.game_state.value == GameState.PLAYING.value:
-                self.stats_for_level = dict()
                 self.handle_game_playing(observation, raw_state)
-                self.agent_stats.append(self.stats_for_level)
             elif raw_state.game_state.value == GameState.WON.value:
                 self.handle_game_won()
             elif raw_state.game_state.value == GameState.LOST.value:
@@ -131,6 +123,7 @@ class HydraAgent():
     ''' Handle what happens when the agent receives a EVALUATION_TERMINATED request'''
     def handle_evaluation_terminated(self):
         # store info and disconnect the agent as the evaluation is finished
+        self.agent_stats.append(self.stats_for_level)
         logger.info("Evaluation complete.")
         return True
 
@@ -147,29 +140,17 @@ class HydraAgent():
 
     ''' Handle what happens when the agent receives a LOST request'''
     def handle_game_lost(self):
-        self.completed_levels.append(False)
-        logger.info("[hydra_agent_server] :: Level {} complete - LOSS".format(self.current_level))
-        logger.info("[hydra_agent_server] :: Cumulative planning time only = {}".format(str(self.cumulative_plan_time)))
-        logger.info("[hydra_agent_server] :: Planning effort percentage = {}\n".format(
-            str((self.cumulative_plan_time / (time.perf_counter() - self.overall_plan_time)))))
-        logger.info("[hydra_agent_server] :: Overall time to attempt level {} = {}\n\n".format(self.current_level, str(
-            (time.perf_counter() - self.overall_plan_time))))
-        cumulative_plan_time = 0
-        overall_plan_time = time.perf_counter()
-        if self.consistency_scores_current_level:
-            self.consistency_scores_per_level.insert(0,sum(self.consistency_scores_current_level)/len(self.consistency_scores_current_level))
-            self.consistency_scores_current_level = []
-        self.perception.new_level = True
-        self.shot_num = 0
-        self.current_level = self.env.sb_client.load_next_available_level()
-        # time.sleep(1)
-        self.novelty_existence = self.env.sb_client.get_novelty_info()
-        time.sleep(2 / settings.SB_SIM_SPEED)
+        self._handle_end_of_level(False)
 
     ''' Handle what happens when the agent receives a WON request'''
     def handle_game_won(self):
-        self.completed_levels.append(True)
-        logger.info("[hydra_agent_server] :: Level {} Complete - WIN".format(self.current_level))
+        self._handle_end_of_level(True)
+        return self.cumulative_plan_time, self.overall_plan_time
+
+    def _handle_end_of_level(self, success):
+        ''' This is called when a level has ended, either in a win or a lose our come '''
+        self.completed_levels.append(success)
+        logger.info("[hydra_agent_server] :: Level {} Complete - WIN={}".format(self.current_level, success))
         logger.info("[hydra_agent_server] :: Cumulative planning time only = {}".format(str(self.cumulative_plan_time)))
         logger.info("[hydra_agent_server] :: Planning effort percentage = {}\n".format(
             str((self.cumulative_plan_time / (time.perf_counter() - self.overall_plan_time)))))
@@ -178,13 +159,17 @@ class HydraAgent():
         self.cumulative_plan_time = 0
         self.overall_plan_time = time.perf_counter()
 
+        self.agent_stats.append(self.stats_for_level)
+
         self.current_level = self.env.sb_client.load_next_available_level()
         self.perception.new_level = True
-        self.shot_num=0
+        self.shot_num = 0
+
+        self.stats_for_level = dict()
         # time.sleep(1)
         self.novelty_existence = self.env.sb_client.get_novelty_info()
         time.sleep(2 / settings.SB_SIM_SPEED)
-        return self.cumulative_plan_time, self.overall_plan_time
+
 
     ''' Handle what happens when the agent receives a PLAYING request'''
     def handle_game_playing(self, observation, raw_state):

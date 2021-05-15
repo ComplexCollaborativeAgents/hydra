@@ -11,8 +11,9 @@ class ModelManipulationOperator():
     def apply(self, repair):
         raise NotImplemented()
 
-''' An MMO that changes a single fluent '''
 class ConstantChangeMMO(ModelManipulationOperator):
+    ''' An MMO that changes a single fluent '''
+
     def __init__(self, fluent_index, delta, upper_bound=DEFAULT_CONSTANT_UPPER_BOUND, lower_bound=DEFAULT_CONSTANT_LOWER_BOUND):
         self.fluent_index = fluent_index
         self.delta = delta
@@ -30,8 +31,9 @@ class ConstantChangeMMO(ModelManipulationOperator):
         new_repair[self.fluent_index] += self.delta
         return new_repair
 
-''' Repair class based on a given set of MMOs. '''
 class MmoBasedMetaModelRepair(SimulationBasedMetaModelRepair):
+    ''' Repair class based on a given set of MMOs. '''
+
     def __init__(self, fluents_to_repair,
                  consistency_estimator,
                  deltas,
@@ -129,8 +131,9 @@ class MmoBasedMetaModelRepair(SimulationBasedMetaModelRepair):
         return consistency+change_cardinality
 
 
-''' A MetaModelRepair'''
 class FocusedMetaModelRepair(MmoBasedMetaModelRepair):
+    ''' A MetaModelRepair'''
+
     def __init__(self, fluents_to_repair,
                  consistency_estimator,
                  deltas,

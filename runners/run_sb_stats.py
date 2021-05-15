@@ -368,24 +368,41 @@ def run_eval_stats(novelties: dict,
     for novelty, types in novelties.items():
         for novelty_type in types:
             pattern = 'Levels/novelty_level_{}/type{}/Levels/*.xml'.format(novelty, novelty_type)
-            levels = list(levels_path.glob(pattern))
+
+            if level_lookup:
+                levels = [levels_path / l for l in level_lookup[str(novelty)][str(novelty_type)]]
+            else:
+                levels = list(levels_path.glob(pattern))
 
             number_samples = len(levels)
             if samples is not None:
                 number_samples = min(number_samples, samples)
+            sampled_levels = random.sample(levels,number_samples)
 
-            if level_lookup:
-                levels = [levels_path / l for l in level_lookup[str(novelty)][str(novelty_type)]]
-
-            prepare_config(template, config, levels, notify_novelty)
+            prepare_config(template, config, sampled_levels, notify_novelty)
             pre_directories = glob_directories(bin_path, 'Agent*')
             post_directories = None
+
+            should_profile = False
+            if should_profile == True:
+                import cProfile, pstats, io
+                from pstats import SortKey
+                pr = cProfile.Profile()
+                pr.enable()
 
             agent_stats = list()
             with run_agent(config.name, agent_type, agent_stats=agent_stats) as env: # TODO: Typo?
                 post_directories = glob_directories(SB_BIN_PATH, 'Agent*')
 
-            # print("AFTER RUN: {}".format(agent_stats))
+            if should_profile == True:
+                pr.disable()
+                s = io.StringIO()
+                sortby = SortKey.CUMULATIVE
+                ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
+                ps.print_stats()
+                print(s.getvalue())
+
+
 
             results_directory = diff_directories(pre_directories, post_directories)
 
@@ -396,11 +413,30 @@ def run_eval_stats(novelties: dict,
             if results_directory is not None:
                 results.append(compute_eval_stats(results_directory, agent_type, agent_stats=agent_stats))
 
-    stat_results = {}
+    # Output results per level
+    results_filename = os.path.join(STATS_BASE_PATH, "eval_trial{}_results.json".format(suffix))
+    print("Print evaluation results to file {}".format(results_filename))
+    with open(results_filename, "w+") as f:
+        print("STATS: writing to {}".format(results_filename))
+        json.dump(results, f, indent=3)
 
+    # Output evaluation metrics for the entire run
+    stat_results = _compute_stats(results, suffix)
+    stats_filename = os.path.join(STATS_BASE_PATH, "eval_trial{}_stats.json".format(suffix))
+    print("Print evaluation metrics to file {}".format(stats_filename))
+    with open(stats_filename, "w+") as f:
+        print("STATS: writing to {}".format(stats_filename))
+        json.dump(stat_results, f, indent=4)
+
+    return results
+
+
+def _compute_stats(results, file_suffix):
+    ''' Compute the evaluation metrics for the given results. '''
+
+    stat_results = {}
     # M1: avg number of False Negatives among CDTs
     # M2: % of CDTs across all trials
-
     # Collect CDTs
     CDTs = []
     for result in results:
@@ -408,50 +444,37 @@ def run_eval_stats(novelties: dict,
         if result['overall']['true_positives'] > 0 and result['overall']['false_positives'] == 0:
             CDTs.append(result)
         print("------------------------------------------------------------------------------------")
-
     print("STATS: CDTs are: {}".format(CDTs))
-
     # For every CDT, count false negatives and average
     sum_false_neg = sum([cdt['overall']['false_negatives'] for cdt in CDTs])
     if len(CDTs) > 0:
-        stat_results['m1'] = sum_false_neg/len(CDTs)
+        stat_results['m1'] = sum_false_neg / len(CDTs)
     else:
         stat_results['m1'] = 0
-
     # Determine % of CDTs
     if len(results) > 0:
         stat_results['m2'] = len(CDTs) / len(results)
     else:
         stat_results['m2'] = 0
-
     # M2.1: % of Trials with at least 1 False Positive
     # Do 1 - % of CDTs
     trial_w_fp = 0
     for result in results:
         if result['overall']['false_positives'] > 0:
             trial_w_fp += 1
-
     if len(results) > 0:
         stat_results['m2.1'] = trial_w_fp / len(results)
     else:
         stat_results['m2.1'] = 0
-
     # M3 + M4: Ratio of agent post-novelty performance vs baseline agent pre-novelty performance (TODO: find pre performance records)
-
     # M5: Post novelty performance overall vs baseline agent
-
     # M6: Asymptotic performance vs baseline agent
+    # M7: False positive rate and True positive rate
 
-    # M7: False positive rate and True positive rate    
-    
-    stats_filename = os.path.join(STATS_BASE_PATH, "eval_trial{}_stats.json".format(suffix))
+    # TODO: Implement these metrics
 
-    with open(stats_filename, "w+") as f:
-        print("STATS: writing to {}".format(stats_filename))
-        json.dump(stat_results, f, indent=4)
+    return stat_results
 
-    return results
-        
 
 if __name__ == '__main__':
     run_sb_stats(seed=0)

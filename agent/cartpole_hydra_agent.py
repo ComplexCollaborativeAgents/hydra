@@ -20,18 +20,21 @@ class CartpoleHydraAgent:
         self.log = logging.getLogger(__name__).getChild('CartpoleHydraAgent')
 
         self.observations_list = []
-        self.replan_idx = 40
+        self.replan_idx = 25
 
         self.novelty_probability = 0.0
         self.novelty_type = 0
         self.novelty_characterization = {'novelty_characterization_description': ''}
         self.novelty_threshold = 0.999999
 
+        self.recorded_novelty_likelihoods = []
+        self.novelty_existence = None
+
         self.plan_idx = 0
         self.steps = 0
         self.plan = None
         self.current_observation = CartPoleObservation()
-        self.last_performance = 0.0
+        self.last_performance = []
 
     def episode_end(self, performance: float, feedback: dict = None):
         self.steps = 0
@@ -39,11 +42,13 @@ class CartpoleHydraAgent:
         self.plan = None
         self.observations_list.append(self.current_observation)
         self.current_observation = CartPoleObservation()
-        self.last_performance = performance # Records the last performance value, to show impact
+        self.last_performance.append(performance) # Records the last performance value, to show impact
         return self.novelty_probability, self.novelty_threshold, self.novelty_type, self.novelty_characterization
 
     def testing_instance(self, feature_vector: dict, novelty_indicator: bool = None) -> \
             dict:
+
+        self.novelty_existence = novelty_indicator
 
         observation = self.feature_vector_to_observation(feature_vector)
 
@@ -105,12 +110,13 @@ class RepairingCartpoleHydraAgent(CartpoleHydraAgent):
 
         try:
             novelties, novelty_likelihood = self.detector.detect(self.current_observation)
+            self.recorded_novelty_likelihoods.append(novelty_likelihood)
         except Exception:
             pass
 
         self.log.info("%d Novelties detected" % len(novelties))
-        if (self.has_repaired and performance < self.repair_threshold) or \
-                ((not self.has_repaired) and len(novelties) != 0):
+        if (performance < self.repair_threshold) and (self.novelty_existence != False) and ((self.novelty_existence == True) or (self.has_repaired) or \
+                ((not self.has_repaired) and len(self.recorded_novelty_likelihoods)>4 and (sum(self.recorded_novelty_likelihoods[-5:])/5 > 0.99))):
 
             # If this is the first detection of novelty, record the characterization # TODO: Rethink this, it is a hack
             if self.has_repaired==False:
@@ -125,8 +131,8 @@ class RepairingCartpoleHydraAgent(CartpoleHydraAgent):
                             for novel_property in novelty_properties:
                                 characterization[novel_property] = "Abnormal state attribute"
 
-                if novelty_likelihood==0.0:
-                    novelty_likelihood = 1.0 # Novelty likelihood is zero when novelty detector says so, but we set this to novelty for some other reasons
+                # if novelty_likelihood==0.0:
+                #     novelty_likelihood = 1.0 # Novelty likelihood is zero when novelty detector says so, but we set this to novelty for some other reasons
                 self.novelty_characterization['novelty_characterization_description'] = json.dumps(characterization)
 
             try:

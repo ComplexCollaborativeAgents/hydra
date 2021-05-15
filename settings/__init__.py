@@ -9,6 +9,8 @@ HEADLESS = True
 SCREENSHOT = False
 DEBUG = False
 NO_PLANNING = False
+NO_REPAIR = False
+NO_PDDL_CONSISTENCY=False
 SB_DEV_MODE = True
 
 SB_PLANNER_MEMORY_LIMIT = 50 # memory limit for UPMurphi (in MB)

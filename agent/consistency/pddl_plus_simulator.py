@@ -22,6 +22,10 @@ class InconsistentPlanError(ValueError):
 ''' A simplistic, probably not complete and sound, simulator for PDDL+ processes
  TODO: Replace this with a call to VAL. '''
 class PddlPlusSimulator():
+
+    def __init__(self, allow_cascading_effects=True):
+        self.allow_cascading_effects = allow_cascading_effects
+
     ''' Return a list of (values_dict,t) pairs, where value_dict is a dictionary
      with the values of the fluents at time t, according to the given trace '''
     def trace_fluents(self, trace : list, fluent_names:list):
@@ -45,8 +49,8 @@ class PddlPlusSimulator():
         self.domain = domain
         self.trace = []
         self.plan = PddlPlusPlan(plan_to_simulate) # Clone the given plan
-        if len(self.plan)==0:
-            raise ValueError("Plan is empty")
+        # if len(self.plan)==0:
+        #     raise ValueError("Plan is empty")
         self.next_timed_action  = self.plan.pop(0)
         self.delta_t = delta_t
 
@@ -170,7 +174,7 @@ class PddlPlusSimulator():
                 if self.preconditions_hold(state, event.preconditions):
                     events_to_fire.append(event)
             if len(events_to_fire)==0:
-                return fired_events
+                break
 
             for event in events_to_fire:
                 effects_list.extend(self.compute_fire_event(state, event))
@@ -178,7 +182,12 @@ class PddlPlusSimulator():
                 fired_events.append(event)
             self.apply_effects(state, effects_list)
             if len(available_events)==0:
-                return fired_events
+                break
+
+            if self.allow_cascading_effects == False:
+                break
+
+        return fired_events
 
     ''' Apply an action on the given state. If binding is not None, we first ground the action with the binding'''
     def apply_action(self, state: PddlPlusState, action : PddlPlusWorldChange, binding: dict = None):

@@ -1,13 +1,15 @@
 import matplotlib.pyplot as plt
 import pytest
-
-from agent.repair.sb_repair import BirdLocationConsistencyEstimator
+from agent.consistency.fast_pddl_simulator import *
+from agent.repair.sb_repair import BirdLocationConsistencyEstimator, ScienceBirdsConsistencyEstimator
 from agent.hydra_agent import *
 from agent.planning.model_manipulator import ManipulateInitNumericFluent
 from agent.planning.planner import *
 from agent.perception.perception import *
 import tests.test_utils as test_utils
 from tests.test_utils import create_logger
+from state_prediction.anomaly_detector_fc_multichannel import FocusedSBAnomalyDetector
+from os import listdir
 
 logger = create_logger("test_consistency")
 
@@ -222,12 +224,8 @@ def test_bad_shot_consistency(launch_science_birds):
 
     assert bad_consistency>consistency
 
-@pytest.mark.skip("having't migrated files yet")
-def test_offline_bad_shot():
+def test_offline_consistency_check():
     plot_me = False
-    meta_model = MetaModel()
-    obs_output_file = path.join(TEST_DATA_DIR, "test_bad_shot_consistency_obs.p")
-    our_observation = pickle.load(open(obs_output_file, "rb")) #*** uncomment if needed for debugging ***
 
     # For debug
     # plt.interactive(True)
@@ -236,14 +234,46 @@ def test_offline_bad_shot():
     # fig = test_utils.plot_expected_trace_for_obs(meta_model, our_observation, ax=fig)
 
     # Check consistent with correct model
-    consistency_estimator = BirdLocationConsistencyEstimator()
-    consistency = check_obs_consistency(our_observation, meta_model, consistency_estimator, plot_obs_vs_exp=plot_me)
+    import time
+    meta_model = MetaModel()
+    consistency_estimator = ScienceBirdsConsistencyEstimator(use_simplified_problems=True)
+    iterations = 1
+    should_profile = False
 
-    # Check consistent with incorrect model
-    good_gravity_factor = MetaModel().constant_numeric_fluents["gravity_factor"]
+    if should_profile == True:
+        import cProfile, pstats, io
+        from pstats import SortKey
+        pr = cProfile.Profile()
+        pr.enable()
+    for obs_file_name in ["consistency_test_obs_1.p", "consistency_test_obs_2.p", "consistency_test_obs_3.p","consistency_test_obs_4.p"]:
+        our_observation = pickle.load(open(path.join(TEST_DATA_DIR, obs_file_name),
+                                           "rb"))  # *** uncomment if needed for debugging ***
+        for i in range(iterations):
+            print(" -- Obs file {}, Iteration {} --".format(obs_file_name, i))
+            start = time.time()
+            consistency_estimator = ScienceBirdsConsistencyEstimator(use_simplified_problems=True)
+            consistency = check_obs_consistency(our_observation, meta_model,
+                                                consistency_estimator,
+                                                simulator=CachingPddlPlusSimulator(),
+                                                speedup_factor=1.0,
+                                                plot_obs_vs_exp=plot_me)
+            print("Simplified: Runtime = {} ".format(time.time()-start))
 
-    bad_meta_model = MetaModel()
-    bad_meta_model.constant_numeric_fluents["gravity_factor"] = good_gravity_factor/2
-    bad_consistency = check_obs_consistency(our_observation, bad_meta_model, consistency_estimator, plot_obs_vs_exp=plot_me)
+            start = time.time()
+            consistency_estimator = ScienceBirdsConsistencyEstimator(use_simplified_problems=False)
+            consistency = check_obs_consistency(our_observation, meta_model,
+                                                consistency_estimator,
+                                                simulator=CachingPddlPlusSimulator(),
+                                                speedup_factor=1.0,
+                                                plot_obs_vs_exp=plot_me)
+            print("Not simplified: Runtime = {} ".format(time.time() - start))
 
-    assert bad_consistency>consistency
+        if should_profile == True:
+            pr.disable()
+            s = io.StringIO()
+            sortby = SortKey.CUMULATIVE
+            ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
+            ps.print_stats()
+            print(s.getvalue())
+
+    assert True

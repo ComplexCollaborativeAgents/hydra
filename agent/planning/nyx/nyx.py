@@ -1,5 +1,4 @@
 
-
 # from agent.planning.nyx.PDDL import PDDL_Parser
 from agent.planning.nyx.planner import Planner
 import agent.planning.nyx.syntax.constants as constants
@@ -122,8 +121,8 @@ def runner(dom_file, prob_file, args_list: []):
         print('\t\tTime: ' + str(round(total_time,3)))
         print('\t\tStates Explored: ' + str(my_plnr.explored_states))
         print('\n=================================================\n')
-        shutil.copy(prob_file, os.path.dirname(prob_file)+"/trace/problems/cartpole_prob_" +
-                    str(len([name for name in os.listdir(os.path.dirname(prob_file)+"/trace/problems/") if os.path.isfile(os.path.join(os.path.dirname(prob_file)+"/trace/problems/", name))])) + ".pddl")
+        # shutil.copy(prob_file, os.path.dirname(prob_file)+"/trace/problems/cartpole_prob_" +
+        #             str(len([name for name in os.listdir(os.path.dirname(prob_file)+"/trace/problems/") if os.path.isfile(os.path.join(os.path.dirname(prob_file)+"/trace/problems/", name))])) + ".pddl")
 
     # if constants.NO_PLAN:
     #     print('\n=================================================\n')
