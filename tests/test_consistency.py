@@ -9,6 +9,7 @@ from agent.perception.perception import *
 import tests.test_utils as test_utils
 from tests.test_utils import create_logger
 from state_prediction.anomaly_detector_fc_multichannel import FocusedSBAnomalyDetector
+from os import listdir
 
 logger = create_logger("test_consistency")
 

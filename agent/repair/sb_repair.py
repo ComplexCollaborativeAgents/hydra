@@ -92,10 +92,9 @@ class ScienceBirdsConsistencyEstimator(MetaModelBasedConsistencyEstimator):
 
         return max_inconsistency
 
-'''
- The meta model repair used for ScienceBirds. 
-'''
 class ScienceBirdsMetaModelRepair(GreedyBestFirstSearchMetaModelRepair):
+    ''' The meta model repair used for ScienceBirds. '''
+
     def __init__(self, meta_model = MetaModel(),
                  consistency_threshold=settings.SB_CONSISTENCY_THRESHOLD,
                  time_limit=settings.SB_REPAIR_TIMEOUT,
@@ -108,9 +107,7 @@ class ScienceBirdsMetaModelRepair(GreedyBestFirstSearchMetaModelRepair):
                          max_iterations=max_iterations,
                          time_limit=time_limit)
 
-'''
- The meta model repair used for ScienceBirds. 
-'''
+
 class ScienceBirdsFocusedMetaModelRepair(FocusedMetaModelRepair):
     def __init__(self, meta_model = MetaModel(),
                  consistency_threshold=settings.SB_CONSISTENCY_THRESHOLD,

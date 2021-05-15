@@ -8,15 +8,16 @@ import matplotlib.pyplot as plt
 from agent.consistency.consistency_estimator import check_obs_consistency
 from agent.consistency.fast_pddl_simulator import *
 
+from state_prediction.anomaly_detector_fc_multichannel import FocusedSBAnomalyDetector
 
 logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("run_consistency_check_experiments")
 logger.setLevel(logging.INFO)
 
 
-SB_OBS_PATH = pathlib.Path(settings.ROOT_PATH) / 'data' / 'science_birds' / 'consistency' / 'dynamics'
+SB_OBS_PATH = pathlib.Path(settings.ROOT_PATH) / 'data' / 'science_birds' / 'consistency'
 STATS_FILE_PATH = pathlib.Path(__file__).parent.absolute()
-STATS_FILE_TEMPLATE = "consistency-results-{alg_name}.csv"
+STATS_FILE_TEMPLATE = "consistency-results-{exp_name}.csv"
 
 SAMPLES = 100
 
@@ -38,31 +39,37 @@ def run_consistency_stats(consistency_checker_types: List[ConsistencyCheckerType
     if seed is not None:
         random.seed(seed)
 
+    results_file_name = results_file_template.format(exp_name="1")
+    print(STATS_FILE_PATH / results_file_name)
+    outfile = (STATS_FILE_PATH / results_file_name).open("w")
+    outfile.write("{}\n".format(DELIMITER.join(["Checker", "Novel", "Observation", "Consistency"])))
+
+
+    print("Novel cases: Running PDDL consistency checkers")
     is_novel = "True"
     obs_path = pathlib.Path(observations_path) / 'novel'
     obs_files = list(obs_path.glob('*_observation.p'))
     obs_files = random.sample(obs_files, min(len(obs_files), samples))
 
     for consistency_checker_type in consistency_checker_types:
-        results_file_name = results_file_template.format(alg_name=consistency_checker_type.name)
-        outfile = (STATS_FILE_PATH / results_file_name).open("w")
-        outfile.write("{}\n".format(DELIMITER.join(["Checker", "Novel", "Observation", "Consistency"])))
         consistency_checker = consistency_checker_type.value()
         exp_name = DELIMITER.join((consistency_checker_type.name, is_novel))
         run_experiments(exp_name,
                         consistency_checker,
                         obs_files,
                         outfile)
-        outfile.close()
+    print("Running UPenn detector")
+    detector = FocusedSBAnomalyDetector()
+    exp_name = DELIMITER.join(("UPenn", is_novel))
+    run_upenn_detector(exp_name, detector, obs_files, outfile)
 
+    print("Non-novel cases: Running PDDL consistency checkers")
     is_novel = "False"
     obs_path = pathlib.Path(observations_path) / 'non_novel'
     obs_files = list(obs_path.glob('*_observation.p'))
     obs_files = random.sample(obs_files, samples)
     for consistency_checker_type in consistency_checker_types:
-        results_file_name = results_file_template.format(alg_name=consistency_checker_type.name)
-        outfile = (STATS_FILE_PATH / results_file_name).open("a")
-
+        print("Running consistency checker {}".format(consistency_checker))
         consistency_checker = consistency_checker_type.value()
         checker_name = consistency_checker_type.name
         exp_name = DELIMITER.join((checker_name, is_novel))
@@ -70,12 +77,18 @@ def run_consistency_stats(consistency_checker_types: List[ConsistencyCheckerType
                         consistency_checker,
                         obs_files,
                         outfile)
-        outfile.close()
 
-''' Runs the given consistency checker on the set of given set of files and output the results to the results file'''
+    print("Running UPenn detector")
+    detector = FocusedSBAnomalyDetector()
+    exp_name = DELIMITER.join(("UPenn", is_novel))
+    run_upenn_detector(exp_name, detector, obs_files, outfile)
+    outfile.close()
+
+
 def run_experiments(exp_name, consistency_checker, obs_files, outfile):
+    ''' Runs the given consistency checker on the set of given set of files and output the results to the results file'''
+
     simulator = CachingPddlPlusSimulator()
-    delta_t = settings.SB_DELTA_T
     meta_model = MetaModel()
     for obs_file in obs_files:
         obs = pickle.load(open(obs_file, "rb"))
@@ -85,8 +98,23 @@ def run_experiments(exp_name, consistency_checker, obs_files, outfile):
         outfile.write(results_line)
         outfile.flush()
 
-''' Compute the ROC curve of the results file '''
+
+def run_upenn_detector(exp_name, detector:FocusedSBAnomalyDetector, obs_files, outfile):
+    ''' Runs UPenn's detector on the given obs_files and output appropriate results file '''
+
+    for obs_file in obs_files:
+        obs = pickle.load(open(obs_file, "rb"))
+
+        novelties, prob = detector.detect(obs)
+
+        results_line = "{}\n".format(DELIMITER.join((exp_name , obs_file.name, "{:.5f}".format(prob))))
+        logger.info(results_line)
+        outfile.write(results_line)
+        outfile.flush()
+
 def analyze_results(results_file: pathlib.Path, alg_name = ""):
+    ''' Compute the ROC curve of the results file '''
+
     lines = open(results_file,"r").readlines()
     headers = [value.strip() for value in lines[0].split(DELIMITER)]
     novel_idx = -1
@@ -130,15 +158,19 @@ def analyze_results(results_file: pathlib.Path, alg_name = ""):
     plt.show()
 
 if __name__ == '__main__':
-    algs_to_test = [ConsistencyCheckerType.ScienceBirds,
-                    ConsistencyCheckerType.BirdLocation,
-                    ConsistencyCheckerType.BlockNotDead]
-    results_file_template = STATS_FILE_TEMPLATE
-    run_consistency_stats(algs_to_test, results_file_template=results_file_template, seed=0)
-    logger.info("Experiment Done! Now analyzing...")
-    for alg in algs_to_test:
-        results_file_name = results_file_template.format(alg_name=alg.name)
-        results_file = (STATS_FILE_PATH / results_file_name)
+    # algs_to_test = [ConsistencyCheckerType.ScienceBirds,
+    #                 ConsistencyCheckerType.BirdLocation,
+    #                 ConsistencyCheckerType.BlockNotDead]
 
-        analyze_results(results_file, alg.name)
+    algs_to_test = [ConsistencyCheckerType.ScienceBirds]
+    results_file_template = STATS_FILE_TEMPLATE
+    run_consistency_stats(algs_to_test, results_file_template=results_file_template, samples=1, seed=0)
+    # logger.info("Experiment Done! Now analyzing...")
+    # for alg in algs_to_test:
+    #     results_file_name = results_file_template.format(exp_name=alg.name)
+    #     results_file = (STATS_FILE_PATH / results_file_name)
+    #     print("Writing results to file {}".format(results_file_name))
+    #
+    #
+    #     analyze_results(results_file, alg.name)
     logger.info("Analysis Done!!")

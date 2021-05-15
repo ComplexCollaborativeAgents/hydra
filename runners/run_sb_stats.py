@@ -383,21 +383,24 @@ def run_eval_stats(novelties: dict,
             pre_directories = glob_directories(bin_path, 'Agent*')
             post_directories = None
 
-            import cProfile, pstats, io
-            from pstats import SortKey
-            pr = cProfile.Profile()
-            pr.enable()
+            should_profile = False
+            if should_profile == True:
+                import cProfile, pstats, io
+                from pstats import SortKey
+                pr = cProfile.Profile()
+                pr.enable()
 
             agent_stats = list()
             with run_agent(config.name, agent_type, agent_stats=agent_stats) as env: # TODO: Typo?
                 post_directories = glob_directories(SB_BIN_PATH, 'Agent*')
 
-            pr.disable()
-            s = io.StringIO()
-            sortby = SortKey.CUMULATIVE
-            ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
-            ps.print_stats()
-            print(s.getvalue())
+            if should_profile == True:
+                pr.disable()
+                s = io.StringIO()
+                sortby = SortKey.CUMULATIVE
+                ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
+                ps.print_stats()
+                print(s.getvalue())
 
 
 
