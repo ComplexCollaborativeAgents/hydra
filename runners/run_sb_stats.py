@@ -18,6 +18,11 @@ import worlds.science_birds as sb
 from agent.hydra_agent import HydraAgent
 from agent.repairing_hydra_agent import RepairingHydraSBAgent
 import settings
+import logging
+
+
+logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger("run_sb_states")
 
 SB_DATA_PATH = pathlib.Path(settings.ROOT_PATH) / 'data' / 'science_birds'
 SB_BIN_PATH = pathlib.Path(settings.SCIENCE_BIRDS_BIN_DIR) / 'linux'
@@ -383,26 +388,9 @@ def run_eval_stats(novelties: dict,
             pre_directories = glob_directories(bin_path, 'Agent*')
             post_directories = None
 
-            should_profile = False
-            if should_profile == True:
-                import cProfile, pstats, io
-                from pstats import SortKey
-                pr = cProfile.Profile()
-                pr.enable()
-
             agent_stats = list()
             with run_agent(config.name, agent_type, agent_stats=agent_stats) as env: # TODO: Typo?
                 post_directories = glob_directories(SB_BIN_PATH, 'Agent*')
-
-            if should_profile == True:
-                pr.disable()
-                s = io.StringIO()
-                sortby = SortKey.CUMULATIVE
-                ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
-                ps.print_stats()
-                print(s.getvalue())
-
-
 
             results_directory = diff_directories(pre_directories, post_directories)
 
