@@ -13,6 +13,8 @@ import seaborn as sns
 
 
 
+
+
 class NoveltyExperimentGymCartpoleDispatcher(GymCartpoleDispatcher):
     def __init__(self, delegate: WSUObserver, model_id: str = 'CartPole-v1', render: bool = False):
         super().__init__(delegate, model_id, render)
@@ -29,7 +31,7 @@ class NoveltyExperimentGymCartpoleDispatcher(GymCartpoleDispatcher):
         for param in novelties:
             self._env_params[param] = novelties[param]
 
-    def set_is_known(self, is_known: bool = False):
+    def set_is_known(self, is_known=None):
         self._is_known = is_known
 
     def _make_environment(self):
@@ -63,6 +65,7 @@ class NoveltyExperimentGymCartpoleDispatcher(GymCartpoleDispatcher):
                     env.render()
                     time.sleep(0.05)
                 label = self.delegate.testing_instance(feature_vector=features, novelty_indicator=self._is_known)
+                print("NOVELTY INDICATOR{}".format(self._is_known))
                 self.log.debug("Received label={}".format(label))
                 action = self.label_to_action(label)
                 observation, reward, done, _ = env.step(action)
@@ -117,7 +120,10 @@ class NoveltyExperimentRunnerCartpole:
         if type == constants.KNOWN_NOVELTY:
             env_dispatcher.set_is_known(True)
         else:
-            env_dispatcher.set_is_known(False)
+            if type == constants.UNKNOWN_NOVELTY:
+                env_dispatcher.set_is_known(None)
+            else:
+                env_dispatcher.set_is_known(False)
         results = env_dispatcher.run_trial(episode_range=episode_range)
         results['trial_num'] = trial_num
         results['novelty_id'] = novelty_id
@@ -228,8 +234,8 @@ class NoveltyExperimentRunnerCartpole:
 
 
 if __name__ == '__main__':
-    experiment_runner = NoveltyExperimentRunnerCartpole(number_of_experiment_trials=10,
+    experiment_runner = NoveltyExperimentRunnerCartpole(number_of_experiment_trials=1,
                                                         non_novelty_learning_trial_length=0,
-                                                        non_novelty_performance_trial_length=5,
-                                                        novelty_trial_length=15)
-    experiment_runner.run_experiment(novelty_config={'uid': 0, 'level': 2, 'config': {'length': 0.3}}, file=open(path.join(settings.ROOT_PATH, "data", "cartpole", "test", "length_3.csv"), "w"))
+                                                        non_novelty_performance_trial_length=1,
+                                                        novelty_trial_length=1)
+    experiment_runner.run_experiment(novelty_config={'uid': 0, 'level': 2, 'config': {'gravity': 20}}, file=open(path.join(settings.ROOT_PATH, "data", "cartpole", "test", "length_3.csv"), "w"))
