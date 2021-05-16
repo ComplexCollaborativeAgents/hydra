@@ -105,46 +105,62 @@ class RepairingCartpoleHydraAgent(CartpoleHydraAgent):
 
     def episode_end(self, performance: float, feedback: dict = None)-> \
             (float, float, int, dict):
-        novelties = []
-        novelty_likelihood=0.0
+        # novelties = []
+        # novelty_likelihood=0.0
+        #
+        # try:
+        #     novelties, novelty_likelihood = self.detector.detect(self.current_observation)
+        #     self.recorded_novelty_likelihoods.append(novelty_likelihood)
+        # except Exception:
+        #     pass
+        #
+        # self.log.info("%d Novelties detected" % len(novelties))
+        # if (performance < self.repair_threshold) and (self.novelty_existence != False) and ((self.novelty_existence == True) or (self.has_repaired) or \
+        #         ((not self.has_repaired) and len(self.recorded_novelty_likelihoods)>4 and (sum(self.recorded_novelty_likelihoods[-5:])/5 > 0.99))):
+        #
+        #     # If this is the first detection of novelty, record the characterization # TODO: Rethink this, it is a hack
+        #     if self.has_repaired==False:
+        #         self.log.info("%d Novelties detected" % len(novelties))
+        #
+        #         characterization = dict()
+        #         for focused_anomaly in novelties:
+        #             # Set the novelty characterization
+        #             for obs_element in focused_anomaly.obs_elements:
+        #                 if obs_element.property is not None and len(obs_element.property)>0:
+        #                     novelty_properties = obs_element.property.strip().split(" ")
+        #                     for novel_property in novelty_properties:
+        #                         characterization[novel_property] = "Abnormal state attribute"
+        #
+        #         # if novelty_likelihood==0.0:
+        #         #     novelty_likelihood = 1.0 # Novelty likelihood is zero when novelty detector says so, but we set this to novelty for some other reasons
+        #         self.novelty_characterization['novelty_characterization_description'] = json.dumps(characterization)
+        #
+        #     try:
+        #         meta_model_repair = CartpoleRepair()
+        #         repair, _ = meta_model_repair.repair(self.meta_model, self.current_observation, delta_t=settings.CP_DELTA_T)
+        #         self.log.info("Repaired meta model (repair string: %s)" % repair)
+        #         self.has_repaired = True
+        #     except Exception:
+        #         pass
+        #
+        # self.novelty_probability = max(self.novelty_probability, novelty_likelihood)
 
-        try:
-            novelties, novelty_likelihood = self.detector.detect(self.current_observation)
-            self.recorded_novelty_likelihoods.append(novelty_likelihood)
-        except Exception:
-            pass
-
-        self.log.info("%d Novelties detected" % len(novelties))
-        if (performance < self.repair_threshold) and (self.novelty_existence != False) and ((self.novelty_existence == True) or (self.has_repaired) or \
-                ((not self.has_repaired) and len(self.recorded_novelty_likelihoods)>4 and (sum(self.recorded_novelty_likelihoods[-5:])/5 > 0.99))):
-
-            # If this is the first detection of novelty, record the characterization # TODO: Rethink this, it is a hack
-            if self.has_repaired==False:
-                self.log.info("%d Novelties detected" % len(novelties))
-
-                characterization = dict()
-                for focused_anomaly in novelties:
-                    # Set the novelty characterization
-                    for obs_element in focused_anomaly.obs_elements:
-                        if obs_element.property is not None and len(obs_element.property)>0:
-                            novelty_properties = obs_element.property.strip().split(" ")
-                            for novel_property in novelty_properties:
-                                characterization[novel_property] = "Abnormal state attribute"
-
-                # if novelty_likelihood==0.0:
-                #     novelty_likelihood = 1.0 # Novelty likelihood is zero when novelty detector says so, but we set this to novelty for some other reasons
-                self.novelty_characterization['novelty_characterization_description'] = json.dumps(characterization)
-
+        if self.novelty_existence is not False and performance < self.repair_threshold:
             try:
                 meta_model_repair = CartpoleRepair()
                 repair, _ = meta_model_repair.repair(self.meta_model, self.current_observation, delta_t=settings.CP_DELTA_T)
                 self.log.info("Repaired meta model (repair string: %s)" % repair)
-                self.has_repaired = True
+                nonzero = any(map(lambda x: x != 0, repair))
+                if nonzero:
+                    self.novelty_probability = 1.0
+                    self.has_repaired = True
             except Exception:
                 pass
 
-        self.novelty_probability = max(self.novelty_probability, novelty_likelihood)
+        if self.novelty_existence is True:
+            self.novelty_probability = 1.0
 
+        self.recorded_novelty_likelihoods.append(self.novelty_probability)
         return super().episode_end(performance)
 
 
