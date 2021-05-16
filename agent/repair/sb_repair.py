@@ -36,33 +36,44 @@ class BirdLocationConsistencyEstimator(MetaModelBasedConsistencyEstimator):
 
 ''' Checks consistency by considering which blocks are alive '''
 class BlockNotDeadConsistencyEstimator(MetaModelBasedConsistencyEstimator):
-    BLOCK_NOT_DEAD = 100
+    MIN_BLOCK_NOT_DEAD = 50
+    MAX_INCREMENT = 50
 
     ''' Estimate consitency by considering the location of the birds in the observed state seq '''
     def estimate_consistency(self, simulation_trace: list, state_seq: list, delta_t: float = DEFAULT_DELTA_T):
+        # TODO: Next "if" statement should never be called but it is: check out why
+        if len(state_seq)==0:
+            return 0
         last_state_in_obs = state_seq[-1]
         live_blocks_in_obs = last_state_in_obs.get_blocks()
         last_state_in_sim = simulation_trace[-1][0]
         blocks_in_sim = last_state_in_sim.get_blocks()
         # Make sure very block that is assumed to be dead in sim is indeed not alive in obs
+
+        blocks_not_dead = 0.0
         for block in blocks_in_sim:
             life_fluent = ('block_life', block)
             life_value = last_state_in_sim[life_fluent]
             if life_value <= 0:
                 if block in live_blocks_in_obs:
-                    logger.info("Block %s is alive but sim. thinks it is dead (life value=%.2f)" % (block, life_value))
-                    return BlockNotDeadConsistencyEstimator.BLOCK_NOT_DEAD
-        # TODO: Consider checking also the reverse condition
+                    logger.debug("Block %s is alive but sim. thinks it is dead (life value=%.2f)" % (block, life_value))
+                    blocks_not_dead=blocks_not_dead+1
 
+        # Rationale: having more blocks make the life of a block less predictable
+        if blocks_not_dead>0:
+            return BlockNotDeadConsistencyEstimator.MIN_BLOCK_NOT_DEAD \
+               + blocks_not_dead/len(blocks_in_sim)*BlockNotDeadConsistencyEstimator.MAX_INCREMENT
+
+        # TODO: Consider checking also the reverse condition
         return 0
 
 ''' Checks consistency for SB '''
 class ScienceBirdsConsistencyEstimator(MetaModelBasedConsistencyEstimator):
-    def __init__(self, use_simplified_problems=True):
+    def __init__(self, use_simplified_problems=True,
+                 consistency_estimators = [BirdLocationConsistencyEstimator(), BlockNotDeadConsistencyEstimator()]):
         self.consistency_estimators = list()
         self.use_simplified_problems = use_simplified_problems
-        self.consistency_estimators.append(BirdLocationConsistencyEstimator())
-        self.consistency_estimators.append(BlockNotDeadConsistencyEstimator())
+        self.consistency_estimators.extend(consistency_estimators)
 
     def compute_consistency(self, observation, meta_model : MetaModel, simulator : PddlPlusSimulator, delta_t):
         ''' Computes the consistency of a given observation w.r.t the given meta model using the given simulator

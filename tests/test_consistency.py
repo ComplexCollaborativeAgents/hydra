@@ -1,5 +1,7 @@
 import matplotlib.pyplot as plt
 import pytest
+import time
+
 from agent.consistency.fast_pddl_simulator import *
 from agent.repair.sb_repair import BirdLocationConsistencyEstimator, ScienceBirdsConsistencyEstimator
 from agent.hydra_agent import *
@@ -224,19 +226,44 @@ def test_bad_shot_consistency(launch_science_birds):
 
     assert bad_consistency>consistency
 
-def test_offline_consistency_check():
-    plot_me = False
 
-    # For debug
-    # plt.interactive(True)
-    # _, fig = plt.subplots()
-    # test_utils.plot_observation(our_observation, ax=fig)
-    # fig = test_utils.plot_expected_trace_for_obs(meta_model, our_observation, ax=fig)
+# Constants for ScienceBirds
+SB_NON_NOVEL_OBS_DIR = path.join(settings.ROOT_PATH, 'data', 'science_birds', 'consistency', 'non_novel')
+SB_NOVEL_OBS_DIR = path.join(settings.ROOT_PATH, 'data', 'science_birds', 'consistency', 'novel')
 
-    # Check consistent with correct model
-    import time
+SB_NON_NOVEL_TESTS = listdir(SB_NON_NOVEL_OBS_DIR)
+SB_NOVEL_TESTS = listdir(SB_NOVEL_OBS_DIR)
+
+def test_consistency_fp():
+    ''' Drill down on a single observation that outputs a false positive for our consistency checker '''
     meta_model = MetaModel()
-    consistency_estimator = ScienceBirdsConsistencyEstimator(use_simplified_problems=True)
+
+    samples = 10
+    true_negatives = 0
+    true_positives = 0
+    false_negatives = 0
+    false_positives = 0
+
+    print("Non novel cases:")
+    consistency_checker = ScienceBirdsConsistencyEstimator()
+
+    for ob_file in SB_NON_NOVEL_TESTS[:samples]:
+        # load file
+        sb_ob = pickle.load(open(path.join(SB_NON_NOVEL_OBS_DIR, ob_file), "rb"))
+        consistency = check_obs_consistency(sb_ob, meta_model, consistency_checker)
+        print("Non-novel file {}, consistency {}".format(ob_file, consistency))
+        assert consistency<settings.SB_CONSISTENCY_THRESHOLD
+
+    print("Novel cases:")
+    for ob_file in SB_NOVEL_TESTS[:samples]:
+        sb_ob = pickle.load(open(path.join(SB_NOVEL_OBS_DIR, ob_file), "rb"))
+        consistency = check_obs_consistency(sb_ob, meta_model, consistency_checker)
+        print("Novel file {}, consistency {}".format(ob_file, consistency))
+        assert consistency >= settings.SB_CONSISTENCY_THRESHOLD
+
+def test_consistency_check_timing():
+    ''' A test designed to measure the time it takes to perform a consistency check '''
+    meta_model = MetaModel()
     iterations = 1
     should_profile = False
 
@@ -252,20 +279,12 @@ def test_offline_consistency_check():
             print(" -- Obs file {}, Iteration {} --".format(obs_file_name, i))
             start = time.time()
             consistency_estimator = ScienceBirdsConsistencyEstimator(use_simplified_problems=True)
-            consistency = check_obs_consistency(our_observation, meta_model,
-                                                consistency_estimator,
-                                                simulator=CachingPddlPlusSimulator(),
-                                                speedup_factor=1.0,
-                                                plot_obs_vs_exp=plot_me)
+            consistency = check_obs_consistency(our_observation, meta_model,consistency_estimator)
             print("Simplified: Runtime = {} ".format(time.time()-start))
 
             start = time.time()
             consistency_estimator = ScienceBirdsConsistencyEstimator(use_simplified_problems=False)
-            consistency = check_obs_consistency(our_observation, meta_model,
-                                                consistency_estimator,
-                                                simulator=CachingPddlPlusSimulator(),
-                                                speedup_factor=1.0,
-                                                plot_obs_vs_exp=plot_me)
+            consistency = check_obs_consistency(our_observation, meta_model,consistency_estimator)
             print("Not simplified: Runtime = {} ".format(time.time() - start))
 
         if should_profile == True:
