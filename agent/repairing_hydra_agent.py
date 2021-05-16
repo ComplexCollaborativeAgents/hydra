@@ -189,7 +189,10 @@ class RepairingHydraSBAgent(HydraAgent):
     If we are going to repair for a level, it will be a repair with the first shot's observations for that level.
     '''
     def should_repair(self, observation: ScienceBirdsObservation):
-        # If novelty existance is given, use the given value
+        # If novelty existance is given, use the given
+        if self.revision_attempts >= settings.HYDRA_MODEL_REVISION_ATTEMPTS:
+            return False
+
         if self.novelty_existence != NOVELTY_EXISTANCE_NOT_GIVEN:
             return self.novelty_existence==1
 
@@ -212,8 +215,7 @@ class RepairingHydraSBAgent(HydraAgent):
                                                                                                                                           self.completed_levels[-1]))
 
         # Only repair if the following conditions hold
-        if self.revision_attempts < settings.HYDRA_MODEL_REVISION_ATTEMPTS and\
-                cnn_prob > self.detector.threshold and\
+        if cnn_prob > self.detector.threshold and\
                 self.nn_prob_per_level[0] > self.detector.threshold and\
                 self.nn_prob_per_level[1] > self.detector.threshold and\
                 not self.completed_levels[-1] and \
