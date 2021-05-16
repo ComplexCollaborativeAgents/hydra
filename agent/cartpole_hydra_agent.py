@@ -28,6 +28,7 @@ class CartpoleHydraAgent:
         self.novelty_threshold = 0.999999
 
         self.recorded_novelty_likelihoods = []
+        self.consistency_scores = []
         self.novelty_existence = None
 
         self.plan_idx = 0
@@ -148,12 +149,16 @@ class RepairingCartpoleHydraAgent(CartpoleHydraAgent):
         if self.novelty_existence is not False and performance < self.repair_threshold:
             try:
                 meta_model_repair = CartpoleRepair()
-                repair, _ = meta_model_repair.repair(self.meta_model, self.current_observation, delta_t=settings.CP_DELTA_T)
+                repair, consistency = meta_model_repair.repair(self.meta_model, self.current_observation, delta_t=settings.CP_DELTA_T)
                 self.log.info("Repaired meta model (repair string: %s)" % repair)
                 nonzero = any(map(lambda x: x != 0, repair))
                 if nonzero:
                     self.novelty_probability = 1.0
                     self.has_repaired = True
+                    self.novelty_characterization = json.dumps(dict(zip(meta_model_repair.fluents_to_repair,repair)))
+                elif consistency > settings.CP_CONSISTENCY_THRESHOLD:
+                    self.novelty_probability = 1.0
+                self.consistency_scores.append(consistency)
             except Exception:
                 pass
 
