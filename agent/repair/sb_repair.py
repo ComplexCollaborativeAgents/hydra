@@ -41,6 +41,9 @@ class BlockNotDeadConsistencyEstimator(MetaModelBasedConsistencyEstimator):
 
     ''' Estimate consitency by considering the location of the birds in the observed state seq '''
     def estimate_consistency(self, simulation_trace: list, state_seq: list, delta_t: float = DEFAULT_DELTA_T):
+        # TODO: Next "if" statement should never be called but it is: check out why
+        if len(state_seq)==0:
+            return 0
         last_state_in_obs = state_seq[-1]
         live_blocks_in_obs = last_state_in_obs.get_blocks()
         last_state_in_sim = simulation_trace[-1][0]
