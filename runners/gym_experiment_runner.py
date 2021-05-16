@@ -215,13 +215,14 @@ if __name__ == '__main__':
 
     # Map fluent name to environment name
     env_param_to_fluent = dict()
-    # env_param_to_fluent['length'] = 'l_pole'
-    # env_param_to_fluent['masscart'] = 'm_cart'
-    # env_param_to_fluent['masspole'] = 'm_pole'
-    # env_param_to_fluent['x_threshold'] = 'x_limit'
-    # env_param_to_fluent['theta_threshold_radians'] = 'angle_limit'
     env_param_to_fluent['force_mag'] = 'force_mag'
     env_param_to_fluent['gravity'] = 'gravity'
+    env_param_to_fluent['length'] = 'l_pole'
+    env_param_to_fluent['masscart'] = 'm_cart'
+    env_param_to_fluent['masspole'] = 'm_pole'
+    env_param_to_fluent['x_threshold'] = 'x_limit'
+    env_param_to_fluent['theta_threshold_radians'] = 'angle_limit'
+
 
     # Experiment types (these are functions that run an experiment
     # run_experiment_funcs = [_run_repairing_experiment, _run_oracle_experiment, _run_no_repair_experiment]
