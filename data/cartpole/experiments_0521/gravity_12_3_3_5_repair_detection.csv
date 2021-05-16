@@ -1,13 +1,13 @@
 ,trial_num,episode_num,type,novelty_probability,novelty_threshold,novelty,novelty_characterization,performance,novelty_id,level,env_config
-0,0,0,non-novelty-performance,0.0,0.999999,0,nothing,0.87,0.0,2.0,{'gravity': 12}
+0,0,0,non-novelty-performance,0.0,0.999999,0,nothing,1.0,0.0,2.0,{'gravity': 12}
 0,0,1,non-novelty-performance,0.0,0.999999,0,nothing,1.0,0.0,2.0,{'gravity': 12}
-0,0,2,non-novelty-performance,0.0,0.999999,0,nothing,0.88,0.0,2.0,{'gravity': 12}
+0,0,2,non-novelty-performance,0.0,0.999999,0,nothing,1.0,0.0,2.0,{'gravity': 12}
 0,0,3,unknown-novelty,0.0,0.999999,0,nothing,1.0,0.0,2.0,{'gravity': 12}
 0,0,4,unknown-novelty,0.0,0.999999,0,nothing,1.0,0.0,2.0,{'gravity': 12}
 0,0,5,unknown-novelty,0.0,0.999999,0,nothing,1.0,0.0,2.0,{'gravity': 12}
 0,0,6,unknown-novelty,0.0,0.999999,0,nothing,1.0,0.0,2.0,{'gravity': 12}
 0,0,7,unknown-novelty,0.0,0.999999,0,nothing,1.0,0.0,2.0,{'gravity': 12}
-0,0,3,known-novelty,1.0,0.999999,0,nothing,0.82,0.0,2.0,{'gravity': 12}
+0,0,3,known-novelty,1.0,0.999999,0,nothing,1.0,0.0,2.0,{'gravity': 12}
 0,0,4,known-novelty,1.0,0.999999,0,nothing,1.0,0.0,2.0,{'gravity': 12}
 0,0,5,known-novelty,1.0,0.999999,0,nothing,1.0,0.0,2.0,{'gravity': 12}
 0,0,6,known-novelty,1.0,0.999999,0,nothing,1.0,0.0,2.0,{'gravity': 12}
@@ -28,7 +28,7 @@
 0,2,0,non-novelty-performance,0.0,0.999999,0,nothing,1.0,0.0,2.0,{'gravity': 12}
 0,2,1,non-novelty-performance,0.0,0.999999,0,nothing,1.0,0.0,2.0,{'gravity': 12}
 0,2,2,non-novelty-performance,0.0,0.999999,0,nothing,1.0,0.0,2.0,{'gravity': 12}
-0,2,3,unknown-novelty,0.0,0.999999,0,nothing,0.995,0.0,2.0,{'gravity': 12}
+0,2,3,unknown-novelty,0.0,0.999999,0,nothing,1.0,0.0,2.0,{'gravity': 12}
 0,2,4,unknown-novelty,0.0,0.999999,0,nothing,1.0,0.0,2.0,{'gravity': 12}
 0,2,5,unknown-novelty,0.0,0.999999,0,nothing,1.0,0.0,2.0,{'gravity': 12}
 0,2,6,unknown-novelty,0.0,0.999999,0,nothing,1.0,0.0,2.0,{'gravity': 12}
