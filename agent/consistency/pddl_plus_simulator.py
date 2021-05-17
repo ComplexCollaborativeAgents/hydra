@@ -49,9 +49,10 @@ class PddlPlusSimulator():
         self.domain = domain
         self.trace = []
         self.plan = PddlPlusPlan(plan_to_simulate) # Clone the given plan
-        # if len(self.plan)==0:
-        #     raise ValueError("Plan is empty")
-        self.next_timed_action  = self.plan.pop(0)
+        if len(self.plan)==0:
+            self.next_timed_action = None
+        else:
+            self.next_timed_action = self.plan.pop(0)
         self.delta_t = delta_t
 
         # Initial state and first action

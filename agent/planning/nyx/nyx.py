@@ -7,7 +7,7 @@ import sys
 import time
 import os, shutil
 from datetime import datetime
-
+import gc
 sys.dont_write_bytecode = True
 
 
@@ -172,6 +172,10 @@ def runner(dom_file, prob_file, args_list: []):
     print('\n=================================================\n')
 
     plan_f.close()
+
+
+    del my_plnr
+    gc.collect()
 
 #-----------------------------------------------
 # Main

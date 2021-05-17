@@ -36,7 +36,7 @@ class GymCartpoleDispatcher:
 
         self.delegate.experiment_end()
 
-    def __run_trial(self, episodes: int = 5, steps: int = 200):
+    def __run_trial(self, episodes: int = 10, steps: int = 200):
         env = self._make_environment()
         for episode in range(episodes):
             self.delegate.testing_episode_start(episode)
