@@ -16,12 +16,20 @@ class Planner:
     # Solve
     #-----------------------------------------------
 
-    initial_state = None
-    reached_goal_state = None
-    explored_states = 0
-    # total_visited = 0
-    queue = []
-    visited_hashmap = {}
+    # initial_state = None
+    # reached_goal_state = None
+    # explored_states = 0
+    # # total_visited = 0
+    # queue = []
+    # visited_hashmap = {}
+
+    def __init__(self):
+        self.initial_state = None
+        self.reached_goal_state = None
+        self.explored_states = 0
+        # self.total_visited = 0
+        self.queue = []
+        self.visited_hashmap = {}
 
 
     def solve(self, domain, problem):

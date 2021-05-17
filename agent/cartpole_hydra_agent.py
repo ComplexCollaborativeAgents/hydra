@@ -24,7 +24,7 @@ class CartpoleHydraAgent:
 
         self.novelty_probability = 0.0
         self.novelty_type = 0
-        self.novelty_characterization = {'novelty_characterization_description': ''}
+        self.novelty_characterization = {}
         self.novelty_threshold = 0.999999
 
         self.recorded_novelty_likelihoods = []
@@ -157,6 +157,7 @@ class RepairingCartpoleHydraAgent(CartpoleHydraAgent):
                     self.has_repaired = True
                     self.novelty_characterization = json.dumps(dict(zip(meta_model_repair.fluents_to_repair,repair)))
                 elif consistency > settings.CP_CONSISTENCY_THRESHOLD:
+                    self.novelty_characterization = json.dumps({'Unknown novelty':'no adjustments made'})
                     self.novelty_probability = 1.0
                 self.consistency_scores.append(consistency)
             except Exception:
