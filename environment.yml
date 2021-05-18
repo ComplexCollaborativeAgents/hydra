@@ -24,6 +24,7 @@ dependencies:
   - pytorch=1.7.0
   - torchvision=0.8.1
   - shortuuid
+  - seaborn
   - pip:
       - pika==1.1.0
       - -e .
