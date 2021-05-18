@@ -214,10 +214,10 @@ class NoveltyExperimentRunnerCartpole:
 
     @staticmethod
     def get_program_metrics(cdt: pandas.DataFrame, trials: pandas.DataFrame):
-        M1 = cdt[['trial_type', 'FN']].groupby('trial_type').agg({'FN'.numpy.mean})
-        M2 = len(cdt) / len(trials)
-        M21 = len(numpy.where(trials['FP'] >= 1)) / len(trials)
-        return M1, M2, M21
+        num_trials_per_type = trials.groupby("trial_type").agg({'FN': len}).rename(columns={'FN': 'count'})
+        scores = cdt.groupby("trial_type").agg({'FN': numpy.mean, 'FP': len}).rename(columns={'FN': 'M1', 'FP': 'M2'})
+        scores['M2'] = scores['M2'] / num_trials_per_type['count']
+        return scores
 
     @staticmethod
     def plot_experiment_results(df, novelty_episode_number):
@@ -234,5 +234,5 @@ if __name__ == '__main__':
                                                         non_novelty_learning_trial_length=0,
                                                         non_novelty_performance_trial_length=5,
                                                         novelty_trial_length=10)
-    experiment_runner.run_experiment(novelty_config={'uid': 0, 'level': 2, 'config': {'gravity': 12}}, file=open(
+    experiment_runner.run_experiment(novelty_config={'uid': 0, 'level': 1, 'config': {constants.LENGTH: 1}}, file=open(
         path.join(settings.ROOT_PATH, "data", "cartpole", "test", "length_3.csv"), "w"))
