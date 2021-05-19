@@ -22,7 +22,7 @@ def _adjust_game_speed():
     settings.SB_GT_FREQ = int(30 / settings.SB_SIM_SPEED)
 
 ''' Inject a fault to the agent's meta model '''
-def _inject_fault_to_meta_model(meta_model : MetaModel, fluent_to_change = GRAVITY_FACTOR):
+def _inject_fault_to_meta_model(meta_model : ScienceBirdsMetaModel, fluent_to_change = GRAVITY_FACTOR):
     meta_model.constant_numeric_fluents[fluent_to_change] = 12
 
 ''' A full system test: run SB with a bad metnka model, observe results, fix meta model '''
@@ -116,7 +116,7 @@ def test_repair_gravity_offline_focused_repair():
     # Repair model
     desired_precision = 20
     consistency_estimator = ScienceBirdsConsistencyEstimator()
-    meta_model = MetaModel()
+    meta_model = ScienceBirdsMetaModel()
 
     meta_model_repair = FocusedMetaModelRepair(meta_model.repairable_constants, consistency_estimator, meta_model.repair_deltas,
                                                              consistency_threshold=desired_precision)
@@ -129,7 +129,7 @@ def _test_repair_gravity_offline(meta_model_repair):
     observation = pickle.load(open(obs_output_file, "rb"))
     consistency_estimator = ScienceBirdsConsistencyEstimator()
     # Verify correct model is more consistent
-    meta_model = MetaModel()
+    meta_model = ScienceBirdsMetaModel()
     good_consistency = check_obs_consistency(observation, meta_model, consistency_estimator, plot_obs_vs_exp=True)
     _inject_fault_to_meta_model(meta_model)
     bad_consistency = check_obs_consistency(observation, meta_model, consistency_estimator, plot_obs_vs_exp=True)

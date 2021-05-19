@@ -3,7 +3,7 @@ This model manipulates a PDDL+ problem and domain files
 '''
 from agent.planning.pddl_plus import PddlPlusProblem, PddlPlusDomain
 import agent.planning.pddl_plus as pddl_plus
-from agent.planning.pddl_meta_model import *
+from agent.planning.sb_meta_model import *
 
 ''' General interface'''
 class ProblemManipualtor():
@@ -28,7 +28,7 @@ class ManipulateInitNumericFluent(ProblemManipualtor):
 
 ''' General interface'''
 class MetaModelManipualtor():
-    def apply_change(self, pddl_meta_model :MetaModel):
+    def apply_change(self, pddl_meta_model :ScienceBirdsMetaModel):
         raise ValueError("Not implemented yet")
 
 
@@ -41,7 +41,7 @@ class ManipulateNumericConstant(MetaModelManipualtor):
         self.fluent_to_change = fluent_name
         self.delta = delta
 
-    def apply_change(self, pddl_meta_model :MetaModel):
+    def apply_change(self, pddl_meta_model :ScienceBirdsMetaModel):
         old_value = pddl_meta_model.constant_numeric_fluents[self.fluent_to_change]
         pddl_meta_model.constant_numeric_fluents[self.fluent_to_change] = float(old_value)+self.delta
 

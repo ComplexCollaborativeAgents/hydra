@@ -16,7 +16,7 @@ from utils.point2D import Point2D
 import subprocess
 import agent.perception.perception as perception
 from agent.hydra_agent import HydraAgent
-from agent.planning.pddl_meta_model import *
+from agent.planning.sb_meta_model import *
 from agent.repairing_hydra_agent import RepairingHydraSBAgent
 
 logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')

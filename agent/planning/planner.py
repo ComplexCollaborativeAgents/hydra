@@ -8,7 +8,7 @@ from os import path, chdir
 import subprocess
 import re
 from agent.planning.pddl_plus import *
-from agent.planning.pddl_meta_model import *
+from agent.planning.sb_meta_model import *
 import datetime
 import time
 
@@ -18,7 +18,7 @@ class Planner():
     SB_OFFSET = 1
 
 
-    def __init__(self, meta_model = MetaModel()):
+    def __init__(self, meta_model = ScienceBirdsMetaModel()):
         self.meta_model = meta_model
         self.current_problem_prefix = None
 
@@ -49,18 +49,18 @@ class Planner():
 
 
     def write_problem_file(self, pddl_problem):
-        pddl_problem_file = "%s/sb_prob.pddl" % str(settings.PLANNING_DOCKER_PATH)
+        pddl_problem_file = "%s/sb_prob.pddl" % str(settings.SB_PLANNING_DOCKER_PATH)
         exporter = PddlProblemExporter()
         exporter.to_file(pddl_problem, pddl_problem_file)
         if settings.DEBUG:
             self.current_problem_prefix = datetime.datetime.now().strftime("%y%m%d_%H%M%S")
-            cmd = "mkdir -p {}/trace/problems".format(settings.PLANNING_DOCKER_PATH)
+            cmd = "mkdir -p {}/trace/problems".format(settings.SB_PLANNING_DOCKER_PATH)
             subprocess.run(cmd, shell=True)
-            exporter.to_file(pddl_problem, "{}/trace/problems/{}_problem.pddl".format(settings.PLANNING_DOCKER_PATH,
-                                                          self.current_problem_prefix))
+            exporter.to_file(pddl_problem, "{}/trace/problems/{}_problem.pddl".format(settings.SB_PLANNING_DOCKER_PATH,
+                                                                                      self.current_problem_prefix))
 
     def get_plan_actions(self,count=0):
-        chdir("%s"  % settings.PLANNING_DOCKER_PATH)
+        chdir("%s" % settings.SB_PLANNING_DOCKER_PATH)
         completed_process = subprocess.run(('docker', 'build', '-t', 'upm_from_dockerfile', '.'), capture_output=True)
         out_file = open("docker_build_trace.txt", "wb")
         out_file.write(completed_process.stdout)
@@ -84,17 +84,17 @@ class Planner():
 
         subprocess.run(['docker', 'image', 'prune', '--force'])
 
-        plan_actions =  self.extract_actions_from_plan_trace("%s/docker_plan_trace.txt" % str(settings.PLANNING_DOCKER_PATH))
+        plan_actions =  self.extract_actions_from_plan_trace("%s/docker_plan_trace.txt" % str(settings.SB_PLANNING_DOCKER_PATH))
 
         out_file = open("docker_plan_trace.txt", "a")
         out_file.write("\n\nCUMULATIVE COMPILATION AND PLAN TIME: " + str(completed_docker_plan_time) + "\n\n")
         out_file.close()
 
         if settings.DEBUG:
-            cmd = "mkdir -p {}/trace/plan_output && cp {}/docker_plan_trace.txt {}/trace/plan_output/{}_plan_trace.txt".format(settings.PLANNING_DOCKER_PATH,
-                                                                                                                            settings.PLANNING_DOCKER_PATH,
-                                                                                                                            settings.PLANNING_DOCKER_PATH,
-                                                                                                                            self.current_problem_prefix)
+            cmd = "mkdir -p {}/trace/plan_output && cp {}/docker_plan_trace.txt {}/trace/plan_output/{}_plan_trace.txt".format(settings.SB_PLANNING_DOCKER_PATH,
+                                                                                                                               settings.SB_PLANNING_DOCKER_PATH,
+                                                                                                                               settings.SB_PLANNING_DOCKER_PATH,
+                                                                                                                               self.current_problem_prefix)
             subprocess.run(cmd, shell=True)
 
         if len(plan_actions) > 0:
@@ -134,14 +134,14 @@ class Planner():
         unobscured_plan_list = []
 
         # COPY DOMAIN FILE TO VAL DIRECTORY FOR VALIDATION.
-        cmd = 'cp {}/sb_domain.pddl {}/val_domain.pddl'.format(str(settings.PLANNING_DOCKER_PATH), str(settings.VAL_DOCKER_PATH))
+        cmd = 'cp {}/sb_domain.pddl {}/val_domain.pddl'.format(str(settings.SB_PLANNING_DOCKER_PATH), str(settings.VAL_DOCKER_PATH))
         subprocess.run(cmd, shell=True)
 
         # COPY PROBLEM FILE TO VAL DIRECTORY FOR VALIDATION.
-        cmd = 'cp {}/sb_prob.pddl {}/val_prob.pddl'.format(str(settings.PLANNING_DOCKER_PATH), str(settings.VAL_DOCKER_PATH))
+        cmd = 'cp {}/sb_prob.pddl {}/val_prob.pddl'.format(str(settings.SB_PLANNING_DOCKER_PATH), str(settings.VAL_DOCKER_PATH))
         subprocess.run(cmd, shell=True)
 
-        with open("%s/docker_plan_trace.txt" % str(settings.PLANNING_DOCKER_PATH)) as plan_trace_file:
+        with open("%s/docker_plan_trace.txt" % str(settings.SB_PLANNING_DOCKER_PATH)) as plan_trace_file:
             for i, line in enumerate(plan_trace_file):
                 # print(str(i) + " =====> " + str(line))
                 if " pa-twang " in line:
@@ -179,7 +179,7 @@ class Planner():
 
 ''' A planner that fires at the given angle. Useful for debugging and testing'''
 class PlannerStub():
-    def __init__(self, shoot_angle: float, meta_model = MetaModel()):
+    def __init__(self, shoot_angle: float, meta_model = ScienceBirdsMetaModel()):
         self.meta_model = meta_model
         self.sb_state = None
         self.shoot_angle = shoot_angle

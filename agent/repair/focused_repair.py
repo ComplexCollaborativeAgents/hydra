@@ -52,7 +52,7 @@ class MmoBasedMetaModelRepair(SimulationBasedMetaModelRepair):
 
     ''' Repair the given domain and plan such that the given plan's expected outcome matches the observed outcome'''
     def repair(self,
-               pddl_meta_model: MetaModel,
+               pddl_meta_model: ScienceBirdsMetaModel,
                observation, delta_t=1.0):
 
         self._setup_repair(pddl_meta_model, observation, delta_t)

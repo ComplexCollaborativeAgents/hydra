@@ -75,7 +75,7 @@ class ScienceBirdsConsistencyEstimator(MetaModelBasedConsistencyEstimator):
         self.use_simplified_problems = use_simplified_problems
         self.consistency_estimators.extend(consistency_estimators)
 
-    def compute_consistency(self, observation, meta_model : MetaModel, simulator : PddlPlusSimulator, delta_t):
+    def compute_consistency(self, observation, meta_model : ScienceBirdsMetaModel, simulator : PddlPlusSimulator, delta_t):
         ''' Computes the consistency of a given observation w.r.t the given meta model using the given simulator
         NOTICE: Using here the simplified problem due to SB domain's complexity
         '''
@@ -106,7 +106,7 @@ class ScienceBirdsConsistencyEstimator(MetaModelBasedConsistencyEstimator):
 class ScienceBirdsMetaModelRepair(GreedyBestFirstSearchMetaModelRepair):
     ''' The meta model repair used for ScienceBirds. '''
 
-    def __init__(self, meta_model = MetaModel(),
+    def __init__(self, meta_model = ScienceBirdsMetaModel(),
                  consistency_threshold=settings.SB_CONSISTENCY_THRESHOLD,
                  time_limit=settings.SB_REPAIR_TIMEOUT,
                  max_iterations=settings.SB_REPAIR_MAX_ITERATIONS):
@@ -120,7 +120,7 @@ class ScienceBirdsMetaModelRepair(GreedyBestFirstSearchMetaModelRepair):
 
 
 class ScienceBirdsFocusedMetaModelRepair(FocusedMetaModelRepair):
-    def __init__(self, meta_model = MetaModel(),
+    def __init__(self, meta_model = ScienceBirdsMetaModel(),
                  consistency_threshold=settings.SB_CONSISTENCY_THRESHOLD,
                  time_limit=settings.SB_REPAIR_TIMEOUT,
                  max_iterations=settings.SB_REPAIR_MAX_ITERATIONS):

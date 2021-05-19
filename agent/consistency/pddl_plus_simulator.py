@@ -3,7 +3,7 @@
     including actions, events, and processes.
 '''
 import settings
-from agent.planning.pddl_meta_model import *
+from agent.planning.meta_model import *
 from agent.consistency.observation import *
 from agent.planning.pddl_plus import is_op
 

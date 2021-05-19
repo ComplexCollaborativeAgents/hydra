@@ -5,7 +5,7 @@ import random
 ''' A simple, inefficient planner that uses the simulator to choose which action to do '''
 class SimplePlanner(Planner):
 
-    def __init__(self, meta_model : MetaModel = MetaModel(), default_delta_t=None):
+    def __init__(self, meta_model : ScienceBirdsMetaModel = ScienceBirdsMetaModel(), default_delta_t=None):
         super(SimplePlanner, self).__init__(meta_model)
         self.simulator = PddlPlusSimulator()
         self.default_delta_t = default_delta_t

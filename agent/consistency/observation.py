@@ -3,7 +3,7 @@ import subprocess
 
 import settings
 from agent.perception.perception import Perception
-from agent.planning.pddl_meta_model import MetaModel
+from agent.planning.sb_meta_model import ScienceBirdsMetaModel
 from agent.planning.cartpole_pddl_meta_model import CartPoleMetaModel
 from agent.planning.pddl_plus import PddlPlusPlan
 from worlds.science_birds import SBState
@@ -21,7 +21,7 @@ class ScienceBirdsObservation:
         return self.state
 
     ''' Returns a sequence of PDDL states that are the observed intermediate states '''
-    def get_trace(self, meta_model: MetaModel = MetaModel()): # TODO: Refactor and move this to the meta model?
+    def get_trace(self, meta_model: ScienceBirdsMetaModel = ScienceBirdsMetaModel()): # TODO: Refactor and move this to the meta model?
         observed_state_seq = []
         perception = Perception()
         for intermediate_state in self.intermediate_states:
@@ -35,7 +35,7 @@ class ScienceBirdsObservation:
             return False
 
     ''' Returns a PDDL+ plan object with a single action that is the action that was performed '''
-    def get_pddl_plan(self, meta_model: MetaModel = MetaModel):
+    def get_pddl_plan(self, meta_model: ScienceBirdsMetaModel = ScienceBirdsMetaModel):
         pddl_plan = PddlPlusPlan()
         pddl_plan.append(meta_model.create_timed_action(self.action, self.state))
         return pddl_plan

@@ -1,11 +1,13 @@
 from agent.consistency.consistency_estimator import *
-import math
-''' Checks consistency by trying to align sequences of fluents '''
-class SequenceConsistencyEstimator(ConsistencyEstimator):
 
-    ''' Specify which fluents to check, and the size of the observed sequence prefix to consider.
-    This is because we acknowledge that later in the observations, our model is less accurate. '''
+
+class SequenceConsistencyEstimator(ConsistencyEstimator):
+    ''' Checks consistency by trying to align sequences of fluents '''
+
     def __init__(self, fluent_names, obs_prefix=50, discount_factor=0.9, consistency_threshold = 0.01):
+        ''' Specify which fluents to check, and the size of the observed sequence prefix to consider.
+        This is because we acknowledge that later in the observations, our model is less accurate. '''
+
         self.fluent_names = []
         for fluent_name in fluent_names:
             if isinstance(fluent_name,list):
@@ -16,8 +18,8 @@ class SequenceConsistencyEstimator(ConsistencyEstimator):
         self.obs_prefix = obs_prefix
         self.consistency_threshold = consistency_threshold
 
-    ''' Returns a value indicating the estimated consistency. '''
     def estimate_consistency(self, simulation_trace: list, state_seq: list, delta_t: float = DEFAULT_DELTA_T):
+        ''' Returns a value indicating the estimated consistency. '''
 
         if len(simulation_trace)<len(state_seq):
             return len(state_seq)-len(simulation_trace)
@@ -41,18 +43,18 @@ class SequenceConsistencyEstimator(ConsistencyEstimator):
 
         return max_error
 
-    ''' Returns a vector of values, one per observed state, indicating how much it is consistent with the simulation.
-    The first parameter is a list of (state,time) pairs, the second is just a list of states 
-    Current implementation ignores order, and just looks for the best time for each state in the state_seq, 
-    and ignore cases where the fluent is not in the un-timed state seqq aiming to minimize its distance from the fitted piecewise-linear interpolation. 
-    '''
     def compute_consistency_per_state(self, expected_state_seq: list, observed_states: list, delta_t: float = DEFAULT_DELTA_T):
+        ''' Returns a vector of values, one per observed state, indicating how much it is consistent with the simulation.
+        The first parameter is a list of (state,time) pairs, the second is just a list of states 
+        Current implementation ignores order, and just looks for the best time for each state in the state_seq, 
+        and ignore cases where the fluent is not in the un-timed state seqq aiming to minimize its distance from the fitted piecewise-linear interpolation. 
+        '''
+        
         # If we expected the trade to end before it really did - this is inconsistent
         assert len(expected_state_seq)>=len(observed_states)
 
         exp_to_obs_step_ratio = 1
         consistency_per_state = []
-        exp_index = 0
         for obs_index, obs_state in enumerate(observed_states):
             exp_state = expected_state_seq[int(exp_to_obs_step_ratio*obs_index)][0]
             error = 0

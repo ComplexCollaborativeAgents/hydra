@@ -2,7 +2,7 @@ from agent.cartpole_hydra_agent import CartpoleHydraAgentObserver, RepairingCart
 from agent.repairing_hydra_agent import RepairingHydraSBAgent,RepairingGymHydraAgent
 from agent.gym_hydra_agent import *
 import pytest
-from agent.planning.pddl_meta_model import *
+from agent.planning.sb_meta_model import *
 import gym
 import subprocess
 import worlds.science_birds as sb
@@ -32,7 +32,7 @@ def launch_science_birds():
     logger.info("Ending ScienceBirds")
 
 ''' Inject a fault to the agent's meta model '''
-def _inject_fault_to_sb_meta_model(meta_model : MetaModel, fluent_to_change = GRAVITY_FACTOR):
+def _inject_fault_to_sb_meta_model(meta_model : ScienceBirdsMetaModel, fluent_to_change = GRAVITY_FACTOR):
     meta_model.constant_numeric_fluents[fluent_to_change] = 6.0
 
 
