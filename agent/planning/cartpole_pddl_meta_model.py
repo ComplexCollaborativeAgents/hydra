@@ -2,6 +2,7 @@ import math
 from agent.planning.pddlplus_parser import *
 import settings
 import logging
+from agent.planning.meta_model import *
 
 fh = logging.FileHandler("cartpole_hydra.log",mode='w')
 formatter = logging.Formatter('%(asctime)-15s %(name)s - %(levelname)s - %(message)s')
@@ -58,54 +59,33 @@ class PddlObjectType():
                 pddl_state.numeric_fluents[fluent_name]=value
 
 
-class CartPoleMetaModel():
+class CartPoleMetaModel(MetaModel):
     PLANNER_PRECISION = 5 # how many decimal points the planner can handle correctly
 
-    ''' Sets the default meta-model'''
     def __init__(self):
-
-        self.delta_t = 0.02
-
-        # TODO: Read this from file instead of hard coding
-        self.hyper_parameters = dict() # These are parameters that do not appear in the PDDL files
-
-        self.constant_numeric_fluents = dict()
-        self.constant_boolean_fluents = dict()
-
-        # Constants to repair
-        self.repairable_constants = ('m_cart', 'l_pole', 'm_pole', 'force_mag', 'gravity', 'angle_limit', 'x_limit')
-        self.repair_deltas = (1.0, 0.1, 0.1, 1.0, 1.0, 0.1, 0.1)
-
-        for (fluent, value) in [
-                                # ('x', 0),
-                                # ('x_dot', 0),
-                                # ('x_ddot', 0),
-                                ('m_cart', 1.0),
-                                ('friction_cart', 0.0),
-                                # ('theta', 1.0),
-                                # ('theta_dot', 1.0),
-                                # ('theta_ddot', 0),
-                                ('l_pole', 0.5),
-                                ('m_pole', 0.1),
-                                ('friction_pole', 0.0),
-                                ('force_mag', 10.0),
-                                ('inertia', 1.0),
-                                ('elapsed_time', 0.0),
-                                ('gravity', 9.81),
-                                ('time_limit', 1.0),
-                                # ('angle_limit', 0.20944),
-                                ('angle_limit', 0.205),
-                                ('x_limit', 2.4)]:
-            self.constant_numeric_fluents[fluent]=value
-
-        for not_fluent in ['total_failure']:
-            self.constant_boolean_fluents[not_fluent]=False
-
-        for true_fluent in ['ready',
-                            'cart_available']:
-            self.constant_boolean_fluents[true_fluent]=True
-
-        self.metric = 'minimize(total-time)'
+        super().__init__(
+            docker_path=settings.CARTPOLE_PLANNING_DOCKER_PATH,
+            delta_t=settings.CP_DELTA_T,
+            metric='minimize(total-time)',
+            repairable_constants=('m_cart', 'l_pole', 'm_pole', 'force_mag', 'gravity', 'angle_limit', 'x_limit'),
+            repair_deltas=(1.0, 0.1, 0.1, 1.0, 1.0, 0.1, 0.1),
+            constant_numeric_fluents={
+                'm_cart': 1.0,
+                'friction_cart': 0.0,
+                'l_pole': 0.5,
+                'm_pole': 0.1,
+                'friction_pole': 0.0,
+                'force_mag': 10.0,
+                'inertia': 1.0,
+                'elapsed_time': 0.0,
+                'gravity': 9.81,
+                'time_limit': 1.0,
+                'angle_limit': 0.205,
+                'x_limit': 2.4},
+            constant_boolean_fluents={
+                'total_failure':False,
+                'ready':True,
+                'cart_available':True})
 
     ''' Translate the initial SBState, as observed, to a PddlPlusProblem object. 
     Note that in the initial state, we ignore the location of the bird and assume it is on the slingshot. '''
@@ -187,15 +167,9 @@ class CartPoleMetaModel():
 
         return pddl_state
 
-    ''' Creates a PDDL+ domain object for the given SB state
-    Current implementation simply copies an existing domain file '''
-    def create_pddl_domain(self, state):
-        domain_file = "%s/cartpole_domain.pddl" % str(settings.CARTPOLE_PLANNING_DOCKER_PATH)
-        domain_parser = PddlDomainParser()
-        return domain_parser.parse_pddl_domain(domain_file)
-
-    ''' Create a PDDL+ TimedAction object from a world action and state '''
     def create_timed_action(self, action, time_step):
+        ''' Create a PDDL+ TimedAction object from a world action and state '''
+
         if (action==1):
             action_name = "move_cart_right dummy_obj"
         else:

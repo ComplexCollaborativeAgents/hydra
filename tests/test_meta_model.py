@@ -1,6 +1,6 @@
 import os.path
 
-from agent.planning.pddl_meta_model import *
+from agent.planning.sb_meta_model import *
 from agent.planning.pddl_plus import *
 from worlds.science_birds import *
 import pytest
@@ -12,12 +12,12 @@ DATA_TESTS_DIR = path.join(DATA_DIR, 'science_birds', 'tests')
 @pytest.mark.skip("obs_test_meta_model.p was created by an older version of science birds and therefore is not consistent with current system")
 def test_action_creation():
     observation = pickle.load(open(os.path.join(DATA_TESTS_DIR, "obs_test_meta_model.p"), "rb"))
-    meta_model = MetaModel()
+    meta_model = ScienceBirdsMetaModel()
     pddl_state = PddlPlusState(meta_model.create_pddl_problem(observation.state).init)
 
     # Create action
     t = 1.025
-    angle = MetaModel.action_time_to_angle(t, pddl_state)
+    angle = ScienceBirdsMetaModel.action_time_to_angle(t, pddl_state)
     sb_action = meta_model.create_sb_action(TimedAction(meta_model.TWANG_ACTION, t), observation.state)
 
     # Compute angle and time from SB Action
@@ -40,15 +40,15 @@ def test_action_creation():
 def test_action_angle_conversion():
     observation = pickle.load(open(os.path.join(DATA_TESTS_DIR, "obs_test_meta_model.p"), "rb"))
 
-    meta_model = MetaModel()
+    meta_model = ScienceBirdsMetaModel()
     pddl_state = PddlPlusState(meta_model.create_pddl_problem(observation.state).init)
 
     for t_index in range(1, 4000):
         t = t_index/1000
 
         # Test angle to time conversion
-        action_angle = MetaModel.action_time_to_angle(t, pddl_state)
-        derived_t = MetaModel.angle_to_action_time(action_angle, pddl_state)
+        action_angle = ScienceBirdsMetaModel.action_time_to_angle(t, pddl_state)
+        derived_t = ScienceBirdsMetaModel.angle_to_action_time(action_angle, pddl_state)
         assert abs(t-derived_t)<0.05
 
 
@@ -57,7 +57,7 @@ def test_action_angle_conversion():
 @pytest.mark.skip("Currently failing.")
 def test_bird_x_computation():
     observation = pickle.load(open(os.path.join(DATA_TESTS_DIR, "bad_observation.p"), "rb"))
-    meta_model = MetaModel()
+    meta_model = ScienceBirdsMetaModel()
 
     state2 = PddlPlusState(meta_model.create_pddl_problem(observation.state).init)
     state1 = meta_model.create_pddl_state(observation.state)

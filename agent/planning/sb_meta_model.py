@@ -11,8 +11,10 @@ from utils.point2D import Point2D
 import worlds.science_birds as SB
 from agent.perception.perception import Perception
 
+from agent.planning.meta_model import *
+
 logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
-logger = logging.getLogger("pddl_meta_model")
+logger = logging.getLogger("sb_meta_model")
 
 ''' Utility functions '''
 def get_x_coordinate(obj):
@@ -381,55 +383,41 @@ class UnknownType(BlockType):
 
 
 
-class MetaModel():
+class ScienceBirdsMetaModel(MetaModel):
     TWANG_ACTION = "pa-twang" # Default action type
 
     ''' Sets the default meta-model'''
     def __init__(self):
-
-        self.delta_t = settings.SB_DELTA_T
-
-        # TODO: Read this from file instead of hard coding
-        self.hyper_parameters = dict() # These are parameters that do not appear in the PDDL files
-        self.hyper_parameters['scale_factor']= 2.7
-
-        self.constant_numeric_fluents = dict()
-        self.constant_boolean_fluents = dict()
-
-        # Constants to repair
-        self.repairable_constants = list(['gravity_factor',
+        super().__init__(docker_path=settings.SB_PLANNING_DOCKER_PATH,
+                         delta_t=settings.SB_DELTA_T,
+                         metric = 'minimize(total-time)',
+                         repairable_constants=['gravity_factor',
                                           'meta_wood_multiplier',
                                           'meta_stone_multiplier',
                                           'meta_ice_multiplier',
-                                          'v_bird_multiplier'])
-        self.repair_deltas = [1.0] * len(self.repairable_constants)
+                                          'v_bird_multiplier'],
+                         constant_numeric_fluents={
+                             'active_bird': 0,
+                              'angle_rate': 20,
+                             'ground_damper': 0.3,
+                             'base_life_wood_multiplier': 1.0,
+                             'base_life_ice_multiplier': 0.5,
+                             'base_life_stone_multiplier': 2.0,
+                             'base_life_tnt_multiplier': 0.001,
+                             'base_mass_wood_multiplier': 0.375 * 1.3,
+                             'base_mass_ice_multiplier': 0.25,
+                             'base_mass_stone_multiplier': 1.2,
+                             'base_mass_tnt_multiplier': 0.1,
+                             'meta_wood_multiplier': 1.0,
+                             'meta_stone_multiplier': 1.0,
+                             'meta_ice_multiplier': 1.0,
+                             'v_bird_multiplier': 10.0,
+                             'gravity_factor': 9.81},
+                         constant_boolean_fluents={
+                             'angle_adjusted': False,
+                             'pig_killed': False})
 
-        for (fluent, value) in [('active_bird', 0),
-                                ('angle_rate', 20),
-                                ('ground_damper', 0.3),
-                                ('base_life_wood_multiplier', 1.0),
-                                ('base_life_ice_multiplier', 0.5),
-                                ('base_life_stone_multiplier', 2.0),
-                                ('base_life_tnt_multiplier', 0.001),
-                                ('base_mass_wood_multiplier', 0.375 * 1.3),
-                                ('base_mass_ice_multiplier', 0.25),
-                                ('base_mass_stone_multiplier', 1.2),
-                                ('base_mass_tnt_multiplier', 0.1),
-                                ('meta_wood_multiplier', 1.0),
-                                ('meta_stone_multiplier', 1.0),
-                                ('meta_ice_multiplier', 1.0),
-                                ('v_bird_multiplier', 10.0),
-                                ('gravity_factor', 9.81)]:
-            self.constant_numeric_fluents[fluent]=value
-
-        # self.constants_not_in_pddl = set(['base_life_wood_multiplier', 'base_mass_wood_multiplier'])
-
-        for not_fluent in ['angle_adjusted',
-                           'pig_killed'
-                           ]:
-            self.constant_boolean_fluents[not_fluent]=False
-
-        self.metric = 'minimize(total-time)'
+        self.hyper_parameters['scale_factor']= 2.7
 
         # Mapping of type to Pddl object. All objects of this type will be clones of this pddl object
         self.object_types = dict()
@@ -457,8 +445,6 @@ class MetaModel():
             if o[1]['type'] == 'slingshot':
                 sling = o
         return sling
-
-
 
     ''' Converts twang angle to the corresponding action time '''
     @staticmethod
@@ -502,7 +488,7 @@ class MetaModel():
         action_time = self.angle_to_action_time(action_angle, pddl_state)
 
         active_bird = pddl_state.get_active_bird()
-        action_name = "%s %s" % (MetaModel.TWANG_ACTION, active_bird)
+        action_name = "%s %s" % (ScienceBirdsMetaModel.TWANG_ACTION, active_bird)
 
         return TimedAction(action_name, action_time)
 
@@ -651,13 +637,6 @@ class MetaModel():
             type.add_object_to_state(pddl_state, obj, state_params)
 
         return pddl_state
-
-    ''' Creates a PDDL+ domain object for the given SB state 
-    Current implementation simply copies an existing domain file '''
-    def create_pddl_domain(self, sb_State: ProcessedSBState):
-        domain_file = "%s/sb_domain.pddl" % str(settings.PLANNING_DOCKER_PATH)
-        domain_parser = PddlDomainParser()
-        return domain_parser.parse_pddl_domain(domain_file)
 
     ''' Create a simplified version of the given problem, to help the planner plan 
     TODO: Move this to planner'''

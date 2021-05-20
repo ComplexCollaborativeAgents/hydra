@@ -1,5 +1,5 @@
 from agent.consistency.consistency_estimator import *
-from agent.planning.pddl_meta_model import *
+from agent.planning.sb_meta_model import *
 import heapq
 import time
 
@@ -126,7 +126,7 @@ class GreedyBestFirstSearchMetaModelRepair(SimulationBasedMetaModelRepair):
 
     ''' Repair the given domain and plan such that the given plan's expected outcome matches the observed outcome'''
     def repair(self,
-               pddl_meta_model: MetaModel,
+               pddl_meta_model: ScienceBirdsMetaModel,
                observation, delta_t=1.0):
 
         self.current_delta_t = delta_t

@@ -2,7 +2,7 @@ from agent.repairing_hydra_agent import RepairingHydraSBAgent
 from agent.hydra_agent import HydraAgent
 import pytest
 from agent.repair.meta_model_repair import *
-from agent.planning.pddl_meta_model import *
+from agent.planning.sb_meta_model import *
 import worlds.science_birds as sb
 import pickle
 import tests.test_utils as test_utils
@@ -33,7 +33,7 @@ A greedy best-first search model repair implementation.
 '''
 class MockMetaModelRepair(SimulationBasedMetaModelRepair):
     def __init__(self, oracle_repair):
-        meta_model = MetaModel()
+        meta_model = ScienceBirdsMetaModel()
 
         super().__init__(meta_model.repairable_constants,
                          ScienceBirdsConsistencyEstimator(),
@@ -43,7 +43,7 @@ class MockMetaModelRepair(SimulationBasedMetaModelRepair):
 
     ''' Repair the given domain and plan such that the given plan's expected outcome matches the observed outcome'''
     def repair(self,
-               pddl_meta_model: MetaModel,
+               pddl_meta_model: ScienceBirdsMetaModel,
                observation, delta_t=1.0):
 
         self.current_delta_t = delta_t
@@ -150,7 +150,7 @@ def test_set_of_levels_repair_no_fault():
 
 
 ''' Inject a fault to the agent's meta model '''
-def _inject_fault_to_meta_model(meta_model : MetaModel, fluent_to_change = GRAVITY_FACTOR):
+def _inject_fault_to_meta_model(meta_model : ScienceBirdsMetaModel, fluent_to_change = GRAVITY_FACTOR):
     meta_model.constant_numeric_fluents[fluent_to_change] = 6.0
 
 @pytest.mark.skip("Have not migrated to 0.3.6 yet")

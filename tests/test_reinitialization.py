@@ -1,5 +1,5 @@
 from agent.repairing_hydra_agent import RepairingHydraSBAgent
-from agent.planning.pddl_meta_model import *
+from agent.planning.sb_meta_model import *
 import worlds.science_birds as sb
 
 

@@ -3,7 +3,7 @@ import time
 
 from agent.consistency.consistency_estimator import *
 from worlds.science_birds_interface.client.agent_client import GameState
-from agent.planning.pddl_meta_model import *
+from agent.planning.sb_meta_model import *
 import datetime
 
 # TODO: Maybe push this to the settings file? then every module just adds a logger
@@ -20,7 +20,7 @@ class HydraAgent():
         if env is not None:
             env.sb_client.set_game_simulation_speed(settings.SB_SIM_SPEED)
         self.perception = Perception()
-        self.meta_model = MetaModel()
+        self.meta_model = ScienceBirdsMetaModel()
         self.planner = Planner(self.meta_model) # TODO: Discuss this w. Wiktor & Matt
         self.completed_levels = []
         self.observations = []
@@ -36,7 +36,7 @@ class HydraAgent():
     def reinit(self):
         self.env.history = []
         self.perception = Perception()
-        self.meta_model = MetaModel()
+        self.meta_model = ScienceBirdsMetaModel()
         self.planner = Planner(self.meta_model) # TODO: Discuss this w. Wiktor & Matt
         self.completed_levels = []
         self.observations = []

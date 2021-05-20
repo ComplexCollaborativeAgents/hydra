@@ -89,7 +89,7 @@ def run_experiments(exp_name, consistency_checker, obs_files, outfile):
     ''' Runs the given consistency checker on the set of given set of files and output the results to the results file'''
 
     simulator = CachingPddlPlusSimulator()
-    meta_model = MetaModel()
+    meta_model = ScienceBirdsMetaModel()
     for obs_file in obs_files:
         obs = pickle.load(open(obs_file, "rb"))
         consistency_value = check_obs_consistency(obs, meta_model, consistency_checker, simulator=simulator)
