@@ -1,9 +1,11 @@
 import json
+import logging
 
 from worlds.gym_cartpole_dispatcher import GymCartpoleDispatcher
 from baselines.cartpole.dqn_learner import DQNLearnerObserver
 from worlds.wsu.wsu_dispatcher import WSUObserver
-from os import path
+
+import os
 import settings
 import gym
 from agent.cartpole_hydra_agent import CartpoleHydraAgent, CartpoleHydraAgentObserver, RepairingCartpoleHydraAgent
@@ -12,6 +14,7 @@ import time
 from runners import constants
 import matplotlib.pyplot as plt
 import seaborn as sns
+import optparse
 
 
 class NoveltyExperimentGymCartpoleDispatcher(GymCartpoleDispatcher):
@@ -98,23 +101,22 @@ class NoveltyExperimentGymCartpoleDispatcher(GymCartpoleDispatcher):
 
 
 class NoveltyExperimentRunnerCartpole:
-    def __init__(self,
-                 number_of_experiment_trials=3,
-                 non_novelty_learning_trial_length=0,
-                 non_novelty_performance_trial_length=3,
-                 novelty_trial_length=3):
-        self._number_of_experiment_trials = number_of_experiment_trials
-        self._non_novelty_learning_trial_length = non_novelty_learning_trial_length
-        self._non_novelty_performance_trial_length = non_novelty_performance_trial_length
-        self._novelty_trial_length = novelty_trial_length
-        self._results_dataframe = pandas.DataFrame(
-            columns=['trial_num', 'episode_num', 'trial_type', 'episode_type', 'novelty_probability',
-                     'novelty_threshold', 'novelty',
-                     'novelty_characterization', 'performance'])
+    def __init__(self, options):
+        self._number_of_experiment_trials = int(options.num_trials)
+        self._non_novelty_learning_trial_length = int(options.l_learning)
+        self._non_novelty_performance_trial_length = int(options.l_performance)
+        self._novelty_trial_length = int(options.l_novelty)
+
+        self._results_directory_path = os.path.join(settings.ROOT_PATH, "runners", "experiments", "cartpole", options.name)
+        if not os.path.exists(self._results_directory_path):
+            os.makedirs(self._results_directory_path)
+
+
 
     def run_experiment_subtrial(self, episode_range, trial_num, trial_type, episode_type, novelty_id, novelty):
         observer = CartpoleHydraAgentObserver(agent_type=RepairingCartpoleHydraAgent)
-        env_dispatcher = NoveltyExperimentGymCartpoleDispatcher(observer, render=True)
+        env_dispatcher = NoveltyExperimentGymCartpoleDispatcher(observer, render=False)
+
 
         if trial_type == constants.UNKNOWN:
             env_dispatcher.set_is_known(None)
@@ -135,49 +137,47 @@ class NoveltyExperimentRunnerCartpole:
         results['episode_type'] = episode_type
         results['level'] = novelty['level']
         results['env_config'] = str(novelty['config'])
-        # return results
-        self._results_dataframe = self._results_dataframe.append(results)
+        return results
 
-    def run_experiment(self, file, novelty_config=None):
-        results_file = open(path.join(settings.ROOT_PATH, "data", "cartpole", "test", "repairing_test_wsu.csv"), "a")
-
+    def run_experiment(self, novelty_config=None):
         if novelty_config is None:
             novelties_config = NoveltyExperimentRunnerCartpole.generate_novelty_configs()
         else:
             novelties_config = [novelty_config]
-
-
         for novelty in novelties_config:
+            results_file_handle = open(os.path.join(self._results_directory_path, "novelty_{}.csv".format(novelty['uid'])), "a")
+            results_dataframe = pandas.DataFrame(columns=['episode_num','novelty_probability','novelty_threshold','novelty','novelty_characterization','performance','trial_num','novelty_id','trial_type','episode_type','level','env_config'])
+            results_dataframe.to_csv(results_file_handle, index=False)
             for trial_type in [constants.UNKNOWN, constants.KNOWN]:
                 for trial in range(0, self._number_of_experiment_trials):
                     episode_num = 0
-                    self.run_experiment_subtrial(
+                    subtrial_result = self.run_experiment_subtrial(
                         episode_range=range(episode_num, episode_num + self._non_novelty_performance_trial_length),
                         trial_num=trial,
                         trial_type=trial_type,
                         episode_type=constants.NON_NOVELTY_PERFORMANCE,
                         novelty_id=novelty['uid'],
                         novelty=novelty)
+                    subtrial_result.to_csv(results_file_handle, index=False, header=False)
                     episode_num = episode_num + self._non_novelty_performance_trial_length
-                    self.run_experiment_subtrial(
+                    subtrial_result = self.run_experiment_subtrial(
                         episode_range=range(episode_num, episode_num + self._novelty_trial_length),
                         trial_num=trial,
                         trial_type=trial_type,
                         episode_type=constants.NOVELTY,
                         novelty_id=novelty['uid'],
                         novelty=novelty)
-        results_file = open(path.join(settings.ROOT_PATH, "data", "cartpole", "test", "repairing_test_wsu.csv"), "w")
-        self._results_dataframe.to_csv(results_file)
+                    subtrial_result.to_csv(results_file_handle, index=False, header=False)
+
 
     @staticmethod
     def generate_novelty_configs():
         novelty_config = {
             'levels': {
-                # 1: ['masscart', 'masspole', 'length'],
-                1: [constants.MASSCART],
+                1: [constants.MASSCART, constants.LENGTH, constants.FORCE_MAG],
                 2: [constants.GRAVITY]
             },
-            'values': range(8, 13)
+            'values': range(5, 15, 2)
         }
 
         novelties = []
@@ -186,7 +186,7 @@ class NoveltyExperimentRunnerCartpole:
             for param in novelty_config['levels'][level]:
                 for value in novelty_config['values']:
                     novelty = {
-                        'uid': uid,
+                        'uid': "{}_{}_{}".format(param, value, uid),
                         'level': level,
                         'config': {param: constants.ENV_PARAMS_NOMINAL[param] * value / 10}
                     }
@@ -222,17 +222,48 @@ class NoveltyExperimentRunnerCartpole:
     @staticmethod
     def plot_experiment_results(df, novelty_episode_number):
         plt.figure(figsize=(16, 9))
-        sns.lineplot(data=df, y='performance', x='episode_num', hue='trial_type', ci=95)
+        ax = sns.lineplot(data=df, y='performance', x='episode_num', hue='trial_type', ci=95)
+        ax.set(ylim=(0, 1))
         plt.axvline(x=novelty_episode_number, color='red')
         plt.title("Experiment results", fontsize=20)
         plt.xlabel("episodes", fontsize=15)
         plt.ylabel("performance", fontsize=15)
 
 
+
 if __name__ == '__main__':
-    experiment_runner = NoveltyExperimentRunnerCartpole(number_of_experiment_trials=5,
-                                                        non_novelty_learning_trial_length=0,
-                                                        non_novelty_performance_trial_length=5,
-                                                        novelty_trial_length=10)
-    experiment_runner.run_experiment(novelty_config={'uid': 0, 'level': 1, 'config': {constants.LENGTH: 1}}, file=open(
-        path.join(settings.ROOT_PATH, "data", "cartpole", "test", "length_3.csv"), "w"))
+    parser = optparse.OptionParser(usage="usage: %prog [options]")
+    parser.add_option("--name",
+                      dest="name",
+                      help="name of the directory in which all the results will be stored at ../data/cartpole/",
+                      default="cartpole_experiment")
+    parser.add_option("--num_trials",
+                      dest='num_trials',
+                      help="Number of full trials to be run. Each trial is several subtrials",
+                      default=1)
+    parser.add_option("--learning_subtrial",
+                      dest='l_learning',
+                      help='number of episodes in the learning subtrial',
+                      default=0)
+    parser.add_option("--performance-subtrial",
+                      dest='l_performance',
+                      help='number of episodes in the non-novelty performance subtrial',
+                      default=2)
+    parser.add_option("--novelty-subtrial",
+                      dest='l_novelty',
+                      help='number of episodes in the novelty subtrial',
+                      default=5)
+    parser.add_option("--novelty_config",
+                      dest='novelty_config',
+                      help='a dict of novelty configurations')
+                     # default={'uid': 'length_point2', 'level': 1, 'config': {constants.LENGTH: 0.2}})
+
+    (options, args) = parser.parse_args()
+    print(options)
+
+
+    experiment_runner = NoveltyExperimentRunnerCartpole(options)
+    if options.novelty_config:
+        experiment_runner.run_experiment(options.novelty_config)
+    else:
+        experiment_runner.run_experiment()
