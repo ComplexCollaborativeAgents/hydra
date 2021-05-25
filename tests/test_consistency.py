@@ -7,12 +7,13 @@ from agent.repair.sb_repair import BirdLocationConsistencyEstimator, ScienceBird
 from agent.hydra_agent import *
 from agent.planning.model_manipulator import ManipulateInitNumericFluent
 from agent.planning.planner import *
+
 from agent.perception.perception import *
 import tests.test_utils as test_utils
 from tests.test_utils import create_logger
 from state_prediction.anomaly_detector_fc_multichannel import FocusedSBAnomalyDetector
 from os import listdir
-
+from agent.consistency import trace_visualizer as trace_visualizer
 logger = create_logger("test_consistency")
 
 DATA_DIR = path.join(settings.ROOT_PATH, 'data')
@@ -238,7 +239,7 @@ SB_NOVEL_TESTS = listdir(SB_NOVEL_OBS_DIR)
 
 from agent.consistency.sequence_consistency_estimator import *
 ''' Checks consistency by considering the location of the Cartpole fluents '''
-class CartpoleConsistencyEstimator(MetaModelBasedConsistencyEstimator):
+class ScienceBirdsSequenceConsistencyEstimator(MetaModelBasedConsistencyEstimator):
     def __init__(self, unique_prefix_size = 100,discount_factor=0.9, consistency_threshold = 0.01):
         self.unique_prefix_size=unique_prefix_size
         self.discount_factor = discount_factor
@@ -256,7 +257,30 @@ class CartpoleConsistencyEstimator(MetaModelBasedConsistencyEstimator):
         return consistency_checker.estimate_consistency(simulation_trace, state_seq, delta_t)
 
 
-def test_consistency_fp():
+
+def test_consistency_sb_false_positives():
+    ''' Drill down on a single observation that outputs a false positive for our consistency checker '''
+    meta_model = ScienceBirdsMetaModel()
+    samples = 10
+
+    # consistency_checker = ScienceBirdsConsistencyEstimator()
+    consistency_checker = ScienceBirdsConsistencyEstimator()
+
+    for i, ob_file in enumerate(SB_NON_NOVEL_TESTS[3:samples]):
+        # load file
+        sb_ob = pickle.load(open(path.join(SB_NON_NOVEL_OBS_DIR, ob_file), "rb"))
+
+        matplotlib.interactive(True)
+        plot_axes = trace_visualizer.plot_sb_observation(sb_ob)
+        trace_visualizer.plot_expected_trace_for_obs(meta_model, sb_ob, ax=plot_axes)
+
+
+        consistency = check_obs_consistency(sb_ob, meta_model, consistency_checker)
+        logger.info("Non-novel file {}: {}, consistency {}".format(i,ob_file, consistency))
+        assert consistency<settings.SB_CONSISTENCY_THRESHOLD
+
+
+def test_consistency_sb():
     ''' Drill down on a single observation that outputs a false positive for our consistency checker '''
     meta_model = ScienceBirdsMetaModel()
 
@@ -282,39 +306,3 @@ def test_consistency_fp():
         consistency = check_obs_consistency(sb_ob, meta_model, consistency_checker)
         print("Novel file {}, consistency {}".format(ob_file, consistency))
         assert consistency >= settings.SB_CONSISTENCY_THRESHOLD
-
-def test_consistency_check_timing():
-    ''' A test designed to measure the time it takes to perform a consistency check '''
-    meta_model = ScienceBirdsMetaModel()
-    iterations = 1
-    should_profile = False
-
-    if should_profile == True:
-        import cProfile, pstats, io
-        from pstats import SortKey
-        pr = cProfile.Profile()
-        pr.enable()
-    for obs_file_name in ["consistency_test_obs_1.p", "consistency_test_obs_2.p", "consistency_test_obs_3.p","consistency_test_obs_4.p"]:
-        our_observation = pickle.load(open(path.join(TEST_DATA_DIR, obs_file_name),
-                                           "rb"))  # *** uncomment if needed for debugging ***
-        for i in range(iterations):
-            print(" -- Obs file {}, Iteration {} --".format(obs_file_name, i))
-            start = time.time()
-            consistency_estimator = ScienceBirdsConsistencyEstimator(use_simplified_problems=True)
-            consistency = check_obs_consistency(our_observation, meta_model,consistency_estimator)
-            print("Simplified: Runtime = {} ".format(time.time()-start))
-
-            start = time.time()
-            consistency_estimator = ScienceBirdsConsistencyEstimator(use_simplified_problems=False)
-            consistency = check_obs_consistency(our_observation, meta_model,consistency_estimator)
-            print("Not simplified: Runtime = {} ".format(time.time() - start))
-
-        if should_profile == True:
-            pr.disable()
-            s = io.StringIO()
-            sortby = SortKey.CUMULATIVE
-            ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
-            ps.print_stats()
-            print(s.getvalue())
-
-    assert True

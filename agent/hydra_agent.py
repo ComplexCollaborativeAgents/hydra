@@ -10,6 +10,14 @@ import datetime
 logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("hydra_agent")
 
+# Flags from ANU
+NOVELTY_EXISTANCE_NOT_GIVEN = -1 # The self.novelty_existance value indicating that novelty detection is not given by the environment
+
+# stats_per_level dictionary keys
+NN_PROB = "nn_novelty_likelihood"
+PDDL_PROB = "pddl_novelty_likelihood"
+
+
 class HydraAgent():
     '''
     Probably needs to subclass for each domain. We will cross that bridge when we get there
@@ -28,6 +36,7 @@ class HydraAgent():
         self.cumulative_plan_time = 0.0
         self.overall_plan_time = 0.0
         self.novelty_existence = -1
+        self.novel_objects = []
         self.agent_stats = agent_stats
         self.shot_num = 0
         self.trial_timestamp = datetime.datetime.now().strftime("%y%m%d%H%M%S")
@@ -41,6 +50,7 @@ class HydraAgent():
         self.completed_levels = []
         self.observations = []
         self.novelty_likelihood = 0.0
+        self.novel_objects = []
         self.cumulative_plan_time = 0.0
         self.overall_plan_time = 0.0
         self.novelty_existence = -1
@@ -68,6 +78,7 @@ class HydraAgent():
 
             if raw_state.game_state.value == GameState.PLAYING.value:
                 self.handle_game_playing(observation, raw_state)
+                self._compute_novelty_likelihood(observation)
             elif raw_state.game_state.value == GameState.WON.value:
                 self.handle_game_won()
             elif raw_state.game_state.value == GameState.LOST.value:
@@ -115,9 +126,14 @@ class HydraAgent():
         novelty_likelihood = self.novelty_likelihood
         non_novelty_likelihood = 1 - novelty_likelihood
         #placeholders for novelty information
-        ids = {1,-2,-398879789}
+        if len(self.novel_objects)>0:
+            ids = set(self.novel_objects)
+            novelty_description = "Unknown type of objects detected"
+        else:
+            ids = {1,2,3}
+            novelty_description = "Uncharacterized novelty"
         novelty_level = 0
-        novelty_description = ""
+
         self.env.sb_client.report_novelty_likelihood(novelty_likelihood, non_novelty_likelihood,ids,novelty_level,novelty_description)
 
     ''' Handle what happens when the agent receives a EVALUATION_TERMINATED request'''
@@ -138,14 +154,66 @@ class HydraAgent():
         self.current_level = self.env.sb_client.load_next_available_level()
         #self.novelty_existence = self.env.sb_client.get_novelty_info()
 
-    ''' Handle what happens when the agent receives a LOST request'''
     def handle_game_lost(self):
+        ''' Handle what happens when the agent receives a LOST request'''
         self._handle_end_of_level(False)
 
-    ''' Handle what happens when the agent receives a WON request'''
     def handle_game_won(self):
+        ''' Handle what happens when the agent receives a WON request'''
         self._handle_end_of_level(True)
         return self.cumulative_plan_time, self.overall_plan_time
+
+    def _compute_novelty_likelihood(self, observation: ScienceBirdsObservation):
+        ''' Computes the novelty likelihood for the given observation
+        Also updates the stats_for_level object with the computed novelty probability by the two models.  '''
+
+        if NN_PROB not in self.stats_for_level:
+            self.stats_for_level[NN_PROB]=[]
+        if PDDL_PROB not in self.stats_for_level:
+            self.stats_for_level[PDDL_PROB]=[]
+
+        # if novelty existences is given by the experiment framework - no need to run the fancy models
+        if self.novelty_existence in  [0,1]:
+            self.stats_for_level[NN_PROB].append(self.novelty_existence)
+            self.stats_for_level[PDDL_PROB].append(self.novelty_existence)
+            self.novelty_likelihood = self.novelty_existence
+        else:
+            assert self.novelty_existence==NOVELTY_EXISTANCE_NOT_GIVEN # The flag denoting that we do not get novelty info from the environment
+
+            if observation.hasUnknownObj():
+                self.stats_for_level[NN_PROB].append(1.0)
+                self.stats_for_level[PDDL_PROB].append(1.0)
+                self.novelty_likelihood = 1.0
+                self.novel_objects = observation.get_novel_object_ids()
+            else:
+                try:
+                    cnn_novelty, cnn_prob = self.detector.detect(observation)
+                except:
+                    logging.info('CNN Index out of Bounds in game playing')
+                    cnn_prob=1.0 # TODO: Think about this design choice
+
+                self.stats_for_level[NN_PROB].append(cnn_prob)
+
+                if settings.NO_PDDL_CONSISTENCY:
+                    pddl_prob = 1.0
+                else:
+                    pddl_prob = check_obs_consistency(observation, self.meta_model, self.consistency_estimator)
+                self.stats_for_level["pddl_novelty_likelihood"].append(pddl_prob)
+
+                # If we already played at least two levels and novelty keeps being detected, mark this as a very high novelty likelihood
+                if cnn_prob > self.detector.threshold and \
+                    pddl_prob > self.meta_model_repair.consistency_threshold and \
+                    len(self.completed_levels)>1 and \
+                    not self.completed_levels[-1] and \
+                        self.nn_prob_per_level[0] > self.detector.threshold and \
+                        self.nn_prob_per_level[1] > self.detector.threshold:
+                    self.novelty_likelihood = 1.0
+                # else:
+                # TODO: Think about how to set a non-binary value for novelty_likelihood
+                #     Ideal: compute novelty prob from (cnn_prob, pddl_prob)
+
+        # Record current novelty likelihood estimate
+        self.stats_for_level["novelty_likelihood"]=self.novelty_likelihood
 
     def _handle_end_of_level(self, success):
         ''' This is called when a level has ended, either in a win or a lose our come '''

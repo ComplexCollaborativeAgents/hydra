@@ -1,3 +1,4 @@
+import agent.hydra_agent as hydra_agent
 from agent.hydra_agent import HydraAgent
 from agent.repair.meta_model_repair import *
 from agent.gym_hydra_agent import GymHydraAgent
@@ -5,19 +6,13 @@ import os.path as path
 from state_prediction.anomaly_detector_fc_multichannel import FocusedSBAnomalyDetector
 from agent.repair.sb_repair import *
 
-
 logger = logging.getLogger("repairing_hydra_agent")
 
 from agent.planning.cartpole_pddl_meta_model import *
 from agent.repair.cartpole_repair import *
 
 
-# Flags from ANU
-NOVELTY_EXISTANCE_NOT_GIVEN = -1 # The self.novelty_existance value indicating that novelty detection is not given by the environment
-
 # stats_per_level dictionary keys
-NN_PROB = "nn_novelty_likelihood"
-PDDL_PROB = "pddl_novelty_likelihood"
 REPAIR_TIME = "repair_time"
 REPAIR_CALLS = "repair_calls"
 
@@ -76,13 +71,10 @@ class RepairingHydraSBAgent(HydraAgent):
 
     def process_final_observation(self):
         ''' This is called after winning or losing a level. '''
-        last_obs = self.find_last_obs()
-
-        self._compute_novelty_likelihood(last_obs)
         self.stats_for_level["novelty_likelihood"]=self.novelty_likelihood
         # The consistency score per level for this level is the mean over the consistency scored of this level's observations
         self.nn_prob_per_level.insert(0,
-                                      sum(self.stats_for_level[NN_PROB]) / len(self.stats_for_level[NN_PROB]))
+                                      sum(self.stats_for_level[hydra_agent.NN_PROB]) / len(self.stats_for_level[hydra_agent.NN_PROB]))
 
 
     def handle_evaluation_terminated(self):
@@ -97,57 +89,6 @@ class RepairingHydraSBAgent(HydraAgent):
     def handle_game_lost(self):
         self.process_final_observation()
         super().handle_game_lost()
-
-    def _compute_novelty_likelihood(self, observation: ScienceBirdsObservation):
-        ''' Computes the novelty likelihood score.
-        Also updates the stats_for_level object with the computed novelty probability by the two models.  '''
-
-        if NN_PROB not in self.stats_for_level:
-            self.stats_for_level[NN_PROB]=[]
-        if PDDL_PROB not in self.stats_for_level:
-            self.stats_for_level[PDDL_PROB]=[]
-
-        # if novelty existences is given by the experiment framework - no need to run the fancy models
-        if self.novelty_existence in  [0,1]:
-            self.stats_for_level[NN_PROB].append(self.novelty_existence)
-            self.stats_for_level[PDDL_PROB].append(self.novelty_existence)
-            self.novelty_likelihood = self.novelty_existence
-        else:
-            assert self.novelty_existence==NOVELTY_EXISTANCE_NOT_GIVEN # The flag denoting that we do not get novelty info from the environment
-
-            if observation.hasUnknownObj():
-                self.stats_for_level[NN_PROB].append(1.0)
-                self.stats_for_level[PDDL_PROB].append(1.0)
-                self.novelty_likelihood = 1.0
-            else:
-                try:
-                    cnn_novelty, cnn_prob = self.detector.detect(observation)
-                except:
-                    logging.info('CNN Index out of Bounds in game playing')
-                    cnn_prob=1.0 # TODO: Think about this design choice
-
-                self.stats_for_level[NN_PROB].append(cnn_prob)
-
-                if settings.NO_PDDL_CONSISTENCY:
-                    pddl_prob = 1.0
-                else:
-                    pddl_prob = check_obs_consistency(observation, self.meta_model, self.consistency_estimator)
-                self.stats_for_level["pddl_novelty_likelihood"].append(pddl_prob)
-
-                # If we already played at least two levels and novelty keeps being detected, mark this as a very high novelty likelihood
-                if cnn_prob > self.detector.threshold and \
-                    pddl_prob > self.meta_model_repair.consistency_threshold and \
-                    len(self.completed_levels)>1 and \
-                    not self.completed_levels[-1] and \
-                        self.nn_prob_per_level[0] > self.detector.threshold and \
-                        self.nn_prob_per_level[1] > self.detector.threshold:
-                    self.novelty_likelihood = 1.0
-                else:
-                    self.novelty_likelihood = cnn_prob
-
-        # Record current novelty likelihood estimate
-        self.stats_for_level["novelty_likelihood"]=self.novelty_likelihood
-
 
     ''' Handle what happens when the agent receives a PLAYING request'''
     def handle_game_playing(self, observation, raw_state):
@@ -193,20 +134,17 @@ class RepairingHydraSBAgent(HydraAgent):
         if self.revision_attempts >= settings.HYDRA_MODEL_REVISION_ATTEMPTS:
             return False
 
-        if self.novelty_existence != NOVELTY_EXISTANCE_NOT_GIVEN:
+        if self.novelty_existence != hydra_agent.NOVELTY_EXISTANCE_NOT_GIVEN:
             return self.novelty_existence==1
-
-        # Compute novelty likelihood values (cnn prob, pddl prob, and novelty likelihood)
-        self._compute_novelty_likelihood(observation)
 
         if observation.hasUnknownObj():
             return True
 
-        cnn_prob = self.stats_for_level[NN_PROB][-1]
-        pddl_prob = self.stats_for_level[PDDL_PROB][-1]
+        cnn_prob = self.stats_for_level[hydra_agent.NN_PROB][-1]
+        pddl_prob = self.stats_for_level[hydra_agent.PDDL_PROB][-1]
 
         # Try to repair only after 2 levels have passed & only after the first shot of the level # TODO: Rethink this design choice
-        if len(self.completed_levels) < 2 or len(self.stats_for_level[NN_PROB]) != 1:
+        if len(self.completed_levels) < 2 or len(self.stats_for_level[hydra_agent.NN_PROB]) != 1:
             return False
 
         logger.info("CNN novelty likelihoods last shot: %.3f, previous problem: %.3f, two problems ago: %.3f, last problem solved? %s" % (cnn_prob,

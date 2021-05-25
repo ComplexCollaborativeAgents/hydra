@@ -19,7 +19,7 @@ class MetaModelRepair(): # TODO: Remove this class
         simulator = CachingPddlPlusSimulator()
         sb_state = observation.state
         pddl_plan = observation.get_pddl_plan(pddl_meta_model)
-        observed_states = observation.get_trace(pddl_meta_model)
+        observed_states = observation.get_pddl_states_in_trace(pddl_meta_model)
 
         pddl_domain = pddl_meta_model.create_pddl_domain(sb_state)
         pddl_problem = pddl_meta_model.create_pddl_problem(sb_state)
@@ -76,7 +76,7 @@ class SimulationBasedMetaModelRepair(MetaModelRepair):
 
         try:
             expected_trace, plan = self.simulator.get_expected_trace(observation, self.current_meta_model, self.current_delta_t)
-            observed_seq = observation.get_trace(self.current_meta_model)
+            observed_seq = observation.get_pddl_states_in_trace(self.current_meta_model)
             consistency = self.consistency_estimator.estimate_consistency(expected_trace, observed_seq, delta_t=self.current_delta_t)
         except InconsistentPlanError: # Sometimes the repair makes the executed plan be inconsistent #TODO: Discuss this
             consistency = PLAN_FAILED_CONSISTENCY_VALUE
