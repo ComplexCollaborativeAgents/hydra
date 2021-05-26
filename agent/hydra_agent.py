@@ -215,16 +215,32 @@ class HydraAgent():
                 self.stats_for_level["pddl_novelty_likelihood"].append(pddl_prob)
 
                 # If we already played at least two levels and novelty keeps being detected, mark this as a very high novelty likelihood
-                if cnn_prob > self.detector.threshold and \
-                    pddl_prob > self.meta_model_repair.consistency_threshold and \
-                    len(self.completed_levels)>1 and \
-                    not self.completed_levels[-1] and \
-                        self.pddl_prob_per_level[0] > self.meta_model_repair.consistency_threshold and \
-                        self.pddl_prob_per_level[1] > self.meta_model_repair.consistency_threshold:
+                cnn_prediction = cnn_prob > self.detector.threshold
+                pddl_prediction = pddl_prob > self.meta_model_repair.consistency_threshold
+                enough_levels_completed = len(self.completed_levels)>1
+                if enough_levels_completed:
+                    level_lost = not self.completed_levels[-1]
+                    last_level_prediction = self.nn_prob_per_level[0] > self.detector.threshold
+                    last_last_level_prediction = self.nn_prob_per_level[1] > self.detector.threshold
+                else:
+                    level_lost = False
+                    last_level_prediction = False
+                    last_last_level_prediction = False
+
+                detected = cnn_prediction \
+                           and pddl_prediction \
+                           and enough_levels_completed \
+                           and level_lost \
+                           and last_level_prediction \
+                           and last_last_level_prediction
+                if detected:
                     self.novelty_likelihood = 1.0
                 # else:
                 # TODO: Think about how to set a non-binary value for novelty_likelihood
                 #     Ideal: compute novelty prob from (cnn_prob, pddl_prob)
+
+                logger.info("ShotNum={}, Level={}, Novelty detected={}, NN prediction={}, PDDL prediction={}, enough_levels={}, last_level_lost={}, last_pred={}, last_last_pred={}".
+                    format(self.shot_num, len(self.completed_levels), detected, cnn_prediction, pddl_prediction, enough_levels_completed, level_lost, last_level_prediction, last_last_level_prediction))
 
         # Record current novelty likelihood estimate
         self.stats_for_level[NOVELTY_LIKELIHOOD]=self.novelty_likelihood
