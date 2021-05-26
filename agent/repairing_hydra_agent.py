@@ -151,12 +151,9 @@ class RepairingHydraSBAgent(HydraAgent):
                                                                                                                                           self.nn_prob_per_level[1],
                                                                                                                                           self.completed_levels[-1]))
 
-        # Only repair if the following conditions hold
-        if cnn_prob > self.detector.threshold and\
-                self.nn_prob_per_level[0] > self.detector.threshold and\
-                self.nn_prob_per_level[1] > self.detector.threshold and\
-                not self.completed_levels[-1] and \
-                pddl_prob > self.meta_model_repair.consistency_threshold:
+        if self.novelty_likelihood==1.0 and \
+                pddl_prob > self.meta_model_repair.consistency_threshold and \
+                cnn_prob > self.detector.threshold:
             return True
 
         return False
