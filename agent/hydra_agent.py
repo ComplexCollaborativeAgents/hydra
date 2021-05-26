@@ -2,9 +2,12 @@ from agent.planning.planner import Planner
 import time
 
 from agent.consistency.consistency_estimator import *
+from agent.repair.sb_repair import ScienceBirdsConsistencyEstimator
+from state_prediction.anomaly_detector_fc_multichannel import FocusedSBAnomalyDetector
 from worlds.science_birds_interface.client.agent_client import GameState
 from agent.planning.sb_meta_model import *
 import datetime
+from agent.repair.meta_model_repair import *
 
 # TODO: Maybe push this to the settings file? then every module just adds a logger
 logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
@@ -16,6 +19,7 @@ NOVELTY_EXISTANCE_NOT_GIVEN = -1 # The self.novelty_existance value indicating t
 # stats_per_level dictionary keys
 NN_PROB = "nn_novelty_likelihood"
 PDDL_PROB = "pddl_novelty_likelihood"
+NOVELTY_LIKELIHOOD = "novelty_likelihood"
 
 
 class HydraAgent():
@@ -41,8 +45,14 @@ class HydraAgent():
         self.shot_num = 0
         self.trial_timestamp = datetime.datetime.now().strftime("%y%m%d%H%M%S")
         self.stats_for_level = dict()
+        self.nn_prob_per_level = []
+        self.pddl_prob_per_level = []
+        self.consistency_estimator = ScienceBirdsConsistencyEstimator()
+        self.detector = FocusedSBAnomalyDetector()
+
 
     def reinit(self):
+        logging.info('Reinit...')
         self.env.history = []
         self.perception = Perception()
         self.meta_model = ScienceBirdsMetaModel()
@@ -58,6 +68,8 @@ class HydraAgent():
         self.shot_num = 0
         self.trial_timestamp = datetime.datetime.now().strftime("%y%m%d%H%M%S")
         self.stats_for_level = dict()
+        self.nn_prob_per_level = []
+        self.pddl_prob_per_level = []
 
     ''' Runs the agent. Returns False if the evaluation has not ended, and True if it has ended.'''
     def main_loop(self,max_actions=1000):
@@ -167,6 +179,8 @@ class HydraAgent():
         ''' Computes the novelty likelihood for the given observation
         Also updates the stats_for_level object with the computed novelty probability by the two models.  '''
 
+        logging.info('Computing novelty likelihood...')
+
         if NN_PROB not in self.stats_for_level:
             self.stats_for_level[NN_PROB]=[]
         if PDDL_PROB not in self.stats_for_level:
@@ -205,15 +219,15 @@ class HydraAgent():
                     pddl_prob > self.meta_model_repair.consistency_threshold and \
                     len(self.completed_levels)>1 and \
                     not self.completed_levels[-1] and \
-                        self.nn_prob_per_level[0] > self.detector.threshold and \
-                        self.nn_prob_per_level[1] > self.detector.threshold:
+                        self.pddl_prob_per_level[0] > self.detector.threshold and \
+                        self.pddl_prob_per_level[1] > self.detector.threshold:
                     self.novelty_likelihood = 1.0
                 # else:
                 # TODO: Think about how to set a non-binary value for novelty_likelihood
                 #     Ideal: compute novelty prob from (cnn_prob, pddl_prob)
 
         # Record current novelty likelihood estimate
-        self.stats_for_level["novelty_likelihood"]=self.novelty_likelihood
+        self.stats_for_level[NOVELTY_LIKELIHOOD]=self.novelty_likelihood
 
     def _handle_end_of_level(self, success):
         ''' This is called when a level has ended, either in a win or a lose our come '''

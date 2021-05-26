@@ -29,9 +29,9 @@ def run_repairing_sb_experiments():
     trial_start = 0
     num_trials = 1
     per_trial = 1
-    # novelties = {1: [6, 7, 8, 9, 10], 2: [6, 7, 8, 9, 10], 3: [6, 7]}
+    novelties = {1: [6, 7, 8, 9, 10], 2: [6, 7, 8, 9, 10], 3: [6, 7]}
     # novelties = {1: [6, 7, 8, 9, 10]}
-    novelties = {1: [6,]}
+    # novelties = {1: [6,], 2:[6,], 3:[6, ]}
     notify_novelty = True
     lookup = load_lookup()
 

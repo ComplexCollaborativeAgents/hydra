@@ -3,7 +3,6 @@ from agent.hydra_agent import HydraAgent
 from agent.repair.meta_model_repair import *
 from agent.gym_hydra_agent import GymHydraAgent
 import os.path as path
-from state_prediction.anomaly_detector_fc_multichannel import FocusedSBAnomalyDetector
 from agent.repair.sb_repair import *
 
 logger = logging.getLogger("repairing_hydra_agent")
@@ -53,12 +52,8 @@ class RepairingGymHydraAgent(GymHydraAgent):
 class RepairingHydraSBAgent(HydraAgent):
     def __init__(self,env=None, agent_stats = list()):
         super().__init__(env, agent_stats=agent_stats)
-        self.consistency_estimator = ScienceBirdsConsistencyEstimator()
-        self.detector = FocusedSBAnomalyDetector()
-
         # Repair and detection variables
         self.revision_attempts = 0
-        self.nn_prob_per_level = []
         self.meta_model_repair = ScienceBirdsMetaModelRepair(self.meta_model)
 
 
@@ -66,16 +61,17 @@ class RepairingHydraSBAgent(HydraAgent):
     def reinit(self):
         super().reinit()
         self.revision_attempts = 0
-        self.nn_prob_per_level = []
+
 
 
     def process_final_observation(self):
         ''' This is called after winning or losing a level. '''
-        self.stats_for_level["novelty_likelihood"]=self.novelty_likelihood
+        self.stats_for_level[hydra_agent.NOVELTY_LIKELIHOOD]=self.novelty_likelihood
         # The consistency score per level for this level is the mean over the consistency scored of this level's observations
         self.nn_prob_per_level.insert(0,
                                       sum(self.stats_for_level[hydra_agent.NN_PROB]) / len(self.stats_for_level[hydra_agent.NN_PROB]))
-
+        self.pddl_prob_per_level.insert(0,
+                                      sum(self.stats_for_level[hydra_agent.PDDL_PROB]) / len(self.stats_for_level[hydra_agent.PDDL_PROB]))
 
     def handle_evaluation_terminated(self):
         ''' Handle what happens when the agent receives a EVALUATION_TERMINATED request'''
@@ -139,6 +135,9 @@ class RepairingHydraSBAgent(HydraAgent):
 
         if observation.hasUnknownObj():
             return True
+
+        if hydra_agent.NN_PROB not in self.stats_for_level:
+            return False #TODO: Design choice: wait for the second shot to repair
 
         cnn_prob = self.stats_for_level[hydra_agent.NN_PROB][-1]
         pddl_prob = self.stats_for_level[hydra_agent.PDDL_PROB][-1]
