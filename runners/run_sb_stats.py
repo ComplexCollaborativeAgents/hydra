@@ -383,7 +383,9 @@ def run_eval_stats(novelties: dict,
             number_samples = len(levels)
             if samples is not None:
                 number_samples = min(number_samples, samples)
-            sampled_levels = random.sample(levels,number_samples)
+            sampled_levels = levels[:number_samples]
+            # sampled_levels = random.sample(levels,number_samples)  TODO: Discuss design: this sampling kills the order of the levels, causing the non-novel levels to appear after the novel ones
+
 
             prepare_config(template, config, sampled_levels, notify_novelty)
             pre_directories = glob_directories(bin_path, 'Agent*')
@@ -400,21 +402,29 @@ def run_eval_stats(novelties: dict,
                 results_directory = diff_directories(pre_directories, post_directories)
 
             if results_directory is not None:
-                results.append(compute_eval_stats(results_directory, agent_type, agent_stats=agent_stats))
+                results_for_novelty_type = compute_eval_stats(results_directory, agent_type, agent_stats=agent_stats)
+
+                # Write intermediate results to file
+                results_filename = os.path.join(STATS_BASE_PATH, "eval_results_level{}_type{}.json".format(novelty, novelty_type))
+                with open(results_filename, "w+") as f:
+                    logger.info("Writing results for novelty {} type {} to {}".format(novelty, novelty_type, results_filename))
+                    json.dump(results_for_novelty_type, f, indent=3)
+
+                results.append(results_for_novelty_type)
 
     # Output results per level
     results_filename = os.path.join(STATS_BASE_PATH, "eval_trial{}_results.json".format(suffix))
     print("Print evaluation results to file {}".format(results_filename))
     with open(results_filename, "w+") as f:
-        print("STATS: writing to {}".format(results_filename))
+        logger.info("STATS: writing to {}".format(results_filename))
         json.dump(results, f, indent=3)
 
     # Output evaluation metrics for the entire run
     stat_results = _compute_stats(results, suffix)
     stats_filename = os.path.join(STATS_BASE_PATH, "eval_trial{}_stats.json".format(suffix))
-    print("Print evaluation metrics to file {}".format(stats_filename))
+    logger.info("Print evaluation metrics to file {}".format(stats_filename))
     with open(stats_filename, "w+") as f:
-        print("STATS: writing to {}".format(stats_filename))
+        logger.info("STATS: writing to {}".format(stats_filename))
         json.dump(stat_results, f, indent=4)
 
     return results
