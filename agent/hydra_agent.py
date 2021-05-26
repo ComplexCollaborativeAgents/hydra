@@ -219,8 +219,8 @@ class HydraAgent():
                     pddl_prob > self.meta_model_repair.consistency_threshold and \
                     len(self.completed_levels)>1 and \
                     not self.completed_levels[-1] and \
-                        self.pddl_prob_per_level[0] > self.detector.threshold and \
-                        self.pddl_prob_per_level[1] > self.detector.threshold:
+                        self.pddl_prob_per_level[0] > self.meta_model_repair.consistency_threshold and \
+                        self.pddl_prob_per_level[1] > self.meta_model_repair.consistency_threshold:
                     self.novelty_likelihood = 1.0
                 # else:
                 # TODO: Think about how to set a non-binary value for novelty_likelihood
