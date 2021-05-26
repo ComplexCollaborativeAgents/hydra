@@ -322,7 +322,8 @@ def run_performance_stats(novelties: dict,
             number_samples = len(levels)
             if samples is not None:
                 number_samples = min(number_samples, samples)
-            levels = random.sample(levels, number_samples)
+            levels = levels[:number_samples]
+            # levels = random.sample(levels, number_samples) # TODO: Discuss design: this sampling kills the order of the levels, causing the non-novel levels to appear after the novel ones
 
             if level_lookup:
                 levels = [levels_path / l for l in level_lookup[str(novelty)][str(novelty_type)]]
