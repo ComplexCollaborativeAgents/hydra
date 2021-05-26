@@ -220,8 +220,11 @@ class HydraAgent():
                 enough_levels_completed = len(self.completed_levels)>1
                 if enough_levels_completed:
                     level_lost = not self.completed_levels[-1]
-                    last_level_prediction = self.nn_prob_per_level[0] > self.detector.threshold
-                    last_last_level_prediction = self.nn_prob_per_level[1] > self.detector.threshold
+                    last_level_prediction = self.nn_prob_per_level[0] > self.detector.threshold or \
+                                            self.pddl_prob_per_level[0] > self.meta_model_repair.consistency_threshold
+
+                    last_last_level_prediction = self.nn_prob_per_level[1] > self.detector.threshold or \
+                                            self.pddl_prob_per_level[1] > self.meta_model_repair.consistency_threshold
                 else:
                     level_lost = False
                     last_level_prediction = False
