@@ -133,7 +133,7 @@ class HydraAgent():
 
     ''' Handle what happens when the agent receives a REQUESTNOVELTYLIKELIHOOD request'''
     def handle_request_novelty_likelihood(self):
-        logger.info("[hydra_agent_server] :: Requesting Novelty Likelihood {}".format(
+        logger.info("[hydra_agent_server] :: Requesting Novelty Likelihood. Novelyy likelihood is {}".format(
             self.novelty_likelihood))
         novelty_likelihood = self.novelty_likelihood
         non_novelty_likelihood = 1 - novelty_likelihood
