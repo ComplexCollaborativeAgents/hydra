@@ -28,7 +28,7 @@ class MetaModelBasedConsistencyEstimator(ConsistencyEstimator):
     def compute_consistency(self, observation, meta_model, simulator : PddlPlusSimulator, delta_t):
         try:
             expected_trace, plan = simulator.get_expected_trace(observation, meta_model, delta_t)
-            observed_seq = observation.get_trace(meta_model)
+            observed_seq = observation.get_pddl_states_in_trace(meta_model)
             consistency = self.estimate_consistency(expected_trace, observed_seq, delta_t)
         except InconsistentPlanError: # Sometimes the repair makes the executed plan be inconsistent, e.g., its preconditions are not satisfied
             consistency = MetaModelBasedConsistencyEstimator.PLAN_FAILED_CONSISTENCY_VALUE

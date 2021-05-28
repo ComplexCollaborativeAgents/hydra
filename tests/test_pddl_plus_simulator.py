@@ -172,7 +172,7 @@ def test_fast_sim():
     meta_model = pickle.load(open(mm_output_file, "rb"))
     delta_t = settings.SB_DELTA_T
     consistency_estimator = BirdLocationConsistencyEstimator()
-    observed_seq = observation.get_trace(meta_model)
+    observed_seq = observation.get_pddl_states_in_trace(meta_model)
 
     simulator = PddlPlusSimulator()
     vanilla_sim_expected_trace, _ = simulator.get_expected_trace(observation, meta_model, delta_t)

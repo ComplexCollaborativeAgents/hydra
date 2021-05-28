@@ -21,7 +21,7 @@ class ScienceBirdsObservation:
         return self.state
 
     ''' Returns a sequence of PDDL states that are the observed intermediate states '''
-    def get_trace(self, meta_model: ScienceBirdsMetaModel = ScienceBirdsMetaModel()): # TODO: Refactor and move this to the meta model?
+    def get_pddl_states_in_trace(self, meta_model: ScienceBirdsMetaModel = ScienceBirdsMetaModel()): # TODO: Refactor and move this to the meta model?
         observed_state_seq = []
         perception = Perception()
         for intermediate_state in self.intermediate_states:
@@ -33,6 +33,10 @@ class ScienceBirdsObservation:
             return True
         else:
             return False
+
+    def get_novel_object_ids(self):
+        ''' Return a list of novel object ids '''
+        return [object_id for [object_id, object] in self.state.novel_objects()]
 
     ''' Returns a PDDL+ plan object with a single action that is the action that was performed '''
     def get_pddl_plan(self, meta_model: ScienceBirdsMetaModel = ScienceBirdsMetaModel):

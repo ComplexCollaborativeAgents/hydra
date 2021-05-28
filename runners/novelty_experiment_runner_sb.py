@@ -12,8 +12,8 @@ NOVELTIES = {1: [6,7,8,9,10], 2:[6,7,8,9,10], 3:[6,7]}
 NOTIFY_NOVELTY  = False
 
 # NOTE: need to change the filename of LOOKUP_PATH to whatever config json file is output by utils/generate_eval_trial_sets
-# LOOKUP_PATH = pathlib.Path(__file__).parent.absolute() / "eval_sb_trials_test_full.json"
-LOOKUP_PATH = pathlib.Path(__file__).parent.absolute() / "eval_sb_trials_test_short.json"
+LOOKUP_PATH = pathlib.Path(__file__).parent.absolute() / "eval_sb_trials_test_full.json"
+# LOOKUP_PATH = pathlib.Path(__file__).parent.absolute() / "eval_sb_trials_test_short.json"
 
 def load_lookup(lookup_path):
     with open(lookup_path) as f:

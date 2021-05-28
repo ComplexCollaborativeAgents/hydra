@@ -129,7 +129,9 @@ class PddlPlusSimulator():
         return still_active, t
 
     ''' Simulate the trace of a given action in a given state according to the given meta model'''
-    def simulate_observed_action(self, game_state, game_action, game_meta_model, delta_t : float):
+    def simulate_observed_action(self, game_state, game_action, game_meta_model, delta_t : float=  None):
+        if delta_t is None:
+            delta_t = game_meta_model.delta_t
         problem = game_meta_model.create_pddl_problem(game_state)
         domain = game_meta_model.create_pddl_domain(game_state)
         domain = PddlPlusGrounder().ground_domain(domain,problem) # Simulator accepts only grounded domains

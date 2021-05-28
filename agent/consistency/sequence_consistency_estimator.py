@@ -1,5 +1,5 @@
 from agent.consistency.consistency_estimator import *
-
+import math
 
 class SequenceConsistencyEstimator(ConsistencyEstimator):
     ''' Checks consistency by trying to align sequences of fluents '''
@@ -25,7 +25,7 @@ class SequenceConsistencyEstimator(ConsistencyEstimator):
             return len(state_seq)-len(simulation_trace)
 
         # Compute consistency of every observed state
-        consistency_per_state = self.compute_consistency_per_state(simulation_trace, state_seq, delta_t)
+        consistency_per_state = self.compute_consistency_per_state(simulation_trace, state_seq)
 
         # Aggregate the consistency
         discount = 1.0
@@ -43,7 +43,7 @@ class SequenceConsistencyEstimator(ConsistencyEstimator):
 
         return max_error
 
-    def compute_consistency_per_state(self, expected_state_seq: list, observed_states: list, delta_t: float = DEFAULT_DELTA_T):
+    def compute_consistency_per_state(self, expected_state_seq: list, observed_states: list):
         ''' Returns a vector of values, one per observed state, indicating how much it is consistent with the simulation.
         The first parameter is a list of (state,time) pairs, the second is just a list of states 
         Current implementation ignores order, and just looks for the best time for each state in the state_seq, 

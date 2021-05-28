@@ -88,7 +88,7 @@ class ScienceBirdsConsistencyEstimator(MetaModelBasedConsistencyEstimator):
             plan = observation.get_pddl_plan(meta_model)
             (_, _, expected_trace,) = simulator.simulate(plan, problem, domain, delta_t=delta_t)
 
-            observed_seq = observation.get_trace(meta_model)
+            observed_seq = observation.get_pddl_states_in_trace(meta_model)
             consistency = self.estimate_consistency(expected_trace, observed_seq, delta_t)
         except InconsistentPlanError: # Sometimes the repair makes the executed plan be inconsistent, e.g., its preconditions are not satisfied
             consistency = MetaModelBasedConsistencyEstimator.PLAN_FAILED_CONSISTENCY_VALUE

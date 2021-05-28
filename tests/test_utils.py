@@ -1,4 +1,5 @@
 from agent.consistency.pddl_plus_simulator import *
+import logging
 
 ''' Helper function: simulate the given plan, on the given problem and domain.  '''
 def simulate_plan_trace(plan: PddlPlusPlan, problem:PddlPlusProblem, domain: PddlPlusDomain, delta_t:float = 0.05):
