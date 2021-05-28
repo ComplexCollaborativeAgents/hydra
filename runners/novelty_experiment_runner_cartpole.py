@@ -1,5 +1,7 @@
 import json
 import logging
+logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger("hydra_agent")
 
 from worlds.gym_cartpole_dispatcher import GymCartpoleDispatcher
 from baselines.cartpole.dqn_learner import DQNLearnerObserver
@@ -106,17 +108,28 @@ class NoveltyExperimentRunnerCartpole:
         self._non_novelty_learning_trial_length = int(options.l_learning)
         self._non_novelty_performance_trial_length = int(options.l_performance)
         self._novelty_trial_length = int(options.l_novelty)
+        self._agent_type = options.agent
 
-        self._results_directory_path = os.path.join(settings.ROOT_PATH, "runners", "experiments", "cartpole", options.name)
+        self._results_directory_path = os.path.join(settings.ROOT_PATH, "runners", "experiments", "cartpole", options.name, options.agent)
         if not os.path.exists(self._results_directory_path):
             os.makedirs(self._results_directory_path)
 
 
 
     def run_experiment_subtrial(self, episode_range, trial_num, trial_type, episode_type, novelty_id, novelty):
-        observer = CartpoleHydraAgentObserver(agent_type=RepairingCartpoleHydraAgent)
-        env_dispatcher = NoveltyExperimentGymCartpoleDispatcher(observer, render=False)
 
+        observer = None
+        if self._agent_type == 'dqn':
+            observer = DQNLearnerObserver()
+        if self._agent_type == 'basic':
+            observer = CartpoleHydraAgentObserver(agent_type=CartpoleHydraAgent)
+        if self._agent_type == 'repairing':
+            observer = CartpoleHydraAgentObserver(agent_type=RepairingCartpoleHydraAgent)
+
+        assert observer is not None
+        logger.info("Running agent type {}".format(self._agent_type))
+
+        env_dispatcher = NoveltyExperimentGymCartpoleDispatcher(observer, render=False)
 
         if trial_type == constants.UNKNOWN:
             env_dispatcher.set_is_known(None)
@@ -177,7 +190,7 @@ class NoveltyExperimentRunnerCartpole:
                 1: [constants.MASSCART, constants.LENGTH, constants.FORCE_MAG],
                 2: [constants.GRAVITY]
             },
-            'values': range(5, 15, 2)
+            'values': range(5, 25, 5)
         }
 
         novelties = []
@@ -217,6 +230,7 @@ class NoveltyExperimentRunnerCartpole:
         num_trials_per_type = trials.groupby("trial_type").agg({'FN': len}).rename(columns={'FN': 'count'})
         scores = cdt.groupby("trial_type").agg({'FN': numpy.mean, 'FP': len}).rename(columns={'FN': 'M1', 'FP': 'M2'})
         scores['M2'] = scores['M2'] / num_trials_per_type['count']
+        scores['NRP'] = trials.groupby("trial_type").agg({'performance': numpy.mean})
         return scores
 
     @staticmethod
@@ -233,6 +247,10 @@ class NoveltyExperimentRunnerCartpole:
 
 if __name__ == '__main__':
     parser = optparse.OptionParser(usage="usage: %prog [options]")
+    parser.add_option("--agent",
+                      dest='agent',
+                      help='name of the agent you want to run: basic, repairing, dqn',
+                      default='repairing')
     parser.add_option("--name",
                       dest="name",
                       help="name of the directory in which all the results will be stored at ../data/cartpole/",
