@@ -6,13 +6,15 @@ logger = logging.getLogger("novelty_experiment_runner")
 
 TRIAL_START = 0
 NUM_TRIALS = 1
-PER_TRIAL = 3
+PER_TRIAL = 20
 NOVELTIES = {1: [6,7,8,9,10], 2:[6,7,8,9,10], 3:[6,7]}
 # NOVELTIES = {1: [6,7,8,9,10],2:}
 NOTIFY_NOVELTY  = False
 
 # NOTE: need to change the filename of LOOKUP_PATH to whatever config json file is output by utils/generate_eval_trial_sets
-LOOKUP_PATH = pathlib.Path(__file__).parent.absolute() / "eval_sb_trials_test_full.json"
+# LOOKUP_PATH = pathlib.Path(__file__).parent.absolute() / "eval_sb_trials_test_full.json"
+TRIAL_NAME = "b4_novelty_10"
+LOOKUP_PATH = pathlib.Path(__file__).parent.absolute() / "eval_sb_trials_{}.json".format(TRIAL_NAME)
 # LOOKUP_PATH = pathlib.Path(__file__).parent.absolute() / "eval_sb_trials_test_short.json"
 
 def load_lookup(lookup_path):
@@ -31,8 +33,7 @@ if __name__ == "__main__":
 
             result = run_eval_stats(NOVELTIES,
                                     agent_type=agent,
-                                    samples=PER_TRIAL,
-                                    suffix=str(trial_set),
+                                    suffix="{}_{}".format(TRIAL_NAME, str(trial_set)),
                                     notify_novelty=NOTIFY_NOVELTY,
                                     level_lookup=lookup[trial_set])
 
