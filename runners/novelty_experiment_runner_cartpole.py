@@ -4,9 +4,8 @@ logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s
 logger = logging.getLogger("hydra_agent")
 
 from worlds.gym_cartpole_dispatcher import GymCartpoleDispatcher
-from baselines.cartpole.dqn_learner import DQNLearnerObserver
+from baselines.cartpole.dqn_learner import DQNLearnerObserver, QNet
 from worlds.wsu.wsu_dispatcher import WSUObserver
-
 import os
 import settings
 import gym
@@ -69,7 +68,6 @@ class NoveltyExperimentGymCartpoleDispatcher(GymCartpoleDispatcher):
                     env.render()
                     time.sleep(0.05)
                 label = self.delegate.testing_instance(feature_vector=features, novelty_indicator=self._is_known)
-                print("NOVELTY INDICATOR{}".format(self._is_known))
                 self.log.debug("Received label={}".format(label))
                 action = self.label_to_action(label)
                 observation, reward, done, _ = env.step(action)
@@ -79,8 +77,7 @@ class NoveltyExperimentGymCartpoleDispatcher(GymCartpoleDispatcher):
                 if done:
                     break
             performance = sum(rewards) / float(steps)
-            novelty_probability, novelty_threshold, novelty, novelty_characterization = self.delegate.testing_episode_end(
-                performance)
+            novelty_probability, novelty_threshold, novelty, novelty_characterization = self.delegate.testing_episode_end(performance)
             if self._results is not None:
                 self._log_data(episode_num=episode, novelty_probability=novelty_probability,
                                novelty_threshold=novelty_threshold, novelty=novelty,
@@ -113,7 +110,6 @@ class NoveltyExperimentRunnerCartpole:
         self._results_directory_path = os.path.join(settings.ROOT_PATH, "runners", "experiments", "cartpole", options.name, options.agent)
         if not os.path.exists(self._results_directory_path):
             os.makedirs(self._results_directory_path)
-
 
 
     def run_experiment_subtrial(self, episode_range, trial_num, trial_type, episode_type, novelty_id, novelty):
@@ -164,14 +160,14 @@ class NoveltyExperimentRunnerCartpole:
             for trial_type in [constants.UNKNOWN, constants.KNOWN]:
                 for trial in range(0, self._number_of_experiment_trials):
                     episode_num = 0
-                    subtrial_result = self.run_experiment_subtrial(
-                        episode_range=range(episode_num, episode_num + self._non_novelty_performance_trial_length),
-                        trial_num=trial,
-                        trial_type=trial_type,
-                        episode_type=constants.NON_NOVELTY_PERFORMANCE,
-                        novelty_id=novelty['uid'],
-                        novelty=novelty)
-                    subtrial_result.to_csv(results_file_handle, index=False, header=False)
+                    # subtrial_result = self.run_experiment_subtrial(
+                    #     episode_range=range(episode_num, episode_num + self._non_novelty_performance_trial_length),
+                    #     trial_num=trial,
+                    #     trial_type=trial_type,
+                    #     episode_type=constants.NON_NOVELTY_PERFORMANCE,
+                    #     novelty_id=novelty['uid'],
+                    #     novelty=novelty)
+                    # subtrial_result.to_csv(results_file_handle, index=False, header=False)
                     episode_num = episode_num + self._non_novelty_performance_trial_length
                     subtrial_result = self.run_experiment_subtrial(
                         episode_range=range(episode_num, episode_num + self._novelty_trial_length),
@@ -249,7 +245,7 @@ if __name__ == '__main__':
     parser.add_option("--agent",
                       dest='agent',
                       help='name of the agent you want to run: basic, repairing, dqn',
-                      default='repairing')
+                      default='dqn')
     parser.add_option("--name",
                       dest="name",
                       help="name of the directory in which all the results will be stored at ../data/cartpole/",
@@ -265,15 +261,15 @@ if __name__ == '__main__':
     parser.add_option("--performance-subtrial",
                       dest='l_performance',
                       help='number of episodes in the non-novelty performance subtrial',
-                      default=2)
+                      default=0)
     parser.add_option("--novelty-subtrial",
                       dest='l_novelty',
                       help='number of episodes in the novelty subtrial',
-                      default=5)
+                      default=1)
     parser.add_option("--novelty_config",
                       dest='novelty_config',
-                      help='a dict of novelty configurations')
-                     # default={'uid': 'length_point2', 'level': 1, 'config': {constants.LENGTH: 0.2}})
+                      help='a dict of novelty configurations',#)
+                      default={'uid': 'length_point2', 'level': 1, 'config': {constants.LENGTH: 0.2}})
 
     (options, args) = parser.parse_args()
     print(options)
