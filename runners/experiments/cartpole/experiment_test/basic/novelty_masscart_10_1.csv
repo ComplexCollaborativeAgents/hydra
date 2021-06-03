@@ -1,0 +1,5 @@
+episode_num,novelty_probability,novelty_threshold,novelty,novelty_characterization,performance,trial_num,novelty_id,trial_type,episode_type,level,env_config
+0,0.0,0.999999,0,{},1.0,0,masscart_10_1,unknown,non-novelty-performance,1,{'masscart': 1.0}
+1,0.0,0.999999,0,{},1.0,0,masscart_10_1,unknown,novelty,1,{'masscart': 1.0}
+0,0.0,0.999999,0,{},1.0,0,masscart_10_1,known,non-novelty-performance,1,{'masscart': 1.0}
+1,0.0,0.999999,0,{},1.0,0,masscart_10_1,known,novelty,1,{'masscart': 1.0}
