@@ -160,14 +160,14 @@ class NoveltyExperimentRunnerCartpole:
             for trial_type in [constants.UNKNOWN, constants.KNOWN]:
                 for trial in range(0, self._number_of_experiment_trials):
                     episode_num = 0
-                    # subtrial_result = self.run_experiment_subtrial(
-                    #     episode_range=range(episode_num, episode_num + self._non_novelty_performance_trial_length),
-                    #     trial_num=trial,
-                    #     trial_type=trial_type,
-                    #     episode_type=constants.NON_NOVELTY_PERFORMANCE,
-                    #     novelty_id=novelty['uid'],
-                    #     novelty=novelty)
-                    # subtrial_result.to_csv(results_file_handle, index=False, header=False)
+                    subtrial_result = self.run_experiment_subtrial(
+                        episode_range=range(episode_num, episode_num + self._non_novelty_performance_trial_length),
+                        trial_num=trial,
+                        trial_type=trial_type,
+                        episode_type=constants.NON_NOVELTY_PERFORMANCE,
+                        novelty_id=novelty['uid'],
+                        novelty=novelty)
+                    subtrial_result.to_csv(results_file_handle, index=False, header=False)
                     episode_num = episode_num + self._non_novelty_performance_trial_length
                     subtrial_result = self.run_experiment_subtrial(
                         episode_range=range(episode_num, episode_num + self._novelty_trial_length),
@@ -232,7 +232,7 @@ class NoveltyExperimentRunnerCartpole:
     def plot_experiment_results(df, novelty_episode_number):
         plt.figure(figsize=(16, 9))
         ax = sns.lineplot(data=df, y='performance', x='episode_num', hue='trial_type', ci=95)
-        ax.set(ylim=(0, 1))
+        ax.set(ylim=(0, 1.1))
         plt.axvline(x=novelty_episode_number, color='red')
         plt.title("Experiment results", fontsize=20)
         plt.xlabel("episodes", fontsize=15)
@@ -249,11 +249,11 @@ if __name__ == '__main__':
     parser.add_option("--name",
                       dest="name",
                       help="name of the directory in which all the results will be stored at ../data/cartpole/",
-                      default="cartpole_experiment")
+                      default="may28")
     parser.add_option("--num_trials",
                       dest='num_trials',
                       help="Number of full trials to be run. Each trial is several subtrials",
-                      default=1)
+                      default=5)
     parser.add_option("--learning_subtrial",
                       dest='l_learning',
                       help='number of episodes in the learning subtrial',
@@ -261,15 +261,15 @@ if __name__ == '__main__':
     parser.add_option("--performance-subtrial",
                       dest='l_performance',
                       help='number of episodes in the non-novelty performance subtrial',
-                      default=0)
+                      default=5)
     parser.add_option("--novelty-subtrial",
                       dest='l_novelty',
                       help='number of episodes in the novelty subtrial',
-                      default=1)
+                      default=20)
     parser.add_option("--novelty_config",
                       dest='novelty_config',
-                      help='a dict of novelty configurations',#)
-                      default={'uid': 'length_point2', 'level': 1, 'config': {constants.LENGTH: 0.2}})
+                      help='a dict of novelty configurations',
+                      default={'uid': 'length_1point1_masscart_point9', 'level': 1, 'config': {constants.LENGTH: 1.1, constants.MASSCART: 0.9}})
 
     (options, args) = parser.parse_args()
     print(options)
