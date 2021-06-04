@@ -139,7 +139,7 @@ class HydraAgent():
         non_novelty_likelihood = 1 - novelty_likelihood
         #placeholders for novelty information
         if len(self.novel_objects)>0:
-            ids = set(self.novel_objects)
+            ids = set([int(object_id_str) for object_id_str in self.novel_objects])
             novelty_description = "Unknown type of objects detected"
         else:
             ids = {1,2,3}
@@ -320,8 +320,8 @@ class HydraAgent():
         pddl_state = PddlPlusState(problem.init)
         unknown_objs = state.novel_objects()
         if unknown_objs:
-            logger.info("unknown objects in {},{} : {}".format(self.current_level),
-                        self.planner.current_problem_prefix,unknown_objs.__str__())
+            logger.info("unknown objects in {},{} : {}".format(self.current_level,
+                        self.planner.current_problem_prefix,unknown_objs.__str__()))
         try:
             active_bird = pddl_state.get_active_bird()
         except:

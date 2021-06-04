@@ -389,6 +389,7 @@ class ScienceBirdsMetaModel(MetaModel):
     ''' Sets the default meta-model'''
     def __init__(self):
         super().__init__(docker_path=settings.SB_PLANNING_DOCKER_PATH,
+                         domain_file_name="sb_domain.pddl",
                          delta_t=settings.SB_DELTA_T,
                          metric = 'minimize(total-time)',
                          repairable_constants=['gravity_factor',
