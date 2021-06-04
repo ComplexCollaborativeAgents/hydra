@@ -66,17 +66,17 @@ class DQNLearner():
         state = self.generate_state(observation)
         if is_training:
             action = self._dqn_handler.act_discrete_with_noise({"state": state})
-        else:
-            action = self._dqn_handler.act_discrete({"state": state})
-        if self._previous_state is not None:
-            self._dqn_handler.store_transition({"state": {"state": self._previous_state},
+            if self._previous_state is not None:
+                self._dqn_handler.store_transition({"state": {"state": self._previous_state},
                                                     "action": {"action": self._previous_action},
                                                     "next_state": {"state": state},
                                                     "reward": reward, "terminal": done})
-            if is_training:
-                self._dqn_handler.update()
-        self._previous_state = state
-        self._previous_action = action
+
+            self._dqn_handler.update()
+            self._previous_state = state
+            self._previous_action = action
+        else:
+            action = self._dqn_handler.act_discrete({"state": state})
         return action.item()
 
 
@@ -92,7 +92,7 @@ class DQNAgentRunner():
         self._environment = environment
         self._agent = agent
 
-    def run(self, number_of_episodes=200, is_training=True):
+    def run(self, number_of_episodes=200, is_training=True, steps_per_episode=1000):
         scores = []
         for e in range(number_of_episodes):
             observation = self._environment.reset()
@@ -100,12 +100,15 @@ class DQNAgentRunner():
             reward = None
             done = False
             score = 0
+            steps = 0
             while True:
-                action = self._agent.get_next_action(observation, reward, done, is_training=is_training)
-                if done:
+                #action = self._agent.get_next_action(observation, reward, done, is_training=is_training)
+                action = self._agent.get_next_action(observation, 0, False, is_training=False)
+                if done or steps >= steps_per_episode:
                     break
                 observation, reward, done, filler = self._environment.step(action)
                 score += reward
+                steps += 1
             print("training in episode {}, score {}".format(e, score))
             scores.append(score)
         print(scores)
@@ -153,7 +156,7 @@ if __name__ == '__main__':
     agent = DQNLearner(action_space=env.action_space.n, observation_space=env.observation_space.shape[0], load_from_path=True)
     runner = DQNAgentRunner(environment=env, agent=agent)
     #runner.run(is_training=True)
-    runner.run(is_training=False)
+    runner.run(is_training=False, steps_per_episode=200)
     #agent.save_model()
 
 
