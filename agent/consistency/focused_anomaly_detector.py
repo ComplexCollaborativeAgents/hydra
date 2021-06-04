@@ -33,7 +33,7 @@ class FocusedAnomalyDetector():
         EPSILON = 0.000001 # This is used for cases where the novelty threshold is zero, to avoid divide by zero.
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         anomalies = list()
-        model = torch.load(os.path.join(settings.ROOT_PATH,'model', 'model_v1.pkl'), map_location= device)
+        model = torch.load(os.path.join(settings.ROOT_PATH,'model', 'model_may2021.pt'), map_location= device)
         prediction_obj = Trainer(model)
         anomaly_count = 10      ## increase this if you want a more conservative detection
         property = np.asarray(["Cart_Position", "Cart_Velocity","Pole_Angle","Pole_Angular_Velocity"])
