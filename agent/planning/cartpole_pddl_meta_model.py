@@ -65,6 +65,7 @@ class CartPoleMetaModel(MetaModel):
     def __init__(self):
         super().__init__(
             docker_path=settings.CARTPOLE_PLANNING_DOCKER_PATH,
+            domain_file_name="cartpole_domain.pddl",
             delta_t=settings.CP_DELTA_T,
             metric='minimize(total-time)',
             repairable_constants=('m_cart', 'l_pole', 'm_pole', 'force_mag', 'gravity', 'angle_limit', 'x_limit'),

@@ -85,12 +85,12 @@ def test_repair_gravity_in_cartpole_agent(launch_cartpole_sample_level):
             break
             # No need to fix the model - we're winning! #TODO: This is an assumption: better to replace this with a good novelty detection mechanism
         else:
-            consistency = check_obs_consistency(observation, meta_model, consistency_checker, delta_t=DEFAULT_DELTA_T)
+            consistency = check_obs_consistency(observation, meta_model, consistency_checker)
             meta_model_repair = GreedyBestFirstSearchMetaModelRepair(fluents_to_repair, consistency_checker, repair_deltas,
                                                                      consistency_threshold=desired_precision)
             repair, _ = meta_model_repair.repair(meta_model, observation, delta_t=DEFAULT_DELTA_T)
             logger.info("Repair done (%s), iteration %d" % (repair,iteration))
-            consistency_after = check_obs_consistency(observation, meta_model, consistency_checker, delta_t=DEFAULT_DELTA_T)
+            consistency_after = check_obs_consistency(observation, meta_model, consistency_checker)
             assert consistency >= consistency_after # TODO: This actually may fail, because current model may be best, but we look for a different one
 
         # Run agent with repaired model
