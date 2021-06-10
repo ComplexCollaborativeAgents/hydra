@@ -49,7 +49,7 @@ class HydraAgent():
         self.pddl_prob_per_level = []
         self.consistency_estimator = ScienceBirdsConsistencyEstimator()
         self.detector = FocusedSBAnomalyDetector()
-
+        self.current_level = 0
 
     def reinit(self):
         logging.info('Reinit...')
