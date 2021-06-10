@@ -262,15 +262,21 @@ def compute_eval_stats(results_path, agent, agent_stats = list()):
 
                 # Categorize novelty detection result
                 if 'novelty_level_0' in level_path: # Is not novel - TODO: find a better way to determine non novel levels
-                    if level_stats['novelty_likelihood'] == 1:  # Detected novelty when there is none - false_positive
-                        false_positives += 1
+                    if 'novelty_likelihood' not in level_stats:
+                        true_negatives+=1
                     else:
-                        true_negatives += 1
+                        if level_stats['novelty_likelihood'] == 1:  # Detected novelty when there is none - false_positive
+                            false_positives += 1
+                        else:
+                            true_negatives += 1
                 else:   # This is a novel level
-                    if level_stats['novelty_likelihood'] == 1:
-                        true_positives += 1
+                    if 'novelty_likelihood' not in level_stats:
+                        false_negatives+=1
                     else:
-                        false_negatives += 1
+                        if level_stats['novelty_likelihood'] == 1:
+                            true_positives += 1
+                        else:
+                            false_negatives += 1
 
                 # Add to levels
                 stats['levels'].append(level_stats)
