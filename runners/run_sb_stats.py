@@ -411,7 +411,7 @@ def run_eval_stats(novelties: dict,
                 results_for_novelty_type = compute_eval_stats(results_directory, agent_type, agent_stats=agent_stats)
 
                 # Write intermediate results to file
-                results_filename = os.path.join(STATS_BASE_PATH, "eval_results_level{}_type{}.json".format(novelty, novelty_type))
+                results_filename = "eval_novelty{}_type{}_agent{}".format(novelty, novelty_type, agent_type.name)
                 with open(results_filename, "w+") as f:
                     logger.info("Writing results for novelty {} type {} to {}".format(novelty, novelty_type, results_filename))
                     json.dump(results_for_novelty_type, f, indent=3)
