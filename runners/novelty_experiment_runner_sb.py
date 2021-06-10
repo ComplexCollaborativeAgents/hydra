@@ -327,7 +327,7 @@ class NoveltyExperimentRunnerSB:
         # print("AFTER CDT: {}".format(trials))
         cdt = aggregate[aggregate['is_CDT'] == True]
 
-        return trials, cdt
+        return aggregate, cdt
 
     @staticmethod
     def get_program_metrics(cdt: pandas.DataFrame, trials: pandas.DataFrame):
@@ -335,25 +335,22 @@ class NoveltyExperimentRunnerSB:
         # Aggregate to get 
         #    - M1 - mean of FN within set of CDTs
         #    - M2.1 - 
-        scores = cdt.groupby("trial_type").agg({'FN': numpy.mean, 'FP': len}).rename(columns={'FN': 'M1', 'FP': 'M2.1'})    
+        scores = cdt.groupby("trial_type").agg({'FN': numpy.mean, 'FP': len}).rename(columns={'FN': 'M1', 'FP': 'CDT_count'})    
 
         # M1 - average number of FN among CDTs
 
         # M2 - % of CDTs
 
         # M2.1 - % of trials with at least 1 FP
-        scores['M2.1'] = scores['M2.1'] / num_trials_per_type['count']
+        scores['M2'] = scores['CDT_count'] / num_trials_per_type['count']
 
-        # 
-        # scores = cdt.groupby("trial_type").agg({'FN': numpy.mean, 'FP': len}).rename(columns={'FN': 'M1', 'FP': 'M2'})
-        # scores['M2'] = scores['M2'] / num_trials_per_type['count']
         return scores
 
     @staticmethod
     def plot_experiment_results(df, novelty_episode_number):
         plt.figure(figsize=(16, 9))
         ax = sns.lineplot(data=df, y='performance', x='episode_num', hue='trial_type', ci=95)
-        ax.set(ylim=(0, 1))
+        ax.set(ylim=(0, 100000))
         plt.axvline(x=novelty_episode_number, color='red')
         plt.title("Experiment results", fontsize=20)
         plt.xlabel("episodes", fontsize=15)
