@@ -27,10 +27,10 @@ NON_NOVEL_LEVELS = ["0"]
 # Options
 RESULTS_PATH = pathlib.Path(settings.ROOT_PATH) / "runners" / "experiments" / "ScienceBirds" / "SB_experiment"
 EXPORT_TRIALS = False   # Export trials xml file
-PER_TRIAL = 2      # Levels per trial
-BEFORE_NOVELTY = 1 # Levels in a trial before novelty is introduced
-NOVELTIES = {"1": ["6"]}  # Novelties to use in the experiment (IE, trials to run)
-# NOVELTIES = {1: [6,7,8,9,10], 2:[6,7,8,9,10], 3:[6,7]}
+PER_TRIAL = 25      # Levels per trial
+BEFORE_NOVELTY = 5 # Levels in a trial before novelty is introduced
+# NOVELTIES = {"1": ["6"]}  # Novelties to use in the experiment (IE, trials to run)
+NOVELTIES = {"1": ["6","7","8","9","10"], "2":["6","7","8","9","10"], "3":["6","7"]}
 # NOVELTIES = {1: [6,7,8,9,10],2:}
 
 
@@ -199,7 +199,7 @@ class NoveltyExperimentRunnerSB:
                         
                     novelty_probability = agent_stats[episode_num]["novelty_likelihood"]
                     novelty_characterization = 0    # TODO: find a use for this?
-                    novelty_threshold = settings.SB_CONSISTENCY_THRESHOLD   # TODO: figure out how to extract this
+                    novelty_threshold = 1   # TODO: figure out how to extract this
                     novelty = 0     # TODO: This is a value used in Cartpole and not SB domain
 
                     result = pandas.DataFrame(data={
@@ -314,26 +314,39 @@ class NoveltyExperimentRunnerSB:
 
         # print(trials)
 
-        trials.groupby(['trial_type', 'novelty_id', 'trial_num'])
+        grouped = trials.groupby(['trial_type', 'novelty_id', 'trial_num'])
 
-        # print("AFTER BEFORE: {}".format(trials))
+        # print("AFTER group output: \n{}".format(grouped))
 
-        trials.agg({'FN': numpy.sum, 'FP': numpy.sum, 'TN': numpy.sum, 'TP': numpy.sum, 'performance': numpy.mean})
+        aggregate = grouped.agg({'FN': numpy.sum, 'FP': numpy.sum, 'TN': numpy.sum, 'TP': numpy.sum, 'performance': numpy.mean})
         
-        # print("AFTER AGG: {}".format(trials))
+        # print("AFTER aggregate output: \n{}".format(aggregate))
 
-        trials['is_CDT'] = numpy.where((trials['TP'] > 1) & (trials['FP'] == 0), True, False)
+        aggregate['is_CDT'] = numpy.where((aggregate['TP'] > 1) & (aggregate['FP'] == 0), True, False)
         
         # print("AFTER CDT: {}".format(trials))
-        cdt = trials[trials['is_CDT'] == True]
+        cdt = aggregate[aggregate['is_CDT'] == True]
 
         return trials, cdt
 
     @staticmethod
     def get_program_metrics(cdt: pandas.DataFrame, trials: pandas.DataFrame):
-        num_trials_per_type = trials.groupby("trial_type").agg({'FN': len}).rename(columns={'FN': 'count'})
-        scores = cdt.groupby("trial_type").agg({'FN': numpy.mean, 'FP': len}).rename(columns={'FN': 'M1', 'FP': 'M2'})
-        scores['M2'] = scores['M2'] / num_trials_per_type['count']
+        num_trials_per_type = trials.groupby("trial_type").agg({'FN': len}).rename(columns={'FN': 'count'}) # Get number of trials
+        # Aggregate to get 
+        #    - M1 - mean of FN within set of CDTs
+        #    - M2.1 - 
+        scores = cdt.groupby("trial_type").agg({'FN': numpy.mean, 'FP': len}).rename(columns={'FN': 'M1', 'FP': 'M2.1'})    
+
+        # M1 - average number of FN among CDTs
+
+        # M2 - % of CDTs
+
+        # M2.1 - % of trials with at least 1 FP
+        scores['M2.1'] = scores['M2.1'] / num_trials_per_type['count']
+
+        # 
+        # scores = cdt.groupby("trial_type").agg({'FN': numpy.mean, 'FP': len}).rename(columns={'FN': 'M1', 'FP': 'M2'})
+        # scores['M2'] = scores['M2'] / num_trials_per_type['count']
         return scores
 
     @staticmethod
