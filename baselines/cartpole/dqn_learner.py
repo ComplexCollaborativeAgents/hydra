@@ -72,7 +72,8 @@ class DQNLearner():
                                                     "next_state": {"state": state},
                                                     "reward": reward, "terminal": done})
 
-            self._dqn_handler.update()
+                self._dqn_handler.update()
+                #print("updated dqn")
             self._previous_state = state
             self._previous_action = action
         else:
@@ -124,12 +125,21 @@ class DQNLearnerObserver(WSUObserver):
     def trial_start(self, trial_number: int, novelty_description: dict):
         super().trial_start(trial_number, novelty_description)
         self.agent = self.agent_type(load_from_path=True)
+        self.agent.reset()
 
-    def testing_instance(self, feature_vector: dict, novelty_indicator: bool = None) -> \
+    def testing_instance(self, feature_vector: dict, novelty_indicator: bool = None, reward=None, done=None) -> \
             dict:
         super().testing_instance(feature_vector, novelty_indicator)
         observation = DQNLearnerObserver.feature_vector_to_observation(feature_vector)
-        action_vector = self.agent.get_next_action(observation, 0, False, is_training=False)
+        #print("novelty_indicator {} reward {} done {}".format(novelty_indicator, reward, done))
+        try:
+            if novelty_indicator and reward:
+                action_vector = self.agent.get_next_action(observation, reward, done, is_training=True)
+            else:
+                action_vector = self.agent.get_next_action(observation, reward, done, is_training=False)
+        except:
+            action_vector = self.agent.get_next_action(observation, reward, done, is_training=False)
+
         action = DQNLearnerObserver.action_to_label(action_vector)
         self.log.debug("Testing instance: sending action={}".format(action))
         return action

@@ -17,15 +17,35 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import optparse
 
+class LoggingRepairingCartpoleHydraAgent(RepairingCartpoleHydraAgent):
+    def __init__(self):
+        super().__init__()
+        self.cnn_likelihoods = []
+        self.states = []
+        self.actions = []
+        print("initialized logging")
+
+    def testing_instance(self, feature_vector: dict, novelty_indicator: bool = None):
+        cnn_novelties, cnn_likelihood = self.detector.detect(self.current_observation)
+        self.cnn_likelihoods.append(cnn_likelihood)
+        self.states.append(feature_vector)
+        label = super().testing_instance(feature_vector, novelty_indicator)
+        self.actions.append(label)
+        return label
+
 
 class NoveltyExperimentGymCartpoleDispatcher(GymCartpoleDispatcher):
-    def __init__(self, delegate: WSUObserver, model_id: str = 'CartPole-v1', render: bool = False):
+    def __init__(self, delegate: WSUObserver, model_id: str = 'CartPole-v1', render: bool = False, train_with_reward = False, log_details = False, details_directory = None):
         super().__init__(delegate, model_id, render)
         self._env_params = dict()
         self._results = pandas.DataFrame(
             columns=['episode_num', 'novelty_probability', 'novelty_threshold', 'novelty', 'novelty_characterization',
                      'performance'])
         self._is_known = None
+        self._train_with_reward = train_with_reward
+
+        self._log_details = log_details
+        self._details_directory = details_directory
 
     def get_env_params(self):
         return self._env_params
@@ -63,11 +83,16 @@ class NoveltyExperimentGymCartpoleDispatcher(GymCartpoleDispatcher):
             rewards = []
             observation = env.reset()
             features = self.observation_to_feature_vector(observation)
+            reward = 0
+            done = False
             for step in range(1, steps + 1):
                 if self.render:
                     env.render()
                     time.sleep(0.05)
-                label = self.delegate.testing_instance(feature_vector=features, novelty_indicator=self._is_known)
+                if self._train_with_reward:
+                    label = self.delegate.testing_instance(feature_vector=features, novelty_indicator=self._is_known, reward=reward, done=done)
+                else:
+                    label = self.delegate.testing_instance(feature_vector=features, novelty_indicator=self._is_known)
                 self.log.debug("Received label={}".format(label))
                 action = self.label_to_action(label)
                 observation, reward, done, _ = env.step(action)
@@ -77,13 +102,29 @@ class NoveltyExperimentGymCartpoleDispatcher(GymCartpoleDispatcher):
                 if done:
                     break
             performance = sum(rewards) / float(steps)
+            if self._log_details:
+                self.log_details(episode)
             novelty_probability, novelty_threshold, novelty, novelty_characterization = self.delegate.testing_episode_end(performance)
+
+
             if self._results is not None:
                 self._log_data(episode_num=episode, novelty_probability=novelty_probability,
                                novelty_threshold=novelty_threshold, novelty=novelty,
                                novelty_characterization=novelty_characterization, performance=sum(rewards))
         env.close()
         return self._results
+
+    def log_details(self, episode):
+        if not os.path.exists(self._details_directory):
+            os.makedirs(self._details_directory)
+        file = open(os.path.join(self._details_directory, "episode_{}.csv".format(str(episode))), 'w')
+        log_df = pandas.DataFrame(data={
+            'states': self.delegate.agent.states,
+            'actions': self.delegate.agent.actions,
+            'cnn_likelihood': self.delegate.agent.cnn_likelihoods
+        })
+        log_df.to_csv(file)
+        file.close()
 
     def _log_data(self, episode_num=0, novelty_probability=0, novelty_threshold=0, novelty=None,
                   novelty_characterization=0, performance=0):
@@ -112,21 +153,29 @@ class NoveltyExperimentRunnerCartpole:
             os.makedirs(self._results_directory_path)
 
 
-    def run_experiment_subtrial(self, episode_range, trial_num, trial_type, episode_type, novelty_id, novelty):
+        self._results_details_directory_path = None
+        self._log_episode_details = False
+        if options.log_episode_details == 'True':
+            self._results_details_directory_path = os.path.join(self._results_directory_path, "details")
+            self._log_episode_details = True
 
+
+    def run_experiment_subtrial(self, episode_range, trial_num, trial_type, episode_type, novelty_id, novelty):
         observer = None
         if self._agent_type == 'dqn':
             observer = DQNLearnerObserver()
         if self._agent_type == 'basic':
             observer = CartpoleHydraAgentObserver(agent_type=CartpoleHydraAgent)
         if self._agent_type == 'repairing':
-            observer = CartpoleHydraAgentObserver(agent_type=RepairingCartpoleHydraAgent)
+            if self._log_episode_details == True:
+                print("logging")
+                observer = CartpoleHydraAgentObserver(agent_type=LoggingRepairingCartpoleHydraAgent)
+            else:
+                observer = CartpoleHydraAgentObserver(agent_type=RepairingCartpoleHydraAgent)
 
         assert observer is not None
         logger.info("Running agent type {}".format(self._agent_type))
-
-        env_dispatcher = NoveltyExperimentGymCartpoleDispatcher(observer, render=False)
-
+        env_dispatcher = NoveltyExperimentGymCartpoleDispatcher(observer, render=False, train_with_reward=(self._agent_type == 'dqn'), log_details = self._log_episode_details, details_directory=os.path.join(self._results_details_directory_path, trial_type, str(trial_num)))
         if trial_type == constants.UNKNOWN:
             env_dispatcher.set_is_known(None)
         else:
@@ -146,6 +195,7 @@ class NoveltyExperimentRunnerCartpole:
         results['episode_type'] = episode_type
         results['level'] = novelty['level']
         results['env_config'] = str(novelty['config'])
+
         return results
 
     def run_experiment(self, novelty_config=None):
@@ -238,22 +288,53 @@ class NoveltyExperimentRunnerCartpole:
         plt.xlabel("episodes", fontsize=15)
         plt.ylabel("performance", fontsize=15)
 
-
-
 if __name__ == '__main__':
     parser = optparse.OptionParser(usage="usage: %prog [options]")
+    # parser.add_option("--agent",
+    #                   dest='agent',
+    #                   help='name of the agent you want to run: basic, repairing, dqn',
+    #                   default='dqn')
+    # parser.add_option("--name",
+    #                   dest="name",
+    #                   help="name of the directory in which all the results will be stored at ../data/cartpole/",
+    #                   default="jun7")
+    # parser.add_option("--num_trials",
+    #                   dest='num_trials',
+    #                   help="Number of full trials to be run. Each trial is several subtrials",
+    #                   default=5)
+    # parser.add_option("--learning_subtrial",
+    #                   dest='l_learning',
+    #                   help='number of episodes in the learning subtrial',
+    #                   default=0)
+    # parser.add_option("--performance-subtrial",
+    #                   dest='l_performance',
+    #                   help='number of episodes in the non-novelty performance subtrial',
+    #                   default=5)
+    # parser.add_option("--novelty-subtrial",
+    #                   dest='l_novelty',
+    #                   help='number of episodes in the novelty subtrial',
+    #                   default=50)
+    # parser.add_option("--log-episode-details",
+    #                   dest='log_episode_details',
+    #                   help='if we want to record states, action, cnn_likelihood, consistency_scores',
+    #                   default=False)
+    # parser.add_option("--novelty_config",
+    #                   dest='novelty_config',
+    #                   help='a dict of novelty configurations',
+    #                   default={'uid': 'length_1point1_masscart_point9', 'level': 1, 'config': {constants.LENGTH: 1.1, constants.MASSCART: 0.9}})
+
     parser.add_option("--agent",
                       dest='agent',
                       help='name of the agent you want to run: basic, repairing, dqn',
-                      default='dqn')
+                      default='repairing')
     parser.add_option("--name",
                       dest="name",
                       help="name of the directory in which all the results will be stored at ../data/cartpole/",
-                      default="may28")
+                      default="jun10")
     parser.add_option("--num_trials",
                       dest='num_trials',
                       help="Number of full trials to be run. Each trial is several subtrials",
-                      default=5)
+                      default=1)
     parser.add_option("--learning_subtrial",
                       dest='l_learning',
                       help='number of episodes in the learning subtrial',
@@ -261,15 +342,20 @@ if __name__ == '__main__':
     parser.add_option("--performance-subtrial",
                       dest='l_performance',
                       help='number of episodes in the non-novelty performance subtrial',
-                      default=5)
+                      default=3)
     parser.add_option("--novelty-subtrial",
                       dest='l_novelty',
                       help='number of episodes in the novelty subtrial',
-                      default=20)
+                      default=3)
+    parser.add_option("--log-episode-details",
+                      dest='log_episode_details',
+                      help='if we want to record states, action, cnn_likelihood, consistency_scores',
+                      default='True')
     parser.add_option("--novelty_config",
                       dest='novelty_config',
                       help='a dict of novelty configurations',
                       default={'uid': 'length_1point1_masscart_point9', 'level': 1, 'config': {constants.LENGTH: 1.1, constants.MASSCART: 0.9}})
+
 
     (options, args) = parser.parse_args()
     print(options)
