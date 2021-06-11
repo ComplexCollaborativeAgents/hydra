@@ -64,7 +64,6 @@ class FocusedAnomalyDetector():
 
                 if next_anomly_idx < i: ## this checks if the anomalies are contiguous
                     anomaly_list = []
-
                 ## computes which state properties are affected by the novelty
                 property_idx = np.greater(anomaly_prob, np.array(self.threshold))
                 property_type = property[property_idx]

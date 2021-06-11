@@ -30,6 +30,7 @@ SB_CONFIG_PATH = SB_DATA_PATH / 'config'
 ANU_LEVELS_PATH = SB_DATA_PATH / 'ANU_Levels.tar.gz'
 STATS_BASE_PATH = pathlib.Path(__file__).parent.absolute()
 
+
 class AgentType(enum.Enum):
     RepairingHydra = 0
     Hydra = 1
@@ -37,10 +38,12 @@ class AgentType(enum.Enum):
     Datalab = 3
     Eaglewings = 4
 
+
 NOVELTY = 0
 TYPE = 2
 SAMPLES = 1
 AGENT = AgentType.Baseline
+
 
 def extract_levels(source, destination=None):
     ''' Extract ANU levels. '''
@@ -150,7 +153,8 @@ def get_bird_count(level_path):
         pass
     return birds
 
-def compute_stats(results_path, agent, agent_stats = list()):
+
+def compute_stats(results_path, agent, agent_stats=list()):
     ''' Inspect evaluation directory from science birds and generate a stats dict. '''
     stats = {'levels': [], 'overall': None}
 
@@ -191,10 +195,10 @@ def compute_stats(results_path, agent, agent_stats = list()):
                                'birds': birds}
 
                 # Get agent stats
-                if i<len(agent_stats):
+                if i < len(agent_stats):
                     agent_stats_for_level = agent_stats[i]
                     for key in agent_stats_for_level:
-                        level_stats[key]= agent_stats_for_level[key]
+                        level_stats[key] = agent_stats_for_level[key]
 
                 stats['levels'].append(level_stats)
 
@@ -205,7 +209,8 @@ def compute_stats(results_path, agent, agent_stats = list()):
 
     return stats
 
-def compute_eval_stats(results_path, agent, agent_stats = list()):
+
+def compute_eval_stats(results_path, agent, agent_stats=list()):
     ''' Inspect evaluation directory from science birds and generate a stats dict. (2021 Eval) '''
     stats = {'levels': [], 'overall': None}
 
@@ -217,7 +222,6 @@ def compute_eval_stats(results_path, agent, agent_stats = list()):
     true_positives = 0
     scores = []
     bird_scores = collections.defaultdict(lambda: {"passed": 0, "failed": 0})
-
 
     evaluation_data = list(results_path.glob('*_EvaluationData.csv'))
     if len(evaluation_data) == 1:
@@ -255,10 +259,10 @@ def compute_eval_stats(results_path, agent, agent_stats = list()):
                 # print("STATS: agent stats {}".format(agent_stats))
 
                 # Get agent stats
-                if i<len(agent_stats):
+                if i < len(agent_stats):
                     agent_stats_for_level = agent_stats[i]
                     for key in agent_stats_for_level:
-                        level_stats[key]= agent_stats_for_level[key]   # Novelty probability should be passed through here
+                        level_stats[key] = agent_stats_for_level[key]   # Novelty probability should be passed through here
 
                 # Categorize novelty detection result
                 if 'novelty_level_0' in level_path: # Is not novel - TODO: find a better way to determine non novel levels
@@ -316,7 +320,7 @@ def run_performance_stats(novelties: dict,
 
     for novelty, types in novelties.items():
         for novelty_type in types:
-            pattern = 'Levels/novelty_level_{}/type{}/Levels/*.xml'.format(novelty, novelty_type)
+            pattern = './Levels/novelty_level_{}/type{}/Levels/*.xml'.format(novelty, novelty_type)
             levels = list(levels_path.glob(pattern))
 
             number_samples = len(levels)
@@ -353,6 +357,7 @@ def run_performance_stats(novelties: dict,
                 with open(stats_base_path / filename, 'w') as f:
                     json.dump(stats, f, sort_keys=True, indent=4)
 
+
 def run_eval_stats(novelties: dict,
                           agent_type: AgentType,
                           seed: Optional[int] = None,
@@ -380,14 +385,7 @@ def run_eval_stats(novelties: dict,
             else:
                 levels = list(levels_path.glob(pattern))
 
-            number_samples = len(levels)
-            if samples is not None:
-                number_samples = min(number_samples, samples)
-            sampled_levels = levels[:number_samples]
-            # sampled_levels = random.sample(levels,number_samples)  TODO: Discuss design: this sampling kills the order of the levels, causing the non-novel levels to appear after the novel ones
-
-
-            prepare_config(template, config, sampled_levels, notify_novelty)
+            prepare_config(template, config, levels, notify_novelty)
             pre_directories = glob_directories(bin_path, 'Agent*')
             post_directories = None
 
