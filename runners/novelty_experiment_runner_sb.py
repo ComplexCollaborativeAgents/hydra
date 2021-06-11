@@ -196,8 +196,15 @@ class NoveltyExperimentRunnerSB:
                         #     bird_scores[bird]['failed'] += 1
 
                     score = float(row['Score'])
-                        
-                    novelty_probability = agent_stats[episode_num]["novelty_likelihood"]
+                    
+                    novelty_probability = 0
+                    num_repairs = 0
+                    repair_time = 0
+                    if len(agent_stats) > 0:
+                        novelty_probability = agent_stats[episode_num]["novelty_likelihood"]
+                        num_repairs = agent_stats[episode_num]["repair_calls"]
+                        repair_time = agent_stats[episode_num]["repair_time"]
+
                     novelty_characterization = 0    # TODO: find a use for this?
                     novelty_threshold = 1   # TODO: figure out how to extract this
                     novelty = 0     # TODO: This is a value used in Cartpole and not SB domain
@@ -211,7 +218,9 @@ class NoveltyExperimentRunnerSB:
                         'novelty_characterization': [novelty_characterization],
                         'performance': [score],
                         'notify_novelty': [notify_novelty],
-                        'pass': [status]
+                        'pass': [status],
+                        'num_repairs': [num_repairs],
+                        'repair_time': [repair_time]
                     })
 
                     trial = trial.append(result)
@@ -224,7 +233,7 @@ class NoveltyExperimentRunnerSB:
         trial_num = 0
         experiment_results = pandas.DataFrame(columns=['episode_num', 'novelty_probability', 'novelty_threshold', 'novelty',
                                                        'novelty_characterization', 'performance', 'notify_novelty',
-                                                       'pass', 'trial_num', 'novelty_id',
+                                                       'pass', 'num_repairs', 'repair_time', 'trial_num', 'novelty_id',
                                                        'trial_type', 'episode_type', 'level', 'env_config'])
         
         experiment_results_path = os.path.join(self._results_directory_path, "novelty_results.csv")
@@ -362,7 +371,7 @@ class NoveltyExperimentRunnerSB:
 
 if __name__ == '__main__':
 
-    experiment_runner = NoveltyExperimentRunnerSB(AgentType.RepairingHydra, export_trials=False)
+    experiment_runner = NoveltyExperimentRunnerSB(AgentType.Baseline, export_trials=False)
 
     experiment_runner.run_experiment()
     # experiment_runner.run_experiment(configs=[SB_CONFIG_PATH / "trial_config_1_6.xml"])
