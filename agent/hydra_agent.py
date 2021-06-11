@@ -216,7 +216,7 @@ class HydraAgent():
 
                 # If we already played at least two levels and novelty keeps being detected, mark this as a very high novelty likelihood
                 cnn_prediction = cnn_prob > self.detector.threshold
-                pddl_prediction = pddl_prob > self.meta_model_repair.consistency_threshold
+                pddl_prediction = pddl_prob > settings.SB_CONSISTENCY_THRESHOLD
                 enough_levels_completed = len(self.completed_levels)>1
                 if enough_levels_completed:
                     level_lost = not self.completed_levels[-1]
