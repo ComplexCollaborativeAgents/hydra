@@ -25,6 +25,8 @@ class MetaModel():
         self.repairable_constants = list(repairable_constants)
         if repair_deltas is None:
             self.repair_deltas = [1.0] * len(self.repairable_constants)
+        else:
+            self.repair_deltas = repair_deltas
 
         self.metric = metric
 
