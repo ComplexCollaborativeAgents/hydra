@@ -322,15 +322,15 @@ class NoveltyExperimentRunnerSB:
     @staticmethod
     def get_trials_summary(dataframe):
         # print(dataframe)
-        trials = dataframe[['trial_num', 'trial_type', 'novelty_id', 'env_config', 'FN', 'FP', 'TN', 'TP', 'performance']]
-
+        trials = dataframe[['trial_num', 'trial_type', 'novelty_id', 'pass', 'FN', 'FP', 'TN', 'TP', 'performance']]
+        trials['passed'] = numpy.where(trials['pass'] == 'Pass', 1, 0)
         # print(trials)
 
         grouped = trials.groupby(['trial_type', 'novelty_id', 'trial_num'])
 
         # print("AFTER group output: \n{}".format(grouped))
 
-        aggregate = grouped.agg({'FN': numpy.sum, 'FP': numpy.sum, 'TN': numpy.sum, 'TP': numpy.sum, 'performance': numpy.mean})
+        aggregate = grouped.agg({'FN': numpy.sum, 'FP': numpy.sum, 'TN': numpy.sum, 'TP': numpy.sum, 'performance': numpy.mean, 'passed': numpy.sum})
         
         # print("AFTER aggregate output: \n{}".format(aggregate))
 
@@ -344,7 +344,7 @@ class NoveltyExperimentRunnerSB:
     @staticmethod
     def get_program_metrics(cdt: pandas.DataFrame, trials: pandas.DataFrame):
         num_trials_per_type = trials.groupby("trial_type").agg({'FN': len}).rename(columns={'FN': 'count'}) # Get number of trials
-        # Aggregate to get 
+        # Aggregate to get
         #    - M1 - mean of FN within set of CDTs
         #    - M2.1 - 
         scores = cdt.groupby("trial_type").agg({'FN': numpy.mean, 'FP': len}).rename(columns={'FN': 'M1', 'FP': 'CDT_count'})    
@@ -352,9 +352,16 @@ class NoveltyExperimentRunnerSB:
         # M1 - average number of FN among CDTs
 
         # M2 - % of CDTs
+        scores['M2'] = scores['CDT_count'] / num_trials_per_type['count']
 
         # M2.1 - % of trials with at least 1 FP
-        scores['M2'] = scores['CDT_count'] / num_trials_per_type['count']
+        trials['CDT_FP_count'] = numpy.where((trials['FP'] > 0), True, False)
+
+        CDT_FP_count = trials[trials['CDT_FP_count'] == True].groupby("trial_type")
+        CDT_FP_count = CDT_FP_count.agg({'CDT_FP_count': len})
+
+        scores['M2.1'] = CDT_FP_count.replace(numpy.nan, 0)
+        scores['M2.1'] = scores['M2.1'] / num_trials_per_type['count']
 
         return scores
 
