@@ -34,8 +34,8 @@ RESULTS_PATH = pathlib.Path(settings.ROOT_PATH) / "runners" / "experiments" / "S
 EXPORT_TRIALS = False   # Export trials xml file
 PER_TRIAL = 25      # Levels per trial
 BEFORE_NOVELTY = 5 # Levels in a trial before novelty is introduced
-# NOVELTIES = {"1": ["6"]}  # Novelties to use in the experiment (IE, trials to run)
-NOVELTIES = {"1": ["6","7","8","9","10"], "2":["6","7","8","9","10"], "3":["6","7"]}
+NOVELTIES = {"2": ["8"]}  # Novelties to use in the experiment (IE, trials to run)
+# NOVELTIES = {"1": ["6","7","8","9","10"], "2":["6","7","8","9","10"], "3":["6","7"]}
 # NOVELTIES = {1: [6,7,8,9,10],2:}
 
 
@@ -206,9 +206,12 @@ class NoveltyExperimentRunnerSB:
                     num_repairs = 0
                     repair_time = 0
                     if len(agent_stats) > 0:
-                        novelty_probability = agent_stats[episode_num]["novelty_likelihood"]
-                        num_repairs = agent_stats[episode_num]["repair_calls"]
-                        repair_time = agent_stats[episode_num]["repair_time"]
+                        if 'novelty_likelihood' in agent_stats[episode_num]:
+                            novelty_probability = agent_stats[episode_num]["novelty_likelihood"]
+                        if 'repair_calls' in agent_stats[episode_num]:
+                            num_repairs = agent_stats[episode_num]["repair_calls"]
+                        if 'repair_time' in agent_stats[episode_num]:
+                            repair_time = agent_stats[episode_num]["repair_time"]
 
                     novelty_characterization = 0    # TODO: find a use for this?
                     novelty_threshold = 1   # TODO: figure out how to extract this
@@ -379,16 +382,12 @@ class NoveltyExperimentRunnerSB:
 
 
 if __name__ == '__main__':
-
-<<<<<<< HEAD
             result = run_eval_stats(NOVELTIES,
                                     agent_type=agent,
                                     suffix="{}_{}".format(TRIAL_NAME, str(trial_set)),
                                     notify_novelty=NOTIFY_NOVELTY,
                                     level_lookup=lookup[trial_set])
-=======
     experiment_runner = NoveltyExperimentRunnerSB(AgentType.Baseline, export_trials=False)
->>>>>>> d856a38c6d2231d76ff6592e2a294fa9cbc215dc
 
     experiment_runner.run_experiment()
     # experiment_runner.run_experiment(configs=[SB_CONFIG_PATH / "trial_config_1_6.xml"])
