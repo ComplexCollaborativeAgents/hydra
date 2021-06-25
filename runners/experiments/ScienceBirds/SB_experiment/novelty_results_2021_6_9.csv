@@ -1,4 +1,4 @@
-episode_num,novelty_probability,novelty_threshold,novelty,novelty_characterization,performance,notify_novelty,pass,episode_type,trial_num,novelty_id,trial_type,level,env_config
+episode_num,novelty_probability,novelty_threshold,novelty,novelty_characterization,performance,notify_novelty,pass,episode_type,trial_num,novelty_id,trial_type,level
 0,0,1,0,0,54240,FALSE,Fail,non-novelty-performance,0,1_6_0,unknown,1
 1,0,1,0,0,103320,FALSE,Pass,non-novelty-performance,0,1_6_0,unknown,1
 2,0,1,0,0,19420,FALSE,Fail,non-novelty-performance,0,1_6_0,unknown,1

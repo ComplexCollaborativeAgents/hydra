@@ -30,7 +30,7 @@ EXPORT_TRIALS = False   # Export trials xml file
 PER_TRIAL = 25      # Levels per trial
 BEFORE_NOVELTY = 5 # Levels in a trial before novelty is introduced
 # NOVELTIES = {"1": ["6"]}  # Novelties to use in the experiment (IE, trials to run)
-NOVELTIES = {"1": ["6","7","8","9","10"], "2":["6","7","8","9","10"], "3":["6","7"]}
+NOVELTIES = {"1": ["6", "7", "8", "9", "10"], "2": ["6", "7", "8", "9", "10"], "3": ["6", "7"]}
 # NOVELTIES = {1: [6,7,8,9,10],2:}
 
 
@@ -217,7 +217,6 @@ class NoveltyExperimentRunnerSB:
                         'novelty': [novelty],
                         'novelty_characterization': [novelty_characterization],
                         'performance': [score],
-                        'notify_novelty': [notify_novelty],
                         'pass': [status],
                         'num_repairs': [num_repairs],
                         'repair_time': [repair_time]
@@ -232,9 +231,9 @@ class NoveltyExperimentRunnerSB:
         
         trial_num = 0
         experiment_results = pandas.DataFrame(columns=['episode_num', 'novelty_probability', 'novelty_threshold', 'novelty',
-                                                       'novelty_characterization', 'performance', 'notify_novelty',
-                                                       'pass', 'num_repairs', 'repair_time', 'trial_num', 'novelty_id',
-                                                       'trial_type', 'episode_type', 'level', 'env_config'])
+                                                       'novelty_characterization', 'performance',
+                                                       'pass', 'trial_num', 'novelty_id', 'trial_type', 'episode_type', 'level',
+                                                       'num_repairs', 'repair_time'])
         
         experiment_results_path = os.path.join(self._results_directory_path, "novelty_results.csv")
         with open(experiment_results_path, "w+") as f:
@@ -339,11 +338,9 @@ class NoveltyExperimentRunnerSB:
         return aggregate, cdt
 
     @staticmethod
-    def get_program_metrics(cdt: pandas.DataFrame, trials: pandas.DataFrame):
+    def get_program_metrics(cdt: pandas.DataFrame, trials: pandas.DataFrame, hydra: pandas.DataFrame, baseline: pandas.DataFrame):
         num_trials_per_type = trials.groupby("trial_type").agg({'FN': len}).rename(columns={'FN': 'count'}) # Get number of trials
         # Aggregate to get
-        #    - M1 - mean of FN within set of CDTs
-        #    - M2.1 - 
         scores = cdt.groupby("trial_type").agg({'FN': numpy.mean, 'FP': len}).rename(columns={'FN': 'M1', 'FP': 'CDT_count'})    
 
         # M1 - average number of FN among CDTs
@@ -360,13 +357,65 @@ class NoveltyExperimentRunnerSB:
         scores['M2.1'] = CDT_FP_count.replace(numpy.nan, 0)
         scores['M2.1'] = scores['M2.1'] / num_trials_per_type['count']
 
-        return scores
+        grouped_trials = hydra[['trial_num', 'trial_type', 'episode_type', 'performance']].groupby("trial_num")
+        grouped_base = baseline[['trial_num', 'trial_type', 'episode_type', 'performance']].groupby("trial_num")
+
+        trials_known_avg = []   # M3
+        trials_unknown_avg = [] # M4
+        trials_last = []        # M5
+        for trial_num, group in grouped_trials:
+            if 'known' in group.values: # group.trial_type: # M3
+                known_avg = group.groupby(["trial_type", "episode_type"]).get_group(("known", "novelty")).agg({'performance': numpy.mean })
+                trials_known_avg.append(known_avg)
+
+            if 'unknown' in group.values: # group.trial_type: # M4
+                unknown_avg = group.groupby(["trial_type", "episode_type"]).get_group(("unknown", "novelty")).agg({'performance': numpy.mean })
+                trials_unknown_avg.append(unknown_avg)
+
+            # M5
+            last_per_group = group.groupby("episode_type").get_group("novelty").tail(1)
+            trials_last.append(last_per_group)
+
+        m3_agg_trials = pandas.concat(trials_known_avg, sort=True).reset_index()
+        m4_agg_trials = pandas.concat(trials_unknown_avg, sort=True).reset_index()
+        m5_agg_trials = pandas.concat(trials_last, sort=True)
+
+        base_known_avg = []     # M3
+        base_unknown_avg = []   # M4
+        base_last = []          # M5
+        for trial_num, group in grouped_base:
+            if 'known' in group.values: # group.trial_type:    # M3
+                known_avg = group.groupby(["trial_type", "episode_type"]).get_group(("known", "non-novelty-performance")).agg({'performance': numpy.mean })
+                base_known_avg.append(known_avg)
+
+            if 'unknown' in group.values: # group.trial_type:    # M4
+                unknown_avg = group.groupby(["trial_type", "episode_type"]).get_group(("unknown", "non-novelty-performance")).agg({'performance': numpy.mean })
+                base_unknown_avg.append(unknown_avg)
+
+            # M5
+            last_per_group = group.groupby("episode_type").get_group("novelty").tail(1)
+            base_last.append(last_per_group)
+
+        m3_agg_base = pandas.concat(base_known_avg, sort=True).reset_index()
+        m4_agg_base = pandas.concat(base_unknown_avg, sort=True).reset_index()
+        m5_agg_base = pandas.concat(base_last, sort=True)
+
+        m3_agg_trials['known_perf'] = m3_agg_trials[0] / m3_agg_base[0] 
+        m4_agg_trials['unknown_perf'] = m4_agg_trials[0] / m4_agg_base[0]
+        m5_agg_trials['opti_t'] = m5_agg_trials['performance'] / (m5_agg_base['performance'] + m5_agg_trials['performance'])
+
+        performance_metrics = pandas.DataFrame(columns=['M3', 'M4', 'M5', 'M6'])
+        performance_metrics['M3'] = m3_agg_trials.agg({'known_perf': numpy.mean})# ['known_perf']
+        performance_metrics['M4'] = m4_agg_trials.agg({'unknown_perf': numpy.mean})['unknown_perf']
+        performance_metrics['M5'] = m5_agg_trials.agg({'opti_t': numpy.sum}).iloc[0] / len(m5_agg_trials.index)
+
+        return scores, performance_metrics
 
     @staticmethod
     def plot_experiment_results(df, novelty_episode_number):
         plt.figure(figsize=(16, 9))
         ax = sns.lineplot(data=df, y='performance', x='episode_num', hue='trial_type', ci=95)
-        ax.set(ylim=(0, 100000))
+        ax.set(ylim=(0, 150000))
         plt.axvline(x=novelty_episode_number, color='red')
         plt.title("Experiment results", fontsize=20)
         plt.xlabel("episodes", fontsize=15)
