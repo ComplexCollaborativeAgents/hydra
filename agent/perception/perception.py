@@ -240,7 +240,7 @@ class ProcessedSBState(State):
         ''' Returns a list of the novel objects '''
         ret = []
         for key, obj in self.objects.items():
-            if obj['type'] is 'Unknown':
+            if obj['type'] is 'unknown':
                 ret.append([key,obj])
         return ret
 

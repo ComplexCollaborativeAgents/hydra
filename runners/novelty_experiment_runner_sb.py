@@ -13,6 +13,11 @@ from runners.run_sb_stats import *
 logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("novelty_experiment_runner")
 
+TRIAL_START = 0
+NUM_TRIALS = 1
+PER_TRIAL = 20
+NOVELTIES = {1: [6,7,8,9,10], 2:[6,7,8,9,10], 3:[6,7]}
+
 # Paths
 SB_BIN_PATH = pathlib.Path(settings.SCIENCE_BIRDS_BIN_DIR) / 'linux'
 SB_DATA_PATH = pathlib.Path(settings.ROOT_PATH) / 'data' / 'science_birds'
@@ -201,9 +206,12 @@ class NoveltyExperimentRunnerSB:
                     num_repairs = 0
                     repair_time = 0
                     if len(agent_stats) > 0:
-                        novelty_probability = agent_stats[episode_num]["novelty_likelihood"]
-                        num_repairs = agent_stats[episode_num]["repair_calls"]
-                        repair_time = agent_stats[episode_num]["repair_time"]
+                        if 'novelty_likelihood' in agent_stats[episode_num]:
+                            novelty_probability = agent_stats[episode_num]["novelty_likelihood"]
+                        if 'repair_calls' in agent_stats[episode_num]:
+                            num_repairs = agent_stats[episode_num]["repair_calls"]
+                        if 'repair_time' in agent_stats[episode_num]:
+                            repair_time = agent_stats[episode_num]["repair_time"]
 
                     novelty_characterization = 0    # TODO: find a use for this?
                     novelty_threshold = 1   # TODO: figure out how to extract this
@@ -423,7 +431,11 @@ class NoveltyExperimentRunnerSB:
 
 
 if __name__ == '__main__':
-
+            result = run_eval_stats(NOVELTIES,
+                                    agent_type=agent,
+                                    suffix="{}_{}".format(TRIAL_NAME, str(trial_set)),
+                                    notify_novelty=NOTIFY_NOVELTY,
+                                    level_lookup=lookup[trial_set])
     experiment_runner = NoveltyExperimentRunnerSB(AgentType.Baseline, export_trials=False)
 
     experiment_runner.run_experiment()

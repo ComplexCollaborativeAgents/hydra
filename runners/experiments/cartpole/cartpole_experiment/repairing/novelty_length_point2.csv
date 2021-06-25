@@ -1,0 +1,30 @@
+episode_num,novelty_probability,novelty_threshold,novelty,novelty_characterization,performance,trial_num,novelty_id,trial_type,episode_type,level,env_config
+0,0.0,0.999999,0,{},0.115,0,length_point2,unknown,novelty,1,{'length': 0.2}
+0,1.0,0.999999,0,{},0.12,0,length_point2,known,novelty,1,{'length': 0.2}
+episode_num,novelty_probability,novelty_threshold,novelty,novelty_characterization,performance,trial_num,novelty_id,trial_type,episode_type,level,env_config
+0,0.0,0.999999,0,{},0.135,0,length_point2,unknown,novelty,1,{'length': 0.2}
+episode_num,novelty_probability,novelty_threshold,novelty,novelty_characterization,performance,trial_num,novelty_id,trial_type,episode_type,level,env_config
+0,0.0,0.999999,0,{},0.105,0,length_point2,unknown,novelty,1,{'length': 0.2}
+episode_num,novelty_probability,novelty_threshold,novelty,novelty_characterization,performance,trial_num,novelty_id,trial_type,episode_type,level,env_config
+0,0.0,0.999999,0,{},0.15,0,length_point2,unknown,novelty,1,{'length': 0.2}
+0,1.0,0.999999,0,{},0.14,0,length_point2,known,novelty,1,{'length': 0.2}
+episode_num,novelty_probability,novelty_threshold,novelty,novelty_characterization,performance,trial_num,novelty_id,trial_type,episode_type,level,env_config
+episode_num,novelty_probability,novelty_threshold,novelty,novelty_characterization,performance,trial_num,novelty_id,trial_type,episode_type,level,env_config
+episode_num,novelty_probability,novelty_threshold,novelty,novelty_characterization,performance,trial_num,novelty_id,trial_type,episode_type,level,env_config
+episode_num,novelty_probability,novelty_threshold,novelty,novelty_characterization,performance,trial_num,novelty_id,trial_type,episode_type,level,env_config
+0,0.0,0.999999,0,{},0.115,0,length_point2,unknown,novelty,1,{'length': 0.2}
+episode_num,novelty_probability,novelty_threshold,novelty,novelty_characterization,performance,trial_num,novelty_id,trial_type,episode_type,level,env_config
+episode_num,novelty_probability,novelty_threshold,novelty,novelty_characterization,performance,trial_num,novelty_id,trial_type,episode_type,level,env_config
+episode_num,novelty_probability,novelty_threshold,novelty,novelty_characterization,performance,trial_num,novelty_id,trial_type,episode_type,level,env_config
+episode_num,novelty_probability,novelty_threshold,novelty,novelty_characterization,performance,trial_num,novelty_id,trial_type,episode_type,level,env_config
+episode_num,novelty_probability,novelty_threshold,novelty,novelty_characterization,performance,trial_num,novelty_id,trial_type,episode_type,level,env_config
+episode_num,novelty_probability,novelty_threshold,novelty,novelty_characterization,performance,trial_num,novelty_id,trial_type,episode_type,level,env_config
+episode_num,novelty_probability,novelty_threshold,novelty,novelty_characterization,performance,trial_num,novelty_id,trial_type,episode_type,level,env_config
+episode_num,novelty_probability,novelty_threshold,novelty,novelty_characterization,performance,trial_num,novelty_id,trial_type,episode_type,level,env_config
+episode_num,novelty_probability,novelty_threshold,novelty,novelty_characterization,performance,trial_num,novelty_id,trial_type,episode_type,level,env_config
+episode_num,novelty_probability,novelty_threshold,novelty,novelty_characterization,performance,trial_num,novelty_id,trial_type,episode_type,level,env_config
+episode_num,novelty_probability,novelty_threshold,novelty,novelty_characterization,performance,trial_num,novelty_id,trial_type,episode_type,level,env_config
+episode_num,novelty_probability,novelty_threshold,novelty,novelty_characterization,performance,trial_num,novelty_id,trial_type,episode_type,level,env_config
+0,0.0,0.999999,0,{},0.185,0,length_point2,unknown,novelty,1,{'length': 0.2}
+episode_num,novelty_probability,novelty_threshold,novelty,novelty_characterization,performance,trial_num,novelty_id,trial_type,episode_type,level,env_config
+0,0.0,0.999999,0,{},0.105,0,length_point2,unknown,novelty,1,{'length': 0.2}

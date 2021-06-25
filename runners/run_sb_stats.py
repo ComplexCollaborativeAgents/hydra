@@ -359,17 +359,17 @@ def run_performance_stats(novelties: dict,
 
 
 def run_eval_stats(novelties: dict,
-                   agent_type: AgentType,
-                   seed: Optional[int] = None,
-                   samples: Optional[int] = SAMPLES,
-                   notify_novelty: Optional[bool] = None,
-                   suffix: Optional[str] = None,
-                   bin_path: pathlib.Path = SB_BIN_PATH,
-                   levels_path: pathlib.Path = SB_BIN_PATH,
-                   stats_base_path: pathlib.Path = STATS_BASE_PATH,
-                   template: pathlib.Path = SB_CONFIG_PATH / 'test_config.xml',
-                   config: pathlib.Path = SB_CONFIG_PATH / 'stats_config.xml',
-                   level_lookup: Optional[dict] = None):
+                          agent_type: AgentType,
+                          seed: Optional[int] = None,
+                          samples: Optional[int] = None,
+                          notify_novelty: Optional[bool] = None,
+                          suffix: Optional[str] = None,
+                          bin_path: pathlib.Path = SB_BIN_PATH,
+                          levels_path: pathlib.Path = SB_BIN_PATH,
+                          stats_base_path: pathlib.Path = STATS_BASE_PATH,
+                          template: pathlib.Path = SB_CONFIG_PATH / 'test_config.xml',
+                          config: pathlib.Path = SB_CONFIG_PATH / 'stats_config.xml',
+                          level_lookup: Optional[dict] = None):
     ''' Run science birds agent stats. '''
     if seed is not None:
         random.seed(seed)

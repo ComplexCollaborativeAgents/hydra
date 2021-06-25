@@ -5,7 +5,7 @@ import os
 
 import settings
 
-NUM_TRIALS = 2
+NUM_TRIALS = 15
 NUM_LEVELS = 20     # Levels per trial
 LEVELS_BEFORE_NOVELTY = 10   # Levels before novelty is introduced
 SB_BIN_PATH = pathlib.Path(settings.SCIENCE_BIRDS_BIN_DIR) / 'linux'
