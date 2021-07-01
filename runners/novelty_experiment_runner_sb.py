@@ -2,6 +2,7 @@ import optparse
 import pandas
 import numpy as np
 import matplotlib.pyplot as plt
+from pandas.core.frame import DataFrame
 import seaborn as sns
 from runners import constants
 
@@ -16,7 +17,7 @@ logger = logging.getLogger("novelty_experiment_runner")
 TRIAL_START = 0
 NUM_TRIALS = 1
 PER_TRIAL = 20
-NOVELTIES = {1: [6,7,8,9,10], 2:[6,7,8,9,10], 3:[6,7]}
+NOVELTIES = {"1": ["6", "7", "8", "9", "10"], "2": ["6", "7", "8", "9", "10"], "3": ["6", "7"]}
 
 # Paths
 SB_BIN_PATH = pathlib.Path(settings.SCIENCE_BIRDS_BIN_DIR) / 'linux'
@@ -346,10 +347,10 @@ class NoveltyExperimentRunnerSB:
         return aggregate, cdt
 
     @staticmethod
-    def get_program_metrics(cdt: pandas.DataFrame, trials: pandas.DataFrame, hydra: pandas.DataFrame, baseline: pandas.DataFrame):
+    def get_program_metrics(cdt: pandas.DataFrame, trials: pandas.DataFrame, hydra: pandas.DataFrame, baseline: pandas.DataFrame, asymptote: int = 5):
         num_trials_per_type = trials.groupby("trial_type").agg({'FN': len}).rename(columns={'FN': 'count'}) # Get number of trials
         # Aggregate to get
-        scores = cdt.groupby("trial_type").agg({'FN': numpy.mean, 'FP': len}).rename(columns={'FN': 'M1', 'FP': 'CDT_count'})    
+        scores = cdt.groupby("trial_type").agg({'FN': numpy.mean, 'FP': len}).rename(columns={'FN': 'M1', 'FP': 'CDT_count'})
 
         # M1 - average number of FN among CDTs
 
@@ -365,57 +366,100 @@ class NoveltyExperimentRunnerSB:
         scores['M2.1'] = CDT_FP_count.replace(numpy.nan, 0)
         scores['M2.1'] = scores['M2.1'] / num_trials_per_type['count']
 
+        performance_metrics = pandas.DataFrame(columns=['M3', 'M4', 'M5', 'M6'])
         grouped_trials = hydra[['trial_num', 'trial_type', 'episode_type', 'performance']].groupby("trial_num")
         grouped_base = baseline[['trial_num', 'trial_type', 'episode_type', 'performance']].groupby("trial_num")
+
+        m3_agg_trials = pandas.DataFrame(columns=["index", "0", 'known_perf'])
+        m4_agg_trials = pandas.DataFrame(columns=["index", "0", 'unknown_perf'])
+        m5_agg_trials = pandas.DataFrame(columns=["episode_type", "performance", "trial_num", "trial_type"])
+        m6_agg_trials = pandas.DataFrame(columns=["episode_type", "performance", "trial_num", "trial_type"])
+        m3_agg_base = pandas.DataFrame(columns=["index", "0", 'known_perf'])
+        m4_agg_base = pandas.DataFrame(columns=["index", "0", 'unknown_perf'])
+        m5_agg_base = pandas.DataFrame(columns=["episode_type", "performance", "trial_num", "trial_type"])
+        m6_agg_base = pandas.DataFrame(columns=["episode_type", "performance", "trial_num", "trial_type"])
 
         trials_known_avg = []   # M3
         trials_unknown_avg = [] # M4
         trials_last = []        # M5
+        trials_asymptote = []   # M6
         for trial_num, group in grouped_trials:
             if 'known' in group.values: # group.trial_type: # M3
-                known_avg = group.groupby(["trial_type", "episode_type"]).get_group(("known", "novelty")).agg({'performance': numpy.mean })
+                known_avg = group.groupby(["trial_type", "episode_type"]).get_group(("known", "novelty")).agg({'performance': numpy.mean})
                 trials_known_avg.append(known_avg)
 
             if 'unknown' in group.values: # group.trial_type: # M4
-                unknown_avg = group.groupby(["trial_type", "episode_type"]).get_group(("unknown", "novelty")).agg({'performance': numpy.mean })
+                unknown_avg = group.groupby(["trial_type", "episode_type"]).get_group(("unknown", "novelty")).agg({'performance': numpy.mean})
                 trials_unknown_avg.append(unknown_avg)
 
             # M5
             last_per_group = group.groupby("episode_type").get_group("novelty").tail(1)
             trials_last.append(last_per_group)
 
-        m3_agg_trials = pandas.concat(trials_known_avg, sort=True).reset_index()
-        m4_agg_trials = pandas.concat(trials_unknown_avg, sort=True).reset_index()
-        m5_agg_trials = pandas.concat(trials_last, sort=True)
+            # M6
+            novelty_grouped = group.groupby("episode_type").get_group("novelty")
+            slice = len(novelty_grouped.index) - asymptote if len(novelty_grouped.index) > asymptote else len(novelty_grouped.index)
+            post_asymptote = novelty_grouped.tail(slice).agg({"performance": numpy.sum})
+            trials_asymptote.append(post_asymptote)
+
+        if len(trials_known_avg) > 0:
+            m3_agg_trials = pandas.concat(trials_known_avg, sort=True).reset_index()
+        if len(trials_unknown_avg) > 0:
+            m4_agg_trials = pandas.concat(trials_unknown_avg, sort=True).reset_index()
+        if len(trials_last) > 0:
+            m5_agg_trials = pandas.concat(trials_last, sort=True)
+        if len(trials_asymptote) > 0:
+            m6_agg_trials = pandas.concat(trials_asymptote, sort=True).reset_index()
 
         base_known_avg = []     # M3
         base_unknown_avg = []   # M4
         base_last = []          # M5
+        base_asymptote = []     # M6
         for trial_num, group in grouped_base:
             if 'known' in group.values: # group.trial_type:    # M3
-                known_avg = group.groupby(["trial_type", "episode_type"]).get_group(("known", "non-novelty-performance")).agg({'performance': numpy.mean })
+                known_avg = group.groupby(["trial_type", "episode_type"]).get_group(("known", "non-novelty-performance")).agg({'performance': numpy.mean})
                 base_known_avg.append(known_avg)
 
             if 'unknown' in group.values: # group.trial_type:    # M4
-                unknown_avg = group.groupby(["trial_type", "episode_type"]).get_group(("unknown", "non-novelty-performance")).agg({'performance': numpy.mean })
+                unknown_avg = group.groupby(["trial_type", "episode_type"]).get_group(("unknown", "non-novelty-performance")).agg({'performance': numpy.mean})
                 base_unknown_avg.append(unknown_avg)
 
             # M5
             last_per_group = group.groupby("episode_type").get_group("novelty").tail(1)
             base_last.append(last_per_group)
 
-        m3_agg_base = pandas.concat(base_known_avg, sort=True).reset_index()
-        m4_agg_base = pandas.concat(base_unknown_avg, sort=True).reset_index()
-        m5_agg_base = pandas.concat(base_last, sort=True)
+            # M6
+            novelty_grouped = group.groupby("episode_type").get_group("novelty")
+            slice = len(novelty_grouped.index) - asymptote if len(novelty_grouped.index) > asymptote else len(novelty_grouped.index)
+            post_asymptote = novelty_grouped.tail(slice).agg({"performance": numpy.sum})
+            base_asymptote.append(post_asymptote)
 
-        m3_agg_trials['known_perf'] = m3_agg_trials[0] / m3_agg_base[0] 
-        m4_agg_trials['unknown_perf'] = m4_agg_trials[0] / m4_agg_base[0]
-        m5_agg_trials['opti_t'] = m5_agg_trials['performance'] / (m5_agg_base['performance'] + m5_agg_trials['performance'])
+        if len(base_known_avg) > 0:
+            m3_agg_base = pandas.concat(base_known_avg, sort=True).reset_index()
+        if len(base_unknown_avg) > 0:
+            m4_agg_base = pandas.concat(base_unknown_avg, sort=True).reset_index()
+        if len(base_last) > 0:
+            m5_agg_base = pandas.concat(base_last, sort=True)
+        if len(base_asymptote) > 0:
+            m6_agg_base = pandas.concat(base_asymptote, sort=True).reset_index()
 
-        performance_metrics = pandas.DataFrame(columns=['M3', 'M4', 'M5', 'M6'])
-        performance_metrics['M3'] = m3_agg_trials.agg({'known_perf': numpy.mean})# ['known_perf']
-        performance_metrics['M4'] = m4_agg_trials.agg({'unknown_perf': numpy.mean})['unknown_perf']
-        performance_metrics['M5'] = m5_agg_trials.agg({'opti_t': numpy.sum}).iloc[0] / len(m5_agg_trials.index)
+        # print("m3 trial: {} m3 base: {}".format(m3_agg_trials.empty, m3_agg_base.empty))
+        # print("m4 trial: {} m4 base: {}".format(m4_agg_trials.empty, m4_agg_base.empty))
+        # print("m5 trial: {} m5 base: {}".format(m5_agg_trials.empty, m5_agg_base.empty))
+        # print("m6 trial: {} m6 base: {}".format(m6_agg_trials.empty, m6_agg_base.empty))
+
+        if not m3_agg_trials.empty and not m3_agg_base.empty:
+            m3_agg_trials['known_perf'] = m3_agg_trials[0] / m3_agg_base[0]
+            performance_metrics['M3'] = m3_agg_trials.agg({'known_perf': numpy.mean})
+        if not m4_agg_trials.empty and not m4_agg_trials.empty:
+            m4_agg_trials['unknown_perf'] = m4_agg_trials[0] / m4_agg_base[0]
+            performance_metrics['M4'] = m4_agg_trials.agg({'unknown_perf': numpy.mean})['unknown_perf']
+        if not m5_agg_trials.empty and not m5_agg_base.empty:
+            m5_agg_trials['opti_t'] = m5_agg_trials['performance'] / (m5_agg_base['performance'] + m5_agg_trials['performance'])
+            performance_metrics['M5'] = m5_agg_trials.agg({'opti_t': numpy.sum}).iloc[0] / len(m5_agg_trials.index)
+        if not m6_agg_trials.empty and not m6_agg_base.empty:
+            m6_agg_trials['asymptote'] = m6_agg_trials[0] / m6_agg_base[0].replace({0: numpy.nan})
+            performance_metrics['M6'] = m6_agg_trials.agg({'asymptote': lambda x: x.sum(skipna=True)})['asymptote'] / len(m6_agg_trials.index)
 
         return scores, performance_metrics
 
@@ -431,11 +475,6 @@ class NoveltyExperimentRunnerSB:
 
 
 if __name__ == '__main__':
-            result = run_eval_stats(NOVELTIES,
-                                    agent_type=agent,
-                                    suffix="{}_{}".format(TRIAL_NAME, str(trial_set)),
-                                    notify_novelty=NOTIFY_NOVELTY,
-                                    level_lookup=lookup[trial_set])
     experiment_runner = NoveltyExperimentRunnerSB(AgentType.Baseline, export_trials=False)
 
     experiment_runner.run_experiment()
