@@ -398,7 +398,7 @@ class NoveltyExperimentRunnerSB:
 
             # M6
             novelty_grouped = group.groupby("episode_type").get_group("novelty")
-            slice = len(novelty_grouped.index) - asymptote if len(novelty_grouped.index) > asymptote else len(novelty_grouped.index)
+            slice = asymptote if len(novelty_grouped.index) > asymptote else len(novelty_grouped.index)
             post_asymptote = novelty_grouped.tail(slice).agg({"performance": numpy.sum})
             trials_asymptote.append(post_asymptote)
 
@@ -430,7 +430,7 @@ class NoveltyExperimentRunnerSB:
 
             # M6
             novelty_grouped = group.groupby("episode_type").get_group("novelty")
-            slice = len(novelty_grouped.index) - asymptote if len(novelty_grouped.index) > asymptote else len(novelty_grouped.index)
+            slice = asymptote if len(novelty_grouped.index) > asymptote else len(novelty_grouped.index)
             post_asymptote = novelty_grouped.tail(slice).agg({"performance": numpy.sum})
             base_asymptote.append(post_asymptote)
 
