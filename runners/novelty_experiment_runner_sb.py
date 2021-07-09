@@ -393,7 +393,7 @@ class NoveltyExperimentRunnerSB:
                 trials_unknown_avg.append(unknown_avg)
 
             # M5
-            last_per_group = group.groupby("episode_type").get_group("novelty").tail(1)
+            last_per_group = group.groupby("episode_type").get_group("novelty").agg({'performance': numpy.sum})
             trials_last.append(last_per_group)
 
             # M6
@@ -407,7 +407,7 @@ class NoveltyExperimentRunnerSB:
         if len(trials_unknown_avg) > 0:
             m4_agg_trials = pandas.concat(trials_unknown_avg, sort=True).reset_index()
         if len(trials_last) > 0:
-            m5_agg_trials = pandas.concat(trials_last, sort=True)
+            m5_agg_trials = pandas.concat(trials_last, sort=True).reset_index()
         if len(trials_asymptote) > 0:
             m6_agg_trials = pandas.concat(trials_asymptote, sort=True).reset_index()
 
@@ -425,7 +425,7 @@ class NoveltyExperimentRunnerSB:
                 base_unknown_avg.append(unknown_avg)
 
             # M5
-            last_per_group = group.groupby("episode_type").get_group("novelty").tail(1)
+            last_per_group = group.groupby("episode_type").get_group("novelty").agg({'performance': numpy.sum})
             base_last.append(last_per_group)
 
             # M6
@@ -439,7 +439,7 @@ class NoveltyExperimentRunnerSB:
         if len(base_unknown_avg) > 0:
             m4_agg_base = pandas.concat(base_unknown_avg, sort=True).reset_index()
         if len(base_last) > 0:
-            m5_agg_base = pandas.concat(base_last, sort=True)
+            m5_agg_base = pandas.concat(base_last, sort=True).reset_index()
         if len(base_asymptote) > 0:
             m6_agg_base = pandas.concat(base_asymptote, sort=True).reset_index()
 
@@ -455,8 +455,8 @@ class NoveltyExperimentRunnerSB:
             m4_agg_trials['unknown_perf'] = m4_agg_trials[0] / m4_agg_base[0]
             performance_metrics['M4'] = m4_agg_trials.agg({'unknown_perf': numpy.mean})['unknown_perf']
         if not m5_agg_trials.empty and not m5_agg_base.empty:
-            m5_agg_trials['opti_t'] = m5_agg_trials['performance'] / (m5_agg_base['performance'] + m5_agg_trials['performance'])
-            performance_metrics['M5'] = m5_agg_trials.agg({'opti_t': numpy.sum}).iloc[0] / len(m5_agg_trials.index)
+            m5_agg_trials['opti_t'] = m5_agg_trials[0] / (m5_agg_base[0] + m5_agg_trials[0])
+            performance_metrics['M5'] = m5_agg_trials.agg({'opti_t': numpy.sum})[0] / len(m5_agg_trials.index)
         if not m6_agg_trials.empty and not m6_agg_base.empty:
             m6_agg_trials['asymptote'] = m6_agg_trials[0] / m6_agg_base[0].replace({0: numpy.nan})
             performance_metrics['M6'] = m6_agg_trials.agg({'asymptote': lambda x: x.sum(skipna=True)})['asymptote'] / len(m6_agg_trials.index)
