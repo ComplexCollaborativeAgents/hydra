@@ -1,6 +1,6 @@
 import settings
 import worlds.science_birds as sb
-from agent.hydra_agent import HydraAgent
+from agent.sb_hydra_agent import SBHydraAgent
 import sys
 
 def process_log(log):
@@ -34,7 +34,7 @@ def main(config='30_level_0_novelties.xml',simplification_code=[0]):
     settings.SB_PLANNER_SIMPLIFICATION_SEQUENCE = simplification_code
     settings.HEADLESS = True
     env = sb.ScienceBirds(None,launch=True,config=config)
-    hydra = HydraAgent(env)
+    hydra = SBHydraAgent(env)
     hydra.main_loop()
     env.kill()
 

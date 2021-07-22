@@ -1,4 +1,4 @@
-from agent.repairing_hydra_agent import RepairingHydraSBAgent
+from agent.sb_hydra_agent import RepairingSBHydraAgent
 from agent.planning.sb_meta_model import *
 import worlds.science_birds as sb
 
@@ -6,7 +6,7 @@ import worlds.science_birds as sb
 def test_science_birds_agent():
     env = sb.ScienceBirds(None,launch=True,config='test_reinit.xml')
     settings.HYDRA_MODEL_REVISION_ATTEMPTS = 0
-    hydra = RepairingHydraSBAgent(env)
+    hydra = RepairingSBHydraAgent(env)
     metamodel = hydra.meta_model
     hydra.main_loop() # enough actions to play the first two levels
     env.kill()

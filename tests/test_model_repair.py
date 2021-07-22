@@ -1,10 +1,8 @@
 import pytest
-from agent.repair.meta_model_repair import *
-from agent.repair.sb_repair import BirdLocationConsistencyEstimator, ScienceBirdsConsistencyEstimator
-from agent.hydra_agent import *
+
+from agent.repair.sb_repair import BirdLocationConsistencyEstimator
+from agent.sb_hydra_agent import *
 from agent.planning.simple_planner import *
-import worlds.science_birds as sb
-from agent.consistency.consistency_estimator import check_obs_consistency, DEFAULT_DELTA_T
 import matplotlib.pyplot
 from agent.repair.focused_repair import *
 
@@ -31,7 +29,7 @@ def test_repair_gravity_in_agent(save_obs=False,plot_obs_vs_exp=False):
     # Setup environment and agent
     env = sb.ScienceBirds(None, launch=True, config='test_consistency_config.xml')
     _adjust_game_speed()
-    hydra = HydraAgent(env)
+    hydra = SBHydraAgent(env)
 
     # Inject fault and run the agent
     _inject_fault_to_meta_model(hydra.meta_model, GRAVITY_FACTOR)

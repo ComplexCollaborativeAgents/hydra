@@ -1,7 +1,7 @@
 import os
 import pytest
 import settings
-import agent.planning.planner as pl
+import agent.planning.sb_planner as pl
 
 @pytest.mark.skip("MEK: Paths are wrong here. something to look at for Wiktor")
 def test_planner():
@@ -14,7 +14,7 @@ def test_planner():
 
     assert os.stat("%s/sb_prob.pddl" % settings.SB_PLANNING_DOCKER_PATH).st_size > 0
 
-    planner = pl.Planner()
+    planner = pl.SBPlanner()
     actions = planner.get_plan_actions()
 
     assert os.stat("%s/docker_build_trace.txt" % settings.SB_PLANNING_DOCKER_PATH).st_size > 0
@@ -28,6 +28,6 @@ def test_planner():
     assert len(actions) > 0
 
 if __name__ == '__main__':
-    planner = pl.Planner()
+    planner = pl.SBPlanner()
     actions = planner.get_plan_actions()
     assert len(actions) > 0

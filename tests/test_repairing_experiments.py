@@ -1,5 +1,4 @@
-from agent.repairing_hydra_agent import RepairingHydraSBAgent
-from agent.hydra_agent import HydraAgent
+from agent.sb_hydra_agent import SBHydraAgent, RepairingSBHydraAgent
 import pytest
 from agent.repair.meta_model_repair import *
 from agent.planning.sb_meta_model import *
@@ -114,7 +113,7 @@ def _run_experiment(hydra, experiment_name, max_iterations = 10):
 @pytest.mark.skip("Have not migrated to 0.3.6 yet")
 def test_set_of_levels_no_repair(launch_science_birds_with_all_levels):
     env = launch_science_birds_with_all_levels
-    hydra = HydraAgent(env)
+    hydra = SBHydraAgent(env)
     max_iterations = 10
     _run_experiment(hydra, "no_repair-%d" % max_iterations, max_iterations=max_iterations)
 
@@ -124,14 +123,14 @@ def test_set_of_levels_repair_no_fault():
 
     logger.info("Starting no repair experiment")
     env = sb.ScienceBirds(None,launch=True,config='test_repair_wood_health.xml')
-    hydra = HydraAgent(env)
+    hydra = SBHydraAgent(env)
     levels_completed_no_repair, reward_no_repair = _run_experiment(hydra, "with_repair-%d" % max_iterations, max_iterations=max_iterations)
     env.kill()
     logger.info("Ending no repair experiment, levels completed = %d, reward = %.2f" % (levels_completed_no_repair, reward_no_repair))
 
     logger.info("Starting mock oracle repair experiment")
     env = sb.ScienceBirds(None,launch=True,config='test_repair_wood_health.xml')
-    hydra = RepairingHydraSBAgent(env)
+    hydra = RepairingSBHydraAgent(env)
     hydra.meta_model_repair = MockMetaModelRepair([3.0, 3.0])
     levels_completed_oracle_repair, reward_with_oracle_repair = _run_experiment(hydra, "with_repair-%d" % max_iterations, max_iterations=max_iterations)
     env.kill()
@@ -140,7 +139,7 @@ def test_set_of_levels_repair_no_fault():
 
     logger.info("Starting repair experiment")
     env = sb.ScienceBirds(None,launch=True,config='test_repair_wood_health.xml')
-    hydra = RepairingHydraSBAgent(env)
+    hydra = RepairingSBHydraAgent(env)
     levels_completed_repair, reward_with_repair = _run_experiment(hydra, "with_repair-%d" % max_iterations, max_iterations=max_iterations)
     env.kill()
     logger.info("Ending repair experiment, levels completed = %d, reward = %.2f" % (levels_completed_repair, reward_with_repair))
@@ -156,7 +155,7 @@ def _inject_fault_to_meta_model(meta_model : ScienceBirdsMetaModel, fluent_to_ch
 @pytest.mark.skip("Have not migrated to 0.3.6 yet")
 def test_set_of_levels_repair_with_fault(launch_science_birds_with_all_levels):
     env = launch_science_birds_with_all_levels
-    hydra = RepairingHydraSBAgent(env)
+    hydra = RepairingSBHydraAgent(env)
     _inject_fault_to_meta_model(hydra.meta_model, GRAVITY_FACTOR)
     max_iterations = 10
     _run_experiment(hydra, "with_repair_bad_gravity-%d" % max_iterations, max_iterations=max_iterations)
@@ -164,7 +163,7 @@ def test_set_of_levels_repair_with_fault(launch_science_birds_with_all_levels):
 @pytest.mark.skip("Have not migrated to 0.3.6 yet")
 def test_set_of_levels_no_repair_with_fault(launch_science_birds_with_all_levels):
     env = launch_science_birds_with_all_levels
-    hydra = HydraAgent(env)
+    hydra = SBHydraAgent(env)
     _inject_fault_to_meta_model(hydra.meta_model, GRAVITY_FACTOR)
     max_iterations = 10
     _run_experiment(hydra, "no_repair_bad_gravity-%d" % max_iterations, max_iterations=max_iterations)

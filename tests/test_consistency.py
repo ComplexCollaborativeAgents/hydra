@@ -1,17 +1,13 @@
 import matplotlib.pyplot as plt
 import pytest
-import time
 
-from agent.consistency.fast_pddl_simulator import *
-from agent.repair.sb_repair import BirdLocationConsistencyEstimator, ScienceBirdsConsistencyEstimator
-from agent.hydra_agent import *
+from agent.repair.sb_repair import BirdLocationConsistencyEstimator
+from agent.sb_hydra_agent import *
 from agent.planning.model_manipulator import ManipulateInitNumericFluent
-from agent.planning.planner import *
+from agent.planning.sb_planner import *
 
 from agent.perception.perception import *
-import tests.test_utils as test_utils
 from tests.test_utils import create_logger
-from state_prediction.anomaly_detector_fc_multichannel import FocusedSBAnomalyDetector
 from os import listdir
 from agent.consistency import trace_visualizer as trace_visualizer
 logger = create_logger("test_consistency")
@@ -33,7 +29,7 @@ GRAVITY = "gravity"
 ''' Helper function: loads plan, problem, and domain used to evaluate consistency checker'''
 def _load_plan_problem_domain():
     (problem, domain) = test_utils.load_problem_and_domain(PROBLEM_FILE,DOMAIN_FILE)
-    plan = Planner().extract_actions_from_plan_trace(PLAN_FILE)
+    plan = SBPlanner().extract_actions_from_plan_trace(PLAN_FILE)
     return (plan, problem, domain)
 
 def _print_fluents_values(state_seq:list, fluent_names:list):
@@ -125,7 +121,7 @@ def test_consistency_in_agent(launch_science_birds):
 
     # Launch SB and play a level
     env = launch_science_birds
-    hydra = HydraAgent(env)
+    hydra = SBHydraAgent(env)
     hydra.run_next_action()
     our_observation = hydra.find_last_obs()
 
@@ -194,7 +190,7 @@ def test_bad_shot_consistency(launch_science_birds):
     save_obs = True
 
     env = launch_science_birds
-    hydra = HydraAgent(env)
+    hydra = SBHydraAgent(env)
     angle = 75
     hydra.planner = PlannerStub(angle)
     hydra.run_next_action()

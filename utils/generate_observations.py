@@ -1,6 +1,6 @@
 import settings
 import worlds.science_birds as sb
-from agent.hydra_agent import HydraAgent
+from agent.sb_hydra_agent import SBHydraAgent
 import os.path as path
 import shutil
 
@@ -12,7 +12,7 @@ def main(config='all_level_0_novelties.xml'):
     settings.NO_REPAIR=True
 
     env = sb.ScienceBirds(None,launch=True,config=config)
-    hydra = HydraAgent(env)
+    hydra = SBHydraAgent(env)
     hydra.main_loop()
     env.kill()
 

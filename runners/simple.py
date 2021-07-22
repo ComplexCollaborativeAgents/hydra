@@ -1,5 +1,5 @@
 import worlds.science_birds as sb
-from agent.repairing_hydra_agent import RepairingHydraSBAgent
+from agent.sb_hydra_agent import RepairingSBHydraAgent
 import argparse
 from utils.host import Host
 
@@ -30,7 +30,7 @@ def main():
     config_logging()
     arguments = parse()
     env = sb.ScienceBirds(None, launch=False, host=arguments.server)
-    hydra = RepairingHydraSBAgent(env)
+    hydra = RepairingSBHydraAgent(env)
     hydra.main_loop()
 
 

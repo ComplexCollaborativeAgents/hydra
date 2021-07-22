@@ -11,15 +11,16 @@ from agent.planning.pddl_plus import *
 from agent.planning.sb_meta_model import *
 import datetime
 import time
+from agent.hydra_agent import HydraPlanner
 
-class Planner():
+class SBPlanner(HydraPlanner):
     domain_file = None
     problem = None # current state of the world
     SB_OFFSET = 1
 
 
     def __init__(self, meta_model = ScienceBirdsMetaModel()):
-        self.meta_model = meta_model
+        super().__init__(meta_model)
         self.current_problem_prefix = None
 
     def make_plan(self,state,prob_complexity=0):

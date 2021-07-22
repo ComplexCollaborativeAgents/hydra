@@ -1,11 +1,13 @@
+import agent.hydra_agent
+import agent.sb_hydra_agent
 import worlds.room_world as rm
-import agent.hydra_agent as ha
+import agent.sb_hydra_agent as ha
 import numpy as np
 
 np.random.seed(0)
 
 env = rm.RoomWorld()  # initialize world
-agent = ha.HydraAgent(env)
+agent = ha.SBHydraAgent(env)
 
 # Training
 total_episodes = 100

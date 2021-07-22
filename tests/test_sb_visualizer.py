@@ -1,9 +1,9 @@
 from agent.consistency.trace_visualizer import animate_expected, animate_observed
-from agent.hydra_agent import *
-from agent.planning.planner import *
+from agent.sb_hydra_agent import *
+from agent.planning.sb_planner import *
 from matplotlib import pyplot as plt
 from agent.perception.perception import *
-from agent.repairing_hydra_agent import RepairingHydraSBAgent
+from agent.sb_hydra_agent import RepairingSBHydraAgent
 from tests.test_utils import create_logger
 from os import listdir
 from agent.consistency import trace_visualizer as trace_visualizer
@@ -32,7 +32,7 @@ def test_animate_single_shot():
     logger.info("Starting ScienceBirds")
     try:
         env = sb.ScienceBirds(None,launch=True,config=config_file)
-        hydra = RepairingHydraSBAgent(env)
+        hydra = RepairingSBHydraAgent(env)
         meta_model = hydra.meta_model
 
         hydra.run_next_action()

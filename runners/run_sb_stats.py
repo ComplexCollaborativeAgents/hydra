@@ -15,8 +15,7 @@ import numpy
 from worlds.science_birds_interface.demo.naive_agent_groundtruth import ClientNaiveAgent
 
 import worlds.science_birds as sb
-from agent.hydra_agent import HydraAgent
-from agent.repairing_hydra_agent import RepairingHydraSBAgent
+from agent.sb_hydra_agent import SBHydraAgent, RepairingSBHydraAgent
 import settings
 import logging
 
@@ -107,10 +106,10 @@ def run_agent(config, agent, agent_stats=list()):
         yield env
 
         if agent == AgentType.Hydra:
-            hydra = HydraAgent(env, agent_stats)
+            hydra = SBHydraAgent(env, agent_stats)
             hydra.main_loop(max_actions=10000)
         elif agent == AgentType.RepairingHydra:
-            hydra = RepairingHydraSBAgent(env, agent_stats)
+            hydra = RepairingSBHydraAgent(env, agent_stats)
             hydra.main_loop(max_actions=10000)
         elif agent == AgentType.Baseline:
             ground_truth = ClientNaiveAgent(env.id, env.sb_client)

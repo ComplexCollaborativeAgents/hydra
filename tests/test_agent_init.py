@@ -1,5 +1,6 @@
-from agent.hydra_agent import HydraAgent
+from agent.sb_hydra_agent import SBHydraAgent
+
 
 def test_create_agent():
-    h = HydraAgent()
-    assert isinstance(h, HydraAgent)
+    h = SBHydraAgent()
+    assert isinstance(h, SBHydraAgent)

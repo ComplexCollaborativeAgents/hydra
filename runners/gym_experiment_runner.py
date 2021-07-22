@@ -8,7 +8,7 @@ from os import path
 import gym
 import os.path as path
 import settings
-from agent.cartpole_hydra_agent import CartpoleHydraAgent, CartpoleHydraAgentObserver, RepairingCartpoleHydraAgent
+from agent.cartpole_hydra_agent import CartpoleHydraAgentObserver, RepairingCartpoleHydraAgent, CartpoleHydraAgent
 from agent.planning.cartpole_pddl_meta_model import CartPoleMetaModel
 from agent.repairing_hydra_agent import RepairingGymHydraAgent
 import time
