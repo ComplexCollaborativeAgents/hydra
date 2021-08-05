@@ -39,9 +39,10 @@ class PolycraftInterface:
     def __init__(self, settings_path: str, **kwargs):
         self.settings = json.load(settings_path)
 
-        # setup sockets
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.sock.connect((self.settings['host'], self.settings['port']))
+        # Socket connection
+        self.sock = None
+
+        self.connect_to_polycraft(self.settings['host'], self.settings['port'])
 
         # Init logging
         self._extra_args = kwargs
@@ -51,6 +52,27 @@ class PolycraftInterface:
             self._logger = logging.getLogger('Agent Client')
 
         logging.getLogger().setLevel(logging.INFO)
+
+    def connect_to_polycraft(self, host, port):
+        """ Setup socket and connect to polycraft world """
+        try:
+            self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self._logger.info("Client connected to Polycraft Server ({}) on port {}".format(host, port))
+        except socket.error as e:
+            self._logger.exception("Failed to connect to Polycraft Host\n \
+                                    Host: {}\n \
+                                    Port: {}\n \
+                                    Error Message: {}".format(host, port, e))
+            raise e
+
+    def disconnect_from_polycraft(self):
+        """ Setup socket and connect to polycraft world """
+        try:
+            self.sock.close()
+            self._logger.info("Client disconnected from Polycraft Server")
+        except socket.error as e:
+            self._logger.exception("Failed to disconnect from Polycraft Host")
+            raise e
 
     def _send_cmd(self, cmd: str):
         """Low level - send command to Polycraft Instance"""
@@ -67,6 +89,16 @@ class PolycraftInterface:
 
         data_dict = json.loads(data)
         return data_dict
+    
+    def RESET(self, level_path: str) -> dict:
+        """ Reset the simulation and load a level (.json) located at level_path """
+        self._send_cmd("RESET domain {}".format(level_path))
+        return self._recv_response()
+
+    def START(self) -> dict:
+        """ Start the simulation.  Must have something loaded first. """
+        self._send_cmd("START")
+        return self._recv_response()
 
     def CHECK_COST(self) -> dict:
         """ Returns the step cost incurred since the last RESET command. """
