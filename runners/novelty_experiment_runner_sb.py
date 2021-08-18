@@ -1,5 +1,6 @@
 import optparse
 import pandas
+import datetime
 import numpy as np
 import matplotlib.pyplot as plt
 from pandas.core.frame import DataFrame
@@ -23,7 +24,7 @@ NOVELTIES = {"1": ["6", "7", "8", "9", "10"], "2": ["6", "7", "8", "9", "10"], "
 SB_BIN_PATH = pathlib.Path(settings.SCIENCE_BIRDS_BIN_DIR) / 'linux'
 SB_DATA_PATH = pathlib.Path(settings.ROOT_PATH) / 'data' / 'science_birds'
 SB_CONFIG_PATH = SB_DATA_PATH / 'config'
-TEMPLATE_PATH = SB_CONFIG_PATH / 'stats_config.xml'
+TEMPLATE_PATH = SB_CONFIG_PATH / 'test_config.xml'
 
 # Constants
 NOVELTY_LEVELS = {'0': 'novelty_level_0', '1': 'novelty_level_1', '2': 'novelty_level_2',  '3': 'novelty_level_3'}
@@ -136,7 +137,8 @@ class NoveltyExperimentRunnerSB:
             config = SB_CONFIG_PATH / 'stats_config.xml'
 
             if self.export_trials:  # Export to unique trial xml config file
-                config = SB_CONFIG_PATH / "trial_config_{}.xml".format(trial_id)
+                date_time_str = datetime.datetime.now().strftime('%m-%d-%Y_%H-%M-%S')
+                config = SB_CONFIG_PATH / "trial_config_{}_{}.xml".format(trial_id, date_time_str)
                 print(config)
 
             prepare_config(TEMPLATE_PATH, config, trial, notify_novelty)
