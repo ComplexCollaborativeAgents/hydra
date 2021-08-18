@@ -477,7 +477,7 @@ class NoveltyExperimentRunnerSB:
 
 
 if __name__ == '__main__':
-    experiment_runner = NoveltyExperimentRunnerSB(AgentType.Baseline, export_trials=False)
+    experiment_runner = NoveltyExperimentRunnerSB(AgentType.Baseline, export_trials=True)
 
     experiment_runner.run_experiment()
     # experiment_runner.run_experiment(configs=[SB_CONFIG_PATH / "trial_config_1_6.xml"])
