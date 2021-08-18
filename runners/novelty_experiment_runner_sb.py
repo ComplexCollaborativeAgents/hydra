@@ -18,7 +18,7 @@ logger = logging.getLogger("novelty_experiment_runner")
 TRIAL_START = 0
 NUM_TRIALS = 1
 PER_TRIAL = 20
-NOVELTIES = {"1": ["6", "7", "8", "9", "10"], "2": ["6", "7", "8", "9", "10"], "3": ["6", "7"]}
+#NOVELTIES = {"1": ["6", "7", "8", "9", "10"], "2": ["6", "7", "8", "9", "10"], "3": ["6", "7"]}
 
 # Paths
 SB_BIN_PATH = pathlib.Path(settings.SCIENCE_BIRDS_BIN_DIR) / 'linux'
@@ -34,10 +34,10 @@ NON_NOVEL_LEVELS = ["0"]
 # Options
 RESULTS_PATH = pathlib.Path(settings.ROOT_PATH) / "runners" / "experiments" / "ScienceBirds" / "SB_experiment"
 EXPORT_TRIALS = False   # Export trials xml file
-PER_TRIAL = 25      # Levels per trial
-BEFORE_NOVELTY = 5 # Levels in a trial before novelty is introduced
+PER_TRIAL = 6      # Levels per trial
+BEFORE_NOVELTY = 2 # Levels in a trial before novelty is introduced
 # NOVELTIES = {"1": ["6"]}  # Novelties to use in the experiment (IE, trials to run)
-NOVELTIES = {"1": ["6", "7", "8", "9", "10"], "2": ["6", "7", "8", "9", "10"], "3": ["6", "7"]}
+NOVELTIES = {"2": ["8"]}
 # NOVELTIES = {1: [6,7,8,9,10],2:}
 
 
