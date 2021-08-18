@@ -34,8 +34,8 @@ NON_NOVEL_LEVELS = ["0"]
 # Options
 RESULTS_PATH = pathlib.Path(settings.ROOT_PATH) / "runners" / "experiments" / "ScienceBirds" / "SB_experiment"
 EXPORT_TRIALS = False   # Export trials xml file
-PER_TRIAL = 6      # Levels per trial
-BEFORE_NOVELTY = 2 # Levels in a trial before novelty is introduced
+PER_TRIAL = 25      # Levels per trial
+BEFORE_NOVELTY = 5 # Levels in a trial before novelty is introduced
 # NOVELTIES = {"1": ["6"]}  # Novelties to use in the experiment (IE, trials to run)
 NOVELTIES = {"2": ["8"]}
 # NOVELTIES = {1: [6,7,8,9,10],2:}
@@ -477,7 +477,7 @@ class NoveltyExperimentRunnerSB:
 
 
 if __name__ == '__main__':
-    experiment_runner = NoveltyExperimentRunnerSB(AgentType.Baseline, export_trials=True)
+    experiment_runner = NoveltyExperimentRunnerSB(AgentType.Hydra, export_trials=True)
 
     experiment_runner.run_experiment()
     # experiment_runner.run_experiment(configs=[SB_CONFIG_PATH / "trial_config_1_6.xml"])
