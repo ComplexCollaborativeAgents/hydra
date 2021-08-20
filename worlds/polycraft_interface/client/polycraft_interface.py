@@ -23,7 +23,7 @@ NOTE: agent needs to handle gameOver == True as soon as it occurs!
 """
 
 
-class MoveDir(enum):
+class MoveDir(enum.Enum):
     FORWARD = "w" # Forward 1 meter
     LEFT = "a" # Left 1 meter
     RIGHT = "d" # Right 1 meter
@@ -37,12 +37,10 @@ class MoveDir(enum):
 class PolycraftInterface:
     """ Low level interface to Polycraft Tournament """
     def __init__(self, settings_path: str, **kwargs):
-        self.settings = json.load(settings_path)
+        self.settings = {}
 
-        # Socket connection
-        self.sock = None
-
-        self.connect_to_polycraft(self.settings['host'], self.settings['port'])
+        with open(settings_path, "r") as settings_file:
+            self.settings = json.load(settings_file)
 
         # Init logging
         self._extra_args = kwargs
@@ -52,6 +50,11 @@ class PolycraftInterface:
             self._logger = logging.getLogger('Agent Client')
 
         logging.getLogger().setLevel(logging.INFO)
+
+        # Socket connection
+        self.sock = None
+
+        self.connect_to_polycraft(self.settings['host'], self.settings['port'])
 
     def connect_to_polycraft(self, host, port):
         """ Setup socket and connect to polycraft world """
