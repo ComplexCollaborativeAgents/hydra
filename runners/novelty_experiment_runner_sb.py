@@ -15,11 +15,6 @@ from runners.run_sb_stats import *
 logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("novelty_experiment_runner")
 
-TRIAL_START = 0
-NUM_TRIALS = 1
-PER_TRIAL = 20
-NOVELTIES = {"1": ["6", "7", "8", "9", "10"], "2": ["6", "7", "8", "9", "10"], "3": ["6", "7"]}
-
 # Paths
 SB_BIN_PATH = pathlib.Path(settings.SCIENCE_BIRDS_BIN_DIR) / 'linux'
 SB_DATA_PATH = pathlib.Path(settings.ROOT_PATH) / 'data' / 'science_birds'
@@ -81,7 +76,7 @@ class NoveltyExperimentRunnerSB:
         for novelty_level in NOVELTY_LEVELS:   # Iterate over all novelty levels
             self.levels[novelty_level] = defaultdict(set)
 
-            print("SB: Loading levels from novelty level {}".format(novelty_level))
+            logger.debug("SB: Loading levels from novelty level {}".format(novelty_level))
             
             novelty_path = os.path.join("Levels", NOVELTY_LEVELS[novelty_level])
             for novelty_type in NOVELTY_TYPES:  # Iterate over all novelty types
@@ -139,7 +134,7 @@ class NoveltyExperimentRunnerSB:
             if self.export_trials:  # Export to unique trial xml config file
                 date_time_str = datetime.datetime.now().strftime('%m-%d-%Y_%H-%M-%S')
                 config = SB_CONFIG_PATH / "trial_config_{}_{}.xml".format(trial_id, date_time_str)
-                print(config)
+                logger.debug("Exporting trial to {}".format(config))
 
             prepare_config(TEMPLATE_PATH, config, trial, notify_novelty)
         else:
@@ -174,13 +169,12 @@ class NoveltyExperimentRunnerSB:
         agent_stats is a list of dicts - stats of the agent that are not produced by the Angry Birds simulation
         """
         
-        trial = pandas.DataFrame(columns=['episode_num',
-                                          'novelty_probability', 'novelty_threshold',
-                                          'novelty', 'novelty_characterization',
-                                          'performance', 'notify_novelty', 'pass'])
+        trial = pandas.DataFrame(columns=['episode_type', 'episode_num', 'novelty_probability',
+                                          'novelty_threshold', 'novelty', 'novelty_characterization',
+                                          'performance', 'pass', 'num_repairs', 'repair_time'])
 
         # bird_scores = collections.defaultdict(lambda: {"passed": 0, "failed": 0})
-        print("Looking in: {}".format(results_directory))
+        logger.debug("Gathering stats from: {}".format(results_directory))
         # Open results .csv
         evaluation_data = list(results_directory.glob('*_EvaluationData.csv'))
         for eval_data in evaluation_data:
@@ -254,7 +248,7 @@ class NoveltyExperimentRunnerSB:
             if configs is not None:
                 for config in configs:
                     novelty_id = str(config).split("/")[-1].split(".xml")[0]
-                    print("Using config file: {}".format)
+                    logger.debug("Using config file: {}".format)
 
                     # Get trial details
                     tree = ET.parse(config)
@@ -282,7 +276,6 @@ class NoveltyExperimentRunnerSB:
                     trial_results['env_config'] = 0     # TODO: figure out how to use env config - only things that change in Science Birds is the level, type and novelty_notify
 
                     experiment_results = experiment_results.append(trial_results)
-                    print(experiment_results)
 
                     # Export results to file
                     with open(experiment_results_path, "a") as f:
@@ -309,7 +302,6 @@ class NoveltyExperimentRunnerSB:
                         trial_results['level'] = novelty_level
 
                         experiment_results = experiment_results.append(trial_results)
-                        print(experiment_results)
 
                         # Export results to file
                         with open(experiment_results_path, "a") as f:
