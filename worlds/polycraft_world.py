@@ -49,6 +49,8 @@ class PolycraftState(State):
     def load_from_serialized_state(level_filename: str):
         return pickle.load(open(level_filename, 'rb'))
 
+    def is_terminal(self) -> bool:
+        raise NotImplementedError("TODO")
 
 class PolycraftAction(Action):
     ''' Polycraft World Action'''
@@ -62,13 +64,14 @@ class PolyTP(PolycraftAction):
         self.z = z
         self.dist = dist
 
+    def do(self, poly_client):
+        return poly_client.TP_TO_POS(self.x, self.y, self.z, distance=self.dist)
 
 class PolyEntityTP(PolycraftAction):
     """ Teleport to a position "dist" away from the entity facing in direction d and with pitch p"""
     def __init__(self, entity_id: str, dist: int = 0, d: int = 0, p: int = 0):
         self.entity_id = entity_id
         self.dist = dist
-
 
 class PolyTurn(PolycraftAction):
     """ Turn the actor side to side in the y axis (vertical) in increments of 15 degrees """
