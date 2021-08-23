@@ -15,10 +15,6 @@ from runners.run_sb_stats import *
 logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("novelty_experiment_runner")
 
-TRIAL_START = 0
-NUM_TRIALS = 5
-#NOVELTIES = {"1": ["6", "7", "8", "9", "10"], "2": ["6", "7", "8", "9", "10"], "3": ["6", "7"]}
-
 # Paths
 SB_BIN_PATH = pathlib.Path(settings.SCIENCE_BIRDS_BIN_DIR) / 'linux'
 SB_DATA_PATH = pathlib.Path(settings.ROOT_PATH) / 'data' / 'science_birds'
@@ -32,12 +28,16 @@ NON_NOVEL_LEVELS = ["0"]
 
 # Options
 RESULTS_PATH = pathlib.Path(settings.ROOT_PATH) / "runners" / "experiments" / "ScienceBirds" / "SB_experiment"
-EXPORT_TRIALS = True   # Export trials xml file
-PER_TRIAL = 25      # Levels per trial
-BEFORE_NOVELTY = 5 # Levels in a trial before novelty is introduced
-# NOVELTIES = {"1": ["6"]}  # Novelties to use in the experiment (IE, trials to run)
-NOVELTIES = {"2": ["8"]}
+EXPORT_TRIALS = False   # Export trials xml file
+NUM_TRIALS = 3      # Number of trials to run per known/unknown, novelty level and type
+PER_TRIAL = 10      # Levels per trial
+BEFORE_NOVELTY = 3 # Levels in a trial before novelty is introduced
+NOVELTIES = {"2": ["8"]}  # Novelties to use in the experiment (IE, trials to run)
+#NOVELTIES = {"1": ["6", "7", "8", "9", "10"], "2": ["6", "7", "8", "9", "10"], "3": ["6", "7"]}
 # NOVELTIES = {1: [6,7,8,9,10],2:}
+
+
+
 
 
 def load_lookup(lookup_path):
@@ -52,6 +52,7 @@ class NoveltyExperimentRunnerSB:
     def __init__(self,
                  agent_type: AgentType,
                  novelties: dict = NOVELTIES,
+                 num_trials: int = NUM_TRIALS,
                  levels_per_trial: int = PER_TRIAL,
                  levels_before_novelty: int = BEFORE_NOVELTY,
                  export_trials: bool = EXPORT_TRIALS,
@@ -59,6 +60,7 @@ class NoveltyExperimentRunnerSB:
         
         self.agent_type = agent_type
         self.novelties = novelties
+        self.num_trials = num_trials
         self.levels_per_trial = levels_per_trial
         self.levels_before_novelty = levels_before_novelty
         self.export_trials = export_trials
@@ -80,7 +82,7 @@ class NoveltyExperimentRunnerSB:
         for novelty_level in NOVELTY_LEVELS:   # Iterate over all novelty levels
             self.levels[novelty_level] = defaultdict(set)
 
-            print("SB: Loading levels from novelty level {}".format(novelty_level))
+            logger.debug("SB: Loading levels from novelty level {}".format(novelty_level))
             
             novelty_path = os.path.join("Levels", NOVELTY_LEVELS[novelty_level])
             for novelty_type in NOVELTY_TYPES:  # Iterate over all novelty types
@@ -138,7 +140,7 @@ class NoveltyExperimentRunnerSB:
             if self.export_trials:  # Export to unique trial xml config file
                 date_time_str = datetime.datetime.now().strftime('%m-%d-%Y_%H-%M-%S')
                 config = SB_CONFIG_PATH / "trial_config_{}_{}.xml".format(trial_id, date_time_str)
-                print(config)
+                logger.debug("Exporting trial to {}".format(config))
 
             prepare_config(TEMPLATE_PATH, config, trial, notify_novelty)
         else:
@@ -173,13 +175,12 @@ class NoveltyExperimentRunnerSB:
         agent_stats is a list of dicts - stats of the agent that are not produced by the Angry Birds simulation
         """
         
-        trial = pandas.DataFrame(columns=['episode_num',
-                                          'novelty_probability', 'novelty_threshold',
-                                          'novelty', 'novelty_characterization',
-                                          'performance', 'notify_novelty', 'pass'])
+        trial = pandas.DataFrame(columns=['episode_type', 'episode_num', 'novelty_probability',
+                                          'novelty_threshold', 'novelty', 'novelty_characterization',
+                                          'performance', 'pass', 'num_repairs', 'repair_time'])
 
         # bird_scores = collections.defaultdict(lambda: {"passed": 0, "failed": 0})
-        print("Looking in: {}".format(results_directory))
+        logger.debug("Gathering stats from: {}".format(results_directory))
         # Open results .csv
         evaluation_data = list(results_directory.glob('*_EvaluationData.csv'))
         for eval_data in evaluation_data:
@@ -249,72 +250,71 @@ class NoveltyExperimentRunnerSB:
         with open(experiment_results_path, "w+") as f:
             experiment_results.to_csv(f, index=False)
 
-        for trial_type in [constants.UNKNOWN, constants.KNOWN]:
-            if configs is not None:
-                for config in configs:
-                    novelty_id = str(config).split("/")[-1].split(".xml")[0]
-                    print("Using config file: {}".format)
+        for _ in range(self.num_trials):
+            for trial_type in [constants.UNKNOWN, constants.KNOWN]:
+                if configs is not None:
+                    for config in configs:
+                        novelty_id = str(config).split("/")[-1].split(".xml")[0]
+                        logger.debug("Using config file: {}".format)
 
-                    # Get trial details
-                    tree = ET.parse(config)
+                        # Get trial details
+                        tree = ET.parse(config)
 
-                    is_novelty = tree.getroot().find('./trials/trial').get('notify_novelty')
-                    novelty_level = "0"
+                        is_novelty = tree.getroot().find('./trials/trial').get('notify_novelty')
+                        novelty_level = "0"
 
-                    level_tags = tree.getroot().find('./trials/trial/game_level_set')
-                    for level_tag in level_tags:
-                        level_path = level_tag.attrib['level_path']
-                        if 'novelty_level_0' in level_path:
-                            continue
-                        else:
-                            novelty_level = level_path.split('/')[1]    # TODO: make this cleaner
-
-                    # Run the trial
-                    trial_results = self.run_trial([], is_novelty, novelty_id, config_file=config)
-                    
-                    # Process trial results
-                    # Append trial data and labels
-                    trial_results['trial_num'] = trial_num
-                    trial_results['novelty_id'] = "{}_{}".format(novelty_id, trial_num) # TODO: Find a better way of separating novelty levels
-                    trial_results['trial_type'] = trial_type
-                    trial_results['level'] = novelty_level
-                    trial_results['env_config'] = 0     # TODO: figure out how to use env config - only things that change in Science Birds is the level, type and novelty_notify
-
-                    experiment_results = experiment_results.append(trial_results)
-                    print(experiment_results)
-
-                    # Export results to file
-                    with open(experiment_results_path, "a") as f:
-                        trial_results.to_csv(f, index=False, header=False)
-
-                    trial_num += 1
-            else:
-                for novelty_level in self.novelties:
-                    for novelty_type in self.novelties[novelty_level]:
-                        is_novelty = constants.NOVELTY
-
-                        if novelty_level in NON_NOVEL_LEVELS:
-                            is_novelty = constants.NON_NOVELTY_PERFORMANCE
-
-                        trial, novelty_id = self.construct_trial(novelty_level, novelty_type, self.levels_before_novelty)
+                        level_tags = tree.getroot().find('./trials/trial/game_level_set')
+                        for level_tag in level_tags:
+                            level_path = level_tag.attrib['level_path']
+                            if 'novelty_level_0' in level_path:
+                                continue
+                            else:
+                                novelty_level = level_path.split('/')[1]    # TODO: make this cleaner
 
                         # Run the trial
-                        trial_results = self.run_trial(trial, is_novelty, novelty_id)
+                        trial_results = self.run_trial([], is_novelty, novelty_id, config_file=config)
+                        
                         # Process trial results
                         # Append trial data and labels
                         trial_results['trial_num'] = trial_num
                         trial_results['novelty_id'] = "{}_{}".format(novelty_id, trial_num) # TODO: Find a better way of separating novelty levels
                         trial_results['trial_type'] = trial_type
                         trial_results['level'] = novelty_level
+                        trial_results['env_config'] = 0     # TODO: figure out how to use env config - only things that change in Science Birds is the level, type and novelty_notify
 
                         experiment_results = experiment_results.append(trial_results)
-                        print(experiment_results)
 
                         # Export results to file
                         with open(experiment_results_path, "a") as f:
                             trial_results.to_csv(f, index=False, header=False)
 
                         trial_num += 1
+                else:
+                    for novelty_level in self.novelties:
+                        for novelty_type in self.novelties[novelty_level]:
+                            is_novelty = constants.NOVELTY
+
+                            if novelty_level in NON_NOVEL_LEVELS:
+                                is_novelty = constants.NON_NOVELTY_PERFORMANCE
+
+                            trial, novelty_id = self.construct_trial(novelty_level, novelty_type, self.levels_before_novelty)
+
+                            # Run the trial
+                            trial_results = self.run_trial(trial, is_novelty, novelty_id)
+                            # Process trial results
+                            # Append trial data and labels
+                            trial_results['trial_num'] = trial_num
+                            trial_results['novelty_id'] = "{}_{}".format(novelty_id, trial_num) # TODO: Find a better way of separating novelty levels
+                            trial_results['trial_type'] = trial_type
+                            trial_results['level'] = novelty_level
+
+                            experiment_results = experiment_results.append(trial_results)
+
+                            # Export results to file
+                            with open(experiment_results_path, "a") as f:
+                                trial_results.to_csv(f, index=False, header=False)
+
+                            trial_num += 1
 
     @staticmethod
     def categorize_examples_for_novelty_detection(dataframe):
