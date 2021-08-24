@@ -462,11 +462,7 @@ class NoveltyExperimentRunnerSB:
 
 
 if __name__ == '__main__':
-<<<<<<< HEAD
     experiment_runner = NoveltyExperimentRunnerSB(AgentType.RepairingHydra, export_trials=True)
-=======
-    experiment_runner = NoveltyExperimentRunnerSB(AgentType.Baseline, export_trials=True)
->>>>>>> sb_internal_eval
 
     experiment_runner.run_experiment()
     # experiment_runner.run_experiment(configs=[SB_CONFIG_PATH / "trial_config_1_6.xml"])
