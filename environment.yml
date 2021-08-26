@@ -25,17 +25,16 @@ dependencies:
   - torchvision=0.8.1
   - shortuuid
   - seaborn
-  - astar==0.9
   - certifi==2020.4.5.2
   - cffi==1.14.0
   - chardet==3.0.4
   - cloudpickle==1.3.0
-  - cycler==1.3.0
+  - cycler==0.10.0
   - descartes==1.1.0
   - filelock==3.0.12
   - future==0.18.2
   - idna==2.9
-  - isodate==0.6.9
+  - isodate==0.6.0
   - kiwisolver==1.2.0
   - mizani==0.6.0
   - msrest==0.6.14
@@ -54,5 +53,6 @@ dependencies:
   - urllib3==1.25.9
   - pip:
       - pika==1.1.0
+      - astar==0.9
       - -e .
 
