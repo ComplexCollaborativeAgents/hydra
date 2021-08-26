@@ -13,13 +13,13 @@ import pytest
 from os import path, listdir
 
 # Constants for ScienceBirds
-CP_NON_NOVEL_OBS_DIR = path.join(settings.ROOT_PATH, 'data', 'cartpole', 'consistency', 'non_novel')
-CP_NOVEL_OBS_DIR = path.join(settings.ROOT_PATH, 'data', 'cartpole', 'consistency',  'novel')
+CP_NON_NOVEL_OBS_DIR = path.join(settings.ROOT_PATH, 'data', 'cartpole', 'may2021', 'non_novel')
+CP_NOVEL_OBS_DIR = path.join(settings.ROOT_PATH, 'data', 'cartpole', 'may2021',  'novel')
 
 CP_NON_NOVEL_OBS_FILE_NAME = 'CartPole-v1-non-novel_%d.p'
-CP_NOVEL_OBS_FILE_NAME = 'CartPole-v1-novel_%d.p'
-CP_NON_NOVEL_OBS = 3
-CP_NOVEL_OBS = 3
+CP_NOVEL_OBS_FILE_NAME = 'CartPole-v1-{}{}-novel_{}.p'
+CP_NON_NOVEL_OBS = 400
+CP_NOVEL_OBS = 50
 
 
 # Constants for ScienceBirds
@@ -92,7 +92,7 @@ def test_UPenn_consistency_science_birds():
     assert(false_negatives <= 5)
 
 # Data generation methods - NOT TESTS
-@pytest.mark.skip("Generates data for  test_UPenn_consistency_cartpole() - not a real test")
+#@pytest.mark.skip("Generates data for  test_UPenn_consistency_cartpole() - not a real test")
 def test_generate_data_for_cartpole():
     import gym
     import agent.gym_hydra_agent
@@ -103,27 +103,27 @@ def test_generate_data_for_cartpole():
     cartpole_hydra = agent.gym_hydra_agent.GymHydraAgent(env)
 
     # Create non_novel obs
-    for i in range(CP_NON_NOVEL_OBS):
-        cartpole_hydra.observation = cartpole_hydra.env.reset()
-        cartpole_hydra.run()  # enough actions to play a level
-        if save_obs:
-            observation = cartpole_hydra.find_last_obs()
-            obs_output_file_name = path.join(CP_NON_NOVEL_OBS_DIR, CP_NON_NOVEL_OBS_FILE_NAME % i)
-            obs_output_file = open(obs_output_file_name, "wb")
-            pickle.dump(observation, obs_output_file)
-            obs_output_file.close()
-        print("Created non-novel instance %d" % i)
-
+    # for i in range(CP_NON_NOVEL_OBS):
+    #     cartpole_hydra.observation = cartpole_hydra.env.reset()
+    #     cartpole_hydra.run()  # enough actions to play a level
+    #     if save_obs:
+    #         observation = cartpole_hydra.find_last_obs()
+    #         obs_output_file_name = path.join(CP_NON_NOVEL_OBS_DIR, CP_NON_NOVEL_OBS_FILE_NAME % i)
+    #         obs_output_file = open(obs_output_file_name, "wb")
+    #         pickle.dump(observation, obs_output_file)
+    #         obs_output_file.close()
+    #     print("Created non-novel instance %d" % i)
     # Create novel obs
     # cartpole_hydra.meta_model.constant_numeric_fluents["gravity"] = 19 # Fault injevtion
-    env.env.gravity=19
+    env.env.length=1.4
+    assert getattr(env.env, 'length') == 1.4
     for i in range (CP_NOVEL_OBS):
         cartpole_hydra.observation = cartpole_hydra.env.reset()
         cartpole_hydra.run()  # enough actions to play a level
 
         if save_obs:
             observation = cartpole_hydra.find_last_obs()
-            obs_output_file_name = path.join(CP_NOVEL_OBS_DIR, CP_NOVEL_OBS_FILE_NAME % i)  # For debug
+            obs_output_file_name = path.join(CP_NOVEL_OBS_DIR, CP_NOVEL_OBS_FILE_NAME.format('length',14,i))  # For debug
             obs_output_file = open(obs_output_file_name, "wb")
             pickle.dump(observation, obs_output_file)
             obs_output_file.close()
