@@ -1,7 +1,6 @@
 from agent.consistency.trace_visualizer import animate_expected, animate_observed
 from agent.sb_hydra_agent import *
 from agent.planning.sb_planner import *
-from matplotlib import pyplot as plt
 from agent.perception.perception import *
 from agent.sb_hydra_agent import RepairingSBHydraAgent
 from tests.test_utils import create_logger

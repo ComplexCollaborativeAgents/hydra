@@ -1,21 +1,12 @@
 import datetime
-import logging
-import random
-import time
 
-import settings
-from agent.consistency.consistency_estimator import check_obs_consistency
-from agent.consistency.observation import ScienceBirdsObservation
 from agent.hydra_agent import logger, NN_PROB, PDDL_PROB, NOVELTY_EXISTANCE_NOT_GIVEN, NOVELTY_LIKELIHOOD
-from agent.perception.perception import Perception, ProcessedSBState
-from agent.planning.pddl_plus import PddlPlusPlan, PddlPlusState, TimedAction
-from agent.planning.sb_meta_model import ScienceBirdsMetaModel, get_random_pig_xy, estimate_launch_angle
 from agent.planning.sb_planner import SBPlanner
 from agent.repair.meta_model_repair import *
 
 # TODO: Maybe push this to the settings file? then every module just adds a logger
 from agent.repair.sb_repair import ScienceBirdsConsistencyEstimator, ScienceBirdsMetaModelRepair
-from agent.repairing_hydra_agent import REPAIR_CALLS, REPAIR_TIME, logger
+from agent.gym_hydra_agent import REPAIR_CALLS, REPAIR_TIME, logger
 from state_prediction.anomaly_detector_fc_multichannel import FocusedSBAnomalyDetector
 from utils.point2D import Point2D
 from worlds.science_birds_interface.client.agent_client import GameState
