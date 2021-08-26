@@ -7,7 +7,7 @@ dependencies:
   - python=3.7
   - pip
   - pytest
-  - numpy
+  - numpy==1.21.2
   - shapely
   - pillow
   - opencv
@@ -55,4 +55,5 @@ dependencies:
       - pika==1.1.0
       - astar==0.9
       - blosc==1.10.4
+      - pybullet==3.1.7
       - -e .
