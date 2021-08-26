@@ -54,5 +54,5 @@ dependencies:
   - pip:
       - pika==1.1.0
       - astar==0.9
+      - blosc==1.10.4
       - -e .
-
