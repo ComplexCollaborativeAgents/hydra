@@ -55,19 +55,18 @@ class CartPolePlusPlusDispatcher:
         if uninformed_trials:
             novelty_indicators.append(False)
 
-        for novelty_indicator in novelty_indicators:
+        for novelty_indicator, generator, difficulty in itertools.product(novelty_indicators, generators, difficulties):
             if novelty_indicator:
                 self.log.debug("Running informed novelty trials")
             else:
                 self.log.debug("Running uninformed novelty trials")
 
-            for generator, difficulty in itertools.product(generators, difficulties):
-                for trial in range(trials):
-                    self.delegate.trial_start(trial, dict())
-                    self.delegate.testing_start()
-                    self.__run_trial(generator, difficulty, informed=novelty_indicator)
-                    self.delegate.testing_end()
-                    self.delegate.trial_end()
+            for trial in range(trials):
+                self.delegate.trial_start(trial, dict())
+                self.delegate.testing_start()
+                self.__run_trial(generator, difficulty, informed=novelty_indicator)
+                self.delegate.testing_end()
+                self.delegate.trial_end()
 
         self.delegate.experiment_end()
 
