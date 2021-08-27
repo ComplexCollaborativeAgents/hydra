@@ -1,0 +1,14 @@
+episode_num,novelty_probability,novelty_threshold,novelty,novelty_characterization,performance,trial_num,novelty_id,trial_type,episode_type,level,env_config
+0,0.0,0.999999,0,{},1.0,0,length_1point1_masscart_point9,unknown,novelty,1,{'length': 1.1}
+0,1.0,0.999999,0,{},0.37,0,length_1point1_masscart_point9,known,novelty,1,{'length': 1.1}
+episode_num,novelty_probability,novelty_threshold,novelty,novelty_characterization,performance,trial_num,novelty_id,trial_type,episode_type,level,env_config
+0,0.0,0.999999,0,{},0.51,0,length_1point1_masscart_point9,unknown,novelty,1,{'length': 1.1}
+episode_num,novelty_probability,novelty_threshold,novelty,novelty_characterization,performance,trial_num,novelty_id,trial_type,episode_type,level,env_config
+0,0.0,0.999999,0,{},0.395,0,length_1point1_masscart_point9,unknown,novelty,1,{'length': 1.1}
+0,1.0,0.999999,0,{},0.355,0,length_1point1_masscart_point9,known,novelty,1,{'length': 1.1}
+episode_num,novelty_probability,novelty_threshold,novelty,novelty_characterization,performance,trial_num,novelty_id,trial_type,episode_type,level,env_config
+episode_num,novelty_probability,novelty_threshold,novelty,novelty_characterization,performance,trial_num,novelty_id,trial_type,episode_type,level,env_config
+0,0.0,0.999999,0,{},0.39,0,length_1point1_masscart_point9,unknown,novelty,1,{'length': 1.1}
+episode_num,novelty_probability,novelty_threshold,novelty,novelty_characterization,performance,trial_num,novelty_id,trial_type,episode_type,level,env_config
+0,0.0,0.999999,0,{},0.645,0,length_1point1_masscart_point9,unknown,novelty,1,{'length': 1.1}
+0,1.0,0.999999,0,"{""m_cart"": 0, ""l_pole"": 0.30000000000000004, ""m_pole"": 0, ""force_mag"": 0, ""gravity"": 0, ""angle_limit"": 0, ""x_limit"": 0}",0.485,0,length_1point1_masscart_point9,known,novelty,1,{'length': 1.1}
