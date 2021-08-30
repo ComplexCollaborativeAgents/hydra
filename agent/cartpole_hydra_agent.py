@@ -143,6 +143,9 @@ class RepairingCartpoleHydraAgent(CartpoleHydraAgent):
     def repair_meta_model(self, last_observation):
         ''' Repair the meta model based on the last observation '''
 
+        novelty_likelihood = self.novelty_likelihood
+        novelty_characterization = self.novelty_characterization
+
         try:
             repair, consistency = self.meta_model_repair.repair(self.meta_model, last_observation,
                                                            delta_t=settings.CP_DELTA_T)
