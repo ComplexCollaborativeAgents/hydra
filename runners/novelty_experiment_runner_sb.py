@@ -29,12 +29,20 @@ NON_NOVEL_LEVELS = ["0"]
 # Options
 RESULTS_PATH = pathlib.Path(settings.ROOT_PATH) / "runners" / "experiments" / "ScienceBirds" / "SB_experiment"
 EXPORT_TRIALS = False   # Export trials xml file
-NUM_TRIALS = 1      # Number of trials to run per known/unknown, novelty level and type
-PER_TRIAL = 5      # Levels per trial
-BEFORE_NOVELTY = 2 # Levels in a trial before novelty is introduced
-NOVELTIES = {"1": ["6"]}  # Novelties to use in the experiment (IE, trials to run)
-# NOVELTIES = {"1": ["6", "7", "8", "9", "10"], "2": ["6", "7", "8", "9", "10"], "3": ["6", "7"]}
-# NOVELTIES = {1: [6,7,8,9,10],2:}
+NUM_TRIALS = 5      # Number of trials to run per known/unknown, novelty level and type
+PER_TRIAL = 30      # Levels per trial
+BEFORE_NOVELTY = 7 # Levels in a trial before novelty is introduced
+NOVELTIES = {"2": ["8"]}  # Novelties to use in the experiment (IE, trials to run)
+#NOVELTIES = {"1": ["6", "7", "8", "9", "10"], "2": ["6", "7", "8", "9", "10"], "3": ["6", "7"]}
+
+
+
+
+
+def load_lookup(lookup_path):
+    with open(lookup_path) as f:
+        obj = json.load(f)
+        return obj
 
 
 class NoveltyExperimentRunnerSB:
@@ -454,4 +462,7 @@ class NoveltyExperimentRunnerSB:
 
 
 if __name__ == '__main__':
-    experiment_runner = NoveltyExperimentRunnerSB(AgentType.Baseline, export_trials=True)
+    experiment_runner = NoveltyExperimentRunnerSB(AgentType.RepairingHydra, export_trials=True)
+
+    experiment_runner.run_experiment()
+    # experiment_runner.run_experiment(configs=[SB_CONFIG_PATH / "trial_config_1_6.xml"])

@@ -1,4 +1,3 @@
-from agent.consistency.model_formulation import ConsistencyChecker
 from agent.planning.cartpole_planner import CartPolePlanner
 from agent.planning.cartpole_pddl_meta_model import *
 from agent.consistency.observation import CartPoleObservation
@@ -8,8 +7,13 @@ import numpy as np
 import settings
 import matplotlib.pyplot as plt
 import random
+from agent.repair.cartpole_repair import CartpoleConsistencyEstimator, CartpoleRepair
 
 MIN_STEPS_TO_REPLAN = 40
+REPAIR_CALLS = "repair_calls"
+REPAIR_TIME = "repair_time"
+
+logger = logging.getLogger("gym_hydra_agent")
 
 class GymHydraAgent:
     def __init__(self, env, starting_seed=False):
@@ -174,3 +178,36 @@ class GymHydraAgent:
         plt.ylabel('values')
         plt.legend()
         plt.show()
+
+
+class RepairingGymHydraAgent(GymHydraAgent):
+    def __init__(self, env, starting_seed=False):
+        super().__init__(env, starting_seed)
+        self.consistency_checker = CartpoleConsistencyEstimator()
+        self.desired_precision = 0.01
+
+    ''' Checks if the meta model should be repaired based on the given observation. Note: can also consider past observations'''
+    def should_repair(self, observation):
+        if sum(observation.rewards)>195:
+            return False
+        else:
+            return True
+
+    def run(self, debug_info=False, max_actions=1000):
+        observation = self.find_last_obs()
+        if observation is not None:
+            # Initiate repair
+            if not self.should_repair(observation):
+                logger.info("No need to repair")
+                return
+            meta_model_repair = CartpoleRepair()
+            start_time = time.time()
+            repair, consistency = meta_model_repair.repair(self.meta_model, observation, delta_t=settings.CP_DELTA_T)
+            repair_time = time.time()-start_time
+            repair_description = ["Repair %s, %.2f" % (fluent, repair[i])
+                                  for i, fluent in enumerate(meta_model_repair.fluents_to_repair)]
+
+            logger.info("Repair done! Repair time %.2f, Consistency: %.2f, Repair:\n %s" % (
+            repair_time, consistency, "\n".join(repair_description)))
+
+        super().run(debug_info, max_actions)
