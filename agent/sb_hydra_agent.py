@@ -156,7 +156,6 @@ class SBHydraAgent(HydraAgent):
     ''' Handle what happens when the agent receives a EVALUATION_TERMINATED request'''
     def handle_evaluation_terminated(self):
         # store info and disconnect the agent as the evaluation is finished
-        self.agent_stats.append(self.stats_for_level)
         logger.info("Evaluation complete.")
         return True
 
@@ -217,7 +216,7 @@ class SBHydraAgent(HydraAgent):
                     pddl_prob = 1.0
                 else:
                     pddl_prob = check_obs_consistency(observation, self.meta_model, self.consistency_estimator)
-                self.stats_for_level["pddl_novelty_likelihood"].append(pddl_prob)
+                self.stats_for_level[PDDL_PROB].append(pddl_prob)
 
                 # If we already played at least two levels and novelty keeps being detected, mark this as a very high novelty likelihood
                 cnn_prediction = cnn_prob > self.detector.threshold
@@ -407,11 +406,6 @@ class RepairingSBHydraAgent(SBHydraAgent):
                                       sum(self.stats_for_level[NN_PROB]) / len(self.stats_for_level[NN_PROB]))
         self.pddl_prob_per_level.insert(0,
                                       sum(self.stats_for_level[PDDL_PROB]) / len(self.stats_for_level[PDDL_PROB]))
-
-    def handle_evaluation_terminated(self):
-        ''' Handle what happens when the agent receives a EVALUATION_TERMINATED request'''
-        self.process_final_observation()
-        return super().handle_evaluation_terminated()
 
     def handle_game_won(self):
         self.process_final_observation()
