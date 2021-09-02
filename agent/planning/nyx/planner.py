@@ -10,6 +10,9 @@ import time, copy
 from agent.planning.nyx.syntax.visited_state import VisitedState
 from agent.planning.nyx.syntax.state import State
 
+# (NOT AVAILABLE YET ON MASTER BRANCH)
+# import semantic_attachments.semantic_attachment
+
 class Planner:
 
     #-----------------------------------------------
@@ -41,7 +44,7 @@ class Planner:
         state = parser.init_state
         self.initial_state = parser.init_state
 
-        print("\t* model parse time: " + str("{:5.4f}".format(time.time()-start_solve_time)) + "s")
+        print("\t* model parse time: " + str("{:5.4f}".format(time.time() - start_solve_time)) + "s")
 
         # Do nothing
         if state.is_goal(parser.goals):
@@ -53,11 +56,27 @@ class Planner:
         while self.queue:
             state = self.queue.pop(0)
             for aa in state.get_applicable_happenings(parser.grounded_actions):
+                new_state = None
                 if aa == constants.TIME_PASSING_ACTION:
                     new_state = copy.deepcopy(state)
-                    for hp in state.get_applicable_happenings(parser.grounded_events)+state.get_applicable_happenings(parser.grounded_processes)+state.get_applicable_happenings(parser.grounded_events):
+                    new_state.set_time(round(round(state.time, constants.NUMBER_PRECISION) + round(constants.DELTA_T,constants.NUMBER_PRECISION),constants.NUMBER_PRECISION))
+
+                    # first check for triggered events, followed by processes
+                    happenings_list = state.get_applicable_happenings(parser.grounded_events) + state.get_applicable_happenings(parser.grounded_processes)
+                    for hp in happenings_list:
                         new_state = new_state.apply_happening(hp)
-                    new_state.set_time(round(round(state.time,constants.NUMBER_PRECISION) + round(constants.DELTA_T,constants.NUMBER_PRECISION),constants.NUMBER_PRECISION))
+
+                    # # (NOT AVAILABLE YET ON MASTER BRANCH)
+                    # # check whether any semantic attachment processes are active, if applicable
+                    # if constants.SEMANTIC_ATTACHMENT:
+                    #     new_state = semantic_attachments.semantic_attachment.external_function(new_state)
+
+                    # check triggered events again, after applying the effects of events and processes.
+                    if constants.DOUBLE_EVENT_CHECK:
+                        happenings_list_2 = new_state.get_applicable_happenings(parser.grounded_events)
+                        for hp2 in happenings_list_2:
+                            new_state = new_state.apply_happening(hp2)
+
                     new_state.predecessor_hashed = hash(VisitedState(state))
                     new_state.predecessor_action = aa
                 else:
@@ -75,12 +94,12 @@ class Planner:
                     # visi = len(self.visited_hashmap)
                     time_checkpoint = time.time() - start_solve_time
                     print('[' + str("{:6.2f}".format(time_checkpoint)) + '] ==> states explored: ' + str(self.explored_states))
-                    print('\t\t\t' + str(round(self.explored_states / time_checkpoint,2)) + ' states/sec')
+                    print('\t\t\t' + str(round(self.explored_states / time_checkpoint, 2)) + ' states/sec')
 
-                if constants.PRINT_ALL_STATES:
-                    print(new_state)
+                # if constants.PRINT_ALL_STATES:
+                #     print(new_state)
 
-            if (time.time()-start_solve_time) >= constants.TIMEOUT:
+            if (time.time() - start_solve_time) >= constants.TIMEOUT:
                 return None
 
         return None
@@ -103,13 +122,16 @@ class Planner:
         elif constants.SEARCH_ASTAR:
             n_state.set_h_heuristic(heuristic_functions.heuristic_function(n_state))
             self.queue.insert(0, n_state)
-            self.queue = sorted(self.queue, key=lambda elem: (elem.h+elem.g))
+            self.queue = sorted(self.queue, key=lambda elem: (elem.h + elem.g))
+
+        if constants.PRINT_ALL_STATES:
+            print(n_state)
 
     def get_trajectory(self, sstate: State):
         plan = []
         curr_v_state = VisitedState(sstate)
 
         while curr_v_state.state.predecessor_action is not None:
-            plan.insert(0,(curr_v_state.state.predecessor_action, copy.deepcopy(curr_v_state.state)))
+            plan.insert(0, (curr_v_state.state.predecessor_action, copy.deepcopy(curr_v_state.state)))
             curr_v_state = self.visited_hashmap[curr_v_state.state.predecessor_hashed]
         return plan
