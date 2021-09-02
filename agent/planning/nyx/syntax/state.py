@@ -105,6 +105,8 @@ class State:
             if iv[0] == '=':
                 # print(str(iv[1]) + ' is a function with value = ' + iv[-1])
                 self.state_vars[str(iv[1])] = round(float(iv[-1]),constants.NUMBER_PRECISION)
+            elif iv[0] == 'not':
+                continue
             else:
                 # print(str(iv) + ' is a true predicate')
                 self.state_vars[str(iv)] = True

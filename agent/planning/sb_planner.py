@@ -69,7 +69,7 @@ class SBPlanner(HydraPlanner):
                     '-t:%s' % str(settings.SB_DELTA_T)])
 
         plan_actions = self.extract_actions_from_plan_trace(
-            "%s/plan_sb_prob.pddl" % str(settings.CARTPOLE_PLANNING_DOCKER_PATH))
+            "%s/plan_sb_prob.pddl" % str(settings.SB_PLANNING_DOCKER_PATH))
 
 
         if len(plan_actions) > 0:
