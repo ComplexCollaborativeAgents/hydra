@@ -12,6 +12,7 @@ NO_PLANNING = False
 NO_REPAIR = False
 NO_PDDL_CONSISTENCY = False
 SB_DEV_MODE = True
+NOVELTY_POSSIBLE = False
 
 SB_PLANNER_MEMORY_LIMIT = 50 # memory limit for UPMurphi (in MB)
 SB_DELTA_T = 0.05 # time discretisation for UPMurphi

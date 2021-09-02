@@ -71,6 +71,7 @@ class SBPlanner(HydraPlanner):
         plan_actions = self.extract_actions_from_plan_trace(
             "%s/plan_sb_prob.pddl" % str(settings.SB_PLANNING_DOCKER_PATH))
 
+        print(plan_actions)
 
         if len(plan_actions) > 0:
             if (plan_actions[0].action_name == "syntax error") and (count < 1):
@@ -92,11 +93,11 @@ class SBPlanner(HydraPlanner):
                     # if the planner ran out of memory:
                     # change the goal to killing a single pig to make the problem easier and try again with one fewer pig
                     return plan_actions
-                if " pa-twang " in line:
-                    action_angle_time = (line.split(':')[1].split('[')[0].replace('(', '').replace(')', '').strip(),
-                                         float(str(lines_list[i + 1].split('angle:')[1].split(',')[0])),
+                if "pa-twang" in line:
+                    action_angle_time = (line.split('\t')[1].strip(),
+                                         # float(str(lines_list[i + 1].split('angle:')[1].split(',')[0])),
                                          float(line.split(':')[0]))
-                    plan_actions.append(TimedAction(action_angle_time[0], action_angle_time[2]))
+                    plan_actions.append(TimedAction(action_angle_time[0], action_angle_time[1]))
                 if "syntax error" in line:
                     plan_actions.append(TimedAction("syntax error", 0.0))
                     break

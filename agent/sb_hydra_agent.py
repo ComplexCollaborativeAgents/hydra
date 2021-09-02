@@ -1,5 +1,6 @@
 import datetime
 
+import settings
 from agent.hydra_agent import logger, NN_PROB, PDDL_PROB, NOVELTY_EXISTANCE_NOT_GIVEN, NOVELTY_LIKELIHOOD
 from agent.planning.sb_planner import SBPlanner
 from agent.repair.meta_model_repair import *
@@ -96,7 +97,8 @@ class SBHydraAgent(HydraAgent):
 
             if raw_state.game_state.value == GameState.PLAYING.value:
                 self.handle_game_playing(observation, raw_state)
-                self._compute_novelty_likelihood(observation)
+                if (settings.NOVELTY_POSSIBLE):
+                    self._compute_novelty_likelihood(observation)
             elif raw_state.game_state.value == GameState.WON.value:
                 self.handle_game_won()
             elif raw_state.game_state.value == GameState.LOST.value:
