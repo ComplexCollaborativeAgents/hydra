@@ -34,7 +34,7 @@ pytest
 3. As a root user (sudo), run the ```setup_polycraft.sh``` bash script under the binary directory to install linux dependencies.
 4. Note that the Polycraft domain requires a different version of Java than that of the Science Birds domain.  If using Ubuntu, you can use the `sudo update-alternatives --config java` command to select the Java version that corresponds with the domain that you want to run in.
 5. Create the hydra python environment (same as Science Birds above - again, not needed if already installed)
-6. Download the polycraft level files from https://gitlab-external.parc.com/hydra/hydra/-/wikis/Polycraft-Level-files and put them in a known directory.
+6. Download the polycraft level files from https://gitlab-external.parc.com/hydra/hydra/-/wikis/Polycraft-Level-files and put them in a known directory.  Create or add to your `settings/local_settings.py` file and update the `POLYCRAFT_LEVEL_DIR` variable with an absolute path to the level files directory.
 
 ## Building Docker
 
