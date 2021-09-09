@@ -1,4 +1,6 @@
-from agent.repairing_hydra_agent import RepairingHydraSBAgent
+from settings.local_settings import POLYCRAFT_LEVEL_DIR
+from runners.polycraft_dispatcher import PolycraftDispatcher
+from agent.polycraft_hydra_agent import PolycraftHydraAgent
 import argparse
 from utils.host import Host
 from worlds.polycraft_world import *
@@ -33,14 +35,19 @@ def main():
 
     run_config = {
         "headless": False,
-        "trial_path": os.path.join("..", "..", "polycraft_trials", "POGO_10game_prenovelty", "POGO_L00_T01_S01", "X0010", "POGO_L00_T01_S01_X0010_A_U9999_V0"),
     }
 
-    env = Polycraft(launch=True, server_config=run_config)
-    # hydra = RepairingHydraSBAgent(env)
-    # hydra.main_loop()
+    trials = [os.path.join(settings.POLYCRAFT_LEVEL_DIR, "POGO_10game_prenovelty", "POGO_L00_T01_S01", "X0010", "POGO_L00_T01_S01_X0010_A_U9999_V0")]
 
-    env.kill()
+    agent = PolycraftHydraAgent()
+
+    dispatcher = PolycraftDispatcher(agent=agent)
+
+    dispatcher.experiment_start(run_config, trials=trials)
+
+    dispatcher.run_trials()
+
+    dispatcher.experiment_end()
 
 
 if __name__ == '__main__':

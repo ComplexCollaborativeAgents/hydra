@@ -17,6 +17,7 @@ from utils.state import State, Action, World
 
 logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("Polycraft")
+logger.setLevel(logging.INFO)
 
 
 class PolycraftAction(Action):
@@ -74,7 +75,7 @@ class PolyTilt(PolycraftAction):
         self.pitch = pitch
 
     def do(self, poly_client: poly.PolycraftInterface) -> dict:
-        return poly_client.TP_TO_POS(self.pitch)
+        return poly_client.SMOOTH_TILT(self.pitch)
 
 
 class PolyBreak(PolycraftAction):
@@ -128,7 +129,7 @@ class PolyPlaceItem(PolycraftAction):
         self.item_name = item_name
 
     def do(self, poly_client: poly.PolycraftInterface) -> dict:
-        return poly_client.TP_TO_POS(self.x, self.y, self.z, distance=self.dist)
+        return poly_client.PLACE(self.item_name)
 
 
 class PolyCollect(PolycraftAction):
@@ -185,7 +186,7 @@ class PolycraftState(State):
     """ Current State of Polycraft """
     def __init__(self, facing_block: str,  location: dict, game_map: dict,
                  entities: dict, inventory: dict, current_item: str,
-                 recipes: list, trades: list, terminal: bool):
+                 recipes: list, trades: list, terminal: bool, step_cost: float):
         super().__init__()
 
         self.id = 0
@@ -198,6 +199,10 @@ class PolycraftState(State):
         self.recipes = recipes
         self.trades = trades
         self.terminal = terminal
+        self.step_cost = step_cost
+
+    def __str__(self):
+        return "< Step: {} | Action Cost: {} | Inventory: {} >".format(self.id, self.step_cost, self.inventory)
 
     def get_block_at(self, x: int, y: int, z: int) -> tuple:
         """ Helper function to get info of a block at coordinates xyz from the game map (type, accessibility) """
@@ -263,7 +268,7 @@ class PolycraftState(State):
 
     def summary(self):
         '''returns a summary of state'''
-        raise NotImplementedError("Polycraft State summary not implmented")
+        return str(self)
 
     def serialize_current_state(self, level_filename: str):
         pickle.dump(self, open(level_filename, 'wb'))
@@ -297,8 +302,9 @@ class Polycraft(World):
         self.current_trades = []
         
         if launch:
+            logger.info("Launching Polycraft instance")
             self.launch_polycraft(server_config=server_config)
-            time.sleep(5)
+            time.sleep(30) # Wait for server to start up
 
         # Path to polycraft client interface config file (host name/port, buffer size, etc.)
         if client_config is None:
@@ -307,9 +313,11 @@ class Polycraft(World):
         self.create_interface(client_config)
 
     def kill(self):
+        ''' Perform cleanup '''
         # Disconnect client from polycraft
         if self.poly_client is not None:
             self.poly_client.disconnect_from_polycraft()
+            self.poly_client = None
 
         if self.poly_server_process is not None:
             logger.info("Killing process groups: {}".format(self.poly_server_process.pid))
@@ -329,22 +337,21 @@ class Polycraft(World):
 
         # Config needs to specify at the least:
         # * Headless mode
-        # Optional NOTE: Does not currently do anything!
-        # * max_time (max time per level in minutes)
-        # * max_trial_time (max time total to take for the entire trial in minutes)
-        # * trial_id (user specified identifier for the trial - used in outputting results on Polycraft side)
 
         params = []
-        if not server_config['headless']: # Boolean value for headless mode
-            params.append(settings.POLYCRAFT_HEADLESS)
+
+        params.append(settings.POLYCRAFT_HEADLESS)  # NOTE: Polycraft must run headless if going through 
+        params.append(settings.POLYCRAFT_SERVER_CMD)
 
         polycraft_cmd = " ".join(params)
 
-        cmd = 'cd {} && {} > polycraft_interface.log'.format(settings.POLYCRAFT_DIR,
-                                                             polycraft_cmd)
-        logger.debug('Launching Polycraft using: {}'.format(cmd))
+        cmd = '{} > polycraft_interface.log'.format(polycraft_cmd)
+        logger.info('Launching Polycraft using: {}'.format(cmd))
         self.poly_server_process = subprocess.Popen(cmd,
+                                                    cwd=settings.POLYCRAFT_DIR,
                                                     stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True,
+                                                    bufsize=1,
+                                                    universal_newlines=True,
                                                     start_new_session=True)
         logger.debug('Launched Polycraft with pid: {}'.format(str(self.poly_server_process.pid)))
 
@@ -375,8 +382,13 @@ class Polycraft(World):
         """
         Create polycraft interface - connect to server (server should be started first)
         """
+        logger.info("Creating polycraft interface")
         
-        self.poly_client = poly.PolycraftInterface(settings_path, logger=logger)
+        try:
+            self.poly_client = poly.PolycraftInterface(settings_path, logger=logger)
+        except ConnectionRefusedError as err:
+            logger.error("Failed to connect to Polycraft server - shutting down.")
+            self.kill()
 
     def set_current_recipes(self, recipes: list):
         """ To be called some time after the initialization of each level.  Hydra Agent to explore and collect all recipes before actual operation. """
@@ -396,7 +408,13 @@ class Polycraft(World):
         NOTE: at every end level, the gameOver boolean in the returned dictionary turns to True - we need to handle advancing to next level on our side
         """
         self.current_level = s_level
-        self.poly_client.RESET(self.current_level)
+        try:
+            self.poly_client.RESET(self.current_level)
+            time.sleep(5) # Wait for level to load fully (if not loaded fully, SENSE_ALL will return nothing and other undefined behavior) TODO: make consistent with RunTournament.py
+        except (BrokenPipeError, KeyboardInterrupt) as err:
+            self.kill()
+            logger.error("Polycraft server connection interrupted (broken pipe or keyboard interrupt")
+            raise err
 
     def act(self, action: PolycraftAction) -> tuple:
         ''' returns the state and step cost / reward '''
@@ -404,7 +422,12 @@ class Polycraft(World):
         results = dict()
 
         if isinstance(action, PolycraftAction):
-            results = action.do(self.poly_client)   # Perform each polycraft action's unique do command which uses the Polycraft API
+            try:
+                results = action.do(self.poly_client)   # Perform each polycraft action's unique do command which uses the Polycraft API
+            except (BrokenPipeError, KeyboardInterrupt) as err:
+                self.kill()
+                logger.error("Polycraft server connection interrupted (broken pipe or keyboard interrupt")
+                raise err
         else:
             raise ValueError("Invalid action requested: {}".format(str(type(action))))
 
@@ -417,8 +440,13 @@ class Polycraft(World):
         Query polycraft instance using low level interface and return State
         """
         # Call API
-        sensed = self.poly_client.SENSE_ALL()
-        
+        try:
+            sensed = self.poly_client.SENSE_ALL()
+        except (BrokenPipeError, KeyboardInterrupt) as err:
+            self.kill()
+            logger.error("Polycraft server connection interrupted (broken pipe or keyboard interrupt")
+            raise err
+
         # Extract values from SENSE_ALL
         facing_block = sensed['blockInFront']
         inventory = sensed['inventory']
@@ -429,7 +457,7 @@ class Polycraft(World):
         terminal = sensed['gameOver']
         step_cost = sensed['command_result']['stepCost']
 
-        return PolycraftState(facing_block, pos, game_map, entities, inventory, currently_selected, copy.copy(self.current_recipes), copy.copy(self.current_trades), terminal)
+        return PolycraftState(facing_block, pos, game_map, entities, inventory, currently_selected, copy.copy(self.current_recipes), copy.copy(self.current_trades), terminal, step_cost)
 
     def get_level_total_step_cost(self) -> float:
         cost_dict = self.poly_client.CHECK_COST()

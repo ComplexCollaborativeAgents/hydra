@@ -1,3 +1,4 @@
+import pathlib
 
 from worlds.polycraft_world import *
 from agent.hydra_agent import HydraAgent
@@ -8,25 +9,53 @@ class PolycraftDispatcher():
         self.env = None
         self.agent = agent
 
-        self.results = []
+        self.trials = {}
 
-    def experiment_start(self, config: dict):
+        self.results = {}
+
+    def experiment_start(self, server_config: dict, trials: list = []):
+        ''' Start the experiment.  server_config is a dict that contains configuration options for the Polycraft Server, and trials is a list that contains string paths towards each trial directory'''
 
         # Load polycarft world
-        self.env = Polycraft(launch=True, server_config=config)
+        self.env = Polycraft(server_config=server_config, launch=True)
+        self.trials = {}
 
-    def trial_start(self, trial_number: int, novelty_description: dict):
+        if len(trials) > 0:
+            # Setup trials
+            self.setup_trials(trials)
+
+    def setup_trials(self, trials: list):
+
+        # TODO: create a mix and match trial generator that has pre novelty and post novelty
+        for trial in trials:
+            # collect all trial filenames
+            self.trials[trial] = []
+            for level in os.listdir(trial): # Make sure to only add the .json files
+                suffix = pathlib.Path(level).suffix
+                if suffix == ".json":
+                    self.trials[trial].append(os.path.join(trial, level))
+
+    def run_trials(self):
+        ''' Run trials setup in "setup_trials" '''
+
+        trial_num = 0
+        for trial_path, trial_levels in self.trials.items():
+            self.trial_start(trial_num, {}, trial_levels)
+            self.trial_end()
+
+    def trial_start(self, trial_number: int, novelty_description: dict, levels: list):
         ''' Run multiple levels '''
 
         novelty_description = None
-        levels = [] # TODO Populate me
 
-        trial_results = []
+        self.results[trial_number] = []
 
         for level_num, level in enumerate(levels):
             self.env.init_selected_level(level)
             
-            trial_results.append(self.episode_start(level_num, novelty_description))
+            result = self.episode_start(level_num, trial_number, novelty_description)
+
+            self.results[trial_number].append(result)
             
             self.episode_end()
 
@@ -71,10 +100,10 @@ class PolycraftDispatcher():
     def experiment_end(self):
         # Cleanup
 
+        print(self.results)
+
+        self.trials = {}
+
         if self.env is not None:
             self.env.kill()
             self.env = None
-
-
-if __name__ == '__main__':
-    dispatcher = PolycraftDispatcher()
