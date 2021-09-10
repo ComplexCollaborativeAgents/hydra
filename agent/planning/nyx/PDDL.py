@@ -13,7 +13,7 @@ import copy
 
 class PDDL_Parser:
 
-    SUPPORTED_REQUIREMENTS = [':strips', ':adl', ':negative-preconditions', ':typing', ':time', ':fluents', ':continuous-effects']
+    SUPPORTED_REQUIREMENTS = [':strips', ':adl', ':negative-preconditions', ':disjunctive-preconditions', ':typing', ':time', ':fluents', ':continuous-effects']
     init_state = None
     grounded_actions = []
     grounded_events = []
@@ -86,6 +86,9 @@ class PDDL_Parser:
                     for req in group:
                         if req == ':time':
                             constants.TEMPORAL_DOMAIN = True
+                        if req == ':semantic-attachment':
+                            # (NOT AVAILABLE YET ON MASTER BRANCH)
+                            raise Exception('Requirement ' + req + ' not officially supported yet!')
                         if not req in self.SUPPORTED_REQUIREMENTS:
                             raise Exception('Requirement ' + req + ' not supported')
                     self.requirements = group
@@ -403,41 +406,76 @@ class PDDL_Parser:
     # Groundify
     #-----------------------------------------------
 
-    def groundify_vars(self, var_list, objects, types):
-        if not var_list:
-            yield []
-            return
-        type_map = []
-        variables = []
-        untyped_preds = []
+    # REMNANT FROM THE CASSICAL PLANNER, LOOPS FOREVER IF THERE ARE LOTS OF GROUNDED HAPPENINGS
+    # FOR SOME REASON, IT MIGHT BE TRYING TO ITERAT OVER ALL VARIABLES FOR EACH ENCOUNTERED VARIABLE
+    # LEAVING THE CODE COMMENTED OUT FOR NOW IN CASE THE REPLACEMENT IS BROKEN.
 
-        for v_name, predi in var_list.items():
-            # print('\nP: ' + str(v_name) + ', ' + str(predi))
-            ground_pred = [v_name]
-            for var, type in predi.items():
-                ground_pred.append(var)
-                # print('var: ' + str(var) + '; type: ' + str(type))
-                type_stack = [type]
-                items = []
-                while type_stack:
-                    t = type_stack.pop()
-                    if t in objects:
-                        items += objects[t]
-                    elif t in types:
-                        type_stack += types[t]
+    # def groundify_vars_old_and_broken(self, var_list, objects, types):
+    #     if not var_list:
+    #         yield []
+    #         return
+    #     type_map = []
+    #     variables = []
+    #     untyped_preds = []
+    #
+    #     for v_name, predi in var_list.items():
+    #         # print('\nP: ' + str(v_name) + ', ' + str(predi))
+    #         ground_pred = [v_name]
+    #         for var, type in predi.items():
+    #             ground_pred.append(var)
+    #             # print('var: ' + str(var) + '; type: ' + str(type))
+    #             type_stack = [type]
+    #             items = []
+    #             while type_stack:
+    #                 t = type_stack.pop()
+    #                 if t in objects:
+    #                     items += objects[t]
+    #                 elif t in types:
+    #                     type_stack += types[t]
+    #                 else:
+    #                     raise Exception('Unrecognized type ' + t)
+    #             type_map.append(items)
+    #             variables.append(var)
+    #         untyped_preds.append(ground_pred)
+    #     # print(untyped_preds)
+    #     for assignment in itertools.product(*type_map):
+    #         # print(variables)
+    #         # print(assignment)
+    #         grounded_vars = self.replace(copy.deepcopy(untyped_preds), variables, assignment)
+    #         # effects = self.replace(copy.deepcopy(self.effects), variables, assignment)
+    #         yield grounded_vars
+    #         # print(grounded_preconditions)
+
+
+    def groundify_vars(self, var_list, objects):
+        if not var_list:
+            return
+        ungrounded_vars = copy.deepcopy(var_list)
+        type_instances = copy.deepcopy(objects)
+        semi_grounded_type_var_lists = dict()
+
+        grounded_vars = []
+
+        for var_name, var_type_pair in var_list.items():
+            semi_grounded_type_var_lists[var_name] = list()
+            for type_symbol, type in var_type_pair.items():
+
+                semi_grounded_type_var_lists[var_name].append(type_instances[ungrounded_vars[var_name][type_symbol]])
+
+        for var_name, grounded_type_instances in semi_grounded_type_var_lists.items():
+            for almost_grounded in itertools.product(*grounded_type_instances):
+                if isinstance(almost_grounded, tuple):
+                    if all(almost_grounded):
+                        almost_almost_grounded = list(almost_grounded)
+                        almost_almost_grounded.insert(0, var_name)
+                        grounded_vars.append(almost_almost_grounded)
                     else:
-                        raise Exception('Unrecognized type ' + t)
-                type_map.append(items)
-                variables.append(var)
-            untyped_preds.append(ground_pred)
-        # print(untyped_preds)
-        for assignment in itertools.product(*type_map):
-            # print(variables)
-            # print(assignment)
-            grounded_vars = self.replace(copy.deepcopy(untyped_preds), variables, assignment)
-            # effects = self.replace(copy.deepcopy(self.effects), variables, assignment)
-            yield grounded_vars
-            # print(grounded_preconditions)
+                        grounded_vars.append([var_name])
+                else:
+                    grounded_vars.append([var_name,almost_grounded])
+        return grounded_vars
+
+
 
     #-----------------------------------------------
     # Replace
@@ -474,12 +512,10 @@ class PDDL_Parser:
     def set_init_state(self):
 
         grounded_state_variables = {}
-        for gps in self.groundify_vars(self.predicates, self.objects, self.types):
-            for gpp in gps:
-                grounded_state_variables[str(gpp)] = False
-        for gfs in self.groundify_vars(self.functions, self.objects, self.types):
-            for gf in gfs:
-                grounded_state_variables[str(gf)] = 0.0
+        for gpp in self.groundify_vars(self.predicates, self.objects):
+            grounded_state_variables[str(gpp)] = False
+        for gf in self.groundify_vars(self.functions, self.objects):
+            grounded_state_variables[str(gf)] = 0.0
 
         self.init_state = State(state_vars=grounded_state_variables)
         self.init_state.instantiate(self.initialized_problem_state_variables)

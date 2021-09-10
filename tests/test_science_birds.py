@@ -37,7 +37,7 @@ def launch_science_birds():
     logger.info("teardown tests")
 
 
-@pytest.mark.skip()
+# @pytest.mark.skip()
 def test_science_birds_agent(launch_science_birds):
     env = launch_science_birds
     # env.sb_client.set_game_simulation_speed(settings.SB_SIM_SPEED)

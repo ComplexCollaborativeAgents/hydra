@@ -12,6 +12,7 @@ NO_PLANNING = False
 NO_REPAIR = False
 NO_PDDL_CONSISTENCY = False
 SB_DEV_MODE = True
+NOVELTY_POSSIBLE = False
 
 SB_PLANNER_MEMORY_LIMIT = 50 # memory limit for UPMurphi (in MB)
 SB_DELTA_T = 0.05 # time discretisation for UPMurphi
@@ -47,8 +48,8 @@ SCIENCE_BIRDS_SERVER_CMD = 'java -jar {}'.format(path.join(SCIENCE_BIRDS_BIN_DIR
 POLYCRAFT_SERVER_CMD = "./gradlew --no-daemon --stacktrace runclient"   # Must be run in pal/PolycraftAIGym
 POLYCRAFT_HEADLESS = "xvfb-run -s '-screen 0 1280x1024x24'" # Prepend to Polycraft run command to run headless
 
-SB_PLANNING_DOCKER_PATH = path.join(ROOT_PATH, 'agent', 'planning', 'docker_scripts')
-CARTPOLE_PLANNING_DOCKER_PATH = path.join(ROOT_PATH, 'agent', 'planning', 'cartpole_docker_scripts')
+SB_PLANNING_DOCKER_PATH = path.join(ROOT_PATH, 'agent', 'planning', 'sb_planning')
+CARTPOLE_PLANNING_DOCKER_PATH = path.join(ROOT_PATH, 'agent', 'planning', 'cartpole_planning')
 VAL_DOCKER_PATH = path.join(ROOT_PATH, 'agent', 'planning', 'val_scripts')
 
 HYDRA_INSTANCE_ID = shortuuid.uuid()

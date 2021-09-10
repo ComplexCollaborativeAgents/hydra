@@ -6,7 +6,7 @@ import numpy as np
 from agent.consistency.observation import CartPoleObservation
 from agent.planning.cartpole_pddl_meta_model import CartPoleMetaModel
 from agent.planning.cartpole_planner import CartPolePlanner
-from agent.repair.cartpole_repair import CartpoleRepair
+from agent.repair.cartpole_repair import CartpoleRepair, CartpoleConsistencyEstimator
 from agent.consistency.focused_anomaly_detector import FocusedAnomalyDetector
 import json
 import settings
@@ -100,11 +100,13 @@ class RepairingCartpoleHydraAgent(CartpoleHydraAgent):
         self.repair_threshold = 0.975 # 195/200
         self.has_repaired = False
         self.detector = FocusedAnomalyDetector()
+        self.consistency_checker = CartpoleConsistencyEstimator()
         self.meta_model_repair = CartpoleRepair()
 
     def episode_end(self, performance: float, feedback: dict = None)-> \
             (float, float, int, dict):
         super().episode_end(performance) # Update
+
 
         novelty_likelihood, novelty_characterization, has_repaired = self.novelty_detection()
         self.novelty_likelihood = novelty_likelihood
@@ -120,21 +122,29 @@ class RepairingCartpoleHydraAgent(CartpoleHydraAgent):
         ''' Checks if we should repair basd on the given observation '''
         return self.novelty_existence is not False and self.last_performance[-1] < self.repair_threshold
 
-
     def novelty_detection(self):
         ''' Computes the likelihood that the current observation is novel '''
+        novelty_likelihood = self.novelty_likelihood
+        novelty_characterization = self.novelty_characterization
+        has_repaired = False
+
         last_observation = self.observations_list[-1]
 
         if self.should_repair(last_observation):
             novelty_characterization, novelty_likelihood = self.repair_meta_model(last_observation)
+            has_repaired = True
+
 
         if self.novelty_existence is True:
             novelty_likelihood = 1.0
 
-        return novelty_likelihood, novelty_characterization
+        return novelty_likelihood, novelty_characterization, has_repaired
 
     def repair_meta_model(self, last_observation):
         ''' Repair the meta model based on the last observation '''
+
+        novelty_likelihood = self.novelty_likelihood
+        novelty_characterization = self.novelty_characterization
 
         try:
             repair, consistency = self.meta_model_repair.repair(self.meta_model, last_observation,
