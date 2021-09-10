@@ -21,6 +21,8 @@ TIMEOUT = 1800
 NUMBER_PRECISION = 10
 PRINT_INFO = 10000
 NO_PLAN = False
+DOUBLE_EVENT_CHECK = False
+PLOT_VARS = True
 
 SEARCH_BFS = True
 SEARCH_DFS = False
@@ -50,6 +52,7 @@ HELP_TEXT = "\n" \
             "\n\t-h\t\thelp." \
             "\n\t-t:<x>\t\ttime step duration (default t=0.1)." \
             "\n\t-th:<x>\t\ttime horizon (default th=1000)." \
+            "\n\t-to:<x>\t\ttimeout limit in seconds (default to=1800)." \
             "\n\t-np:<x>\t\tnumber precision in digits after decimal point (default np=10)." \
             "\n\t-search:bfs\tsearch algorithm: breadth-first search (default)." \
             "\n\t-search:dfs\tsearch algorithm: depth-first search." \
@@ -58,6 +61,7 @@ HELP_TEXT = "\n" \
             "\n\t-pi:<x>\t\tprint ongoing search info every <x> visited states (default pi=10000)." \
             "\n\t-p\t\tprint all visited states." \
             "\n\t-noplan\t\tdo not print the plan." \
+            "\n\t-dblevent\tcheck triggered events again at the end of time-passing action (in addition to the default check at the beginning)." \
             "\n\t-v\t\tverbose plan output." \
             "\n\t-vv\t\tvery verbose plan output." \
             "\n\t-h\t\thelp." \

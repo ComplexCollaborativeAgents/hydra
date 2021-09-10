@@ -1,12 +1,3 @@
-from agent.planning.planner import Planner
-import time
-
-from agent.consistency.consistency_estimator import *
-from agent.repair.sb_repair import ScienceBirdsConsistencyEstimator
-from state_prediction.anomaly_detector_fc_multichannel import FocusedSBAnomalyDetector
-from worlds.science_birds_interface.client.agent_client import GameState
-from agent.planning.sb_meta_model import *
-import datetime
 from agent.repair.meta_model_repair import *
 
 # TODO: Maybe push this to the settings file? then every module just adds a logger
@@ -21,352 +12,36 @@ NN_PROB = "nn_novelty_likelihood"
 PDDL_PROB = "pddl_novelty_likelihood"
 NOVELTY_LIKELIHOOD = "novelty_likelihood"
 
+class HydraPlanner():
+    def __init__(self, meta_model: MetaModel):
+        self.meta_model = meta_model
+
+    ''' A superclass of all the Hydra Planners'''
+    def make_plan(self,state,prob_complexity=0):
+        ''' The plan should be a list of actions that are executable in the environment '''
+        raise NotImplementedError()
+
 
 class HydraAgent():
-    '''
-    Probably needs to subclass for each domain. We will cross that bridge when we get there
-    '''
-    def __init__(self,env=None, agent_stats = list()):
-        logger.info("[hydra_agent_server] :: Agent Created")
-        self.env = env # agent always has a pointer to its environment
-        if env is not None:
-            env.sb_client.set_game_simulation_speed(settings.SB_SIM_SPEED)
-        self.perception = Perception()
-        self.meta_model = ScienceBirdsMetaModel()
-        self.planner = Planner(self.meta_model) # TODO: Discuss this w. Wiktor & Matt
-        self.completed_levels = []
-        self.observations = []
-        self.novelty_likelihood = 0.0
-        self.cumulative_plan_time = 0.0
-        self.overall_plan_time = 0.0
-        self.novelty_existence = -1
-        self.novel_objects = []
-        self.agent_stats = agent_stats
-        self.shot_num = 0
-        self.trial_timestamp = datetime.datetime.now().strftime("%y%m%d%H%M%S")
-        self.stats_for_level = dict()
-        self.nn_prob_per_level = []
-        self.pddl_prob_per_level = []
-        self.consistency_estimator = ScienceBirdsConsistencyEstimator()
-        self.detector = FocusedSBAnomalyDetector()
+    ''' A superclass of all the Hydra agents '''
+    def __init__(self, planner : HydraPlanner,
+                 meta_model_repair : MetaModelRepair):
+        self.meta_model = planner.meta_model
+        self.planner = planner
+        self.meta_model_repair = meta_model_repair
+        self.observations_list = []
+        self.novelty_likelihood = 0.0 # An estimate of the likelihood that novelty has been introduced
+        self.novelty_existence = -1 # A flag indicating whether we recieved an explicit message from the environment that novelty has bene introduced
 
+    def choose_action(self, world_state):
+        ''' Choose which action to perform in the given state '''
+        raise NotImplementedError()
 
-    def reinit(self):
-        logging.info('Reinit...')
-        self.env.history = []
-        self.perception = Perception()
-        self.meta_model = ScienceBirdsMetaModel()
-        self.planner = Planner(self.meta_model) # TODO: Discuss this w. Wiktor & Matt
-        self.completed_levels = []
-        self.observations = []
-        self.novelty_likelihood = 0.0
-        self.novel_objects = []
-        self.cumulative_plan_time = 0.0
-        self.overall_plan_time = 0.0
-        self.novelty_existence = -1
-        # self.agent_stats = list() # TODO: Discuss this
-        self.shot_num = 0
-        self.trial_timestamp = datetime.datetime.now().strftime("%y%m%d%H%M%S")
-        self.stats_for_level = dict()
-        self.nn_prob_per_level = []
-        self.pddl_prob_per_level = []
+    def should_repair(self, observation):
+        ''' Choose if the agent should repair its meta model based on the given observation '''
+        raise NotImplementedError()
 
-    ''' Runs the agent. Returns False if the evaluation has not ended, and True if it has ended.'''
-    def main_loop(self,max_actions=1000):
-        logger.info("[hydra_agent_server] :: Entering main loop")
-        logger.info("[hydra_agent_server] :: Delta t = {}".format(str(settings.SB_DELTA_T)))
-        logger.info("[hydra_agent_server] :: Simulation speed = {}\n\n".format(str(settings.SB_SIM_SPEED)))
-        logger.info("[hydra_agent_server] :: Planner memory limit = {}".format(str(settings.SB_PLANNER_MEMORY_LIMIT)))
-        logger.info("[hydra_agent_server] :: Planner timeout = {}s\n\n".format(str(settings.SB_TIMEOUT)))
-        t = 0
+    def repair_meta_model(self, observation):
+        ''' Call the repair object to repair the current meta model '''
+        raise NotImplementedError()
 
-
-        self.overall_plan_time = time.perf_counter()
-        self.cumulative_plan_time = 0
-
-        while True:
-            observation = ScienceBirdsObservation()  # Create an observation object to track on what happend
-            raw_state = self.env.get_current_state()
-
-            if raw_state.game_state.value == GameState.PLAYING.value:
-                self.handle_game_playing(observation, raw_state)
-                self._compute_novelty_likelihood(observation)
-            elif raw_state.game_state.value == GameState.WON.value:
-                self.handle_game_won()
-            elif raw_state.game_state.value == GameState.LOST.value:
-                self.handle_game_lost()
-            elif raw_state.game_state.value == GameState.NEWTRAININGSET.value:
-                self.handle_new_training_set()
-            elif raw_state.game_state.value == GameState.EVALUATION_TERMINATED.value:
-                return self.handle_evaluation_terminated()
-            elif raw_state.game_state.value == GameState.REQUESTNOVELTYLIKELIHOOD.value:
-                self.handle_request_novelty_likelihood()
-            elif raw_state.game_state.value == GameState.NEWTRIAL.value:
-                self.handle_new_trial()
-            elif raw_state.game_state.value == GameState.MAIN_MENU.value:
-                self.handle_main_menu()
-            else:
-                logger.info("[hydra_agent_server] :: Unexpected state.game_state.value {}".format(raw_state.game_state.value))
-                assert False
-            t+=1
-
-            self.observations.append(observation)
-        return False
-
-    def handle_main_menu(self):
-        logger.info("unexpected main menu page, reload the level : %s" % self.current_level)
-        self.current_level = self.env.sb_client.load_next_available_level()
-#        self.novelty_existence = self.env.sb_client.get_novelty_info()
-
-    ''' Handle what happens when the agent receives a NEWTRIAL request'''
-    def handle_new_trial(self):
-        # DO something to start a fresh agent for a new training set
-        (time_limit, interaction_limit, n_levels, attempts_per_level, mode, seq_or_set,
-         allowNoveltyInfo) = self.env.sb_client.ready_for_new_set()
-        logger.info("New Trial Request Received. Refresh agent.")
-        self.reinit()
-        self.current_level = 0
-        self.training_level_backup = 0
-        change_from_training = True
-        self.current_level = self.env.sb_client.load_next_available_level()
-        #self.novelty_existence = self.env.sb_client.get_novelty_info()
-
-    ''' Handle what happens when the agent receives a REQUESTNOVELTYLIKELIHOOD request'''
-    def handle_request_novelty_likelihood(self):
-        logger.info("[hydra_agent_server] :: Requesting Novelty Likelihood. Novelyy likelihood is {}".format(
-            self.novelty_likelihood))
-        novelty_likelihood = self.novelty_likelihood
-        non_novelty_likelihood = 1 - novelty_likelihood
-        #placeholders for novelty information
-        if len(self.novel_objects)>0:
-            ids = set([int(object_id_str) for object_id_str in self.novel_objects])
-            novelty_description = "Unknown type of objects detected"
-        else:
-            ids = {1,2,3}
-            novelty_description = "Uncharacterized novelty"
-        novelty_level = 0
-
-        self.env.sb_client.report_novelty_likelihood(novelty_likelihood, non_novelty_likelihood,ids,novelty_level,novelty_description)
-
-    ''' Handle what happens when the agent receives a EVALUATION_TERMINATED request'''
-    def handle_evaluation_terminated(self):
-        # store info and disconnect the agent as the evaluation is finished
-        self.agent_stats.append(self.stats_for_level)
-        logger.info("Evaluation complete.")
-        return True
-
-    ''' Handle what happens when the agent receives a NEWTRAININGSET request'''
-    def handle_new_training_set(self):
-        # DO something to start a fresh agent for a new training set
-        (time_limit, interaction_limit, n_levels, attempts_per_level, mode, seq_or_set,
-         allowNoveltyInfo) = self.env.sb_client.ready_for_new_set()
-        self.current_level = 0
-        self.training_level_backup = 0
-        change_from_training = True
-        self.current_level = self.env.sb_client.load_next_available_level()
-        #self.novelty_existence = self.env.sb_client.get_novelty_info()
-
-    def handle_game_lost(self):
-        ''' Handle what happens when the agent receives a LOST request'''
-        self._handle_end_of_level(False)
-
-    def handle_game_won(self):
-        ''' Handle what happens when the agent receives a WON request'''
-        self._handle_end_of_level(True)
-        return self.cumulative_plan_time, self.overall_plan_time
-
-    def _compute_novelty_likelihood(self, observation: ScienceBirdsObservation):
-        ''' Computes the novelty likelihood for the given observation
-        Also updates the stats_for_level object with the computed novelty probability by the two models.  '''
-
-        logging.info('Computing novelty likelihood...')
-
-        if NN_PROB not in self.stats_for_level:
-            self.stats_for_level[NN_PROB]=[]
-        if PDDL_PROB not in self.stats_for_level:
-            self.stats_for_level[PDDL_PROB]=[]
-
-        # if novelty existences is given by the experiment framework - no need to run the fancy models
-        if self.novelty_existence in  [0,1]:
-            self.stats_for_level[NN_PROB].append(self.novelty_existence)
-            self.stats_for_level[PDDL_PROB].append(self.novelty_existence)
-            self.novelty_likelihood = self.novelty_existence
-        else:
-            assert self.novelty_existence==NOVELTY_EXISTANCE_NOT_GIVEN # The flag denoting that we do not get novelty info from the environment
-
-            if observation.hasUnknownObj():
-                self.stats_for_level[NN_PROB].append(1.0)
-                self.stats_for_level[PDDL_PROB].append(1.0)
-                self.novelty_likelihood = 1.0
-                self.novel_objects = observation.get_novel_object_ids()
-            else:
-                try:
-                    cnn_novelty, cnn_prob = self.detector.detect(observation)
-                except:
-                    logging.info('CNN Index out of Bounds in game playing')
-                    cnn_prob=1.0 # TODO: Think about this design choice
-
-                self.stats_for_level[NN_PROB].append(cnn_prob)
-
-                if settings.NO_PDDL_CONSISTENCY:
-                    pddl_prob = 1.0
-                else:
-                    pddl_prob = check_obs_consistency(observation, self.meta_model, self.consistency_estimator)
-                self.stats_for_level["pddl_novelty_likelihood"].append(pddl_prob)
-
-                # If we already played at least two levels and novelty keeps being detected, mark this as a very high novelty likelihood
-                cnn_prediction = cnn_prob > self.detector.threshold
-                pddl_prediction = pddl_prob > self.meta_model_repair.consistency_threshold
-                enough_levels_completed = len(self.completed_levels)>1
-                if enough_levels_completed:
-                    level_lost = not self.completed_levels[-1]
-                    last_level_prediction = self.nn_prob_per_level[0] > self.detector.threshold or \
-                                            self.pddl_prob_per_level[0] > self.meta_model_repair.consistency_threshold
-
-                    last_last_level_prediction = self.nn_prob_per_level[1] > self.detector.threshold or \
-                                            self.pddl_prob_per_level[1] > self.meta_model_repair.consistency_threshold
-                else:
-                    level_lost = False
-                    last_level_prediction = False
-                    last_last_level_prediction = False
-
-                detected = cnn_prediction \
-                           and pddl_prediction \
-                           and enough_levels_completed \
-                           and level_lost \
-                           and last_level_prediction \
-                           and last_last_level_prediction
-                if detected:
-                    self.novelty_likelihood = 1.0
-                # else:
-                # TODO: Think about how to set a non-binary value for novelty_likelihood
-                #     Ideal: compute novelty prob from (cnn_prob, pddl_prob)
-
-                logger.info("ShotNum={}, Level={}, Novelty detected={}, NN prediction={}, PDDL prediction={}, enough_levels={}, last_level_lost={}, last_pred={}, last_last_pred={}".
-                    format(self.shot_num, len(self.completed_levels), detected, cnn_prediction, pddl_prediction, enough_levels_completed, level_lost, last_level_prediction, last_last_level_prediction))
-
-        # Record current novelty likelihood estimate
-        self.stats_for_level[NOVELTY_LIKELIHOOD]=self.novelty_likelihood
-
-    def _handle_end_of_level(self, success):
-        ''' This is called when a level has ended, either in a win or a lose our come '''
-        self.completed_levels.append(success)
-        logger.info("[hydra_agent_server] :: Level {} Complete - WIN={}".format(self.current_level, success))
-        logger.info("[hydra_agent_server] :: Cumulative planning time only = {}".format(str(self.cumulative_plan_time)))
-        logger.info("[hydra_agent_server] :: Planning effort percentage = {}\n".format(
-            str((self.cumulative_plan_time / (time.perf_counter() - self.overall_plan_time)))))
-        logger.info("[hydra_agent_server] :: Overall time to attempt level {} = {}\n\n".format(self.current_level, str(
-            (time.perf_counter() - self.overall_plan_time))))
-        self.cumulative_plan_time = 0
-        self.overall_plan_time = time.perf_counter()
-
-        self.agent_stats.append(self.stats_for_level)
-
-        self.current_level = self.env.sb_client.load_next_available_level()
-        self.perception.new_level = True
-        self.shot_num = 0
-
-        self.stats_for_level = dict()
-        # time.sleep(1)
-        self.novelty_existence = self.env.sb_client.get_novelty_info()
-        time.sleep(2 / settings.SB_SIM_SPEED)
-
-
-    ''' Handle what happens when the agent receives a PLAYING request'''
-    def handle_game_playing(self, observation, raw_state):
-        processed_state = self.perception.process_state(raw_state)
-        observation.state = processed_state
-        self.shot_num += 1
-        if processed_state:
-            logger.info("[hydra_agent_server] :: Invoking Planner".format())
-            simplifications = settings.SB_PLANNER_SIMPLIFICATION_SEQUENCE.copy()
-            simplifications.reverse()
-            plan = []
-            while len(simplifications) > 0 and (len(plan) == 0 or plan[0].action_name == "out of memory"):
-                simplification = simplifications.pop()
-                start_time = time.perf_counter()
-                plan = self.planner.make_plan(processed_state, simplification)
-                plan_time = (time.perf_counter() - start_time)
-                self.cumulative_plan_time += plan_time
-                logger.info("[hydra_agent_server] :: Problem simplification {} planning time: {}".format(simplification,
-                                                                                          str(plan_time)))
-            if  len(plan) == 0 or plan[0].action_name == "out of memory":  # TODO FIX THIS
-                plan = []
-                plan.append(self.__get_default_action(processed_state))
-            timed_action = plan[0]
-            logger.info("[hydra_agent_server] :: Taking action: {}".format(str(timed_action.action_name)))
-            sb_action = self.meta_model.create_sb_action(timed_action, processed_state)
-            raw_state, reward = self.env.act(sb_action)
-            observation.reward = reward
-            observation.action = sb_action
-            observation.intermediate_states = list(self.env.intermediate_states)
-            self.perception.process_observation(observation)
-            if settings.DEBUG:
-                observation.log_observation('{}_{}_{}_{}'.format(self.current_level,self.shot_num,self.trial_timestamp,self.planner.current_problem_prefix))
-            logger.info("[hydra_agent_server] :: Reward {} Game State {}".format(reward, raw_state.game_state))
-            # time.sleep(5)
-        else:
-            logger.info("Perception Failure performing default shot")
-            plan = PddlPlusPlan()
-            plan.append(self.__get_default_action(processed_state))
-            sb_action = self.meta_model.create_sb_action(plan[0], processed_state)
-            raw_state, reward = self.env.act(sb_action)
-            logger.info("[hydra_agent_server] :: Reward {} Game State {}".format(reward, raw_state.game_state))
-
-    ''' A default action taken by the Hydra agent if planning fails'''
-    def __get_default_action(self, state : ProcessedSBState):
-        logger.info("[hydra_agent_server] :: __get_default_action")
-        problem = self.meta_model.create_pddl_problem(state)
-        pddl_state = PddlPlusState(problem.init)
-        unknown_objs = state.novel_objects()
-        if unknown_objs:
-            logger.info("unknown objects in {},{} : {}".format(self.current_level,
-                        self.planner.current_problem_prefix,unknown_objs.__str__()))
-        try:
-            active_bird = pddl_state.get_active_bird()
-        except:
-            active_bird = None
-        try:
-            pig_x, pig_y = get_random_pig_xy(problem)
-            if settings.SB_DEFAULT_SHOT == 'RANDOM_PIG':
-                min_angle, max_angle = estimate_launch_angle(self.planner.meta_model.get_slingshot(state), Point2D(pig_x, pig_y), self.meta_model)
-                default_time = self.meta_model.angle_to_action_time(min_angle, pddl_state)
-            elif settings.SB_DEFAULT_SHOT == 'RANDOM':
-                default_angle = random.randint(pddl_state.numeric_fluents[('angle',)], pddl_state.numeric_fluents[('max_angle',)])
-                default_time = self.meta_model.angle_to_action_time(default_angle, pddl_state)
-            elif settings.SB_DEFAULT_SHOT == 'PLANNING':
-                min_angle, max_angle = estimate_launch_angle(self.planner.meta_model.get_slingshot(state),
-                                                             Point2D(pig_x, pig_y), self.meta_model)
-                default_time = self.meta_model.angle_to_action_time(min_angle, pddl_state)
-            else:
-                logger.info("invalid setting for SB_DEFAULT_SHOT, taking default angle of 20")
-                default_time = self.meta_model.angle_to_action_time(20, pddl_state)
-        except:
-            logger.info("Unable to shoot at a random pig, taking default angle of 20")
-            default_time = self.meta_model.angle_to_action_time(20, pddl_state)
-        return TimedAction("pa-twang %s" % active_bird, default_time)
-
-    def set_env(self,env):
-        '''Probably bad to have two pointers here'''
-        self.env = env
-
-    ''' Runs the agent until it performs an action'''
-    def run_next_action(self):
-        while True:
-            evaluation_done = self.main_loop(max_actions=1)
-            if self.observations[-1].action is not None:
-                return
-            if evaluation_done == True:
-                return
-
-    ''' Finds the last observations of the game. That is, the last observation that has intermediate states. 
-    TODO: Is this the best way to implement this?'''
-    def find_last_obs(self):
-        i = -1
-        if len(self.observations)==0:
-            return None
-        while self.observations[i].intermediate_states is None:
-            i=i-1
-            if len(self.observations)+i<0:
-                return None
-        return self.observations[i]

@@ -1,6 +1,8 @@
 import time
 
 from matplotlib import pyplot as plt, patches as patches
+
+from agent.consistency.fast_pddl_simulator import CachingPddlPlusSimulator
 from agent.planning.pddl_plus import PddlPlusState
 import matplotlib
 import matplotlib.animation as animation
@@ -10,6 +12,8 @@ from agent.consistency.pddl_plus_simulator import *
 import matplotlib._color_data as mcd
 from agent.planning.sb_meta_model import *
 import numpy as np
+
+from agent.planning.sb_meta_model import ScienceBirdsMetaModel
 
 BIRD_MARKER = ".r"
 PIG_MARKER = "*"
@@ -178,10 +182,9 @@ def animate_trace(fig, ax, obs_state_sequence: list, interval =100):
         return ax
     return animation.FuncAnimation(fig, animate, frames=np.arange(len(obs_state_sequence) - 1), interval=interval,repeat=False)
 
-'''
-Plotting an intermediate PDDL+ state. Do not plot an object if it did not change '''
-def plot_intermediate_state(pddl_state : PddlPlusState, previous_pddl_state: PddlPlusState, ax ):
 
+def plot_intermediate_state(pddl_state : PddlPlusState, previous_pddl_state: PddlPlusState, ax ):
+    ''' Plotting an intermediate PDDL+ state. Do not plot an object if it did not change '''
     modified_fluents = set()
     for numeric_fluent in pddl_state.numeric_fluents:
         if numeric_fluent in previous_pddl_state.numeric_fluents and \
@@ -219,3 +222,23 @@ def plot_intermediate_state(pddl_state : PddlPlusState, previous_pddl_state: Pdd
     # plot platforms
     for platform in modified_platforms:
         plot_platform(platform, pddl_state, ax)
+
+
+def animate_expected(output_path, sb_ob, meta_model=ScienceBirdsMetaModel()):
+    ''' Create an animated gif file showing the expected trace for observed state and action '''
+    simulator = CachingPddlPlusSimulator()
+    sim_trace = simulator.simulate_observed_action(sb_ob.state, sb_ob.action, meta_model)
+    sim_state_sequence = [timed_state[0] for timed_state in sim_trace]
+    fig = plt.figure()
+    ax = fig.add_subplot(1, 1, 1)
+    trace_animation = animate_trace(fig, ax, sim_state_sequence)
+    trace_animation.save(output_path)
+
+
+def animate_observed(output_path, sb_ob, meta_model=ScienceBirdsMetaModel()):
+    ''' Create an animated gif file showing the observed trace '''
+    obs_state_sequence = sb_ob.get_pddl_states_in_trace(meta_model)
+    fig = plt.figure()
+    ax = fig.add_subplot(1, 1, 1)
+    trace_animation = animate_trace(fig, ax, obs_state_sequence)
+    trace_animation.save(output_path)

@@ -10,8 +10,9 @@ SCREENSHOT = False
 DEBUG = False
 NO_PLANNING = False
 NO_REPAIR = False
-NO_PDDL_CONSISTENCY=False
+NO_PDDL_CONSISTENCY = False
 SB_DEV_MODE = True
+NOVELTY_POSSIBLE = False
 
 SB_PLANNER_MEMORY_LIMIT = 50 # memory limit for UPMurphi (in MB)
 SB_DELTA_T = 0.05 # time discretisation for UPMurphi
@@ -29,6 +30,7 @@ OS_ROOT_PATH = path.abspath(os.sep)
 ROOT_PATH = path.join(path.dirname(path.dirname(path.abspath(__file__))))
 SCIENCE_BIRDS_BIN_DIR = path.join(ROOT_PATH,'bin')
 SCIENCE_BIRDS_LEVELS_DIR = path.join(SCIENCE_BIRDS_BIN_DIR,'linux','Levels','novelty_level_0','type2','Levels')
+POLYCRAFT_DIR = path.join(ROOT_PATH, 'bin', 'pal', 'PolycraftAIGym')
 SB_INIT_COLOR_MAP = path.join(ROOT_PATH,'worlds','science_birds_interface','demo','ColorMap.json')
 SB_SIM_SPEED = 20 # run at real time
 SB_GT_FREQ = int(30/SB_SIM_SPEED)
@@ -42,16 +44,18 @@ SB_REPAIR_MAX_ITERATIONS = 30
 SB_CONSISTENCY_THRESHOLD = 50
 SB_ANOMOLY_DETECTOR_THRESHOLD = 0.55
 
-SCIENCE_BIRDS_SERVER_CMD = 'java -jar {}'.format(path.join(SCIENCE_BIRDS_BIN_DIR, 'linux','game_playing_interface.jar'))
+SCIENCE_BIRDS_SERVER_CMD = 'java -jar {}'.format(path.join(SCIENCE_BIRDS_BIN_DIR, 'linux', 'game_playing_interface.jar'))
+POLYCRAFT_SERVER_CMD = "./gradlew --no-daemon --stacktrace runclient"   # Must be run in pal/PolycraftAIGym
+POLYCRAFT_HEADLESS = "xvfb-run -s '-screen 0 1280x1024x24'" # Prepend to Polycraft run command to run headless
 
-SB_PLANNING_DOCKER_PATH = path.join(ROOT_PATH, 'agent', 'planning', 'docker_scripts')
-CARTPOLE_PLANNING_DOCKER_PATH = path.join(ROOT_PATH, 'agent', 'planning', 'cartpole_docker_scripts')
+SB_PLANNING_DOCKER_PATH = path.join(ROOT_PATH, 'agent', 'planning', 'sb_planning')
+CARTPOLE_PLANNING_DOCKER_PATH = path.join(ROOT_PATH, 'agent', 'planning', 'cartpole_planning')
 VAL_DOCKER_PATH = path.join(ROOT_PATH, 'agent', 'planning', 'val_scripts')
 
 HYDRA_INSTANCE_ID = shortuuid.uuid()
 TMP_FOLDER = path.join(os.sep, 'tmp')
 
-sc_json_config =  [{
+sc_json_config = [{
     "host": "127.0.0.1",
     "port": "2004",
     "requestbufbytes": 4,

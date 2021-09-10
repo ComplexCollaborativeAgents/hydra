@@ -3,7 +3,6 @@
 
 import itertools
 import copy
-import agent.planning.nyx.syntax.constants as constants
 
 
 class Process:
@@ -35,7 +34,7 @@ class Process:
     # Equality
     #-----------------------------------------------
 
-    def __eq__(self, other): 
+    def __eq__(self, other):
         return self.__dict__ == other.__dict__
 
     #-----------------------------------------------

@@ -1,0 +1,329 @@
+import json
+import os
+import pickle
+import subprocess
+import time
+import logging
+from os import path
+
+import settings
+import worlds.polycraft_interface.client.polycraft_interface as poly
+from trajectory_planner.trajectory_planner import SimpleTrajectoryPlanner
+from utils.host import Host
+from agent.planning.pddlplus_parser import PddlPlusProblem
+from utils.state import State, Action, World
+
+
+logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger("Polycraft")
+
+
+class PolycraftState(State):
+    """ Current State of Polycraft """
+    def __init__(self, facing_block: str,  location: dict, game_map: dict, npcs: dict, inventory: dict, current_item: str):
+        super().__init__()
+
+        self.id = 0
+        self.facing_block = facing_block    # the block the actor is currently facing
+        self.location = location    # Formatted as {"pos": [x,y,z], "facing": DIR, yaw: ANGLE, pitch: ANGLE }
+        self.game_map = game_map    # Formatted as {"xyz_string": {"name": "block_name", isAccessible: bool}, ...}
+        self.npcs = npcs
+        self.inventory = inventory  # Formatted as {}   # TODO: update this
+        self.current_item = current_item
+
+    def get_block_at(self, x: int, y: int, z: int) -> tuple:
+        """ Helper function to get info of a block at coordinates xyz from the game map (type, accessibility) """
+        coord_str = "{},{},{}".format(x, y, z)
+        if coord_str not in self.game_map:
+            return None, None
+        
+        return self.game_map[coord_str]["name"], self.game_map["isAccesible"]
+
+    def summary(self):
+        '''returns a summary of state'''
+        raise NotImplementedError("Polycraft State summary not implmented")
+
+    def serialize_current_state(self, level_filename: str):
+        pickle.dump(self, open(level_filename, 'wb'))
+
+    def load_from_serialized_state(level_filename: str):
+        return pickle.load(open(level_filename, 'rb'))
+
+
+class PolycraftAction(Action):
+    ''' Polycraft World Action'''
+
+
+class PolyTP(PolycraftAction):
+    """ Teleport to a position "dist" away from the xyz coordinates"""
+    def __init__(self, x: int, y: int, z: int, dist: int = 0):
+        self.x = x
+        self.y = y
+        self.z = z
+        self.dist = dist
+
+
+class PolyEntityTP(PolycraftAction):
+    """ Teleport to a position "dist" away from the entity facing in direction d and with pitch p"""
+    def __init__(self, entity_id: str, dist: int = 0, d: int = 0, p: int = 0):
+        self.entity_id = entity_id
+        self.dist = dist
+
+
+class PolyTurn(PolycraftAction):
+    """ Turn the actor side to side in the y axis (vertical) in increments of 15 degrees """
+    def __init__(self, direction: int):
+        self.direction = direction
+
+
+class PolyTilt(PolycraftAction):
+    """ Tilt the actor's focus up/down in the x axis (horizontal) in increments of 15 degrees """
+    def __init__(self, pitch: int):
+        self.pitch = pitch
+
+
+class PolyBreak(PolycraftAction):
+    """ Break the block directly in front of the actor """
+
+
+class PolyInteract(PolycraftAction):
+    """ Similarly to SENSE_RECIPES, this command returns the list of available trades with a particular entity (must be adjacent) """
+    def __init__(self, entity_id: str):
+        self.entity_id = entity_id
+
+
+class PolySense(PolycraftAction):
+    """ Senses the actor's current inventory, all available blocks, recipes and entities that are in the same room as the actor """
+
+
+class PolySelectItem(PolycraftAction):
+    """ Select an item by name within the actor's inventory to be the item that the actor is currently holding (active item).  Pass no item name to deselect the current selected item. """
+    def __init__(self, item_name: str):
+        self.item_name = item_name
+
+
+class PolyUseItem(PolycraftAction):
+    """ Perform the use action (use key on safe, open door) with the item that is currently selected.  Alternatively, pass the item in to use that item. """
+    def __init__(self, item_name: str = ""):
+        self.item_name = item_name
+
+
+class PolyPlaceItem(PolycraftAction):
+    """ Place a block or item from the actor's inventory in the space adjacent to the block in front of the player.  This command may fail if there is no block available to place the item upon. """
+    def __init__(self, item_name: str):
+        self.item_name = item_name
+
+
+class PolyCollect(PolycraftAction):
+    """ Collect item from block in front of actor - use for collecting rubber from a tree tap. """
+
+
+class PolyDeleteItem(PolycraftAction):
+    """ Deletes the item in the player's inventory to prevent a fail state where the player is unable to pick up items due to having a full inventory """
+    def __init__(self, item_name: str):
+        self.item_name = item_name
+
+
+class PolyTradeItems(PolycraftAction):
+    """
+    Perform a trade action with an adjacent entity. Accepts up to 5 items, and can result in up to 5 items.
+    "items" is a list of tuples with format ("item_name", quantity) -> (str, int)
+    """
+    def __init__(self, entity_id: str, items: list):
+        self.entity_id = entity_id
+        self.items = items
+
+
+class PolyCraftItem(PolycraftAction):
+    """
+    Craft an item using resources from the actor's inventory.
+    "recipe" is a collapsed list of strings that represents a 2x2 or 3x3 matrix.
+    For a 2x2, recipe would be a list with length 4
+    for a 3x3, recipe would be a list with length 9
+    Example:
+        2x2: ["minecraft:plank", "0", "minecraft:plank", "0"] -> creates sticks
+        3x3: ["minecraft:plank", "minecraft:plank", "0", "minecraft:plank", "minecraft:plank", "0", "0", "0", "0"]
+        NOTE: "0" stands for a null/empty space in the matrix
+    """
+    def __init__(self, recipe: list):
+        self.recipe = recipe
+
+
+class Polycraft(World):
+    """
+    Polycraft interface supplied by UTD
+    There is one Polycraft world per session
+    We will make calls through the Polycraft runtime
+    """
+
+    def __init__(self, launch: bool = False, server_config: str = 'test_config.json', client_config: str = None):
+        self.id = 2229
+
+        self.history = []
+
+        self.trajectory_planner = SimpleTrajectoryPlanner() # This is static to allow others to reason about it
+
+        self.poly_server_process = None     # Subprocess running the polycraft instance
+        self.poly_client = None     # polycraft client interface (see polycraft_interface.py)
+        
+        if launch:
+            self.launch_polycraft(server_config=server_config)
+            time.sleep(5)
+
+        # Path to polycraft client interface config file (host name/port, buffer size, etc.)
+        if client_config is None:
+            client_config = str(path.join(settings.ROOT_PATH, 'worlds', 'polycraft_interface', 'client', 'server_client_config.json'))
+
+        self.create_interface(client_config)
+
+    def kill(self):
+        # Disconnect client from polycraft
+        if self.poly_client is not None:
+            self.poly_client.disconnect_from_polycraft()
+
+        if self.poly_server_process is not None:
+            logger.info("Killing process groups: {}".format(self.poly_server_process.pid))
+            try:
+                os.killpg(self.poly_server_process.pid, 9)
+            except os.error as err:
+                logger.error("Error during process termination: {}".format(err))
+
+    def launch_polycraft(self, server_config: dict):
+        """
+        Start polycraft server using parameters from config dictionary
+        See https://github.com/StephenGss/PAL/tree/release_2.0 for full list of parameters
+        """
+
+        logger.info('Launching Polycraft Server')
+        # Needs to be run in the "pal/PolycraftAIGym" directory
+
+        # Config needs to specify at the least:
+        # * Headless mode
+        # * path to folder with level files to run (tournament)
+        # Optional NOTE: Does not currently do anything!
+        # * max_time (max time per level in minutes)
+        # * max_trial_time (max time total to take for the entire trial in minutes)
+        # * trial_id (user specified identifier for the trial - used in outputting results on Polycraft side)
+        # * agent_id (user specified identifier for the agent - used in outputting results on Polycraft side)
+        # * game_count (number of levels to play from the folder of level files - by default all levels are played.  If count > available levels, then all levels are played)
+
+        params = []
+        if not server_config['headless']: # Boolean value for headless mode
+            params.append(settings.POLYCRAFT_HEADLESS)
+        if server_config['trial_path']: # Path to folder containing level files to run
+            params.append("-g {}".format(server_config['trial_path']))
+        if 'max_time' in server_config:
+            params.append("-i {}".format(server_config['max_time']))
+        if 'max_trial_time' in server_config:
+            params.append("-m {}".format(server_config['max_trial_time']))
+        if 'trial_id' in server_config:
+            params.append("-t {}".format(server_config['trial_id']))
+        if 'agent_id' in server_config:
+            params.append("-a {}".format(server_config['agent_id']))
+        if 'game_count' in server_config:
+            params.append("-c {}".format(server_config['game_count']))
+
+        polycraft_cmd = " ".join(params)
+
+        cmd = 'cd {} && {} > polycraft_interface.log'.format(settings.POLYCRAFT_DIR,
+                                                             polycraft_cmd)
+        logger.debug('Launching Polycraft using: {}'.format(cmd))
+        self.poly_server_process = subprocess.Popen(cmd,
+                                                    stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True,
+                                                    start_new_session=True)
+        logger.debug('Launched Polycraft with pid: {}'.format(str(self.poly_server_process.pid)))
+
+    def load_hosts(self, server_host: Host, observer_host: Host):
+        """ Holdover from ScienceBirds world - intention is to use Docker to run as if agent were being evaluated"""
+        
+        with open(str(path.join(settings.ROOT_PATH, 'worlds', 'polycraft_interface', 'client', 'server_client_config.json')), 'r') as config:
+            sc_json_config = json.load(config)
+
+        server = Host(sc_json_config[0]['host'], sc_json_config[0]['port'])
+        if 'DOCKER' in os.environ:
+            server.hostname = 'docker-host'
+        if server_host:
+            server.hostname = server_host.hostname
+            server.port = server_host.port
+
+        with open(str(path.join(settings.ROOT_PATH, 'worlds', 'science_birds_interface', 'client', 'server_observer_client_config.json')), 'r') as observer_config:
+            observer_sc_json_config = json.load(observer_config)
+
+        observer = Host(observer_sc_json_config[0]['host'], observer_sc_json_config[0]['port'])
+        if 'DOCKER' in os.environ:
+            observer.hostname = 'docker-host'
+        if observer_host:
+            observer.hostname = observer_host.hostname
+            observer.port = observer_host.port
+
+    def create_interface(self, settings_path: str):
+        """
+        Create polycraft interface - connect to server (server should be started first)
+        """
+        
+        self.poly_client = poly.PolycraftInterface(settings_path, logger=logger)
+
+    def init_selected_level(self, s_level):
+        """
+        Initialize a specific level
+        NOTE: at every end level, the gameOver boolean in the returned dictionary turns to True - we need to handle advancing to next level on our side
+        """
+        self.current_level = s_level
+        self.poly_client.RESET(self.current_level)
+
+    def act(self, action: PolycraftAction) -> tuple:
+        ''' returns the state and step cost / reward '''
+        # Match action with low level command in polycraft_interface.py
+        results = dict()
+
+        if isinstance(action, PolyTP):
+            results = self.poly_client.TP_TO_POS(action.x, action.y, action.z, distance=action.dist)
+        elif isinstance(action, PolyEntityTP):
+            results = self.poly_client.TP_TO_ENTITY(action.entity_id, distance=action.dist)
+        elif isinstance(action, PolyTurn):
+            results = self.poly_client.TURN(action.direction)
+        elif isinstance(action, PolyTilt):
+            results = self.poly_client.SMOOTH_TILT(action.pitch)
+        elif isinstance(action, PolyBreak):
+            results = self.poly_client.BREAK_BLOCK()
+        elif isinstance(action, PolyInteract):
+            results = self.poly_client.INTERACT(action.entity_id)
+        elif isinstance(action, PolySense):
+            results = self.poly_client.SENSE_ALL()
+        elif isinstance(action, PolySelectItem):
+            results = self.poly_client.SELECT_ITEM(action.item_name)
+        elif isinstance(action, PolyUseItem):
+            results = self.poly_client.USE_ITEM(action.item_name)
+        elif isinstance(action, PolyPlaceItem):
+            results = self.poly_client.PLACE(action.item_name)
+        elif isinstance(action, PolyCollect):
+            results = self.poly_client.COLLECT()
+        elif isinstance(action, PolyDeleteItem):
+            results = self.poly_client.DELETE(action.item_name)
+        elif isinstance(action, PolyTradeItems):
+            results = self.poly_client.TRADE(action.entity_id, action.items)
+        elif isinstance(action, PolyCraftItem):
+            results = self.poly_client.CRAFT(action.recipe)
+        else:
+            raise ValueError("Invalid action requested: {}".format(str(type(action))))
+
+        # NOTE: Issue with pulling state every action - incurs extra step cost
+
+        return self.get_current_state(), results['command_result']['stepCost']
+
+    def get_current_state(self) -> PolycraftState:
+        """
+        Query polycraft instance using low level interface and return State
+        """
+        # Call API
+        sensed = self.poly_client.SENSE_ALL()
+        
+        # Extract values from SENSE_ALL
+        facing_block = sensed['blockInFront']
+        inventory = sensed['inventory']
+        currently_selected = sensed['inventory']['selectedItem']
+        pos = sensed['player']
+        npcs = sensed['entities']
+        game_map = sensed['map']
+
+        return PolycraftState(facing_block, pos, game_map, npcs, inventory, currently_selected)

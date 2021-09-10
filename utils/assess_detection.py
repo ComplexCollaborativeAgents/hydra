@@ -3,7 +3,7 @@ import pickle
 import random
 
 from agent.consistency.observation import ScienceBirdsObservation
-from agent.repairing_hydra_agent import RepairingHydraSBAgent
+from agent.sb_hydra_agent import RepairingSBHydraAgent
 
 # SB_NON_NOVEL_OBS_DIR = '/home/klenk/Downloads/non_novel/'
 # SB_NOVEL_OBS_DIR = '/home/klenk/Downloads/novel/'

@@ -15,8 +15,7 @@ import numpy
 from worlds.science_birds_interface.demo.naive_agent_groundtruth import ClientNaiveAgent
 
 import worlds.science_birds as sb
-from agent.hydra_agent import HydraAgent
-from agent.repairing_hydra_agent import RepairingHydraSBAgent
+from agent.sb_hydra_agent import SBHydraAgent, RepairingSBHydraAgent
 import settings
 import logging
 
@@ -107,10 +106,10 @@ def run_agent(config, agent, agent_stats=list()):
         yield env
 
         if agent == AgentType.Hydra:
-            hydra = HydraAgent(env, agent_stats)
+            hydra = SBHydraAgent(env, agent_stats)
             hydra.main_loop(max_actions=10000)
         elif agent == AgentType.RepairingHydra:
-            hydra = RepairingHydraSBAgent(env, agent_stats)
+            hydra = RepairingSBHydraAgent(env, agent_stats)
             hydra.main_loop(max_actions=10000)
         elif agent == AgentType.Baseline:
             ground_truth = ClientNaiveAgent(env.id, env.sb_client)
@@ -262,15 +261,21 @@ def compute_eval_stats(results_path, agent, agent_stats = list()):
 
                 # Categorize novelty detection result
                 if 'novelty_level_0' in level_path: # Is not novel - TODO: find a better way to determine non novel levels
-                    if level_stats['novelty_likelihood'] == 1:  # Detected novelty when there is none - false_positive
-                        false_positives += 1
+                    if 'novelty_likelihood' not in level_stats:
+                        true_negatives+=1
                     else:
-                        true_negatives += 1
+                        if level_stats['novelty_likelihood'] == 1:  # Detected novelty when there is none - false_positive
+                            false_positives += 1
+                        else:
+                            true_negatives += 1
                 else:   # This is a novel level
-                    if level_stats['novelty_likelihood'] == 1:
-                        true_positives += 1
+                    if 'novelty_likelihood' not in level_stats:
+                        false_negatives+=1
                     else:
-                        false_negatives += 1
+                        if level_stats['novelty_likelihood'] == 1:
+                            true_positives += 1
+                        else:
+                            false_negatives += 1
 
                 # Add to levels
                 stats['levels'].append(level_stats)
@@ -405,7 +410,7 @@ def run_eval_stats(novelties: dict,
                 results_for_novelty_type = compute_eval_stats(results_directory, agent_type, agent_stats=agent_stats)
 
                 # Write intermediate results to file
-                results_filename = os.path.join(STATS_BASE_PATH, "eval_results_level{}_type{}.json".format(novelty, novelty_type))
+                results_filename = "eval_novelty{}_type{}_agent{}".format(novelty, novelty_type, agent_type.name)
                 with open(results_filename, "w+") as f:
                     logger.info("Writing results for novelty {} type {} to {}".format(novelty, novelty_type, results_filename))
                     json.dump(results_for_novelty_type, f, indent=3)

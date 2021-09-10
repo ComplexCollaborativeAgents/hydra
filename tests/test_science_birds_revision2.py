@@ -6,7 +6,7 @@ from os import path
 import settings
 import math
 import time
-import agent.planning.planner as pl
+import agent.planning.sb_planner as pl
 from worlds.science_birds_interface.client.agent_client import GameState
 
 from pprint import pprint
@@ -15,7 +15,7 @@ from utils.point2D import Point2D
 
 import subprocess
 import agent.perception.perception as perception
-from agent.hydra_agent import HydraAgent
+from agent.sb_hydra_agent import SBHydraAgent
 from agent.planning.sb_meta_model import *
 
 @pytest.fixture(scope="module")
@@ -68,7 +68,7 @@ def launch_science_birds():
 def test_science_birds_agent(launch_science_birds):
     env = launch_science_birds
     env.sb_client.set_game_simulation_speed(settings.SB_SIM_SPEED)
-    hydra = HydraAgent(env)
+    hydra = SBHydraAgent(env)
     hydra.main_loop() # enough actions to play the first two levels
     assert len(set([o for o in hydra.observations if o.reward > 0])) == 3 # ensure we have 6 shots that hit things
     assert sum(1 for x in hydra.completed_levels if x) == 3 # We pass one level

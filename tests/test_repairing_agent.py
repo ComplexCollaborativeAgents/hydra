@@ -1,5 +1,5 @@
 from agent.cartpole_hydra_agent import CartpoleHydraAgentObserver, RepairingCartpoleHydraAgent, CartpoleHydraAgent
-from agent.repairing_hydra_agent import RepairingHydraSBAgent,RepairingGymHydraAgent
+from agent.sb_hydra_agent import RepairingSBHydraAgent
 from agent.gym_hydra_agent import *
 import pytest
 from agent.planning.sb_meta_model import *
@@ -47,7 +47,7 @@ def test_repair_gravity_in_sb_agent(launch_science_birds):
     settings.SB_GT_FREQ =1
 
     env = launch_science_birds
-    hydra = RepairingHydraSBAgent(env)
+    hydra = RepairingSBHydraAgent(env)
 
     # Inject fault and run the agent
     _inject_fault_to_sb_meta_model(hydra.meta_model, GRAVITY_FACTOR)

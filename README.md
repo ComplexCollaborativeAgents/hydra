@@ -1,5 +1,5 @@
 # HYDRA
-## Setting up
+## Setting up Science Birds
 1. Unzip the science birds executable for your systems in the binary directory
    - Look at .gitlab-ci.yml for detailed instructions
 2. Install Java13 (for additional debugging of science birds issues look at the science birds repo below)
@@ -12,6 +12,12 @@
 ```
 pytest
 ```
+## Setting up Polycraft
+1. Unzip the Polycraft repository in the binary directory.  Currently, we only support Polycraft for Ubuntu.
+2. Install Java13 (not needed if already installed)
+3. As a root user (sudo), run the ```setup_polycraft.sh``` bash script under the binary directory to install linux dependencies.
+4. Create the hydra python environment (same as Science Birds above - again, not needed if already installed)
+5. Download the polycraft level files from https://gitlab-external.parc.com/hydra/hydra/-/wikis/Polycraft-Level-files and put them in a known directory.
 
 ## Building Docker
 
