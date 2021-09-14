@@ -4,13 +4,18 @@
 import itertools
 import copy
 
-class Event:
+from agent.planning.nyx.compiler.HappeningMixin import HappeningMixin
+
+
+class Event(HappeningMixin):
 
     #-----------------------------------------------
     # Initialize
     #-----------------------------------------------
 
     def __init__(self, name, parameters, preconditions, effects, extensions = None):
+        HappeningMixin.__init__(self)
+
         def frozenset_of_tuples(data):
             print("EV-data: " + str(data))
             return frozenset([tuple(t) for t in data])
@@ -33,7 +38,7 @@ class Event:
     # Equality
     #-----------------------------------------------
 
-    def __eq__(self, other): 
+    def __eq__(self, other):
         return self.__dict__ == other.__dict__
 
     #-----------------------------------------------

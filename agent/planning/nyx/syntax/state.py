@@ -21,7 +21,7 @@ class State:
             self.time = round(predecessor.time,constants.NUMBER_PRECISION)
             self.h = h
             self.g = (predecessor.g+1) if constants.TRACK_G else 0.0
-            self.state_vars = copy.deepcopy(predecessor.state_vars)
+            self.state_vars = copy.copy(predecessor.state_vars)
             self.predecessor_hashed = hash(VisitedState(predecessor))
             self.predecessor_action = predecessor_action
         else:
@@ -120,7 +120,8 @@ class State:
         applicables = []
 
         for act in grounded_happening_list:
-            if self.evaluate_preconditions(act):
+            if act.preconditions_func(self, constants):
+            # if self.evaluate_preconditions(act):
                 # print('\nAPPLICABLE ACTION: ' + act.name)
                 # print(act)
                 applicables.append(act)
@@ -205,14 +206,18 @@ class State:
     # Apply a grounded action/happening and return the resulting successor state
     # -----------------------------------------------
 
-    def apply_happening(self, happening):
+    def apply_happening(self, happening, create_new_state=True):
         # if happening.name == 'time-passing':
         #     successor = State(t=self.time+constants.DELTA_T, g=self.g+1, predecessor=self, predecessor_action=happening)
         # else:
-        successor = State(t=round(self.time,constants.NUMBER_PRECISION), g=self.g+1, predecessor=self, predecessor_action=happening)
+        if create_new_state:
+            successor = State(t=round(self.time, constants.NUMBER_PRECISION), g=self.g + 1, predecessor=self, predecessor_action=happening)
+        else:
+            successor = self
+        happening.effects_func(successor, constants)
 
-        for eff in happening.effects:
-            successor.eval_effect(eff)
+        # for eff in happening.effects:
+            # successor.eval_effect(eff)
             # print("\nSELF STATE:")
             # print(self)
         return successor

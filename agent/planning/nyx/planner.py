@@ -47,7 +47,7 @@ class Planner:
         print("\t* model parse time: " + str("{:5.4f}".format(time.time() - start_solve_time)) + "s")
 
         # Do nothing
-        if state.is_goal(parser.goals):
+        if parser.goals_func(state, constants):
             return []
 
         # Search
@@ -58,13 +58,11 @@ class Planner:
             for aa in state.get_applicable_happenings(parser.grounded_actions):
                 new_state = None
                 if aa == constants.TIME_PASSING_ACTION:
-                    new_state = copy.deepcopy(state)
-                    new_state.set_time(round(round(state.time, constants.NUMBER_PRECISION) + round(constants.DELTA_T,constants.NUMBER_PRECISION),constants.NUMBER_PRECISION))
-
+                    new_state = state
                     # first check for triggered events, followed by processes
                     happenings_list = state.get_applicable_happenings(parser.grounded_events) + state.get_applicable_happenings(parser.grounded_processes)
                     for hp in happenings_list:
-                        new_state = new_state.apply_happening(hp)
+                        new_state = new_state.apply_happening(hp, create_new_state=new_state is state)
 
                     # # (NOT AVAILABLE YET ON MASTER BRANCH)
                     # # check whether any semantic attachment processes are active, if applicable
@@ -75,19 +73,24 @@ class Planner:
                     if constants.DOUBLE_EVENT_CHECK:
                         happenings_list_2 = new_state.get_applicable_happenings(parser.grounded_events)
                         for hp2 in happenings_list_2:
-                            new_state = new_state.apply_happening(hp2)
+                            new_state = new_state.apply_happening(hp2, create_new_state=new_state is state)
 
-                    new_state.predecessor_hashed = hash(VisitedState(state))
+                    if new_state is state:
+                        new_state = copy.deepcopy(state)
+                        new_state.predecessor_hashed = hash(VisitedState(state))
+
+                    new_state.set_time(round(round(state.time, constants.NUMBER_PRECISION) + round(constants.DELTA_T, constants.NUMBER_PRECISION), constants.NUMBER_PRECISION))
                     new_state.predecessor_action = aa
                 else:
                     new_state = state.apply_happening(aa)
                 self.explored_states += 1
-                if hash(VisitedState(new_state)) not in self.visited_hashmap and new_state.time <= constants.TIME_HORIZON:
-                    if new_state.is_goal(parser.goals):
+                new_state_hash = hash(VisitedState(new_state))
+                if new_state_hash not in self.visited_hashmap and new_state.time <= constants.TIME_HORIZON:
+                    if parser.goals_func(new_state, constants):
                         self.reached_goal_state = new_state
                         # self.total_visited = len(self.visited_hashmap)
                         return self.reached_goal_state
-                    self.visited_hashmap[hash(VisitedState(new_state))] = VisitedState(new_state)
+                    self.visited_hashmap[new_state_hash] = VisitedState(new_state)
                     self.enqueue_state(new_state)
 
                 if self.explored_states % constants.PRINT_INFO == 0:

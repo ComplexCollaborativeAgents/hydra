@@ -3,15 +3,19 @@
 
 import itertools
 import copy
+import agent.planning.nyx.syntax.constants as constants
+from agent.planning.nyx.compiler.HappeningMixin import HappeningMixin
 
 
-class Process:
+class Process(HappeningMixin):
 
     #-----------------------------------------------
     # Initialize
     #-----------------------------------------------
 
     def __init__(self, name, parameters, preconditions, effects, extensions = None):
+        HappeningMixin.__init__(self)
+
         def frozenset_of_tuples(data):
             print("PRO-data: " + str(data))
             return frozenset([tuple(t) for t in data])

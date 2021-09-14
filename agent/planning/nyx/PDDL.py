@@ -2,6 +2,8 @@
 # Four spaces as indentation [no tabs]
 
 import re
+
+from agent.planning.nyx.compiler import JIT
 from agent.planning.nyx.syntax.action import Action
 from agent.planning.nyx.syntax.event import Event
 from agent.planning.nyx.syntax.process import Process
@@ -13,7 +15,7 @@ import copy
 
 class PDDL_Parser:
 
-    SUPPORTED_REQUIREMENTS = [':strips', ':adl', ':negative-preconditions', ':disjunctive-preconditions', ':typing', ':time', ':fluents', ':continuous-effects']
+    SUPPORTED_REQUIREMENTS = [':strips', ':adl', ':negative-preconditions', ':typing', ':time', ':fluents', ':continuous-effects']
     init_state = None
     grounded_actions = []
     grounded_events = []
@@ -28,6 +30,7 @@ class PDDL_Parser:
         self.set_grounded_processes()
         self.set_grounded_events()
         self.set_init_state()
+        self.set_goals_func()
 
 
 
@@ -553,6 +556,13 @@ class PDDL_Parser:
         for pro in self.processes:
             for gp in pro.groundify(self.objects, self.types):
                 self.grounded_processes.append(gp)
+
+    # -----------------------------------------------
+    # Compile goals
+    # -----------------------------------------------
+
+    def set_goals_func(self):
+        self.goals_code, self.goals_func = JIT.compile_expression(self.goals, name='goals')
 
 #-----------------------------------------------
 # Main

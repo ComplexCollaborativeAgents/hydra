@@ -4,13 +4,18 @@
 import itertools
 import copy
 
-class Action:
+from agent.planning.nyx.compiler.HappeningMixin import HappeningMixin
+
+
+class Action(HappeningMixin):
 
     #-----------------------------------------------
     # Initialize
     #-----------------------------------------------
 
     def __init__(self, name, parameters, preconditions, effects):
+        HappeningMixin.__init__(self)
+
         def frozenset_of_tuples(data):
             print("ACT-data: " + str(data))
             return frozenset([tuple(t) for t in data])
@@ -34,7 +39,7 @@ class Action:
     # Equality
     #-----------------------------------------------
 
-    def __eq__(self, other): 
+    def __eq__(self, other):
         return self.__dict__ == other.__dict__
 
     #-----------------------------------------------
