@@ -66,7 +66,7 @@ class Process(HappeningMixin):
         for assignment in itertools.product(*type_map):
             preconditions = self.replace(copy.deepcopy(self.preconditions), variables, assignment)
             # temp_effects = self.replace(copy.deepcopy(self.effects), ['#t'], [str(constants.DELTA_T)])
-            effects = self.replace(self.effects, variables, assignment)
+            effects = self.replace(copy.deepcopy(self.effects), variables, assignment)
             yield Process(self.name, assignment, preconditions, effects)
 
     #-----------------------------------------------
