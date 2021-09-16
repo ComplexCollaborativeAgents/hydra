@@ -14,6 +14,7 @@ from runners.run_sb_stats import *
 
 logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("novelty_experiment_runner")
+logger.setLevel(logging.INFOG)
 
 # Paths
 SB_BIN_PATH = pathlib.Path(settings.SCIENCE_BIRDS_BIN_DIR) / 'linux'
@@ -22,17 +23,17 @@ SB_CONFIG_PATH = SB_DATA_PATH / 'config'
 TEMPLATE_PATH = SB_CONFIG_PATH / 'test_config.xml'
 
 # Constants
-NOVELTY_LEVELS = {'0': 'novelty_level_0', '1': 'novelty_level_1', '2': 'novelty_level_2',  '3': 'novelty_level_3'}
-NOVELTY_TYPES = {"2": "type2", "6": "type6", "7": "type7", "8": "type8", "9": "type9", "10": "type10"}
+NOVELTY_LEVELS = {'0': 'novelty_level_0', '1': 'novelty_level_1', '2': 'novelty_level_2',  '3': 'novelty_level_3', '22': 'novelty_level_22', '23': 'novelty_level_23', '24': 'novelty_level_24', '25': 'novelty_level_25'}
+NOVELTY_TYPES = {"1": "type1", "2": "type2", "6": "type6", "7": "type7", "8": "type8", "9": "type9", "10": "type10"}
 NON_NOVEL_LEVELS = ["0"]
 
 # Options
 RESULTS_PATH = pathlib.Path(settings.ROOT_PATH) / "runners" / "experiments" / "ScienceBirds" / "SB_experiment"
 EXPORT_TRIALS = False   # Export trials xml file
-NUM_TRIALS = 5      # Number of trials to run per known/unknown, novelty level and type
-PER_TRIAL = 30      # Levels per trial
-BEFORE_NOVELTY = 7 # Levels in a trial before novelty is introduced
-NOVELTIES = {"2": ["8"]}  # Novelties to use in the experiment (IE, trials to run)
+NUM_TRIALS = 1      # Number of trials to run per known/unknown, novelty level and type
+PER_TRIAL = 5      # Levels per trial
+BEFORE_NOVELTY = 1 # Levels in a trial before novelty is introduced
+NOVELTIES = {"22": ["1"]}  # Novelties to use in the experiment (IE, trials to run)
 #NOVELTIES = {"1": ["6", "7", "8", "9", "10"], "2": ["6", "7", "8", "9", "10"], "3": ["6", "7"]}
 
 
@@ -124,6 +125,8 @@ class NoveltyExperimentRunnerSB:
                 next_level = self.levels[novelty_level][novelty_type].pop()
 
             trial.append(next_level)
+
+        logger.debug("Created trial: {}".format(["{}\n".format(level) for level in trial]))
 
         return trial
 
@@ -462,7 +465,7 @@ class NoveltyExperimentRunnerSB:
 
 
 if __name__ == '__main__':
-    experiment_runner = NoveltyExperimentRunnerSB(AgentType.RepairingHydra, export_trials=True)
+    experiment_runner = NoveltyExperimentRunnerSB(AgentType.RepairingHydra, export_trials=False)
 
     experiment_runner.run_experiment()
     # experiment_runner.run_experiment(configs=[SB_CONFIG_PATH / "trial_config_1_6.xml"])
