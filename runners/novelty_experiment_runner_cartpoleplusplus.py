@@ -1,110 +1,182 @@
 import logging
+import time
+import itertools
+import settings
 
+logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger("hydra_agent")
 import pandas
+from typing import Type, List, Optional
+
 import os
 from worlds.cartpoleplusplus_dispatcher import CartPolePlusPlusDispatcher
 from worlds.wsu.wsu_dispatcher import WSUObserver
 from worlds.wsu.generator.cartpoleplusplus import CartPoleBulletEnv
 from runners import constants
+from agent.cartpole_hydra_agent import CartpoleHydraAgent, CartpoleHydraAgentObserver, RepairingCartpoleHydraAgent
+from worlds.wsu.generator.m_1 import CartPolePPMock1
+from worlds.wsu.generator.n_0 import CartPole
+from worlds.wsu.generator.cartpoleplusplus import CartPoleBulletEnv
+CartPoleEnv = Type[CartPoleBulletEnv]
 
 
-
-class NoveltyExperimentCartpolePlusPlusDispatcher(CartPolePlusPlusDispatcher):
+class NoveltyExperimentRunnerCartpolePlusPlusDispatcher(CartPolePlusPlusDispatcher):
     def __init__(self,
                  delegate: WSUObserver,
                  render: bool = False,
-                 train_with_reward = False,
-                 log_details = False,
-                 details_directory = None):
-        super().__init__(delegate, render)
-        self._env_params = dict()
-        self._results = pandas.DataFrame(columns=['episode_num', 'novelty_probability', 'novelty_threshold', 'novelty', 'novelty_characterization', 'performance'])
-        self._is_known = None
-        self._train_with_reward = train_with_reward
-        self._log_details = log_details
-        self._details_directory = details_directory
+                 nominal_env: CartPoleEnv = CartPole,
+                 num_episodes: int = 10,
+                 pre_novel_episodes: int = 3):
+        super().__init__(delegate, render, nominal_env, num_episodes, pre_novel_episodes)
+        self._results_directory_path = os.path.join(settings.ROOT_PATH, "runners", "experiments", "cartpole_plusplus","test")
+        if not os.path.exists(self._results_directory_path):
+            os.makedirs(self._results_directory_path)
 
+        self._results_file_path = os.path.join(self._results_directory_path, "basic.csv")
+        self.log.debug("Writing at {}".format(self._results_file_path))
+        self._results_file_handle = open(self._results_file_path, 'w')
+        self._results = pandas.DataFrame(columns=['trial_num',
+                                                  'novelty_id',
+                                                  'trial_type',
+                                                  'episode_type',
+                                                  'level',
+                                                  'env_config',
+                                                  'episode_num',
+                                                  'novelty_probability',
+                                                  'novelty_threshold',
+                                                  'novelty',
+                                                  'novelty_characterization',
+                                                  'performance'])
+        self._results.to_csv(self._results_file_handle, index=False)
 
-    def get_env_params(self):
-        return self.__env_params
-
-    def set_novelty(self, novelties={}):
-        for param in novelties:
-            self._env_params[param] = novelties[param]
-
-    def set_is_known(self, is_known=None):
-        self._is_known = is_known
-
-    def _make_environment(self):
-        p = self._p
-        p.changeDynamics(self.cartpole, 0, mass=20)
-        pass
-
-    def begin_experiment(self):
+    def run(self,
+            trials: int = 1,
+            generators: Optional[List[CartPoleEnv]] = None,
+            difficulties: Optional[List[str]] = None,
+            informed_trials: bool = True,
+            uninformed_trials: bool = True):
         self.delegate.experiment_start()
+        self.delegate.training_start()
+        # generate training data here in the future, if needed
+        self.delegate.training_end()
 
-    def end_experiment(self):
+        if generators is None:
+            generators = [self.nominal_env]
+        if difficulties is None:
+            difficulties = ['easy']
+
+        novelty_indicators = []
+        if informed_trials:
+            novelty_indicators.append(True)
+        if uninformed_trials:
+            novelty_indicators.append(False)
+
+        for novelty_indicator, generator, difficulty in itertools.product(novelty_indicators, generators, difficulties):
+            if novelty_indicator:
+                self.log.debug("Running informed novelty trials")
+            else:
+                self.log.debug("Running uninformed novelty trials")
+
+            for trial in range(trials):
+                self.delegate.trial_start(trial, dict())
+                self.delegate.testing_start()
+                results_df = self.__run_trial(generator, difficulty, informed=novelty_indicator)
+                results_df['trial_num'] = trial
+                results_df['novelty_id'] = 0
+                results_df['trial_type'] = novelty_indicator
+                results_df['level'] = 0
+                results_df['env_config'] = 'none'
+                self.delegate.testing_end()
+                self.delegate.trial_end()
+                self._results = self._results.append(results_df)
+
+        self._results.to_csv(self._results_file_handle, index=False, header=False)
         self.delegate.experiment_end()
 
-    def __run_trial(self, episodes: range = (0, 1), steps: int = 200):
-        env = self._make_environment()
-        for episode in episodes:
+    def __run_trial(self,
+                    generator: CartPoleEnv,
+                    difficulty: str,
+                    steps: int = 200,
+                    informed: bool = True):
+        self.log.debug("Running trial with generator: {} and difficulty: {}".format(generator.__name__, difficulty))
+        results_df = pandas.DataFrame(columns=['episode_num',
+                                               'novelty_probability',
+                                               'novelty_threshold',
+                                               'novelty',
+                                               'novelty_characterization',
+                                               'performance'])
+        env = self.nominal_env(difficulty, renders=self.render)
+        for episode in range(self.num_episodes):
             self.delegate.testing_episode_start(episode)
             rewards = []
+            time_stamp = time.time()
+            episode_type = 'non-novelty-performance'
+
+            if episode == self.pre_novel_episodes and type(env) is not generator:
+                env.close()
+                env = generator(difficulty, renders=self.render)
+                episode_type = 'novelty'
+
+            novelty_indicator = not isinstance(env, self.nominal_env) if informed else None
+
             observation = env.reset()
-            features = self.observation_to_feature_vector(observation)
-            reward = 0
-            done = False
-            for step in range(1, steps + 1):
+            features = self.observation_to_feature_vector(observation, env, time_stamp)
+
+            for _ in range(steps):
                 if self.render:
-                    env.render()
-                    time.sleep(0.05)
-                if self._train_with_reward:
-                    label = self.delegate.testing_instance(feature_vector=features, novelty_indicator=self._is_known, reward=reward, done=done)
-                else:
-                    label = self.delegate.testing_instance(feature_vector=features, novelty_indicator=self._is_known)
+                    time.sleep(1 / 50)
+
+                label = self.delegate.testing_instance(feature_vector=features, novelty_indicator=novelty_indicator)
                 self.log.debug("Received label={}".format(label))
-                action = self.label_to_action(label)
+                action = self.actions[label['action']]
+
                 observation, reward, done, _ = env.step(action)
                 rewards.append(reward)
 
-                features = self.observation_to_feature_vector(observation, 0.02 * step)
+                # WSU is using this time increment:
+                # https://github.com/holderlb/WSU-SAILON-NG/blob/master/WSU-Portable-Generator/source/partial_env_generator/test_loader.py#L207
+                time_stamp += 1.0 / 30.0
+
+                features = self.observation_to_feature_vector(observation, env, time_stamp)
                 if done:
                     break
-            performance = sum(rewards) / float(steps)
-            if self._log_details:
-                self.log_details(episode)
-            novelty_probability, novelty_threshold, novelty, novelty_characterization = self.delegate.testing_episode_end(performance)
 
-
-            if self._results is not None:
-                self._log_data(episode_num=episode, novelty_probability=novelty_probability,
-                               novelty_threshold=novelty_threshold, novelty=novelty,
-                               novelty_characterization=novelty_characterization, performance=sum(rewards))
+            novelty_probability, novelty_threshold, novelty, novelty_characterization = self.delegate.testing_episode_end(reward)
+            result = pandas.DataFrame(data={
+                'episode_num': [episode],
+                'novelty_probability': [novelty_probability],
+                'novelty_threshold': [novelty_threshold],
+                'novelty': [novelty],
+                'episode_type': [episode_type],
+                'novelty_characterization': [novelty_characterization],
+                'performance': [sum(rewards) / constants.MAX_SCORE]
+            })
+            results_df = results_df.append(result)
         env.close()
-        return self._results
+        return results_df
 
-    def log_details(self, episode):
-        if not os.path.exists(self._details_directory):
-            os.makedirs(self._details_directory)
-        file = open(os.path.join(self._details_directory, "episode_{}.csv".format(str(episode))), 'w')
-        log_df = pandas.DataFrame(data={
-            'states': self.delegate.agent.states,
-            'actions': self.delegate.agent.actions,
-            'cnn_likelihood': self.delegate.agent.cnn_likelihoods
-        })
-        log_df.to_csv(file)
-        file.close()
 
-    def _log_data(self, episode_num=0, novelty_probability=0, novelty_threshold=0, novelty=None,
-                  novelty_characterization=0, performance=0):
-        result = pandas.DataFrame(data={
-            'episode_num': [episode_num],
-            'novelty_probability': [novelty_probability],
-            'novelty_threshold': [novelty_threshold],
-            'novelty': [novelty],
-            'novelty_characterization': [novelty_characterization],
-            'performance': [performance / constants.MAX_SCORE]
-        }
-        )
-        self._results = self._results.append(result)
+class NoveltyExperimentRunnerCartpolePlusPlus:
+    def __init__(self):
+        self._pre_novel_episodes = 1
+        self._number_episodes = 2
+        self._num_trials = 1
+        self._generators = [CartPolePPMock1]
+        self._difficulties=['easy']
+        self._observer = WSUObserver()
+
+    def run(self):
+        env = NoveltyExperimentRunnerCartpolePlusPlusDispatcher(self._observer,
+                                         render=True,
+                                         num_episodes=self._number_episodes,
+                                         pre_novel_episodes=self._pre_novel_episodes)
+        env.run(generators=self._generators,
+                difficulties=self._difficulties,
+                trials=self._num_trials)
+
+
+if __name__ == '__main__':
+    runner = NoveltyExperimentRunnerCartpolePlusPlus()
+    runner.run()
+
+
