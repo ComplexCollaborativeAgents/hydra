@@ -23,6 +23,15 @@ logger.setLevel(logging.INFO)
 class PolycraftAction(Action):
     ''' Polycraft World Action '''
 
+    def __init__(self):
+        self.success = None
+
+    def is_success(self, result: dict):
+        try:
+            return result['command_result']['result'] == "SUCCESS"
+        except KeyError as err:
+            return False
+
     def do(self, poly_client: poly.PolycraftInterface) -> dict:
         raise NotImplementedError("Subclasses of PolycraftAction should implement this")
 
@@ -47,10 +56,12 @@ class PolyTP(PolycraftAction):
         self.dist = dist
 
     def __str__(self):
-        return "<PolyTP pos=({}, {}, {}) dist={}>".format(self.x, self.y, self.z, self.dist)
+        return "<PolyTP pos=({}, {}, {}) dist={} success={}>".format(self.x, self.y, self.z, self.dist, self.success)
 
     def do(self, poly_client: poly.PolycraftInterface) -> dict:
-        return poly_client.TP_TO_POS(self.x, self.y, self.z, distance=self.dist)
+        result = poly_client.TP_TO_POS(self.x, self.y, self.z, distance=self.dist)
+        self.success = self.is_success(result)
+        return result
 
 
 class PolyEntityTP(PolycraftAction):
@@ -61,10 +72,12 @@ class PolyEntityTP(PolycraftAction):
         self.dist = dist
 
     def __str__(self):
-        return "<PolyEntityTP entity={} dist={}>".format(self.entity_id, self.dist)
+        return "<PolyEntityTP entity={} dist={} success={}>".format(self.entity_id, self.dist, self.success)
 
     def do(self, poly_client: poly.PolycraftInterface) -> dict:
-        return poly_client.TP_TO_ENTITY(self.entity_id, distance=self.dist)
+        result =  poly_client.TP_TO_ENTITY(self.entity_id, distance=self.dist)
+        self.success = self.is_success(result)
+        return result
 
 
 class PolyTurn(PolycraftAction):
@@ -74,10 +87,12 @@ class PolyTurn(PolycraftAction):
         self.direction = direction
 
     def __str__(self):
-        return "<PolyTurn dir={}>".format(self.direction)
+        return "<PolyTurn dir={} success={}>".format(self.direction, self.success)
 
     def do(self, poly_client: poly.PolycraftInterface) -> dict:
-        return poly_client.TURN(self.direction)
+        result = poly_client.TURN(self.direction)
+        self.success = self.is_success(result)
+        return result
 
 
 class PolyTilt(PolycraftAction):
@@ -87,20 +102,24 @@ class PolyTilt(PolycraftAction):
         self.pitch = pitch
 
     def __str__(self):
-        return "<PolyTilt pitch={}>".format(self.pitch)
+        return "<PolyTilt pitch={} success={}>".format(self.pitch, self.success)
 
     def do(self, poly_client: poly.PolycraftInterface) -> dict:
-        return poly_client.SMOOTH_TILT(self.pitch)
+        result = poly_client.SMOOTH_TILT(self.pitch)
+        self.success = self.is_success(result)
+        return result
 
 
 class PolyBreak(PolycraftAction):
     """ Break the block directly in front of the actor """
 
     def __str__(self):
-        return "<PolyBreak>"
+        return "<PolyBreak success={}>".format(self.success)
 
     def do(self, poly_client: poly.PolycraftInterface) -> dict:
-        return poly_client.BREAK_BLOCK()
+        result = poly_client.BREAK_BLOCK()
+        self.success = self.is_success(result)
+        return result
 
 
 class PolyInteract(PolycraftAction):
@@ -110,20 +129,24 @@ class PolyInteract(PolycraftAction):
         self.entity_id = entity_id
 
     def __str__(self):
-        return "<PolyInteract entity={}>".format(self.entity_id)
+        return "<PolyInteract entity={} success={}>".format(self.entity_id, self.success)
 
     def do(self, poly_client: poly.PolycraftInterface) -> dict:
-        return poly_client.INTERACT(self.entity_id)
+        result = poly_client.INTERACT(self.entity_id)
+        self.success = self.is_success(result)
+        return result
 
 
 class PolySense(PolycraftAction):
     """ Senses the actor's current inventory, all available blocks, recipes and entities that are in the same room as the actor """
 
     def __str__(self):
-        return "<PolySense>"
+        return "<PolySense success={}>".format(self.success)
 
     def do(self, poly_client: poly.PolycraftInterface) -> dict:
-        return poly_client.SENSE_ALL()
+        result = poly_client.SENSE_ALL()
+        self.success = self.is_success(result)
+        return result
 
 
 class PolySelectItem(PolycraftAction):
@@ -133,10 +156,12 @@ class PolySelectItem(PolycraftAction):
         self.item_name = item_name
 
     def __str__(self):
-        return "<PolySelectItem item={}>".format(self.item)
+        return "<PolySelectItem item={} success={}>".format(self.item_name, self.success)
 
     def do(self, poly_client: poly.PolycraftInterface) -> dict:
-        return poly_client.SELECT_ITEM(item_name=self.item_name)
+        result = poly_client.SELECT_ITEM(item_name=self.item_name)
+        self.success = self.is_success(result)
+        return result
 
 
 class PolyUseItem(PolycraftAction):
@@ -146,10 +171,12 @@ class PolyUseItem(PolycraftAction):
         self.item_name = item_name
 
     def __str__(self):
-        return "<PolyUseItem item={}>".format(self.item_name)
+        return "<PolyUseItem item={} success={}>".format(self.item_name, self.success)
 
     def do(self, poly_client: poly.PolycraftInterface) -> dict:
-        return poly_client.USE_ITEM(item_name=self.item_name)
+        result = poly_client.USE_ITEM(item_name=self.item_name)
+        self.success = self.is_success(result)
+        return result
 
 
 class PolyPlaceItem(PolycraftAction):
@@ -159,20 +186,24 @@ class PolyPlaceItem(PolycraftAction):
         self.item_name = item_name
 
     def __str__(self):
-        return "<PolyPlaceItem item={}>".format(self.item_name)
+        return "<PolyPlaceItem item={} success={}>".format(self.item_name, self.success)
 
     def do(self, poly_client: poly.PolycraftInterface) -> dict:
-        return poly_client.PLACE(self.item_name)
+        result = poly_client.PLACE(self.item_name)
+        self.success = self.is_success(result)
+        return result
 
 
 class PolyCollect(PolycraftAction):
     """ Collect item from block in front of actor - use for collecting rubber from a tree tap. """
 
     def __str__(self):
-        return "<PolyCollect>"
+        return "<PolyCollect success={}>".format(self.success)
 
     def do(self, poly_client: poly.PolycraftInterface) -> dict:
-        return poly_client.COLLECT()
+        result = poly_client.COLLECT()
+        self.success = self.is_success(result)
+        return result
 
 
 class PolyDeleteItem(PolycraftAction):
@@ -182,10 +213,12 @@ class PolyDeleteItem(PolycraftAction):
         self.item_name = item_name
 
     def __str__(self):
-        return "<PolyDeleteItem item={}>".format(self.item_name)
+        return "<PolyDeleteItem item={} success={}>".format(self.item_name, self.success)
 
     def do(self, poly_client: poly.PolycraftInterface) -> dict:
-        return poly_client.DELETE(self.item_name)
+        result = poly_client.DELETE(self.item_name)
+        self.success = self.is_success(result)
+        return result
 
 
 class PolyTradeItems(PolycraftAction):
@@ -198,8 +231,13 @@ class PolyTradeItems(PolycraftAction):
         self.entity_id = entity_id
         self.items = items
 
+    def __str__(self):
+        return "<PolyTradeItems entity={} items={} success={}>".format(self.entity_id, self.items, self.success)
+
     def do(self, poly_client: poly.PolycraftInterface) -> dict:
-        return poly_client.TRADE(self.entity_id, self.items)
+        result = poly_client.TRADE(self.entity_id, self.items)
+        self.success = self.is_success(result)
+        return result
 
 
 class PolyCraftItem(PolycraftAction):
@@ -217,15 +255,21 @@ class PolyCraftItem(PolycraftAction):
         super().__init__()
         self.recipe = recipe
 
+    def __str__(self):
+        return "<PolyCraftItem recipe={} success={}>".format(self.recipe, self.success)
+
     def do(self, poly_client: poly.PolycraftInterface) -> dict:
-        return poly_client.CRAFT(self.recipe)
+        result = poly_client.CRAFT(self.recipe)
+        self.success = self.is_success(result)
+        return result
 
 
 class PolycraftState(State):
     """ Current State of Polycraft """
     def __init__(self, step_num: int, facing_block: str,  location: dict, game_map: dict,
                  entities: dict, inventory: dict, current_item: str,
-                 recipes: list, trades: list, terminal: bool, step_cost: float):
+                 recipes: list, trades: list, terminal: bool, step_cost: float,
+                 last_cmd_success: bool):
         super().__init__()
 
         self.id = step_num
@@ -239,7 +283,7 @@ class PolycraftState(State):
         self.trades = trades
         self.terminal = terminal
         self.step_cost = step_cost
-        self.last_action_success = True # TODO: update this later, knowing if an action failed or not is important
+        self.last_cmd_success = last_cmd_success # TODO: update this later, knowing if an action failed or not is important
 
     def __str__(self):
         return "< Step: {} | Action Cost: {} | Inventory: {} >".format(self.id, self.step_cost, self.inventory)
@@ -340,6 +384,7 @@ class Polycraft(World):
         # State information
         self.current_recipes = []
         self.current_trades = []
+        self.last_cmd_success = True
         
         if launch:
             logger.info("Launching Polycraft instance")
@@ -426,7 +471,7 @@ class Polycraft(World):
         
         try:
             self.poly_client = poly.PolycraftInterface(settings_path, logger=logger)
-        except ConnectionRefusedError as err:
+        except (ConnectionRefusedError, BrokenPipeError) as err:
             logger.error("Failed to connect to Polycraft server - shutting down.")
             self.kill()
 
@@ -464,6 +509,8 @@ class Polycraft(World):
         if isinstance(action, PolycraftAction):
             try:
                 results = action.do(self.poly_client)   # Perform each polycraft action's unique do command which uses the Polycraft API
+                self.last_cmd_success = results['command_result']['result'] == "SUCCESS"    # Update if last command was successful or not
+                logger.debug(str(action))
             except (BrokenPipeError, KeyboardInterrupt) as err:
                 self.kill()
                 logger.error("Polycraft server connection interrupted (broken pipe or keyboard interrupt")
@@ -498,7 +545,10 @@ class Polycraft(World):
         terminal = sensed['gameOver']
         step_cost = self.get_level_total_step_cost()
 
-        return PolycraftState(step_num, facing_block, pos, game_map, entities, inventory, currently_selected, copy.copy(self.current_recipes), copy.copy(self.current_trades), terminal, step_cost)
+        return PolycraftState(step_num, facing_block, pos, game_map, entities,
+                              inventory, currently_selected, copy.copy(self.current_recipes), 
+                              copy.copy(self.current_trades), terminal, step_cost,
+                              self.last_cmd_success)
 
     def get_level_total_step_cost(self) -> float:
         cost_dict = self.poly_client.CHECK_COST()
