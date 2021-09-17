@@ -29,6 +29,9 @@ class PolycraftAction(Action):
 
 class PolyNoAction(PolycraftAction):
     """ A no action (do nothing) """
+        
+    def __str__(self):
+        return "<PolyNoAction>"
     
     def do(self, poly_client: poly.PolycraftInterface) -> dict:
         return poly_client.CHECK_COST()
@@ -43,6 +46,9 @@ class PolyTP(PolycraftAction):
         self.z = z
         self.dist = dist
 
+    def __str__(self):
+        return "<PolyTP pos=({}, {}, {}) dist={}>".format(self.x, self.y, self.z, self.dist)
+
     def do(self, poly_client: poly.PolycraftInterface) -> dict:
         return poly_client.TP_TO_POS(self.x, self.y, self.z, distance=self.dist)
 
@@ -54,6 +60,9 @@ class PolyEntityTP(PolycraftAction):
         self.entity_id = entity_id
         self.dist = dist
 
+    def __str__(self):
+        return "<PolyEntityTP entity={} dist={}>".format(self.entity_id, self.dist)
+
     def do(self, poly_client: poly.PolycraftInterface) -> dict:
         return poly_client.TP_TO_ENTITY(self.entity_id, distance=self.dist)
 
@@ -63,6 +72,9 @@ class PolyTurn(PolycraftAction):
     def __init__(self, direction: int):
         super().__init__()
         self.direction = direction
+
+    def __str__(self):
+        return "<PolyTurn dir={}>".format(self.direction)
 
     def do(self, poly_client: poly.PolycraftInterface) -> dict:
         return poly_client.TURN(self.direction)
@@ -74,12 +86,18 @@ class PolyTilt(PolycraftAction):
         super().__init__()
         self.pitch = pitch
 
+    def __str__(self):
+        return "<PolyTilt pitch={}>".format(self.pitch)
+
     def do(self, poly_client: poly.PolycraftInterface) -> dict:
         return poly_client.SMOOTH_TILT(self.pitch)
 
 
 class PolyBreak(PolycraftAction):
     """ Break the block directly in front of the actor """
+
+    def __str__(self):
+        return "<PolyBreak>"
 
     def do(self, poly_client: poly.PolycraftInterface) -> dict:
         return poly_client.BREAK_BLOCK()
@@ -91,12 +109,18 @@ class PolyInteract(PolycraftAction):
         super().__init__()
         self.entity_id = entity_id
 
+    def __str__(self):
+        return "<PolyInteract entity={}>".format(self.entity_id)
+
     def do(self, poly_client: poly.PolycraftInterface) -> dict:
         return poly_client.INTERACT(self.entity_id)
 
 
 class PolySense(PolycraftAction):
     """ Senses the actor's current inventory, all available blocks, recipes and entities that are in the same room as the actor """
+
+    def __str__(self):
+        return "<PolySense>"
 
     def do(self, poly_client: poly.PolycraftInterface) -> dict:
         return poly_client.SENSE_ALL()
@@ -108,6 +132,9 @@ class PolySelectItem(PolycraftAction):
         super().__init__()
         self.item_name = item_name
 
+    def __str__(self):
+        return "<PolySelectItem item={}>".format(self.item)
+
     def do(self, poly_client: poly.PolycraftInterface) -> dict:
         return poly_client.SELECT_ITEM(item_name=self.item_name)
 
@@ -117,6 +144,9 @@ class PolyUseItem(PolycraftAction):
     def __init__(self, item_name: str = ""):
         super().__init__()
         self.item_name = item_name
+
+    def __str__(self):
+        return "<PolyUseItem item={}>".format(self.item_name)
 
     def do(self, poly_client: poly.PolycraftInterface) -> dict:
         return poly_client.USE_ITEM(item_name=self.item_name)
@@ -128,12 +158,18 @@ class PolyPlaceItem(PolycraftAction):
         super().__init__()
         self.item_name = item_name
 
+    def __str__(self):
+        return "<PolyPlaceItem item={}>".format(self.item_name)
+
     def do(self, poly_client: poly.PolycraftInterface) -> dict:
         return poly_client.PLACE(self.item_name)
 
 
 class PolyCollect(PolycraftAction):
     """ Collect item from block in front of actor - use for collecting rubber from a tree tap. """
+
+    def __str__(self):
+        return "<PolyCollect>"
 
     def do(self, poly_client: poly.PolycraftInterface) -> dict:
         return poly_client.COLLECT()
@@ -144,6 +180,9 @@ class PolyDeleteItem(PolycraftAction):
     def __init__(self, item_name: str):
         super().__init__()
         self.item_name = item_name
+
+    def __str__(self):
+        return "<PolyDeleteItem item={}>".format(self.item_name)
 
     def do(self, poly_client: poly.PolycraftInterface) -> dict:
         return poly_client.DELETE(self.item_name)
@@ -184,12 +223,12 @@ class PolyCraftItem(PolycraftAction):
 
 class PolycraftState(State):
     """ Current State of Polycraft """
-    def __init__(self, facing_block: str,  location: dict, game_map: dict,
+    def __init__(self, step_num: int, facing_block: str,  location: dict, game_map: dict,
                  entities: dict, inventory: dict, current_item: str,
                  recipes: list, trades: list, terminal: bool, step_cost: float):
         super().__init__()
 
-        self.id = 0
+        self.id = step_num
         self.facing_block = facing_block    # the block the actor is currently facing
         self.location = location    # Formatted as {"pos": [x,y,z], "facing": DIR, yaw: ANGLE, pitch: ANGLE }
         self.game_map = game_map    # Formatted as {"xyz_string": {"name": "block_name", isAccessible: bool}, ...}
@@ -200,6 +239,7 @@ class PolycraftState(State):
         self.trades = trades
         self.terminal = terminal
         self.step_cost = step_cost
+        self.last_action_success = True # TODO: update this later, knowing if an action failed or not is important
 
     def __str__(self):
         return "< Step: {} | Action Cost: {} | Inventory: {} >".format(self.id, self.step_cost, self.inventory)
@@ -448,6 +488,7 @@ class Polycraft(World):
             raise err
 
         # Extract values from SENSE_ALL
+        step_num = sensed['step']
         facing_block = sensed['blockInFront']
         inventory = sensed['inventory']
         currently_selected = sensed['inventory']['selectedItem']
@@ -455,19 +496,25 @@ class Polycraft(World):
         entities = sensed['entities']
         game_map = sensed['map']
         terminal = sensed['gameOver']
-        step_cost = sensed['command_result']['stepCost']
+        step_cost = self.get_level_total_step_cost()
 
-        return PolycraftState(facing_block, pos, game_map, entities, inventory, currently_selected, copy.copy(self.current_recipes), copy.copy(self.current_trades), terminal, step_cost)
+        return PolycraftState(step_num, facing_block, pos, game_map, entities, inventory, currently_selected, copy.copy(self.current_recipes), copy.copy(self.current_trades), terminal, step_cost)
 
     def get_level_total_step_cost(self) -> float:
         cost_dict = self.poly_client.CHECK_COST()
         
-        msg = cost_dict['command_result']['message']
+        try:
+            msg = cost_dict['command_result']['message']
+        except KeyError as err:
+            logger.error("CHECK_COST message returned malformed: {}".format(cost_dict))
+            raise err
 
         # extract numbers from message (as of 8/25/21, message has format "Total Cost Incurred: <cost>")
-        nums = [float(s) for s in msg.split(' ') if s.isdigit()]
+        try:
+            parts = msg.split(': ')
+            cost = float(parts[-1]) # extract the total cost
+        except ValueError as err:
+            logger.error("Could not parse CHECK_COST message for total cost: {}".format(msg))
+            raise err
 
-        if len(nums) == 0:
-            raise ValueError("API did not return a step cost number! (Check API)")
-
-        return nums[0]
+        return cost
