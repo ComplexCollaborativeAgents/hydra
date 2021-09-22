@@ -68,18 +68,21 @@ def translate_statement(tokens):
     first_token = tokens[0] if isinstance(tokens, list) else tokens
 
     state_operators = {'assign': '=',
-                       'increase': '+=',
-                       'decrease': '-=',
-                       'scale-up': '*=',
-                       'scale-down': '/='}
+                       'increase': '+',
+                       'decrease': '-',
+                       'scale-up': '*',
+                       'scale-down': '/'}
 
     if check_numeric(first_token):
         return first_token
     elif first_token in ['+', '-', '*', '/', '=', '>=', '<=', '>', '<', '#t']:
         return translate_expression(tokens)
     elif first_token in state_operators.keys():
-        return "{} {} {}". \
+        if first_token=='assign':
+            return "{} {} round({}, constants.NUMBER_PRECISION)". \
             format(state_var(tokens[1]), state_operators[first_token], translate_expression(tokens[2]))
+        return "{} = round({} {} {}, constants.NUMBER_PRECISION)". \
+            format(state_var(tokens[1]), state_var(tokens[1]), state_operators[first_token], translate_expression(tokens[2]))
     elif first_token == 'not':
         return "{} = False".format(state_var(tokens[1]))
     else:

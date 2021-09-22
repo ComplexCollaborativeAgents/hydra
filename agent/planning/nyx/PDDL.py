@@ -15,7 +15,7 @@ import copy
 
 class PDDL_Parser:
 
-    SUPPORTED_REQUIREMENTS = [':strips', ':adl', ':negative-preconditions', ':typing', ':time', ':fluents', ':continuous-effects']
+    SUPPORTED_REQUIREMENTS = [':strips', ':adl', ':negative-preconditions', ':typing', ':time', ':fluents', ':continuous-effects', ':disjunctive-preconditions']
     init_state = None
     grounded_actions = []
     grounded_events = []

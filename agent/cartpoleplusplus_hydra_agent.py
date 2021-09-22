@@ -1,5 +1,6 @@
 import logging
 import random
+import time
 
 import numpy as np
 
@@ -22,7 +23,7 @@ class CartpolePlusPlusHydraAgent(HydraAgent):
         self.log = logging.getLogger(__name__).getChild('CartpolePlusPlusHydraAgent')
 
         self.observations_list = []
-        self.replan_idx = 10
+        self.replan_idx = 20
 
         self.novelty_likelihood = 0.0
         self.novelty_existence = None
@@ -52,21 +53,30 @@ class CartpolePlusPlusHydraAgent(HydraAgent):
     def choose_action(self, observation: CartPoleObservation) -> \
             dict:
 
+        time.sleep(0.5)
+
         if self.plan is None:
             # self.meta_model.constant_numeric_fluents['time_limit'] = 4.0
-            self.meta_model.constant_numeric_fluents['time_limit'] = max(0.02, min(2.0, round((4.0 - ((self.steps) * 0.02)), 2)))
+            self.meta_model.constant_numeric_fluents['time_limit'] = max(0.02, min(0.5, round((4.0 - ((self.steps) * 0.02)), 2)))
             self.plan = self.planner.make_plan(observation, 0)
             self.current_observation = CartPoleObservation()
             if len(self.plan) == 0:
                 self.plan_idx = 999
 
         if self.plan_idx >= self.replan_idx:
-            self.meta_model.constant_numeric_fluents['time_limit'] = max(0.02, min(4.0, round((4.0 - ((self.steps) * 0.02)), 2)))
+            self.meta_model.constant_numeric_fluents['time_limit'] = max(0.02, min(0.5, round((4.0 - ((self.steps) * 0.02)), 2)))
             new_plan = self.planner.make_plan(observation, 0)
             self.current_observation = CartPoleObservation()
             if len(new_plan) != 0:
                 self.plan = new_plan
                 self.plan_idx = 0
+
+        state_values_list = self.planner.extract_state_values_from_trace("%s/plan_cartpole_prob.pddl" % str(settings.CARTPOLE_PLANNING_DOCKER_PATH))
+        state_values_list.insert(0, (observation['cart']['x_position'], observation['cart']['y_position'], observation['cart']['x_velocity'], observation['cart']['y_velocity']))
+
+        if (len(state_values_list) > 1):
+            print("observation:\t" + str(observation['cart']['x_position']) + ",\t\t " + str(observation['cart']['y_position']) + ",\t\t " + str(observation['cart']['x_velocity']) + ",\t\t " + str(observation['cart']['y_velocity']))
+            print("plan val:\t\t" + str(state_values_list[self.plan_idx][0]) + ",\t\t " + str(state_values_list[self.plan_idx][1]) + ",\t\t " + str(state_values_list[self.plan_idx][2]) + ",\t\t " + str(state_values_list[self.plan_idx][3]))
 
         action = random.randint(0, 1)
         if self.plan_idx < len(self.plan):
@@ -83,6 +93,7 @@ class CartpolePlusPlusHydraAgent(HydraAgent):
                 action = 4
 
             # action = 1 if self.plan[self.plan_idx].action_name == "move_cart_right dummy_obj" else 0
+
 
         self.plan_idx += 1
         self.steps += 1

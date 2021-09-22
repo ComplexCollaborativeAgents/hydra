@@ -37,11 +37,11 @@ class State:
     # -----------------------------------------------
 
     def __str__(self):
-        return '\tstate: ' + \
-               '\n\t  time: ' + str(self.time) + \
-               '\n\t  h: ' + str(self.h) + \
-               '\n\t  g: ' + str(self.g) + \
-               '\n\t  state vars: ' + str([list(i) for i in self.state_vars.items()])
+        return '\t\tstate: ' + \
+               '\n\t\t  time: ' + str(self.time) + \
+               '\n\t\t  h: ' + str(self.h) + \
+               '\n\t\t  g: ' + str(self.g) + \
+               '\n\t\t  state vars: ' + str([list(i) for i in self.state_vars.items()])
 
     # -----------------------------------------------
     # Equality

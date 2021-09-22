@@ -74,15 +74,17 @@ class CartPolePlusPlusMetaModel(MetaModel):
             constant_numeric_fluents={
                 'm_cart': 1.0,
                 'friction_cart': 0.0,
-                'l_pole': 0.5,
-                'm_pole': 0.1,
+                'l_pole': 1.0,
+                # 'l_pole': 0.5,
+                'm_pole': 1.0,
                 'friction_pole': 0.0,
-                'force_mag': 10.0,
+                'force_mag': 15.0,
                 'inertia': 1.0,
                 'elapsed_time': 0.0,
                 'gravity': 9.81,
                 'time_limit': 1.0,
-                'angle_limit': 0.205,
+                'angle_limit': 0.165, # ~10 degrees in rad
+                # 'angle_limit': 0.205, # ~12 degrees in rad
                 # 'pos_limit': 2.4,
                 'wall_x_min': -5,
                 'wall_x_max': 5,
@@ -112,9 +114,10 @@ class CartPolePlusPlusMetaModel(MetaModel):
         pddl_problem.objects.append(['dummy_block', 'block'])
 
         euler_pole = self.quaternion_to_euler(round(observation_array['pole']['x_quaternion'], 5), round(observation_array['pole']['y_quaternion'], 5), round(observation_array['pole']['z_quaternion'], 5), round(observation_array['pole']['w_quaternion'], 5))
-
         obs_theta_x = round(euler_pole[0], 5)
         obs_theta_y = round(euler_pole[1], 5)
+        # obs_theta_x = np.radians(round(observation_array['pole']['x_position'], 5))
+        # obs_theta_y = np.radians(round(observation_array['pole']['y_position'], 5))
         obs_theta_x_dot = round(observation_array['pole']['x_velocity'], 5)
         obs_theta_y_dot = round(observation_array['pole']['y_velocity'], 5)
         obs_pos_x = round(observation_array['cart']['x_position'], 5)

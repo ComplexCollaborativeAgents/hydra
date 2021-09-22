@@ -78,6 +78,13 @@ class CartPoleBulletEnv(gym.Env):
         else:
             force = action[0]
 
+        # print("\n\nDYNAMICSSSSSSS")
+        ''' Pole = dyn_info_1,  '''
+        dyn_info_1 = p.getDynamicsInfo(self.cartpole, 1)
+        dyn_info_0 = p.getDynamicsInfo(self.cartpole, 0)
+        dyn_info_minus_1 = p.getDynamicsInfo(self.cartpole, -1)
+
+
         # based on action decide the x and y forces
         fx = fy = 0
         if action == 0:
@@ -104,6 +111,8 @@ class CartPoleBulletEnv(gym.Env):
         reward = self.get_reward()
 
         self.tick = self.tick + 1
+
+        st = self.get_state()
 
         return self.get_state(), reward, done, {}
 

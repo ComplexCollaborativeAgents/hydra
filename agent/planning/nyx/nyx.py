@@ -1,5 +1,7 @@
 
 # from agent.planning.nyx.PDDL import PDDL_Parser
+from toolz import cons
+
 from agent.planning.nyx.planner import Planner
 import agent.planning.nyx.syntax.constants as constants
 import sys
@@ -37,16 +39,17 @@ def process_arguments(cl_arguments):
             continue
 
         arg_list = arg.split(':')
-
-        if arg_list[0] == '-t':
-            constants.DELTA_T = float(arg_list[1])
-            constants.TIME_PASSING_ACTION.duration = constants.DELTA_T
+        if arg_list[0] == '-np':
+            constants.NUMBER_PRECISION = int(arg_list[1])
         elif arg_list[0] == '-th':
             constants.TIME_HORIZON = float(arg_list[1])
         elif arg_list[0] == '-pi':
             constants.PRINT_INFO = float(arg_list[1])
         elif arg_list[0] == '-to':
             constants.TIMEOUT = float(arg_list[1])
+        elif arg_list[0] == '-t':
+            constants.DELTA_T = round(float(arg_list[1]), constants.NUMBER_PRECISION)
+            constants.TIME_PASSING_ACTION.duration = round(constants.DELTA_T, constants.NUMBER_PRECISION)
         elif arg_list[0] == '-search':
             constants.SEARCH_BFS = False
             if arg_list[1] == 'bfs':
@@ -176,6 +179,10 @@ def runner(dom_file, prob_file, args_list: []):
     open(plan_file, 'w').close()
 
     plan_f = open(plan_file, 'a')
+
+    if not constants.NO_PLAN:
+        print(str(my_plnr.initial_state) + '\n')
+    plan_f.write(str(my_plnr.initial_state) + '\n')
 
     for pair in my_plan:
 

@@ -63,7 +63,7 @@ class CartPolePlusPlusPlanner(HydraPlanner):
     def get_plan_actions(self, count=0):
         nyx.runner("%s/cartpole_plus_plus_domain.pddl" % str(settings.CARTPOLE_PLANNING_DOCKER_PATH),
                    "%s/cartpole_prob.pddl" % str(settings.CARTPOLE_PLANNING_DOCKER_PATH),
-                   ['-vv', '-to:%s' % str(settings.CP_TIMEOUT), '-noplan', '-search:gbfs',
+                   ['-vv', '-to:%s' % str(settings.CP_TIMEOUT), '-np:6', '-dblevent', '-noplan', '-search:gbfs',
                     '-th:%s' % str(self.meta_model.constant_numeric_fluents['time_limit']),
                     '-t:%s' % str(settings.CP_DELTA_T)])
 
@@ -139,12 +139,13 @@ class CartPolePlusPlusPlanner(HydraPlanner):
                     copy_line3 = copy.copy(lines_list2[ix + 5])
                     copy_line4 = copy.copy(lines_list2[ix + 5])
 
-                    state_values = (float(str(copy_line.split('\"[\'x\']\",')[1].split(']')[0])),
-                                    float(str(copy_line2.split('\"[\'x_dot\']\",')[1].split(']')[0])),
-                                    float(str(copy_line3.split('\"[\'theta\']\",')[1].split(']')[0])),
-                                    float(str(copy_line4.split('\"[\'theta_dot\']\",')[1].split(']')[0])),
+                    state_values = (float(str(copy_line.split('\"[\'pos_x\']\",')[1].split(']')[0])),
+                                    float(str(copy_line2.split('\"[\'pos_y\']\",')[1].split(']')[0])),
+                                    float(str(copy_line3.split('\"[\'pos_x_dot\']\",')[1].split(']')[0])),
+                                    float(str(copy_line4.split('\"[\'pos_y_dot\']\",')[1].split(']')[0])),
                                     (round(float(linex.split(':')[0].strip()) + 0.02, 4)))
                     # print (str(state_values) + "\n")
+                    # print("COPY LINEEEEEE: "+str(copy_line))
                     plan_values.append(state_values)
 
         return plan_values

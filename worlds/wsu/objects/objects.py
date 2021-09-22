@@ -200,9 +200,9 @@ for domain in VALID_DOMAINS:
     LIVE_GENERATOR_QUEUES[domain] = 'live.generator.{}.v{}'.format(domain, __major_version__)
 
 # TA1 default command line arg values.
-DEFAULT_TA1_DEBUG = False
-DEFAULT_TA1_FULLDEBUG = False
-DEFAULT_TA1_PRINTOUT = False
+DEFAULT_TA1_DEBUG = True
+DEFAULT_TA1_FULLDEBUG = True
+DEFAULT_TA1_PRINTOUT = True
 DEFAULT_TA1_TESTING = False
 DEFAULT_TA1_DEMO = False
 DEFAULT_TA1_SHORTDEMO = False
