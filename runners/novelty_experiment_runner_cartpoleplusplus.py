@@ -60,6 +60,8 @@ class NoveltyExperimentRunnerCartpolePlusPlusDispatcher(CartPolePlusPlusDispatch
         # generate training data here in the future, if needed
         self.delegate.training_end()
 
+        self.log.debug("generators {}".format(generators))
+
         if generators is None:
             generators = [self.nominal_env]
         if difficulties is None:
@@ -158,7 +160,7 @@ class NoveltyExperimentRunnerCartpolePlusPlusDispatcher(CartPolePlusPlusDispatch
 
 class NoveltyExperimentRunnerCartpolePlusPlus:
     def __init__(self):
-        self._pre_novel_episodes = 1
+        self._pre_novel_episodes = 2
         self._number_episodes = 2
         self._num_trials = 1
         self._generators = [CartPolePPMock1]

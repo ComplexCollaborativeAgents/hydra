@@ -9,4 +9,3 @@ class CartPole(CartPoleBulletEnv):
         self.difficulty = difficulty
 
         return None
-
