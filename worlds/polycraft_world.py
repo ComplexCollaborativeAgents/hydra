@@ -277,7 +277,7 @@ class PolycraftState(State):
         self.location = location    # Formatted as {"pos": [x,y,z], "facing": DIR, yaw: ANGLE, pitch: ANGLE }
         self.game_map = game_map    # Formatted as {"xyz_string": {"name": "block_name", isAccessible: bool}, ...}
         self.entities = entities
-        self.inventory = inventory  # Formatted as {}   # TODO: update this
+        self.inventory = inventory  # Formatted as {SLOT_NUM:{ATTRIBUTES}, "selectedItem":{ATTRIBUTES}}
         self.current_item = current_item
         self.recipes = recipes
         self.trades = trades
