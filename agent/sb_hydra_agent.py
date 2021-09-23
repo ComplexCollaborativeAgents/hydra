@@ -38,44 +38,71 @@ class SBHydraAgent(HydraAgent):
         self.env = env # agent always has a pointer to its environment
         if env is not None:
             env.sb_client.set_game_simulation_speed(settings.SB_SIM_SPEED)
-        self.perception = Perception()
-        self.completed_levels = []
-        self.observations = []
-        self.cumulative_plan_time = 0.0
-        self.overall_plan_time = 0.0
-        self.novelty_likelihood = 0.0
-        self.novelty_existence = -1
-        self.novel_objects = []
+        #self.perception = Perception()
+        #self.completed_levels = []
+        #self.observations = []
+        #self.cumulative_plan_time = 0.0
+        #self.overall_plan_time = 0.0
+        #self.novelty_likelihood = 0.0
+        #self.novelty_existence = -1
+        #self.novel_objects = []
         self.agent_stats = agent_stats
-        self.shot_num = 0
-        self.trial_timestamp = datetime.datetime.now().strftime("%y%m%d%H%M%S")
-        self.stats_for_level = dict()
-        self.nn_prob_per_level = []
-        self.pddl_prob_per_level = []
+        #self.shot_num = 0
+        #self.trial_timestamp = datetime.datetime.now().strftime("%y%m%d%H%M%S")
+        #self.stats_for_level = dict()
+        #self.nn_prob_per_level = []
+        #self.pddl_prob_per_level = []
         self.consistency_estimator = ScienceBirdsConsistencyEstimator()
         self.detector = FocusedSBAnomalyDetector()
         self.current_level = 0
 
 
-    def reinit(self):
-        logging.info('Reinit...')
-        self.env.history = []
+        ## SM: added a method to cleanup code
+        self.initialize_processing_state_variables()
+
+
+    def initialize_processing_state_variables(self):
         self.perception = Perception()
-        self.meta_model = ScienceBirdsMetaModel()
-        self.planner = SBPlanner(self.meta_model) # TODO: Discuss this w. Wiktor & Matt
-        self.completed_levels = []
-        self.observations = []
+        self.completed_levels=[]
+        self.observations=[]
+
         self.novelty_likelihood = 0.0
-        self.novel_objects = []
-        self.cumulative_plan_time = 0.0
-        self.overall_plan_time = 0.0
         self.novelty_existence = -1
-        # self.agent_stats = list() # TODO: Discuss this
-        self.shot_num = 0
+        self.novel_objects = []
+
+        self.cumulative_plan_time=0.0
+        self.overall_plan_time=0.0
+        self.shot_num=0
         self.trial_timestamp = datetime.datetime.now().strftime("%y%m%d%H%M%S")
+
+
         self.stats_for_level = dict()
         self.nn_prob_per_level = []
         self.pddl_prob_per_level = []
+
+
+    def reinit(self):
+        logging.info('Reinit...')
+        self.env.history = []
+        #self.perception = Perception()
+        self.meta_model = ScienceBirdsMetaModel()
+        self.planner = SBPlanner(self.meta_model) # TODO: Discuss this w. Wiktor & Matt
+
+        self.initialize_processing_state_variables()
+
+        #self.completed_levels = []
+        #self.observations = []
+        #self.novelty_likelihood = 0.0
+        #self.novel_objects = []
+        #self.cumulative_plan_time = 0.0
+        #self.overall_plan_time = 0.0
+        #self.novelty_existence = -1
+        # self.agent_stats = list() # TODO: Discuss this
+        #self.shot_num = 0
+        #self.trial_timestamp = datetime.datetime.now().strftime("%y%m%d%H%M%S")
+        #self.stats_for_level = dict()
+        #self.nn_prob_per_level = []
+        #self.pddl_prob_per_level = []
 
     def main_loop(self,max_actions=1000):
         ''' Runs the agent. Returns False if the evaluation has not ended, and True if it has ended.'''
@@ -187,12 +214,49 @@ class SBHydraAgent(HydraAgent):
         self._handle_end_of_level(True)
         return self.cumulative_plan_time, self.overall_plan_time
 
+    def compute_novelty_detection_info(self, observation):
+        try:
+            cnn_novelty, cnn_prob = self.detector.detect(observation)
+        except:
+            logging.info('CNN Index out of Bounds in game playing')
+            cnn_prob = 1.0  # TODO: Think about this design choice
+
+        if settings.NO_PDDL_CONSISTENCY:
+            pddl_prob = 1.0
+        else:
+            pddl_prob = check_obs_consistency(observation, self.meta_model, self.consistency_estimator)
+
+        return cnn_prob, pddl_prob
+
+    def _compute_novelty_likelihood_new(self, observation: ScienceBirdsObservation):
+        logging.info("Computing novelty likelihood...")
+
+        if self.novelty_existence in [0, 1]:
+            self.novelty_likelihood = self.novelty_existence
+            return
+
+        assert self.novelty_existence==NOVELTY_EXISTANCE_NOT_GIVEN
+
+        if observation.hasUnknownObj():
+            self.novelty_likelihood = 1.0
+            self.novel_objects = observation.get_novel_object_ids()
+            return
+
+        try:
+            cnn_novelty, cnn_prob = self.detector.detect(observation)
+        except:
+            logging.info('CNN Index out of Bounds in game playing')
+            cnn_prob = 1.0  # TODO: Think about this design choice
+
+
+
+
     def _compute_novelty_likelihood(self, observation: ScienceBirdsObservation):
         ''' Computes the novelty likelihood for the given observation
         Also updates the stats_for_level object with the computed novelty probability by the two models.  '''
 
         logging.info('Computing novelty likelihood...')
-
+        #
         if NN_PROB not in self.stats_for_level:
             self.stats_for_level[NN_PROB]=[]
         if PDDL_PROB not in self.stats_for_level:
@@ -412,6 +476,8 @@ class RepairingSBHydraAgent(SBHydraAgent):
         ''' This is called after winning or losing a level. '''
         self.stats_for_level[NOVELTY_LIKELIHOOD]=self.novelty_likelihood
         # The consistency score per level for this level is the mean over the consistency scored of this level's observations
+
+        print(self.stats_for_level)
         self.nn_prob_per_level.insert(0,
                                       sum(self.stats_for_level[NN_PROB]) / len(self.stats_for_level[NN_PROB]))
         self.pddl_prob_per_level.insert(0,
