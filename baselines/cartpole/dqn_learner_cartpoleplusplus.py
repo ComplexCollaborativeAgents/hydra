@@ -19,9 +19,10 @@ class QNet(nn.Module):
     def __init__(self, observation_space_dim, action_space_dim):
         super(QNet, self).__init__()
 
-        self.fc1 = nn.Linear(observation_space_dim, 44)
-        self.fc2 = nn.Linear(44, 44)
-        self.fc3 = nn.Linear(44, action_space_dim)
+        self.fc1 = nn.Linear(observation_space_dim, 55)
+        self.fc2 = nn.Linear(55, 55)
+        #self.fc3
+        self.fc4 = nn.Linear(55, action_space_dim)
 
     def forward(self, state):
         a = torch.relu(self.fc1(state))
