@@ -29,9 +29,9 @@ NON_NOVEL_LEVELS = ["0"]
 # Options
 RESULTS_PATH = pathlib.Path(settings.ROOT_PATH) / "runners" / "experiments" / "ScienceBirds" / "SB_experiment"
 EXPORT_TRIALS = False   # Export trials xml file
-NUM_TRIALS = 2      # Number of trials to run per known/unknown, novelty level and type
-PER_TRIAL = 5     # Levels per trial
-BEFORE_NOVELTY = 3 # Levels in a trial before novelty is introduced
+NUM_TRIALS = 1      # Number of trials to run per known/unknown, novelty level and type
+PER_TRIAL = 1     # Levels per trial
+BEFORE_NOVELTY = 0 # Levels in a trial before novelty is introduced
 NOVELTIES = {"2": ["8"]}  # Novelties to use in the experiment (IE, trials to run)
 #NOVELTIES = {"1": ["6", "7", "8", "9", "10"], "2": ["6", "7", "8", "9", "10"], "3": ["6", "7"]}
 
@@ -209,6 +209,7 @@ class NoveltyExperimentRunnerSB:
                     num_repairs = 0
                     repair_time = 0
                     if len(agent_stats) > 0:
+                        print(agent_stats)
                         if 'novelty_likelihood' in agent_stats[episode_num]:
                             novelty_probability = agent_stats[episode_num]["novelty_likelihood"]
                         if 'repair_calls' in agent_stats[episode_num]:
