@@ -1,15 +1,19 @@
 import json
 import os
+import sys
+import queue
 import pickle
 import subprocess
 import time
 import copy
 import logging
 from os import path
+import threading
+import psutil
 
 import settings
 import worlds.polycraft_interface.client.polycraft_interface as poly
-from trajectory_planner.trajectory_planner import SimpleTrajectoryPlanner
+# from trajectory_planner.trajectory_planner import SimpleTrajectoryPlanner
 from utils.host import Host
 from agent.planning.pddlplus_parser import PddlPlusProblem
 from utils.state import State, Action, World
@@ -371,25 +375,27 @@ class Polycraft(World):
     We will make calls through the Polycraft runtime
     """
 
-    def __init__(self, server_config: dict, launch: bool = False, client_config: str = None):
+    def __init__(self, launch: bool = False, client_config: str = None):
         self.id = 2229
 
         self.history = []
 
-        self.trajectory_planner = SimpleTrajectoryPlanner() # This is static to allow others to reason about it
+        # self.trajectory_planner = SimpleTrajectoryPlanner() # This is static to allow others to reason about it
 
         self.poly_server_process = None     # Subprocess running the polycraft instance
         self.poly_client = None     # polycraft client interface (see polycraft_interface.py)
+        self.poly_listener = None   # Listener thread to the polycraft application
+        self.poly_output_queue = queue.Queue()   # Queue that collects output from polycraft application subprocess
 
         # State information
         self.current_recipes = []
         self.current_trades = []
         self.last_cmd_success = True
+        self.ready_for_cmds = False
         
         if launch:
             logger.info("Launching Polycraft instance")
-            self.launch_polycraft(server_config=server_config)
-            time.sleep(30) # Wait for server to start up
+            self.launch_polycraft()
 
         # Path to polycraft client interface config file (host name/port, buffer size, etc.)
         if client_config is None:
@@ -397,8 +403,51 @@ class Polycraft(World):
 
         self.create_interface(client_config)
 
-    def kill(self):
+    def _read_polycraft_output(self, pipe, queue):
+        """ Worker function for a separate daemon thread to listen to polycraft output.  Can be used for debugging. """
+        
+        logger.info("Entered Polycraft listener thread...")
+
+        listening = True
+        while listening and not pipe.stdout.closed:
+            try:
+                line = pipe.stdout.readline()
+                queue.put(line)
+                sys.stdout.flush()
+                pipe.stdout.flush()
+            except UnicodeDecodeError as e:
+                logger.error(e)
+                try:
+                    line = pipe.stdout.read().decode("utf-8")
+                    queue.put(line)
+                    sys.stdout.flush()
+                    pipe.stdout.flush()
+                except Exception as encoding_err:
+                    logger.error("Could not handle output encoding: {}".format(encoding_err))
+                    sys.stdout.flush()
+                    pipe.stdout.flush()
+            except Exception as unknown:
+                logger.error("Unknown exception: {}".format(unknown))
+                sys.stdout.flush()
+                pipe.stdout.flush()
+
+    def _get_polycraft_output(self):
+        """ Check output queue, return next line output.  Can be used for debugging. """
+        next_line = ""
+
+        try:
+            next_line = str(self.poly_output_queue.get(False, timeout=0.025))
+            logger.debug(next_line)   # Turn off logging for now, the output from polycraft is large, and consists mostly of response messaging
+            sys.stdout.flush()
+            sys.stderr.flush()
+        except queue.Empty:
+            pass
+
+        return next_line
+
+    def kill(self, exit_program=False):
         ''' Perform cleanup '''
+
         # Disconnect client from polycraft
         if self.poly_client is not None:
             self.poly_client.disconnect_from_polycraft()
@@ -411,7 +460,27 @@ class Polycraft(World):
             except os.error as err:
                 logger.error("Error during process termination: {}".format(err))
 
-    def launch_polycraft(self, server_config: dict):
+        # Clean up any remaining processes
+        procs = list(psutil.Process(os.getpid()).children(recursive=True))
+        for p in procs:
+            try:
+                p.terminate()
+            except psutil.NoSuchProcess:
+                pass
+        gone, alive = psutil.wait_procs(procs, timeout=5)
+        for p in alive:
+            try:
+                p.kill()
+            except psutil.NoSuchProcess:
+                pass
+
+        self.poly_listener = None
+        self.poly_output_queue = None
+
+        if exit_program:
+            exit()
+
+    def launch_polycraft(self):
         """
         Start polycraft server using parameters from config dictionary
         See https://github.com/StephenGss/PAL/tree/release_2.0 for full list of parameters
@@ -425,20 +494,46 @@ class Polycraft(World):
 
         params = []
 
-        params.append(settings.POLYCRAFT_HEADLESS)  # NOTE: Polycraft must run headless if going through 
+        params.append(settings.POLYCRAFT_HEADLESS)  # NOTE: Polycraft must run headless if used with a subprocess
         params.append(settings.POLYCRAFT_SERVER_CMD)
 
         polycraft_cmd = " ".join(params)
 
-        cmd = '{} > polycraft_interface.log'.format(polycraft_cmd)
+        cmd = '{}'.format(polycraft_cmd)
         logger.info('Launching Polycraft using: {}'.format(cmd))
+
         self.poly_server_process = subprocess.Popen(cmd,
                                                     cwd=settings.POLYCRAFT_DIR,
-                                                    stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True,
+                                                    stdout=subprocess.PIPE, 
+                                                    stderr=subprocess.STDOUT, 
+                                                    shell=True,
                                                     bufsize=1,
                                                     universal_newlines=True,
                                                     start_new_session=True)
-        logger.debug('Launched Polycraft with pid: {}'.format(str(self.poly_server_process.pid)))
+        
+        logger.info("Starting Polycraft process listener thread...")
+
+        self.poly_listener = threading.Thread(target=self._read_polycraft_output, 
+                                              args=(self.poly_server_process, self.poly_output_queue))
+        self.poly_listener.daemon = True
+        self.poly_listener.start()
+
+        if self.poly_server_process.poll() is None:
+            logger.debug('Launched Polycraft with pid: {}'.format(str(self.poly_server_process.pid)))
+        else:
+            logger.error('Could not launch Polycraft server - check the "polycraft_interface.log" located in the bin/pal folder')
+            self.kill(exit_program=True)
+
+        logger.info("Waiting for polycraft process to fully start up before sending commands...")
+
+        # Wait for polycraft application to fully start up before sending commands
+        while True:
+            try:
+                if "Minecraft finished loading" in self._get_polycraft_output():
+                    logger.info("Polycraft application ready...")
+                    break
+            except KeyboardInterrupt as err:
+                self.kill(exit_program=True)
 
     def load_hosts(self, server_host: Host, observer_host: Host):
         """ Holdover from ScienceBirds world - intention is to use Docker to run as if agent were being evaluated"""
@@ -473,7 +568,7 @@ class Polycraft(World):
             self.poly_client = poly.PolycraftInterface(settings_path, logger=logger)
         except (ConnectionRefusedError, BrokenPipeError) as err:
             logger.error("Failed to connect to Polycraft server - shutting down.")
-            self.kill()
+            self.kill(exit_program=True)
 
     def set_current_recipes(self, recipes: list):
         """ To be called some time after the initialization of each level.  Hydra Agent to explore and collect all recipes before actual operation. """
@@ -493,13 +588,19 @@ class Polycraft(World):
         NOTE: at every end level, the gameOver boolean in the returned dictionary turns to True - we need to handle advancing to next level on our side
         """
         self.current_level = s_level
+        self.ready_for_cmds = False
         try:
             self.poly_client.RESET(self.current_level)
-            time.sleep(5) # Wait for level to load fully (if not loaded fully, SENSE_ALL will return nothing and other undefined behavior) TODO: make consistent with RunTournament.py
+            
+            # Wait for level to load fully (if not loaded fully, SENSE_ALL will return nothing and other undefined behavior) TODO: make consistent with RunTournament.py
+            while True:
+                if "[EXP] game initialization completed" in self._get_polycraft_output():
+                    self.ready_for_cmds = True
+                    break
+            
         except (BrokenPipeError, KeyboardInterrupt) as err:
-            self.kill()
-            logger.error("Polycraft server connection interrupted (broken pipe or keyboard interrupt")
-            raise err
+            logger.error("Polycraft server connection interrupted ({})".format(err))
+            self.kill(exit_program=True)
 
     def act(self, action: PolycraftAction) -> tuple:
         ''' returns the state and step cost / reward '''
@@ -512,8 +613,8 @@ class Polycraft(World):
                 self.last_cmd_success = results['command_result']['result'] == "SUCCESS"    # Update if last command was successful or not
                 logger.debug(str(action))
             except (BrokenPipeError, KeyboardInterrupt) as err:
-                self.kill()
-                logger.error("Polycraft server connection interrupted (broken pipe or keyboard interrupt")
+                logger.error("Polycraft server connection interrupted ({})".format(err))
+                self.kill()                
                 raise err
         else:
             raise ValueError("Invalid action requested: {}".format(str(type(action))))
@@ -551,7 +652,10 @@ class Polycraft(World):
                               self.last_cmd_success)
 
     def get_level_total_step_cost(self) -> float:
-        cost_dict = self.poly_client.CHECK_COST()
+        try:
+            cost_dict = self.poly_client.CHECK_COST()
+        except KeyboardInterrupt as err:
+            self.kill(exit_program=True)
         
         try:
             msg = cost_dict['command_result']['message']

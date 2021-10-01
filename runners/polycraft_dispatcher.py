@@ -13,11 +13,11 @@ class PolycraftDispatcher():
 
         self.results = {}
 
-    def experiment_start(self, server_config: dict, trials: list = []):
+    def experiment_start(self, trials: list = []):
         ''' Start the experiment.  server_config is a dict that contains configuration options for the Polycraft Server, and trials is a list that contains string paths towards each trial directory'''
 
         # Load polycarft world
-        self.env = Polycraft(server_config=server_config, launch=True)
+        self.env = Polycraft(launch=True)
         self.trials = {}
 
         if len(trials) > 0:

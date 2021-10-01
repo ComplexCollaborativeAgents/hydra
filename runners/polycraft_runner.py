@@ -9,7 +9,7 @@ import settings
 import logging
 import pathlib
 
-LOG_PATH = pathlib.Path(settings.ROOT_PATH) / 'runners' / 'log' / 'hydra-sb.log'
+LOG_PATH = pathlib.Path(settings.ROOT_PATH) / 'runners' / 'log' / 'hydra-polycraft.log'
 
 
 def config_logging():
@@ -33,17 +33,13 @@ def main():
     config_logging()
     arguments = parse()
 
-    run_config = {
-        "headless": False,
-    }
-
     trials = [os.path.join(settings.POLYCRAFT_LEVEL_DIR, "POGO_10game_prenovelty", "POGO_L00_T01_S01", "X0010", "POGO_L00_T01_S01_X0010_A_U9999_V0")]
 
     agent = PolycraftHydraAgent()
 
     dispatcher = PolycraftDispatcher(agent=agent)
 
-    dispatcher.experiment_start(run_config, trials=trials)
+    dispatcher.experiment_start(trials=trials)
 
     dispatcher.run_trials()
 

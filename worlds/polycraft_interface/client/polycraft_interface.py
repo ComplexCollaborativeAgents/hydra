@@ -2,9 +2,7 @@ import json
 import logging
 import socket
 import enum
-import time
-import queue
-import threading
+import os
 
 
 """
@@ -60,7 +58,10 @@ class PolycraftInterface:
         else:
             self._logger = logging.getLogger('Agent Client')
 
-        logging.getLogger().setLevel(logging.INFO)
+        # Overwrite if environment variable is set
+        if os.getenv("PAL_AGENT_PORT", default=None) is not None:
+            self.settings['port'] = int(os.getenv("PAL_AGENT_PORT"))
+            self._logger.info("Using port from environment variable 'PAL_AGENT_PORT': {}".format(self.settings['port']))
 
         # Socket connection
         self.sock = None
