@@ -1,4 +1,3 @@
-from settings.local_settings import POLYCRAFT_LEVEL_DIR
 from runners.polycraft_dispatcher import PolycraftDispatcher
 from agent.polycraft_hydra_agent import PolycraftHydraAgent
 import argparse
