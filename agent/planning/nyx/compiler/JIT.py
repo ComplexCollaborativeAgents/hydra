@@ -50,6 +50,9 @@ def translate_expression(tokens):
     elif first_token == 'or':
         expr = " or ".join(translate_expression(t) for t in tokens[1:])
         return "({})".format(expr)
+    elif first_token == 'and':
+        expr = " and ".join(translate_expression(t) for t in tokens[1:])
+        return "({})".format(expr)
     elif first_token == 'not':
         return '(not {})'.format(translate_expression(tokens[1]))
     elif first_token in ['=', '>=', '<=', '>', '<']:
@@ -78,9 +81,9 @@ def translate_statement(tokens):
     elif first_token in ['+', '-', '*', '/', '=', '>=', '<=', '>', '<', '#t']:
         return translate_expression(tokens)
     elif first_token in state_operators.keys():
-        if first_token=='assign':
+        if first_token == 'assign':
             return "{} {} round({}, constants.NUMBER_PRECISION)". \
-            format(state_var(tokens[1]), state_operators[first_token], translate_expression(tokens[2]))
+                format(state_var(tokens[1]), state_operators[first_token], translate_expression(tokens[2]))
         return "{} = round({} {} {}, constants.NUMBER_PRECISION)". \
             format(state_var(tokens[1]), state_var(tokens[1]), state_operators[first_token], translate_expression(tokens[2]))
     elif first_token == 'not':

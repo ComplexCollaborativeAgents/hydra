@@ -130,7 +130,7 @@ def print_solution_info(pln, plnr, ttime):
         '\n\t* time: ' + str(round(ttime,3)) + \
         '\n\t* explored states: ' + str(plnr.explored_states) + \
         '\n\t* plan length: ' + str(non_temporal_count) + ' (' + str(len(pln)) + ')' + \
-        '\n\t* plan duration: ' + str(plnr.reached_goal_state.time)
+        '\n\t* plan duration: ' + str(plnr.reached_goal_states[0].time)
     print(config_string)
 
 
@@ -151,8 +151,8 @@ def runner(dom_file, prob_file, args_list: []):
 
     my_plan = []
 
-    if my_plnr.reached_goal_state is not None:
-        my_plan = my_plnr.get_trajectory(my_plnr.reached_goal_state)
+    if my_plnr.reached_goal_states:
+        my_plan = my_plnr.get_trajectory(my_plnr.reached_goal_states[0])
         print_solution_info(my_plan, my_plnr, total_time)
     else:
         print('\n=================================================\n')
