@@ -32,7 +32,7 @@ EXPORT_TRIALS = False   # Export trials xml file
 NUM_TRIALS = 1      # Number of trials to run per known/unknown, novelty level and type
 PER_TRIAL = 1     # Levels per trial
 BEFORE_NOVELTY = 0 # Levels in a trial before novelty is introduced
-NOVELTIES = {"2": ["8"]}  # Novelties to use in the experiment (IE, trials to run)
+NOVELTIES = {"1": ["10"]}  # Novelties to use in the experiment (IE, trials to run)
 #NOVELTIES = {"1": ["6", "7", "8", "9", "10"], "2": ["6", "7", "8", "9", "10"], "3": ["6", "7"]}
 
 

@@ -360,13 +360,13 @@ class SBHydraAgent(HydraAgent):
     def _infer_novelty_existence(self):
         '''looks at the history of detections in previous levels and returns true when novelty has been detected for 3 contiguous episodes'''
         self.novelty_detections.append(self._detect_level_novelty())
-        self.novelty_likelihood = self.novelty_detections[-1] and self.novelty_detections[-2] and self.novelty_detections [-3]
+        #self.novelty_likelihood = self.novelty_detections[-1] and self.novelty_detections[-2] and self.novelty_detections [-3]
 
     def _handle_end_of_level(self, success):
         ''' This is called when a level has ended, either in a win or a lose our come '''
         self.completed_levels.append(success)
         self._infer_novelty_existence()
-        print(self.novelty_detections)
+        print("Novelty detection from new code {}".format(self.novelty_detections))
         logger.info("[hydra_agent_server] :: Level {} Complete - WIN={}".format(self.current_level, success))
         logger.info("[hydra_agent_server] :: Cumulative planning time only = {}".format(str(self.cumulative_plan_time)))
         logger.info("[hydra_agent_server] :: Planning effort percentage = {}\n".format(
@@ -522,7 +522,7 @@ class RepairingSBHydraAgent(SBHydraAgent):
         self.stats_for_level[NOVELTY_LIKELIHOOD]=self.novelty_likelihood
         # The consistency score per level for this level is the mean over the consistency scored of this level's observations
 
-        print(self.stats_for_level)
+        print("Old novelty indicators and detection".format(self.stats_for_level))
         self.nn_prob_per_level.insert(0,
                                       sum(self.stats_for_level[NN_PROB]) / len(self.stats_for_level[NN_PROB]))
         self.pddl_prob_per_level.insert(0,
