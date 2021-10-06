@@ -14,9 +14,10 @@ pytest
 ```
 ## Setting up Polycraft
 1. Unzip the Polycraft repository in the binary directory.  Currently, we only support Polycraft for Ubuntu.
-2. Change directories to `bin` and run `sudo setup_polycraft.sh`.  This will install a specific version of Java 8 in addition to any other linux dependencies.  
+2. Change directories to `bin` and run `./setup_polycraft.sh`.  This will install a specific version of Java 8 in addition to any other linux dependencies.  
 3. Note that the Polycraft domain requires a different version of Java than that of the Science Birds domain.  If using Ubuntu, you can use the `sudo update-alternatives --config java` command to select the Java version that corresponds with the domain that you want to run in.  If the Polycraft Hydra Agent hangs after starting up, check to make sure that you are running Java 8 (version adoptopenjdk8-hotspot). 
 4. Create the hydra python environment (same as Science Birds above - again, not needed if already installed)
+5. Polycraft will need to do a one time setup.  Navigate to `bin/pal` and run `xvfb-run -s '-screen 0 1280x1024x24' ./gradlew --no-daemon --stacktrace runclient`.  This will run Polycraft independently in headless mode.  Gradle will install any dependencies that the java runtime needs, and eventually a message will appear in the log output `[EXP] game initialization completed`, which signifies that Polycraft is ready to use.  Exit out of the application.
 5. Download the polycraft level files from https://gitlab-external.parc.com/hydra/hydra/-/wikis/Polycraft-Level-files and unzip them in a known directory.  
 
    5.1. Level file naming convention (using POGO_L01_T01_S01_X0010_A_U0002_V2 as an example)
