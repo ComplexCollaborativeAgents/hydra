@@ -15,11 +15,12 @@ pytest
 ## Setting up Polycraft
 1. Unzip the Polycraft repository in the binary directory.  Currently, we only support Polycraft for Ubuntu.
 2. Install a specific version of Java 8 (adoptopenjdk-8-hotspot)  
-   2.1 sudo wget -qO - https://adoptopenjdk.jfrog.io/adoptopenjdk/api/gpg/key/public | sudo apt-key add -  
+   2.1 wget -qO - https://adoptopenjdk.jfrog.io/adoptopenjdk/api/gpg/key/public | sudo apt-key add -  
    2.2 sudo add-apt-repository --yes https://adoptopenjdk.jfrog.io/adoptopenjdk/deb/  
    2.3 sudo apt-get update  
-   2.4 apt-get install adoptopenjdk-8-hotspot -V -y  
+   2.4 sudo apt-get install adoptopenjdk-8-hotspot -V -y  
    2.5 sudo sed -i -e '/^assistive_technologies=/s/^/#/' /etc/java-*-openjdk/accessibility.properties  
+   2.6 See java issues for further troubleshooting.
 3. Change directories to `bin` and run `./setup_polycraft.sh`.  This will install a specific version of Java 8 in addition to any other linux dependencies.  
 4. Note that the Polycraft domain requires a different version of Java than that of the Science Birds domain.  If using Ubuntu, you can use the `sudo update-alternatives --config java` command to select the Java version that corresponds with the domain that you want to run in.  If the Polycraft Hydra Agent hangs after starting up, check to make sure that you are running Java 8 (version adoptopenjdk8-hotspot). 
 5. Create the hydra python environment (same as Science Birds above - again, not needed if already installed)
@@ -66,3 +67,13 @@ $ docker push registry.gitlab-external.parc.com:8443/hydra/experiment:$(git rev-
 
 $ docker push registry.gitlab-external.parc.com:8443/hydra/experiment:latest
 ```
+
+# Java Issues
+## Issues encountered when installing adoptopenjdk-8-hotspot (and running Polycraft)
+### Running Polycraft / gradlew and encountering "could not determine java version..."
+This issue could arise because you are not running the correct Java version.  
+* First try setting the version by using `sudo update-alternatives --config java`
+* It could be that gradlew is reading the java version from the $JAVA_HOME or $PATH environmental variables.  Ideally, the update-alternatives framework should handle what java version you are using.  It is possible that under $PATH you have $JAVA_HOME set earlier than usr/bin (which is where update-alternatives creates a symlink from) or are referencing a specific java version in the PATH.  A temporary workaround is to export $JAVA_HOME="", which will then allow update-alternatives to do its job.
+### Gradlew permission denied
+* Gradle may have been installed under root, and thus have its permissions denied.
+* From the `bin/pal` directory, use `sudo chmod -R 777 ./.gradle
