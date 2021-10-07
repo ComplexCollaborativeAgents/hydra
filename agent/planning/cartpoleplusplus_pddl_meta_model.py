@@ -65,7 +65,7 @@ class CartPolePlusPlusMetaModel(MetaModel):
 
     def __init__(self):
         super().__init__(
-            docker_path=settings.CARTPOLE_PLANNING_DOCKER_PATH,
+            docker_path=settings.CARTPOLEPLUSPUS_PLANNING_DOCKER_PATH,
             domain_file_name="cartpole_plus_plus_domain.pddl",
             delta_t=settings.CP_DELTA_T,
             metric='minimize(total-time)',
