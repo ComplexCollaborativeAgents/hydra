@@ -1,7 +1,7 @@
 import math
 import sys
 from collections import namedtuple
-from typing import TextIO
+from typing import TextIO, Iterator
 
 from agent.planning.nyx.PDDL import GroundedPDDLInstance
 from agent.planning.nyx.syntax import constants
@@ -12,6 +12,9 @@ from agent.planning.nyx.syntax.trace import Trace
 
 class Plan(list):
     TrajectoryElement = namedtuple('TrajectoryElement', ['action', 'time'])
+
+    def iter(self, ignore_time_passing: bool = False) -> Iterator[TrajectoryElement]:
+        return filter(lambda item: not (item.action is constants.TIME_PASSING_ACTION and ignore_time_passing), self)
 
     def append_action(self, action: Action, time: float, expand_time_passing: bool = False):
         if expand_time_passing:
@@ -47,12 +50,11 @@ class Plan(list):
                 if item.action.duration > 0:
                     time = round(time + item.action.duration, constants.NUMBER_PRECISION)
 
-                    happenings_list = grounded_pddl.events.get_applicable(current_state) + \
-                        grounded_pddl.processes.get_applicable(current_state)
-                    for hp in happenings_list:
-                        current_state = current_state.apply_happening(hp)
-                        current_state.set_time(time)
-                        trace.append(current_state)
+                    for happening_tree in [grounded_pddl.events, grounded_pddl.processes]:
+                        for hp in happening_tree.get_applicable(current_state):
+                            current_state = current_state.apply_happening(hp)
+                            current_state.set_time(time)
+                            trace.append(current_state)
 
                     if double_events or constants.DOUBLE_EVENT_CHECK:
                         for hp2 in grounded_pddl.events.get_applicable(current_state):
@@ -71,9 +73,7 @@ class Plan(list):
         return trace
 
     def print(self, ignore_time_passing: bool = False, out: TextIO = sys.stdout):
-        for item in self:
-            if ignore_time_passing and item.action is constants.TIME_PASSING_ACTION:
-                continue
+        for item in self.iter(ignore_time_passing=ignore_time_passing):
             out.write("{:10.3f}:\t{}\t[{}]\n".format(item.time, item.action.grounded_name, item.action.duration))
 
     def to_file(self, plan_file: str, ignore_time_passing: bool = False):
