@@ -76,4 +76,4 @@ This issue could arise because you are not running the correct Java version.
 * It could be that gradlew is reading the java version from the $JAVA_HOME or $PATH environmental variables.  Ideally, the update-alternatives framework should handle what java version you are using.  It is possible that under $PATH you have $JAVA_HOME set earlier than usr/bin (which is where update-alternatives creates a symlink from) or are referencing a specific java version in the PATH.  A temporary workaround is to export $JAVA_HOME="", which will then allow update-alternatives to do its job.
 ### Gradlew permission denied
 * Gradle may have been installed under root, and thus have its permissions denied.
-* From the `bin/pal` directory, use `sudo chmod -R 777 ./.gradle
+* From the `bin/pal` directory, use `sudo chmod -R 777 ./.gradle`
