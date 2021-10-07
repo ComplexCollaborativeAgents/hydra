@@ -63,7 +63,7 @@ class CartPolePlusPlusPlanner(HydraPlanner):
     def get_plan_actions(self, count=0):
         nyx.runner("%s/cartpole_plus_plus_domain.pddl" % str(settings.CARTPOLE_PLANNING_DOCKER_PATH),
                    "%s/cartpole_prob.pddl" % str(settings.CARTPOLE_PLANNING_DOCKER_PATH),
-                   ['-vv', '-to:%s' % str(settings.CP_TIMEOUT), '-np:6', '-dblevent', '-noplan', '-search:gbfs',
+                   ['-vv', '-to:%s' % str(settings.CP_TIMEOUT), '-np:6', '-dblevent', '-noplan', '-search:gbfs', '-custom_heuristic:1',
                     '-th:%s' % str(self.meta_model.constant_numeric_fluents['time_limit']),
                     '-t:%s' % str(settings.CP_DELTA_T)])
 

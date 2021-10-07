@@ -67,6 +67,7 @@ class RequestCodes(Enum):
     ReportNoveltyDescription = 67
     ReadyForNewSet = 68
     NoveltyInfo = 69
+    BatchGroundTruth = 79
 
 class AgentClient:
     """Science Birds agent API"""
@@ -404,6 +405,23 @@ class AgentClient:
         gt = self.read_ground_truth_from_stream()
         return gt
 
+    def get_batch_ground_truth(self, gt_frequency):
+        ''' Record a batch of ground truths - pause game and capture at every frame.  Note that the agent will be unable to shoot whilst game is paused.'''
+        self._logger.info("sending get_batch_truth request")
+        ground_truth_count = int(gt_frequency)
+        
+        gt_list = []
+        
+        for count in range(ground_truth_count):
+            self._send_command(RequestCodes.BatchGroundTruth, gt_frequency)
+            gt = self.read_ground_truth_from_stream()
+
+            if(count%100 == 0):
+                self._logger.info("received gt number %d", count)
+
+            gt_list.append(gt)
+
+        return gt_list
 
 if __name__ == "__main__":
     """ TEST AGENT """

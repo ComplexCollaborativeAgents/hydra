@@ -579,11 +579,13 @@ class ScienceBirdsMetaModel(MetaModel):
         # Initial angle value to prune un-promising trajectories which only hit the ground
         closest_obj_x, closest_obj_y = get_closest_object_xy(pddl_problem)
         min_angle, max_angle = estimate_launch_angle(slingshot, Point2D(closest_obj_x, closest_obj_y), self)
-        problem_params["angle"] = min_angle
+        problem_params["angle"] = 0.0
         pddl_problem.init.append(['=', ['angle'], problem_params["angle"]])
         problem_params["max_angle"] = max_angle
         pddl_problem.init.append(['=', ['max_angle'], problem_params["max_angle"]])
 
+        problem_params["points_score"] = len(problem_params["birds"])
+        pddl_problem.init.append(['=', ['points_score'], problem_params["points_score"]])
 
         # Add goal
         pigs = problem_params["pigs"]
