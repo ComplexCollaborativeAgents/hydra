@@ -67,7 +67,7 @@ class RequestCodes(Enum):
     ReportNoveltyDescription = 67
     ReadyForNewSet = 68
     NoveltyInfo = 69
-    BatchGroundTruth = 79
+    BatchGT = 70
 
 class AgentClient:
     """Science Birds agent API"""
@@ -242,11 +242,10 @@ class AgentClient:
         return img
 
     def read_ground_truth_from_stream(self):
-        """Read Ground Truth fro sever_socket"""
+        """Read Ground Truth from sever_socket"""
         self._logger.debug("reading groundtruth from stream")
         msg_length = self._read_from_buff("I")[0]
         data = b''
-
         self._logger.debug("groundtruth length is %d bytes", msg_length)
         while len(data) < msg_length:
             packet = self.server_socket.recv(msg_length - len(data))
@@ -286,7 +285,7 @@ class AgentClient:
         self._logger.info("Sending load next available level request")
         self._send_command(RequestCodes.LoadNextAvailableLevel)
         level = self._read_from_buff("I")[0]
-        self._logger.info('Received load next available level: {}'.format(level))
+        self._logger.info('Received load next available level')
         return level
 
     def get_novelty_info(self):
@@ -296,7 +295,7 @@ class AgentClient:
         self._logger.info("novelty existence is %d ", novelty_info)
         return novelty_info
 
-    def shoot_and_record_ground_truth(self, fx, fy, t1, t2, gt_frequency):
+    def shoot_and_record_ground_truth(self, fx, fy, t1, t2, gt_frequency, gt_option = 0):
         """ Request to execute a shot and record ground truth every gt_frequency frames
             Note: number of frames will be dependent on the set game simulation and gt_frequency
             the slower the game is -> more frequent ground truth snapshots are possible and vice verta.
@@ -305,7 +304,7 @@ class AgentClient:
 
         code = RequestCodes.GTshoot
         should_read_images = False # for now turned off completely on the server and SB, in case needed - ask
-        self._send_command(code, "iiiii", fx, fy, t1, t2, gt_frequency)
+        self._send_command(code, "iiiiii", fx, fy, t1, t2, gt_frequency, gt_option)
 
         # read how many ground truths to expect
         ground_truths_count_bytes = self._read_from_buff("I")[0]
@@ -329,7 +328,32 @@ class AgentClient:
         self._logger.info("--- %s seconds ---", (time.time() - start_time))
         return gt_jsons
 
+    def batch_ground_truth(self,gt_frequency,n_frames=300):
+        
+        code = RequestCodes.BatchGT
+        should_read_images = False # for now turned off completely on the server and SB, in case needed - ask
+        self._send_command(code, "ii", gt_frequency, n_frames)
 
+        # read how many ground truths to expect
+        ground_truths_count_bytes = self._read_from_buff("I")[0]
+        ground_truths_count = int(ground_truths_count_bytes)
+
+        # read n ground truths
+        gt_images = []
+        gt_jsons = []
+        self._logger.info("receiving ground truth batch")
+        for i in range(0, ground_truths_count):
+            gt = self.read_ground_truth_from_stream()
+            if(should_read_images):
+                im = self.read_image_from_stream()
+            if(i%100 == 0):
+                self._logger.info("received gt number %d", i)
+            if (should_read_images):
+                gt_images.append(im)
+            gt_jsons.append(gt)
+        self._logger.info("received %d ground truth frames ", ground_truths_count)
+        print("received ground truth frames ", ground_truths_count)
+        return gt_jsons
 
 
     def restart_level(self):
@@ -404,24 +428,6 @@ class AgentClient:
         self._send_command(RequestCodes.GetNoisyGroundTruthWithoutScreenshot)
         gt = self.read_ground_truth_from_stream()
         return gt
-
-    def get_batch_ground_truth(self, gt_frequency):
-        ''' Record a batch of ground truths - pause game and capture at every frame.  Note that the agent will be unable to shoot whilst game is paused.'''
-        self._logger.info("sending get_batch_truth request")
-        ground_truth_count = int(gt_frequency)
-        
-        gt_list = []
-        
-        for count in range(ground_truth_count):
-            self._send_command(RequestCodes.BatchGroundTruth, gt_frequency)
-            gt = self.read_ground_truth_from_stream()
-
-            if(count%100 == 0):
-                self._logger.info("received gt number %d", count)
-
-            gt_list.append(gt)
-
-        return gt_list
 
 if __name__ == "__main__":
     """ TEST AGENT """
