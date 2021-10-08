@@ -3,11 +3,8 @@ import worlds.science_birds as sb
 from agent.sb_hydra_agent import SBHydraAgent
 import os.path as path
 import shutil
-<<<<<<< Updated upstream
-=======
 import argparse
 from zipfile import ZipFile
->>>>>>> Stashed changes
 
 
 def main(config='all_level_0_novelties.xml'):
