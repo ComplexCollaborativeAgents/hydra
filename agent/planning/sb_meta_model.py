@@ -246,6 +246,8 @@ class BirdType(PddlObjectType):
         self.hyper_parameters["m_bird"] = 1
         self.hyper_parameters["bounce_count"] = 0
         self.hyper_parameters["bird_released"] = False
+        ## TAP UPDATE
+        # self.hyper_parameters["bird_tapped"] = False
         self.hyper_parameters["velocity_multiplier"] = 10
 
     def _compute_obj_attributes(self, obj, problem_params: dict):
@@ -285,6 +287,13 @@ class BirdType(PddlObjectType):
                 obj_attributes["x_bird"] = slingshot_x
                 obj_attributes["y_bird"] = slingshot_y
 
+        ## TAP UPDATE
+        ## Encode bird type/colour in the PDDL+ model
+        # obj_attributes["bird_type"] = 0
+        # bird_map = {"red": 0, "yellow": 1, "black": 2, "white": 3, "blue": 4}
+        # for key in bird_map:
+        #     if key in self._get_name(obj).lower():
+        #         obj_attributes["bird_type"] = bird_map[key]
 
         obj_attributes["bird_id"] = problem_params["bird_index"]
         problem_params["bird_index"] = problem_params["bird_index"] + 1

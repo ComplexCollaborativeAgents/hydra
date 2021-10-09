@@ -105,6 +105,14 @@ class SBPlanner(HydraPlanner):
                                          # float(str(lines_list[i + 1].split('angle:')[1].split(',')[0])),
                                          float(line.split(':')[0]))
                     plan_actions.append(TimedAction(action_angle_time[0], action_angle_time[1]))
+
+                ## TAP UPDATE
+                # if "bird_action" in line:
+                #     action_angle_time = (line.split(':')[1].split('[')[0].replace('(', '').replace(')', '').strip(),
+                #                          float(str(lines_list[i + 1].split('angle:')[1].split(',')[0])),
+                #                          float(line.split(':')[0]))
+                #     plan_actions.append(TimedAction(action_angle_time[0], action_angle_time[2]))
+
                 if "syntax error" in line:
                     plan_actions.append(TimedAction("syntax error", 0.0))
                     break
