@@ -79,7 +79,7 @@ class PolyEntityTP(PolycraftAction):
         return "<PolyEntityTP entity={} dist={} success={}>".format(self.entity_id, self.dist, self.success)
 
     def do(self, poly_client: poly.PolycraftInterface) -> dict:
-        result =  poly_client.TP_TO_ENTITY(self.entity_id, distance=self.dist)
+        result =  poly_client.TP_TO_ENTITY(self.entity_id)
         self.success = self.is_success(result)
         return result
 
