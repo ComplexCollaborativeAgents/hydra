@@ -8,7 +8,7 @@ from os import path, chdir
 import subprocess
 import re
 from agent.planning.pddl_plus import *
-from agent.planning.cartpole_pddl_meta_model import *
+from agent.planning.cartpole_meta_model import *
 from agent.planning.nyx import nyx
 import datetime
 import time

@@ -3,7 +3,7 @@ from agent.repair.sb_repair import *
 
 logger = logging.getLogger("repairing_hydra_agent")
 
-from agent.planning.cartpole_pddl_meta_model import *
+from agent.planning.cartpole_meta_model import *
 from agent.repair.cartpole_repair import *
 
 

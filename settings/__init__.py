@@ -25,6 +25,8 @@ CP_DELTA_T = 0.02 # time discretisation for UPMurphi
 CP_TIMEOUT = 60 # timeout for the planning phase (in seconds)
 CP_CONSISTENCY_THRESHOLD = 0.01
 
+POLYCRAFT_DELTA_T = 1 # Time discretization
+
 OS_ROOT_PATH = path.abspath(os.sep)
 ROOT_PATH = path.join(path.dirname(path.dirname(path.abspath(__file__))))
 SCIENCE_BIRDS_BIN_DIR = path.join(ROOT_PATH,'bin')
@@ -48,10 +50,12 @@ SCIENCE_BIRDS_SERVER_CMD = 'java -jar {}'.format(path.join(SCIENCE_BIRDS_BIN_DIR
 POLYCRAFT_SERVER_CMD = "./gradlew --no-daemon --stacktrace runclient"   # Must be run in pal/PolycraftAIGym
 POLYCRAFT_HEADLESS = "xvfb-run -s '-screen 0 1280x1024x24'" # Prepend to Polycraft run command to run headless
 POLYCRAFT_DEFAULT_LEVEL_DIR = path.join(POLYCRAFT_DIR, "pogo_100_PN")   # Path to levels that come with the Polycraft distribution
-POLYCRAFT_LEVEL_DIR = "."  # Path to the polycraft levels directory.  NOTE: Please update this in your "local_settings.py" (create it if it doesn't exist)
+POLYCRAFT_LEVEL_DIR = path.join(ROOT_PATH, 'bin', 'pal', 'POGO_100_PN')  # Path to the polycraft levels directory.  NOTE: Please update this in your "local_settings.py" (create it if it doesn't exist)
 
 SB_PLANNING_DOCKER_PATH = path.join(ROOT_PATH, 'agent', 'planning', 'docker_scripts')
 CARTPOLE_PLANNING_DOCKER_PATH = path.join(ROOT_PATH, 'agent', 'planning', 'cartpole_docker_scripts')
+POLYCRAFT_PLANNING_DOCKER_PATH = path.join(ROOT_PATH, 'agent', 'planning', 'polycraft_docker_scripts')
+
 VAL_DOCKER_PATH = path.join(ROOT_PATH, 'agent', 'planning', 'val_scripts')
 
 HYDRA_INSTANCE_ID = shortuuid.uuid()

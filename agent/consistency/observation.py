@@ -3,7 +3,7 @@ import subprocess
 
 import settings
 from agent.planning.sb_meta_model import ScienceBirdsMetaModel
-from agent.planning.cartpole_pddl_meta_model import CartPoleMetaModel
+from agent.planning.cartpole_meta_model import CartPoleMetaModel
 from agent.planning.pddl_plus import PddlPlusPlan
 from agent.planning.meta_model import MetaModel
 

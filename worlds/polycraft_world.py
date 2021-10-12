@@ -350,7 +350,7 @@ class PolycraftState(State):
 
         # Craft an item NOTE: will need to be adjacent to crafting bench for 3x3 crafts TODO: decide whether or not to enforce adjaceny in valid action?
         for recipe in self.recipes:
-            actions.append(PolyCraftItem(recipe=recipe['input']))
+            actions.append(PolyCraftItem(recipe=recipe['inputs']))
 
         return actions
 
@@ -377,7 +377,7 @@ class Polycraft(World):
 
     def __init__(self, launch: bool = False, client_config: str = None):
         self.id = 2229
-
+        self.detached_server_mode = True # This means we do not listen to the server's output. This mode is used when launch parameter is False
         self.history = []
 
         # self.trajectory_planner = SimpleTrajectoryPlanner() # This is static to allow others to reason about it
@@ -389,13 +389,14 @@ class Polycraft(World):
 
         # State information
         self.current_recipes = []
-        self.current_trades = []
+        self.current_trades = dict() # Maps entity id to its trades
         self.last_cmd_success = True
         self.ready_for_cmds = False
         
         if launch:
             logger.info("Launching Polycraft instance")
             self.launch_polycraft()
+            self.detached_server_mode = False
 
         # Path to polycraft client interface config file (host name/port, buffer size, etc.)
         if client_config is None:
@@ -570,17 +571,6 @@ class Polycraft(World):
             logger.error("Failed to connect to Polycraft server - shutting down.")
             self.kill(exit_program=True)
 
-    def set_current_recipes(self, recipes: list):
-        """ To be called some time after the initialization of each level.  Hydra Agent to explore and collect all recipes before actual operation. """
-        # TODO: associate recipes with isLarge (3x3 and thus requires bench), input and output (should be [{isLarge, input, output}]) 
-        
-        self.current_recipes = recipes
-
-    def set_current_trades(self, trades: list):
-        """ To be called some time after the initialization of each level.  Hydra Agent to explore and collect all trades before actual operation. """
-        # TODO: associate trades with entity id, input and output (should be [{entity id, input, output}, ...])
-        
-        self.current_trades = trades
 
     def init_selected_level(self, s_level: str):
         """
@@ -593,11 +583,14 @@ class Polycraft(World):
             self.poly_client.RESET(self.current_level)
             
             # Wait for level to load fully (if not loaded fully, SENSE_ALL will return nothing and other undefined behavior) TODO: make consistent with RunTournament.py
-            while True:
-                if "[EXP] game initialization completed" in self._get_polycraft_output():
-                    self.ready_for_cmds = True
-                    break
-            
+            if self.detached_server_mode==False:
+                while True:
+                    if "[EXP] game initialization completed" in self._get_polycraft_output():
+                        self.ready_for_cmds = True
+                        break
+            else: # Detached server, using a heuristic of waiting a bit for it to load TODO: Is this bad?
+                time.sleep(5) # Assumes 5 sec. is enough to load a level.
+
         except (BrokenPipeError, KeyboardInterrupt) as err:
             logger.error("Polycraft server connection interrupted ({})".format(err))
             self.kill(exit_program=True)
@@ -650,6 +643,27 @@ class Polycraft(World):
                               inventory, currently_selected, copy.copy(self.current_recipes), 
                               copy.copy(self.current_trades), terminal, step_cost,
                               self.last_cmd_success)
+
+    def populate_current_recipes(self):
+        """
+        Query polycraft instance to obtain the relevant recipes
+        """
+        response = self.poly_client.SENSE_RECIPES()
+        assert(response['command_result']['result']=='SUCCESS')
+        self.current_recipes = response['recipes']
+
+    def interact(self, entity_id):
+        """
+        Query polycraft instance to interact with another agent
+        """
+        response = self.poly_client.INTERACT(entity_id)
+        self.current_trades[entity_id] = response['trades']['trades']
+        assert(response['command_result']['result']=='SUCCESS')
+
+    def move_to_entity(self, entity_id):
+        ''' Move adjacent to a given entity '''
+        PolyEntityTP(entity_id, dist=1).do(self.poly_client)
+
 
     def get_level_total_step_cost(self) -> float:
         try:
