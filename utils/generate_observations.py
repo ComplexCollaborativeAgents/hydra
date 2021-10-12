@@ -2,6 +2,7 @@ import settings
 import worlds.science_birds as sb
 from agent.sb_hydra_agent import SBHydraAgent
 import os.path as path
+import os
 import shutil
 import argparse
 from zipfile import ZipFile
@@ -39,7 +40,7 @@ def eval_m18_data():
         shutil.rmtree(path.join(settings.ROOT_PATH,"agent","consistency","trace"))
 
 if __name__ == '__main__':
-    path_prefix = "M18"
+    path_prefix = "Phase2"
     config_files = ["100_level_3_type_7_novelties.xml"]
 
     parser = argparse.ArgumentParser()
@@ -55,22 +56,26 @@ if __name__ == '__main__':
         print("Using args config_files: {}".format(args.config_files))
         config_files = args.config_files
 
+    trace_dir = path.join(settings.ROOT_PATH,"agent","consistency","trace")
+
     for config_file in config_files:
+        output_dir = path.join(settings.ROOT_PATH, "data", "science_birds", config_file[:-4])
+
+        if not path.isdir(output_dir):
+            os.mkdir(output_dir)
+
         settings.SB_DEFAULT_SHOT = ''
         main(config=path.join(path_prefix, config_file))
 
-        copy_path_baseline = path.join(settings.ROOT_PATH, "data", "science_birds", config_file[:-4], "baseline")
+        copy_path_baseline =  path.join(output_dir, "baseline")
 
-        shutil.copytree(path.join(settings.ROOT_PATH,"agent","consistency","trace"),
-                        copy_path_baseline)
-        shutil.rmtree(path.join(settings.ROOT_PATH,"agent","consistency","trace"))
+        shutil.copytree(trace_dir, copy_path_baseline)
+        shutil.rmtree(trace_dir)
 
         settings.SB_DEFAULT_SHOT = 'RANDOM'
         main(config=path.join(path_prefix, config_file))
 
-        copy_path_random = path.join(settings.ROOT_PATH, "data", "science_birds", config_file[:-4], "random")
+        copy_path_random = path.join(output_dir, "random")
 
-        shutil.copytree(path.join(settings.ROOT_PATH,"agent","consistency","trace"),
-                        copy_path_random)
-
-        shutil.rmtree(path.join(settings.ROOT_PATH,"agent","consistency","trace"))
+        shutil.copytree(trace_dir, copy_path_random)
+        shutil.rmtree(trace_dir)

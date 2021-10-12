@@ -1,4 +1,4 @@
-for i in {1..2}
+for i in {1..4}
 do
     echo "welcome $i random"
     python utils/generate_observations.py -c 50_level_1_type_9_novelties_r1.xml
@@ -6,7 +6,7 @@ do
     sleep 1m
 done
 
-for i in {1..2}
+for i in {1..4}
 do
     echo "welcome $i"
     python utils/generate_observations.py -c 50_level_1_type_9_novelties_r2.xml
@@ -15,7 +15,7 @@ do
 done
 
 
-for i in {1..2}
+for i in {1..4}
 do
     echo "welcome $i random"
     python utils/generate_observations.py -c 50_level_1_type_9_novelties_r3.xml
@@ -23,7 +23,7 @@ do
     sleep 1m
 done
 
-for i in {1..2}
+for i in {1..4}
 do
     echo "welcome $i"
     python utils/generate_observations.py -c 50_level_1_type_9_novelties_r4.xml
@@ -31,7 +31,7 @@ do
     sleep 1m
 done
 
-for i in {1..2}
+for i in {1..4}
 do
     echo "welcome $i random"
     python utils/generate_observations.py -c 50_level_1_type_10_novelties_r1.xml
@@ -39,7 +39,7 @@ do
     sleep 1m
 done
 
-for i in {1..2}
+for i in {1..4}
 do
     echo "welcome $i"
     python utils/generate_observations.py -c 50_level_1_type_10_novelties_r2.xml
@@ -47,7 +47,7 @@ do
     sleep 1m
 done
 
-for i in {1..2}
+for i in {1..4}
 do
     echo "welcome $i random"
     python utils/generate_observations.py -c 50_level_1_type_10_novelties_r3.xml
@@ -55,7 +55,7 @@ do
     sleep 1m
 done
 
-for i in {1..2}
+for i in {1..4}
 do
     echo "welcome $i"
     python utils/generate_observations.py -c 50_level_1_type_10_novelties_r4.xml
