@@ -35,7 +35,7 @@ import threading
 import time
 import uuid
 
-from worlds.wsu.objects import objects
+from . import objects
 
 
 class ConsumeCallback(object):

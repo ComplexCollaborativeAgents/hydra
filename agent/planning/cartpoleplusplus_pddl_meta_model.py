@@ -65,7 +65,7 @@ class CartPolePlusPlusMetaModel(MetaModel):
 
     def __init__(self):
         super().__init__(
-            docker_path=settings.CARTPOLEPLUSPUS_PLANNING_DOCKER_PATH,
+            docker_path=settings.CARTPOLEPLUSPLUS_PLANNING_DOCKER_PATH,
             domain_file_name="cartpole_plus_plus_domain.pddl",
             delta_t=settings.CP_DELTA_T,
             metric='minimize(total-time)',
@@ -78,7 +78,7 @@ class CartPolePlusPlusMetaModel(MetaModel):
                 # 'l_pole': 0.5,
                 'm_pole': 1.0,
                 'friction_pole': 0.0,
-                'force_mag': 15.0,
+                'force_mag': 10.0,
                 'inertia': 1.0,
                 'elapsed_time': 0.0,
                 'gravity': 9.81,

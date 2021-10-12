@@ -37,7 +37,7 @@ class AgentType(enum.Enum):
     Eaglewings = 4
 
 NOVELTY = 0
-TYPE = 4
+TYPE = 2
 SAMPLES = 10
 AGENT = AgentType.Hydra
 

@@ -289,6 +289,11 @@ class SBHydraAgent(HydraAgent):
 
         processed_state = self.perception.process_state(raw_state)
         observation.state = processed_state
+
+        # logger.info("\nRAW observation: " + str(raw_state.) + "\n")
+        logger.info("\nPROCESSED observation objects: " + str(processed_state.objects))
+        logger.info("\nPROCESSED observation novel: " + str(processed_state.novel_objects()))
+
         self.choose_action(observation)
 
     def choose_action(self, observation : ScienceBirdsObservation):

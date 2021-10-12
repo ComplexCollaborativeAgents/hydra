@@ -35,7 +35,7 @@ import types
 import uuid
 
 __major_version__ = '0.7'
-__minor_version__ = '0'
+__minor_version__ = '3'
 __db_version__ = '0.5'
 __version__ = '{}.{}'.format(__major_version__, __minor_version__)
 __database_version__ = re.sub('[.]', '_', __db_version__)
@@ -200,9 +200,9 @@ for domain in VALID_DOMAINS:
     LIVE_GENERATOR_QUEUES[domain] = 'live.generator.{}.v{}'.format(domain, __major_version__)
 
 # TA1 default command line arg values.
-DEFAULT_TA1_DEBUG = True
-DEFAULT_TA1_FULLDEBUG = True
-DEFAULT_TA1_PRINTOUT = True
+DEFAULT_TA1_DEBUG = False
+DEFAULT_TA1_FULLDEBUG = False
+DEFAULT_TA1_PRINTOUT = False
 DEFAULT_TA1_TESTING = False
 DEFAULT_TA1_DEMO = False
 DEFAULT_TA1_SHORTDEMO = False
