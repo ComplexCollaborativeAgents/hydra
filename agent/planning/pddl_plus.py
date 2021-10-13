@@ -97,6 +97,7 @@ class PddlPlusProblem():
 class PddlPlusDomain():
     def __init__(self):
         self.name = None
+        self.requirements = list()
         self.types = list()
         self.predicates = list()
         self.functions = list()

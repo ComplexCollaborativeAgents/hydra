@@ -1,5 +1,7 @@
 
 # from agent.planning.nyx.PDDL import PDDL_Parser
+from toolz import cons
+
 from agent.planning.nyx.planner import Planner
 import agent.planning.nyx.syntax.constants as constants
 import sys
@@ -37,16 +39,19 @@ def process_arguments(cl_arguments):
             continue
 
         arg_list = arg.split(':')
-
-        if arg_list[0] == '-t':
-            constants.DELTA_T = float(arg_list[1])
-            constants.TIME_PASSING_ACTION.duration = constants.DELTA_T
+        if arg_list[0] == '-np':
+            constants.NUMBER_PRECISION = int(arg_list[1])
         elif arg_list[0] == '-th':
             constants.TIME_HORIZON = float(arg_list[1])
         elif arg_list[0] == '-pi':
             constants.PRINT_INFO = float(arg_list[1])
         elif arg_list[0] == '-to':
             constants.TIMEOUT = float(arg_list[1])
+        elif arg_list[0] == '-t':
+            constants.DELTA_T = round(float(arg_list[1]), constants.NUMBER_PRECISION)
+            constants.TIME_PASSING_ACTION.duration = round(constants.DELTA_T, constants.NUMBER_PRECISION)
+        elif arg_list[0] == '-custom_heuristic':
+            constants.CUSTOM_HEURISTIC_ID = float(arg_list[1])
         elif arg_list[0] == '-search':
             constants.SEARCH_BFS = False
             if arg_list[1] == 'bfs':
@@ -125,7 +130,7 @@ def print_solution_info(pln, plnr, ttime):
         '\n\t* time: ' + str(round(ttime,3)) + \
         '\n\t* explored states: ' + str(plnr.explored_states) + \
         '\n\t* plan length: ' + str(non_temporal_count) + ' (' + str(len(pln)) + ')' + \
-        '\n\t* plan duration: ' + str(plnr.reached_goal_state.time)
+        '\n\t* plan duration: ' + str(plnr.reached_goal_states[0].time)
     print(config_string)
 
 
@@ -146,8 +151,8 @@ def runner(dom_file, prob_file, args_list: []):
 
     my_plan = []
 
-    if my_plnr.reached_goal_state is not None:
-        my_plan = my_plnr.get_trajectory(my_plnr.reached_goal_state)
+    if my_plnr.reached_goal_states:
+        my_plan = my_plnr.get_trajectory(my_plnr.reached_goal_states[0])
         print_solution_info(my_plan, my_plnr, total_time)
     else:
         print('\n=================================================\n')
@@ -176,6 +181,10 @@ def runner(dom_file, prob_file, args_list: []):
     open(plan_file, 'w').close()
 
     plan_f = open(plan_file, 'a')
+
+    if not constants.NO_PLAN:
+        print(str(my_plnr.initial_state) + '\n')
+    plan_f.write(str(my_plnr.initial_state) + '\n')
 
     for pair in my_plan:
 

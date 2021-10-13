@@ -12,7 +12,7 @@ import xml.etree.ElementTree as ET
 from typing import Optional
 
 import numpy
-from worlds.science_birds_interface.demo.naive_agent_groundtruth import ClientNaiveAgent
+# from worlds.science_birds_interface.demo.naive_agent_groundtruth import ClientNaiveAgent
 
 import worlds.science_birds as sb
 from agent.sb_hydra_agent import SBHydraAgent, RepairingSBHydraAgent
@@ -38,8 +38,8 @@ class AgentType(enum.Enum):
 
 NOVELTY = 0
 TYPE = 2
-SAMPLES = 1
-AGENT = AgentType.Baseline
+SAMPLES = 10
+AGENT = AgentType.Hydra
 
 def extract_levels(source, destination=None):
     ''' Extract ANU levels. '''

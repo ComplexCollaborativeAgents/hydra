@@ -1,12 +1,13 @@
 import logging
 import random
+import time
 
 import numpy as np
 
 from agent.consistency.observation import CartPoleObservation
-from agent.planning.cartpole_pddl_meta_model import CartPoleMetaModel
-from agent.planning.cartpole_planner import CartPolePlanner
-from agent.repair.cartpole_repair import CartpoleRepair
+from agent.planning.cartpoleplusplus_pddl_meta_model import CartPolePlusPlusMetaModel
+from agent.planning.cartpoleplusplus_planner import CartPolePlusPlusPlanner
+from agent.repair.cartpole_repair import CartpoleRepair, CartpoleConsistencyEstimator
 from agent.consistency.focused_anomaly_detector import FocusedAnomalyDetector
 import json
 import settings
@@ -15,14 +16,14 @@ from typing import Type
 from worlds.wsu.wsu_dispatcher import WSUObserver
 from agent.hydra_agent import HydraAgent
 
-class CartpoleHydraAgent(HydraAgent):
+class CartpolePlusPlusHydraAgent(HydraAgent):
     def __init__(self):
-        super().__init__(planner=CartPolePlanner(CartPoleMetaModel()), meta_model_repair=None)
+        super().__init__(planner=CartPolePlusPlusPlanner(CartPolePlusPlusMetaModel()), meta_model_repair=None)
 
-        self.log = logging.getLogger(__name__).getChild('CartpoleHydraAgent')
+        self.log = logging.getLogger(__name__).getChild('CartpolePlusPlusHydraAgent')
 
         self.observations_list = []
-        self.replan_idx = 25
+        self.replan_idx = 20
 
         self.novelty_likelihood = 0.0
         self.novelty_existence = None
@@ -52,25 +53,47 @@ class CartpoleHydraAgent(HydraAgent):
     def choose_action(self, observation: CartPoleObservation) -> \
             dict:
 
+        time.sleep(0.5)
+
         if self.plan is None:
             # self.meta_model.constant_numeric_fluents['time_limit'] = 4.0
-            self.meta_model.constant_numeric_fluents['time_limit'] = max(0.02, min(4.0, round((4.0 - ((self.steps) * 0.02)), 2)))
+            self.meta_model.constant_numeric_fluents['time_limit'] = max(0.02, min(1.0, round((4.0 - ((self.steps) * 0.02)), 2)))
             self.plan = self.planner.make_plan(observation, 0)
             self.current_observation = CartPoleObservation()
             if len(self.plan) == 0:
                 self.plan_idx = 999
 
         if self.plan_idx >= self.replan_idx:
-            self.meta_model.constant_numeric_fluents['time_limit'] = max(0.02, min(4.0, round((4.0 - ((self.steps) * 0.02)), 2)))
+            self.meta_model.constant_numeric_fluents['time_limit'] = max(0.02, min(1.0, round((4.0 - ((self.steps) * 0.02)), 2)))
             new_plan = self.planner.make_plan(observation, 0)
             self.current_observation = CartPoleObservation()
             if len(new_plan) != 0:
                 self.plan = new_plan
                 self.plan_idx = 0
 
+        state_values_list = self.planner.extract_state_values_from_trace("%s/plan_cartpole_prob.pddl" % str(settings.CARTPOLEPLUSPLUS_PLANNING_DOCKER_PATH))
+        state_values_list.insert(0, (observation['cart']['x_position'], observation['cart']['y_position'], observation['cart']['x_velocity'], observation['cart']['y_velocity']))
+
+        if (len(state_values_list) > 1):
+            print("cart observation (X,Y,Vx,Vy):\t" + str(observation['cart']['x_position']) + ",\t\t " + str(observation['cart']['y_position']) + ",\t\t " + str(observation['cart']['x_velocity']) + ",\t\t " + str(observation['cart']['y_velocity']))
+            print("cart plan val (X,Y,Vx,Vy):\t\t" + str(state_values_list[self.plan_idx][0]) + ",\t\t " + str(state_values_list[self.plan_idx][1]) + ",\t\t " + str(state_values_list[self.plan_idx][2]) + ",\t\t " + str(state_values_list[self.plan_idx][3]))
+
         action = random.randint(0, 1)
         if self.plan_idx < len(self.plan):
-            action = 1 if self.plan[self.plan_idx].action_name == "move_cart_right dummy_obj" else 0
+            action = 0
+            if self.plan[self.plan_idx].action_name == "do_nothing dummy_obj":
+                action = 0
+            elif self.plan[self.plan_idx].action_name == "move_cart_left dummy_obj":
+                action = 1
+            elif self.plan[self.plan_idx].action_name == "move_cart_right dummy_obj":
+                action = 2
+            elif self.plan[self.plan_idx].action_name == "move_cart_forward dummy_obj":
+                action = 3
+            elif self.plan[self.plan_idx].action_name == "move_cart_backward dummy_obj":
+                action = 4
+
+            # action = 1 if self.plan[self.plan_idx].action_name == "move_cart_right dummy_obj" else 0
+
 
         self.plan_idx += 1
         self.steps += 1
@@ -85,26 +108,31 @@ class CartpoleHydraAgent(HydraAgent):
         # sometimes the is a typo in the feature vector we get from WSU:
         if 'cart_veloctiy' in feature_vector: feature_vector['cart_velocity'] = feature_vector['cart_veloctiy']
 
-        features = ['cart_position', 'cart_velocity', 'pole_angle', 'pole_angular_velocity']
+        features = ['cart', 'pole', 'blocks', 'time_stamp', 'image']
+        #
+        # if 'walls' in feature_vector:
+        #     features = ['cart', 'pole', 'blocks', 'walls', 'time_stamp', 'image']
         return np.array([feature_vector[f] for f in features])
 
     @staticmethod
     def action_to_label(action: int) -> dict:
-        labels = [{'action': 'left'}, {'action': 'right'}]
+        labels = [{'action': 'nothing'}, {'action': 'left'}, {'action': 'right'}, {'action': 'forward'}, {'action': 'backward'}]
         return labels[action]
 
 
-class RepairingCartpoleHydraAgent(CartpoleHydraAgent):
+class RepairingCartpolePlusPlusHydraAgent(CartpolePlusPlusHydraAgent):
     def __init__(self):
         super().__init__()
         self.repair_threshold = 0.975 # 195/200
         self.has_repaired = False
         self.detector = FocusedAnomalyDetector()
+        self.consistency_checker = CartpoleConsistencyEstimator()
         self.meta_model_repair = CartpoleRepair()
 
     def episode_end(self, performance: float, feedback: dict = None)-> \
             (float, float, int, dict):
         super().episode_end(performance) # Update
+
 
         novelty_likelihood, novelty_characterization, has_repaired = self.novelty_detection()
         self.novelty_likelihood = novelty_likelihood
@@ -120,21 +148,29 @@ class RepairingCartpoleHydraAgent(CartpoleHydraAgent):
         ''' Checks if we should repair basd on the given observation '''
         return self.novelty_existence is not False and self.last_performance[-1] < self.repair_threshold
 
-
     def novelty_detection(self):
         ''' Computes the likelihood that the current observation is novel '''
+        novelty_likelihood = self.novelty_likelihood
+        novelty_characterization = self.novelty_characterization
+        has_repaired = False
+
         last_observation = self.observations_list[-1]
 
         if self.should_repair(last_observation):
             novelty_characterization, novelty_likelihood = self.repair_meta_model(last_observation)
+            has_repaired = True
+
 
         if self.novelty_existence is True:
             novelty_likelihood = 1.0
 
-        return novelty_likelihood, novelty_characterization
+        return novelty_likelihood, novelty_characterization, has_repaired
 
     def repair_meta_model(self, last_observation):
         ''' Repair the meta model based on the last observation '''
+
+        novelty_likelihood = self.novelty_likelihood
+        novelty_characterization = self.novelty_characterization
 
         try:
             repair, consistency = self.meta_model_repair.repair(self.meta_model, last_observation,
@@ -154,8 +190,8 @@ class RepairingCartpoleHydraAgent(CartpoleHydraAgent):
         return novelty_characterization, novelty_likelihood
 
 
-class CartpoleHydraAgentObserver(WSUObserver):
-    def __init__(self, agent_type: Type[CartpoleHydraAgent] = CartpoleHydraAgent):
+class CartpolePlusPlusHydraAgentObserver(WSUObserver):
+    def __init__(self, agent_type: Type[CartpolePlusPlusHydraAgent] = CartpolePlusPlusHydraAgent):
         super().__init__()
         self.agent_type = agent_type
         self.agent = None
@@ -175,8 +211,10 @@ class CartpoleHydraAgentObserver(WSUObserver):
 
         self.agent.novelty_existence = novelty_indicator
 
-        observation = self.agent.feature_vector_to_observation(feature_vector)
+        # observation = self.agent.feature_vector_to_observation(feature_vector)
+        observation = feature_vector
 
         action = self.agent.choose_action(observation)
+
         self.log.debug("Testing instance: sending action={}".format(action))
         return action

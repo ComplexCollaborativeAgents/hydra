@@ -11,7 +11,6 @@
                 (x_pig ?p - pig) (y_pig ?p - pig) (pig_radius ?p - pig) (m_pig ?p - pig)
                 (x_platform ?pl - platform) (y_platform ?pl - platform) (platform_width ?pl - platform) (platform_height ?pl - platform)
                 (x_block ?bl - block) (y_block ?bl - block) (block_width ?bl - block) (block_height ?bl - block) (block_life ?bl - block) (block_mass ?bl - block) (block_stability ?bl - block)
-                (points_score)
                 ;; WOOD LIFE = 0.75   WOOD MASS COEFFICIENT = 0.375 ;; ICE LIFE = 0.75   ICE MASS COEFFICIENT = 0.375 ;; STONE LIFE = 1.2   STONE MASS COEFFICIENT = 0.375
                 ;; WOOD LIFE MULTIPLIER = 1.0 ;; ICE LIFE MULTIPLIER = 0.5 ;; STONE LIFE MULTIPLIER = 2.0
                 ;; THESE VALUES NEED TO BE VERIFIED
@@ -60,7 +59,6 @@
             (assign (vx_bird ?b) (* (v_bird ?b) (- 1 (/ (* (* (angle) 0.0174533) (* (angle) 0.0174533) ) 2) ) ) )
             (bird_released ?b)
             (angle_adjusted)
-            ;(decrease (points_score) 10000)
         )
     )
 
@@ -86,7 +84,7 @@
         :precondition (and
             (= (active_bird) (bird_id ?b))
             (bird_released ?b)
-            (or (>= (bounce_count ?b) 3)
+            (or (>= (bounce_count ?b) 3) 
                 (>= (x_bird ?b) 800)
             )
             (angle_adjusted)
@@ -130,7 +128,6 @@
 
             (assign (bounce_count ?b) (+ (bounce_count ?b) 1))
             (pig_killed)
-            (increase (points_score) 5000)
         )
     )
 
@@ -166,7 +163,7 @@
             (= (active_bird) (bird_id ?b))
             (> (block_life ?bl) 0)
             (> (v_bird ?b) 0)
-            (or
+            (or 
             	(<= (block_stability ?bl) (v_bird ?b))
             	(<= (block_life ?bl) (v_bird ?b))
         	)
@@ -182,7 +179,6 @@
             (assign (vx_bird ?b) (* (vx_bird ?b) 0.5))
             (assign (v_bird ?b) (* (v_bird ?b) 0.5))
             (assign (bounce_count ?b) (+ (bounce_count ?b) 1))
-            ;(increase (points_score) 500)
         )
     )
 
@@ -202,7 +198,6 @@
             (assign (block_life ?bl_top) (- (block_life ?bl_top) 100) )
             (assign (y_block ?bl_top) (/ (block_height ?bl_top) 2) )
             (assign (block_stability ?bl_top) 0)
-            (increase (points_score) 500)
         )
     )
 
@@ -230,15 +225,14 @@
             (<= (block_life ?bl_tnt) 0)
             (> (block_stability ?bl_near) 0)
             (> (block_life ?bl_near) 0)
-            (<= (- (x_block ?bl_tnt) (x_block ?bl_near)) 100 )
-            (>= (- (x_block ?bl_tnt) (x_block ?bl_near)) -100 )
-            (<= (- (y_block ?bl_tnt) (y_block ?bl_near)) 100 )
-            (>= (- (y_block ?bl_tnt) (y_block ?bl_near)) -100 )
+            (<= (- (x_block ?bl_tnt) (x_block ?bl_near)) 70 )
+            (>= (- (x_block ?bl_tnt) (x_block ?bl_near)) -70 )
+            (<= (- (y_block ?bl_tnt) (y_block ?bl_near)) 70 )
+            (>= (- (y_block ?bl_tnt) (y_block ?bl_near)) -70 )
         )
         :effect (and
             (assign (block_life ?bl_near) 0)
             (assign (block_stability ?bl_near) 0)
-            (increase (points_score) 1000)
         )
     )
 
@@ -257,7 +251,6 @@
         :effect (and
             (pig_dead ?p)
             (pig_killed)
-            (increase (points_score) 5000)
         )
     )
 
@@ -274,7 +267,6 @@
         :effect (and
             (pig_dead ?p)
             (pig_killed)
-            (increase (points_score) 5000)
         )
     )
 
@@ -297,3 +289,4 @@
 
 
 )
+
