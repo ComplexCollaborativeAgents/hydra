@@ -153,6 +153,7 @@ class Planner:
         curr_v_state = VisitedState(sstate)
 
         while curr_v_state.state.predecessor_action is not None:
-            plan.insert(0, (curr_v_state.state.predecessor_action, copy.deepcopy(curr_v_state.state)))
+            plan.append((curr_v_state.state.predecessor_action, copy.deepcopy(curr_v_state.state)))
             curr_v_state = self.visited_hashmap[curr_v_state.state.predecessor_hashed]
+        plan.reverse()
         return plan
