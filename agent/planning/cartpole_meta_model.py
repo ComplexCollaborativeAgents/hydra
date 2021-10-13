@@ -7,7 +7,7 @@ from agent.planning.meta_model import *
 fh = logging.FileHandler("cartpole_hydra.log",mode='w')
 formatter = logging.Formatter('%(asctime)-15s %(name)s - %(levelname)s - %(message)s')
 fh.setFormatter(formatter)
-logger = logging.getLogger("cartpole_pddl_meta_model")
+logger = logging.getLogger("cartpole_meta_model")
 logger.setLevel(logging.INFO)
 logger.addHandler(fh)
 

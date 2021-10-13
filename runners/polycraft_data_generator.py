@@ -1,6 +1,6 @@
 import logging
 import worlds.polycraft_world as poly
-from agent.planning.pddlplus_parser import PddlProblemExporter
+from agent.planning.pddlplus_parser import PddlProblemExporter,PddlDomainParser, PddlDomainExporter
 from agent.planning.polycraft_meta_model import PolycraftMetaModel
 from agent.polycraft_hydra_agent import PolycraftHydraAgent
 import pickle
@@ -56,7 +56,12 @@ if __name__ == '__main__':
     print(world_state)
     meta_model = PolycraftMetaModel()
     pddl_problem =meta_model.create_pddl_problem(world_state)
-    PddlProblemExporter().to_file(pddl_problem, dumps_path / "poly.pddl")
+
+    PddlProblemExporter().to_file(pddl_problem, dumps_path / "poly-problem.pddl")
+
+    pddl_domain = meta_model.create_pddl_domain(world_state)
+    PddlDomainExporter().to_file(pddl_domain, dumps_path / "poly-domain.pddl")
+
     #
     #
     # pddl_state = meta_model.create_pddl_state(world_state)
