@@ -1,0 +1,24 @@
+episode_num,novelty_probability,novelty_threshold,novelty,novelty_characterization,performance,trial_num,novelty_id,trial_type,episode_type,level,env_config
+episode_num,novelty_probability,novelty_threshold,novelty,novelty_characterization,performance,trial_num,novelty_id,trial_type,episode_type,level,env_config
+0,1.0,0.999999,0,"{""m_cart"": 0, ""l_pole"": 0.30000000000000004, ""m_pole"": 0, ""force_mag"": 0, ""gravity"": 0, ""angle_limit"": 0, ""x_limit"": 0}",0.595,0,length_1point1_masscart_point9,unknown,novelty,1,"{'length': 1.1, 'masscart': 0.9}"
+0,1.0,0.999999,0,"{""m_cart"": 0, ""l_pole"": 0.2, ""m_pole"": 0, ""force_mag"": -1.0, ""gravity"": 0, ""angle_limit"": 0, ""x_limit"": 0}",0.36,0,length_1point1_masscart_point9,known,novelty,1,"{'length': 1.1, 'masscart': 0.9}"
+episode_num,novelty_probability,novelty_threshold,novelty,novelty_characterization,performance,trial_num,novelty_id,trial_type,episode_type,level,env_config
+episode_num,novelty_probability,novelty_threshold,novelty,novelty_characterization,performance,trial_num,novelty_id,trial_type,episode_type,level,env_config
+0,1.0,0.999999,0,"{""m_cart"": 0, ""l_pole"": 0.2, ""m_pole"": 0, ""force_mag"": -1.0, ""gravity"": 0, ""angle_limit"": 0, ""x_limit"": 0}",0.365,0,length_1point1_masscart_point9,unknown,novelty,1,"{'length': 1.1, 'masscart': 0.9}"
+0,1.0,0.999999,0,"{""m_cart"": 0, ""l_pole"": 0.2, ""m_pole"": 0, ""force_mag"": -1.0, ""gravity"": 0, ""angle_limit"": 0, ""x_limit"": 0}",0.37,0,length_1point1_masscart_point9,known,novelty,1,"{'length': 1.1, 'masscart': 0.9}"
+episode_num,novelty_probability,novelty_threshold,novelty,novelty_characterization,performance,trial_num,novelty_id,trial_type,episode_type,level,env_config
+0,1.0,0.999999,0,"{""m_cart"": 0, ""l_pole"": 0.30000000000000004, ""m_pole"": 0, ""force_mag"": 0, ""gravity"": 0, ""angle_limit"": 0, ""x_limit"": 0}",0.52,0,length_1point1_masscart_point9,unknown,novelty,1,"{'length': 1.1, 'masscart': 0.9}"
+0,1.0,0.999999,0,"{""m_cart"": 0, ""l_pole"": 0.30000000000000004, ""m_pole"": 0, ""force_mag"": 0, ""gravity"": 0, ""angle_limit"": 0, ""x_limit"": 0}",0.48,0,length_1point1_masscart_point9,known,novelty,1,"{'length': 1.1, 'masscart': 0.9}"
+episode_num,novelty_probability,novelty_threshold,novelty,novelty_characterization,performance,trial_num,novelty_id,trial_type,episode_type,level,env_config
+0,0.0,0.999999,0,{},1.0,0,length_1point1_masscart_point9,unknown,non-novelty-performance,1,"{'length': 1.1, 'masscart': 0.9}"
+1,0.0,0.999999,0,{},1.0,0,length_1point1_masscart_point9,unknown,non-novelty-performance,1,"{'length': 1.1, 'masscart': 0.9}"
+2,0.0,0.999999,0,{},1.0,0,length_1point1_masscart_point9,unknown,non-novelty-performance,1,"{'length': 1.1, 'masscart': 0.9}"
+3,0.0,0.999999,0,{},0.63,0,length_1point1_masscart_point9,unknown,novelty,1,"{'length': 1.1, 'masscart': 0.9}"
+4,1.0,0.999999,0,"{""m_cart"": 0, ""l_pole"": 0.30000000000000004, ""m_pole"": 0, ""force_mag"": 0, ""gravity"": 0, ""angle_limit"": 0, ""x_limit"": 0}",0.54,0,length_1point1_masscart_point9,unknown,novelty,1,"{'length': 1.1, 'masscart': 0.9}"
+5,1.0,0.999999,0,"{""m_cart"": 0, ""l_pole"": 0.30000000000000004, ""m_pole"": 0, ""force_mag"": 0, ""gravity"": 0, ""angle_limit"": 0, ""x_limit"": 0}",0.96,0,length_1point1_masscart_point9,unknown,novelty,1,"{'length': 1.1, 'masscart': 0.9}"
+0,0.0,0.999999,0,{},1.0,0,length_1point1_masscart_point9,known,non-novelty-performance,1,"{'length': 1.1, 'masscart': 0.9}"
+1,0.0,0.999999,0,{},1.0,0,length_1point1_masscart_point9,known,non-novelty-performance,1,"{'length': 1.1, 'masscart': 0.9}"
+2,0.0,0.999999,0,{},1.0,0,length_1point1_masscart_point9,known,non-novelty-performance,1,"{'length': 1.1, 'masscart': 0.9}"
+3,1.0,0.999999,0,{},0.505,0,length_1point1_masscart_point9,known,novelty,1,"{'length': 1.1, 'masscart': 0.9}"
+4,1.0,0.999999,0,{},0.41,0,length_1point1_masscart_point9,known,novelty,1,"{'length': 1.1, 'masscart': 0.9}"
+5,1.0,0.999999,0,{},0.385,0,length_1point1_masscart_point9,known,novelty,1,"{'length': 1.1, 'masscart': 0.9}"

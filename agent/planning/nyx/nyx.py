@@ -2,15 +2,13 @@
 # from agent.planning.nyx.PDDL import PDDL_Parser
 from agent.planning.nyx.planner import Planner
 import agent.planning.nyx.syntax.constants as constants
-import settings
 import sys
 import time
 import os, shutil
 from datetime import datetime
 import gc
+import matplotlib.pyplot as plt
 sys.dont_write_bytecode = True
-
-
 
 def process_arguments(cl_arguments):
 
@@ -33,6 +31,9 @@ def process_arguments(cl_arguments):
             continue
         elif arg == '-v':
             constants.VERBOSE_OUTPUT = True
+            continue
+        elif arg == '-dblevent':
+            constants.DOUBLE_EVENT_CHECK = True
             continue
 
         arg_list = arg.split(':')
@@ -76,8 +77,41 @@ def print_config(dom, prob, pla):
         '\n\t* search algorithm: ' + str(constants.SEARCH_ALGO_TXT) + \
         '\n\t* time discretisation: ' + str(constants.DELTA_T) + \
         '\n\t* time horizon: ' + str(constants.TIME_HORIZON) + \
-        ''
+        '\n'
     print(config_string)
+
+def plot_plan_variables(plan: list, vars_to_plot: list, xlabel="", ylabel=""):
+
+    # vars_to_plot.append("['propulsion_power']")
+
+    time_array = []
+    for ps in plan:
+        time_array.append(ps[1].time)
+
+    # print("\n\n Plotting variables: {}\n\n".format(vars_to_plot))
+
+    for va in vars_to_plot:
+        if va not in plan[0][1].state_vars:
+            print("\nfailed to plot: no variable " + str(va) + "in state...")
+            return
+
+    var_arrays = list()
+    var_arrays.append(time_array)
+
+    for va in vars_to_plot:
+        temp_va_array = list()
+        for plan_state in plan:
+            temp_va_array.append(plan_state[1].state_vars[va])
+        var_arrays.append(temp_va_array)
+
+    # print(var_arrays)
+
+    for ivar in range(1,len(var_arrays)):
+        plt.plot(var_arrays[0], var_arrays[ivar], label=vars_to_plot[ivar-1])
+    plt.legend()
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    plt.show()
 
 def print_solution_info(pln, plnr, ttime):
 
@@ -174,6 +208,16 @@ def runner(dom_file, prob_file, args_list: []):
     plan_f.close()
 
 
+
+    # if constants.PLOT_VARS and my_plnr.reached_goal_state is not None:
+    #     plot_plan_variables(my_plan, ["['massflow_rate', 'massflow_sensor_1']","['massflow_rate', 'massflow_sensor_2']","['massflow_rate', 'massflow_sensor_7']","['massflow_rate', 'massflow_sensor_8']"], xlabel='time(s)', ylabel='massflow')
+    #     plot_plan_variables(my_plan, ["['control_valve_opening', 'control_valve_6']","['control_valve_opening', 'control_valve_7']","['control_valve_opening', 'control_valve_8']",
+    #                                     "['control_valve_opening', 'control_valve_9']","['control_valve_opening', 'control_valve_10']","['control_valve_opening', 'control_valve_11']",
+    #                                     "['control_valve_opening', 'control_valve_12']","['control_valve_opening', 'control_valve_13']","['control_valve_opening', 'control_valve_14']",
+    #                                     "['control_valve_opening', 'control_valve_15']","['control_valve_opening', 'control_valve_16']",
+    #                                     "['pump_setting', 'pump_reference_1']", "['pump_setting', 'pump_reference_2']"], 'time(s)', 'setting')
+
+
     del my_plnr
     gc.collect()
 
@@ -181,7 +225,4 @@ def runner(dom_file, prob_file, args_list: []):
 # Main
 #-----------------------------------------------
 if __name__ == '__main__':
-    # runner(sys.argv[1], sys.argv[2], sys.argv[3:])
-    runner("%s/cartpole_domain.pddl" % str(settings.CARTPOLE_PLANNING_DOCKER_PATH),
-               "%s/cartpole_prob_35.pddl" % (str(settings.CARTPOLE_PLANNING_DOCKER_PATH)+"/trace/problems"),
-               ['-search:gbfs', '-th:4', '-t:%s' % str(settings.CP_DELTA_T)])
+    runner(sys.argv[1], sys.argv[2], sys.argv[3:])

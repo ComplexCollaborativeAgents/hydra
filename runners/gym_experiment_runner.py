@@ -14,6 +14,7 @@ from agent.repairing_hydra_agent import RepairingGymHydraAgent
 import time
 from agent.planning.cartpole_meta_model import *
 from agent.gym_hydra_agent import *
+from agent.gym_hydra_agent import logger
 from worlds.gym_cartpole_dispatcher import GymCartpoleDispatcher
 from worlds.wsu.wsu_dispatcher import WSUObserver
 

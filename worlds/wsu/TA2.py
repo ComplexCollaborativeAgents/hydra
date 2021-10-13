@@ -255,36 +255,37 @@ class TA2Agent(TA2Logic):
         self.log.info('Testing Episode Start: #{}'.format(episode_number))
 
         # Throw something together to create work.
-        work_list = list([500000])
-        for i in range(3 + episode_number):
-            work_list.append(5000000)
-        response_queue = queue.Queue()
-        response = None
-        # Initialize the example of doing work safely outside the main thread.
-        # Remember, in Python all objects beyond int, float, bool, and str are passed by reference.
-        threaded_work = ThreadedProcessingExample(processing_object=work_list,
-                                                  response_queue=response_queue)
-        # Start the work in a separate thread.
-        threaded_work.start()
-
-        while response is None:
-            try:
-                # Try to get the response from the queue for 5 seconds before we let the AMQP
-                # network event loop do any required work (such as sending heartbeats) for
-                # 0.5 seconds.  By having the get(block=True) we ensure that there is basically
-                # no wait for the result once it is put in the queue.
-                response = response_queue.get(block=True, timeout=5)
-            except queue.Empty:
-                # Process any amqp events for 0.5 seconds before we try to get the results again.
-                self.process_amqp_events()
-
-        # Safely end and clean up the threaded work object.
-        threaded_work.stop()
-        threaded_work.join()
-
-        self.log.info('message from threaded work: {}'.format(response[1]))
-        self.log.warning('Please remove this sample threaded work object from '
-                         'testing_episode_start() before running actual experiments.')
+        # work_list = list([5000])
+        # for i in range(3 + episode_number):
+        #     work_list.append(50000)
+        # response_queue = queue.Queue()
+        # response = None
+        # # Initialize the example of doing work safely outside the main thread.
+        # # Remember, in Python all objects beyond int, float, bool, and str are passed
+        # # by reference.
+        # threaded_work = ThreadedProcessingExample(processing_object=work_list,
+        #                                           response_queue=response_queue)
+        # # Start the work in a separate thread.
+        # threaded_work.start()
+        #
+        # while response is None:
+        #     try:
+        #         # Try to get the response from the queue for 5 seconds before we let the AMQP
+        #         # network event loop do any required work (such as sending heartbeats) for
+        #         # 0.5 seconds.  By having the get(block=True) we ensure that there is basically
+        #         # no wait for the result once it is put in the queue.
+        #         response = response_queue.get(block=True, timeout=5)
+        #     except queue.Empty:
+        #         # Process any amqp events for 0.5 seconds before we try to get the results again.
+        #         self.process_amqp_events()
+        #
+        # # Safely end and clean up the threaded work object.
+        # threaded_work.stop()
+        # threaded_work.join()
+        #
+        # self.log.info('message from threaded work: {}'.format(response[1]))
+        # self.log.warning('Please remove this sample threaded work object from '
+        #                  'testing_episode_start() before running actual experiments.')
         return
 
     def testing_instance(self, feature_vector: dict, novelty_indicator: bool = None) -> dict:
@@ -327,6 +328,7 @@ class TA2Agent(TA2Logic):
             A dictionary that may provide additional feedback on your prediction based on the
             budget set in the TA1. If there is no feedback, the object will be None.
         """
+        # self.log.debug('Testing Performance: {}'.format(performance))
         return
 
     def testing_episode_end(self, performance: float, feedback: dict = None) -> \

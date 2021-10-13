@@ -1,21 +1,13 @@
 import datetime
-import logging
-import random
-import time
 
 import settings
-from agent.consistency.consistency_estimator import check_obs_consistency
-from agent.consistency.observation import ScienceBirdsObservation
 from agent.hydra_agent import logger, NN_PROB, PDDL_PROB, NOVELTY_EXISTANCE_NOT_GIVEN, NOVELTY_LIKELIHOOD
-from agent.perception.perception import Perception, ProcessedSBState
-from agent.planning.pddl_plus import PddlPlusPlan, PddlPlusState, TimedAction
-from agent.planning.sb_meta_model import ScienceBirdsMetaModel, get_random_pig_xy, estimate_launch_angle
 from agent.planning.sb_planner import SBPlanner
 from agent.repair.meta_model_repair import *
 
 # TODO: Maybe push this to the settings file? then every module just adds a logger
 from agent.repair.sb_repair import ScienceBirdsConsistencyEstimator, ScienceBirdsMetaModelRepair
-from agent.repairing_hydra_agent import REPAIR_CALLS, REPAIR_TIME, logger
+from agent.gym_hydra_agent import REPAIR_CALLS, REPAIR_TIME, logger
 from state_prediction.anomaly_detector_fc_multichannel import FocusedSBAnomalyDetector
 from utils.point2D import Point2D
 from worlds.science_birds_interface.client.agent_client import GameState
@@ -85,8 +77,9 @@ class SBHydraAgent(HydraAgent):
         self.nn_prob_per_level = []
         self.pddl_prob_per_level = []
 
-    ''' Runs the agent. Returns False if the evaluation has not ended, and True if it has ended.'''
     def main_loop(self,max_actions=1000):
+        ''' Runs the agent. Returns False if the evaluation has not ended, and True if it has ended.'''
+
         logger.info("[hydra_agent_server] :: Entering main loop")
         logger.info("[hydra_agent_server] :: Delta t = {}".format(str(settings.SB_DELTA_T)))
         logger.info("[hydra_agent_server] :: Simulation speed = {}\n\n".format(str(settings.SB_SIM_SPEED)))
@@ -104,7 +97,8 @@ class SBHydraAgent(HydraAgent):
 
             if raw_state.game_state.value == GameState.PLAYING.value:
                 self.handle_game_playing(observation, raw_state)
-                self._compute_novelty_likelihood(observation)
+                if (settings.NOVELTY_POSSIBLE):
+                    self._compute_novelty_likelihood(observation)
             elif raw_state.game_state.value == GameState.WON.value:
                 self.handle_game_won()
             elif raw_state.game_state.value == GameState.LOST.value:
@@ -132,8 +126,9 @@ class SBHydraAgent(HydraAgent):
         self.current_level = self.env.sb_client.load_next_available_level()
 #        self.novelty_existence = self.env.sb_client.get_novelty_info()
 
-    ''' Handle what happens when the agent receives a NEWTRIAL request'''
     def handle_new_trial(self):
+        ''' Handle what happens when the agent receives a NEWTRIAL request'''
+
         # DO something to start a fresh agent for a new training set
         (time_limit, interaction_limit, n_levels, attempts_per_level, mode, seq_or_set,
          allowNoveltyInfo) = self.env.sb_client.ready_for_new_set()
@@ -145,8 +140,9 @@ class SBHydraAgent(HydraAgent):
         self.current_level = self.env.sb_client.load_next_available_level()
         #self.novelty_existence = self.env.sb_client.get_novelty_info()
 
-    ''' Handle what happens when the agent receives a REQUESTNOVELTYLIKELIHOOD request'''
     def handle_request_novelty_likelihood(self):
+        ''' Handle what happens when the agent receives a REQUESTNOVELTYLIKELIHOOD request'''
+
         logger.info("[hydra_agent_server] :: Requesting Novelty Likelihood. Novelyy likelihood is {}".format(
             self.novelty_likelihood))
         novelty_likelihood = self.novelty_likelihood
@@ -162,15 +158,17 @@ class SBHydraAgent(HydraAgent):
 
         self.env.sb_client.report_novelty_likelihood(novelty_likelihood, non_novelty_likelihood,ids,novelty_level,novelty_description)
 
-    ''' Handle what happens when the agent receives a EVALUATION_TERMINATED request'''
     def handle_evaluation_terminated(self):
+        ''' Handle what happens when the agent receives a EVALUATION_TERMINATED request'''
+
         # store info and disconnect the agent as the evaluation is finished
-        self.agent_stats.append(self.stats_for_level)
+        self._handle_end_of_level(True)
         logger.info("Evaluation complete.")
         return True
 
-    ''' Handle what happens when the agent receives a NEWTRAININGSET request'''
     def handle_new_training_set(self):
+        ''' Handle what happens when the agent receives a NEWTRAININGSET request'''
+
         # DO something to start a fresh agent for a new training set
         (time_limit, interaction_limit, n_levels, attempts_per_level, mode, seq_or_set,
          allowNoveltyInfo) = self.env.sb_client.ready_for_new_set()
@@ -226,7 +224,7 @@ class SBHydraAgent(HydraAgent):
                     pddl_prob = 1.0
                 else:
                     pddl_prob = check_obs_consistency(observation, self.meta_model, self.consistency_estimator)
-                self.stats_for_level["pddl_novelty_likelihood"].append(pddl_prob)
+                self.stats_for_level[PDDL_PROB].append(pddl_prob)
 
                 # If we already played at least two levels and novelty keeps being detected, mark this as a very high novelty likelihood
                 cnn_prediction = cnn_prob > self.detector.threshold
@@ -286,8 +284,9 @@ class SBHydraAgent(HydraAgent):
         time.sleep(2 / settings.SB_SIM_SPEED)
 
 
-    ''' Handle what happens when the agent receives a PLAYING request'''
     def handle_game_playing(self, observation, raw_state):
+        ''' Handle what happens when the agent receives a PLAYING request'''
+
         processed_state = self.perception.process_state(raw_state)
         observation.state = processed_state
         self.choose_action(observation)
@@ -334,8 +333,9 @@ class SBHydraAgent(HydraAgent):
             raw_state, reward = self.env.act(sb_action)
             logger.info("[hydra_agent_server] :: Reward {} Game State {}".format(reward, raw_state.game_state))
 
-    ''' A default action taken by the Hydra agent if planning fails'''
     def __get_default_action(self, state : ProcessedSBState):
+        ''' A default action taken by the Hydra agent if planning fails'''
+
         logger.info("[hydra_agent_server] :: __get_default_action")
         problem = self.meta_model.create_pddl_problem(state)
         pddl_state = PddlPlusState(problem.init)
@@ -371,8 +371,9 @@ class SBHydraAgent(HydraAgent):
         '''Probably bad to have two pointers here'''
         self.env = env
 
-    ''' Runs the agent until it performs an action'''
     def run_next_action(self):
+        ''' Runs the agent until it performs an action'''
+
         while True:
             evaluation_done = self.main_loop(max_actions=1)
             if self.observations[-1].action is not None:
@@ -380,9 +381,10 @@ class SBHydraAgent(HydraAgent):
             if evaluation_done == True:
                 return
 
-    ''' Finds the last observations of the game. That is, the last observation that has intermediate states. 
-    TODO: Is this the best way to implement this?'''
     def find_last_obs(self):
+        ''' Finds the last observations of the game. That is, the last observation that has intermediate states.
+        TODO: Is this the best way to implement this?'''
+
         i = -1
         if len(self.observations)==0:
             return None
@@ -402,8 +404,6 @@ class RepairingSBHydraAgent(SBHydraAgent):
         self.revision_attempts = 0
         self.meta_model_repair = ScienceBirdsMetaModelRepair(self.meta_model)
 
-
-
     def reinit(self):
         super().reinit()
         self.revision_attempts = 0
@@ -417,8 +417,11 @@ class RepairingSBHydraAgent(SBHydraAgent):
         self.pddl_prob_per_level.insert(0,
                                       sum(self.stats_for_level[PDDL_PROB]) / len(self.stats_for_level[PDDL_PROB]))
 
+
+
     def handle_evaluation_terminated(self):
         ''' Handle what happens when the agent receives a EVALUATION_TERMINATED request'''
+        # store info and disconnect the agent as the evaluation is finished
         self.process_final_observation()
         return super().handle_evaluation_terminated()
 

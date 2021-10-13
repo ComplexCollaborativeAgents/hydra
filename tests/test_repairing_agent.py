@@ -1,5 +1,4 @@
 from agent.cartpole_hydra_agent import CartpoleHydraAgentObserver, RepairingCartpoleHydraAgent, CartpoleHydraAgent
-from agent.repairing_hydra_agent import RepairingGymHydraAgent
 from agent.sb_hydra_agent import RepairingSBHydraAgent
 from agent.gym_hydra_agent import *
 import pytest
