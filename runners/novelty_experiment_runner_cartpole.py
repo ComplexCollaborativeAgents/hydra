@@ -327,7 +327,7 @@ if __name__ == '__main__':
     parser.add_option("--agent",
                       dest='agent',
                       help='name of the agent you want to run: basic, repairing, dqn',
-                      default='dqn')
+                      default='repairing')
     parser.add_option("--name",
                       dest="name",
                       help="name of the directory in which all the results will be stored at ../data/cartpole/",
