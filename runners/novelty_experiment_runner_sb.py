@@ -38,7 +38,6 @@ NOVELTIES = {"1": ["10"]}  # Novelties to use in the experiment (IE, trials to r
 
 
 
-
 def load_lookup(lookup_path):
     with open(lookup_path) as f:
         obj = json.load(f)
@@ -464,6 +463,5 @@ class NoveltyExperimentRunnerSB:
 
 if __name__ == '__main__':
     experiment_runner = NoveltyExperimentRunnerSB(AgentType.RepairingHydra, export_trials=True)
-
     experiment_runner.run_experiment()
     # experiment_runner.run_experiment(configs=[SB_CONFIG_PATH / "trial_config_1_6.xml"])
