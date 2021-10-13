@@ -57,7 +57,7 @@ POLYCRAFT_LEVEL_DIR = path.join(ROOT_PATH, 'bin', 'pal', 'POGO_100_PN')  # Path 
 SB_PLANNING_DOCKER_PATH = path.join(ROOT_PATH, 'agent', 'planning', 'sb_planning')
 CARTPOLE_PLANNING_DOCKER_PATH = path.join(ROOT_PATH, 'agent', 'planning', 'cartpole_planning')
 CARTPOLEPLUSPLUS_PLANNING_DOCKER_PATH = path.join(ROOT_PATH, 'agent', 'planning', 'cartpoleplusplus_planning')
-POLYCRAFT_PLANNING_DOCKER_PATH = path.join(ROOT_PATH, 'agent', 'planning', 'polycraft_docker_scripts')
+POLYCRAFT_PLANNING_DOCKER_PATH = path.join(ROOT_PATH, 'agent', 'planning', 'polycraft_planning')
 
 VAL_DOCKER_PATH = path.join(ROOT_PATH, 'agent', 'planning', 'val_scripts')
 
