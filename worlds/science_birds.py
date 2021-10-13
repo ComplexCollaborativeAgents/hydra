@@ -210,11 +210,23 @@ class ScienceBirds(World):
             prev_score = self.sb_client.get_current_score()
 
             # This blocks until the scene is static. Currently asking for every 10th frame, but it should be parameterized to sim_speed.
-            self.intermediate_states = self.sb_client.shoot_and_record_ground_truth(action.ref_x+action.dx, action.ref_y+action.dy, 0, action.tap, settings.SB_GT_FREQ)
-            self.intermediate_states = [SBState(intermediate_state, None, None) for intermediate_state in self.intermediate_states]
-            time.sleep(2 / settings.SB_SIM_SPEED)
-#            if len(self.intermediate_states) < 3: # we should get some intermediate states
-#                assert False
+            if settings.SCREENSHOT and not settings.HEADLESS:
+                self.intermediate_states = []
+
+                b_img, b_gt = self.sb_client.get_ground_truth_with_screenshot()
+                self.intermediate_states.append(SBState(b_gt, b_img, None))
+
+                self.sb_client.shoot_and_record_ground_truth(action.ref_x+action.dx, action.ref_y+action.dy, 0, action.tap, settings.SB_GT_FREQ)
+                time.sleep(2 / settings.SB_SIM_SPEED)
+                
+                a_img, a_gt = self.sb_client.get_ground_truth_with_screenshot()
+                self.intermediate_states.append(SBState(a_gt, a_img, None))
+            else:
+                self.intermediate_states = self.sb_client.shoot_and_record_ground_truth(action.ref_x+action.dx, action.ref_y+action.dy, 0, action.tap, settings.SB_GT_FREQ)
+                self.intermediate_states = [SBState(intermediate_state, None, None) for intermediate_state in self.intermediate_states]
+                time.sleep(2 / settings.SB_SIM_SPEED)
+    #            if len(self.intermediate_states) < 3: # we should get some intermediate states
+    #                assert False
             reward =  self.sb_client.get_current_score() - prev_score
             self.get_current_state()
             logger.info("Action executed ref_pt ({},{}) action ({},{}) reward {} len(intermediate_states) {}".format(action.ref_x, action.ref_y, action.dx, action.dy,reward,len(self.intermediate_states)))
@@ -239,7 +251,7 @@ class ScienceBirds(World):
         if self.cur_game_window != ac.GameState.PLAYING: # if you aren't playing you can't get ground truth anymore
             return SBState(None,None,self.cur_game_window)
 
-        if settings.SCREENSHOT:
+        if settings.SCREENSHOT and not settings.HEADLESS:
             image, ground_truth = self.sb_client.get_ground_truth_with_screenshot()
         else:
             ground_truth = self.sb_client.get_ground_truth_without_screenshot()

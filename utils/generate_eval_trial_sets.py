@@ -9,9 +9,9 @@ NUM_TRIALS = 15
 NUM_LEVELS = 20     # Levels per trial
 LEVELS_BEFORE_NOVELTY = 10   # Levels before novelty is introduced
 SB_BIN_PATH = pathlib.Path(settings.SCIENCE_BIRDS_BIN_DIR) / 'linux'
-NO_NOVELTY_LEVELS = os.path.join('Levels', 'novelty_level_0', 'type2', 'Levels')
-NOVELTY_LEVELS = {'novelty_level_1': '1', 'novelty_level_2': '2', 'novelty_level_3': '3'}
-NOVELTY_TYPES = {"type6": "6", "type7": "7", "type8": "8", "type9": "9", "type10": "10"}
+NON_NOVELTY_DIR = os.path.join('Levels', 'novelty_level_0')
+NOVELTY_LEVELS = {'novelty_level_1': '1', 'novelty_level_2': '2', 'novelty_level_3': '3', 'novelty_level_22': '22', 'novelty_level_23': '23', 'novelty_level_24': '24', 'novelty_level_25': '25'}
+NOVELTY_TYPES = {"type1": "1", "type2": "2", "type4": "4", "type5": "5", "type6": "6", "type7": "7", "type8": "8", "type9": "9", "type10": "10", "type22": "22", "type23": "23", "type24": "24", "type25": "25"}
 TRIALS_FILENAME = "eval_sb_trials_b4_novelty_{}.json".format(LEVELS_BEFORE_NOVELTY)
 
 """
@@ -44,11 +44,14 @@ if __name__ == "__main__":
 
     novelty_path = ""
 
+    non_novelty_type_dirs = [os.path.join(t, "Levels") for t in os.listdir(SB_BIN_PATH / NON_NOVELTY_DIR)]
+
     # Collect non novelty levels
-    for nn_filename in os.listdir(SB_BIN_PATH / NO_NOVELTY_LEVELS):
-        nn_level = nn_filename.split('.xml')[0]
-        print("Added {} to non-novelty levels".format(nn_level))
-        non_novelty_levels.append(os.path.join(NO_NOVELTY_LEVELS, nn_filename))
+    for type_dir in non_novelty_type_dirs:
+        type_dir_path = SB_BIN_PATH / NON_NOVELTY_DIR / type_dir
+        for nn_filename in os.listdir(type_dir_path):
+            print("Added {} to non-novelty levels".format(nn_filename))
+            non_novelty_levels.append(os.path.join(NON_NOVELTY_DIR, type_dir, nn_filename))
 
     # Create trials
     for trial_num in range(1, NUM_TRIALS):
