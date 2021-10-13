@@ -92,6 +92,8 @@ class InventoryItemType(PddlObjectType):
 #### Cell Types
 
 class GameMapCellType(PddlObjectType):
+    IGNORED_CELL_ATTRIBUTES = ["facing", "half", "hinge"] # List of attributes to not include in the PDDL model TODO: Think about this
+
     def __init__(self,block_type=-1):
         super().__init__()
         self.pddl_type = "cell"
@@ -102,7 +104,7 @@ class GameMapCellType(PddlObjectType):
         (cell_id, cell_attr)=obj
 
         for attr_name, attr_value in cell_attr.items():
-            if attr_name != 'name':
+            if attr_name != 'name' and attr_name not in GameMapCellType.IGNORED_CELL_ATTRIBUTES:
                 if type(attr_value)== bool or attr_value.lower() in ["true", "false"]:
                     obj_attributes[attr_name]=bool(attr_value)
                 else:
@@ -121,6 +123,28 @@ class GameMapCellType(PddlObjectType):
     def _get_name(self, obj):
         (cell_id, cell_attr) = obj
         return "cell_{}".format("_".join(cell_id.split(",")))
+
+class LogType(GameMapCellType):
+    def __init__(self, block_type):
+        super().__init__(block_type)
+
+    def _compute_observable_obj_attributes(self, obj, problem_params:dict):
+        obj_attributes = super()._compute_observable_obj_attributes(obj, problem_params)
+        # Log has a variant attribute that is not numeric and needs special treatment
+
+        if "variant" in obj_attributes:
+            if obj_attributes["variant"]=="oak":
+                obj_attributes["is_oak"]=True
+            obj_attributes.pop("variant")
+
+        if "axis" in obj_attributes:
+            axis_value = obj_attributes["axis"]
+            known_axis_values = {"x":0, "y":1, "z":2}
+            if axis_value in known_axis_values:
+                obj_attributes["log_axis"]=known_axis_values[axis_value]
+            obj_attributes.pop("axis")
+
+        return obj_attributes
 
 
 class AirType(GameMapCellType):
@@ -149,9 +173,9 @@ class PolycraftMetaModel(MetaModel):
         self.object_types = dict()
         self.object_types["minecraft:air"]=AirType(0)
         self.object_types["minecraft:bedrock"]=GameMapCellType(1)
-        self.object_types["minecraft:log"]=GameMapCellType(2)
+        self.object_types["minecraft:log"]=LogType(2) # Variant
         self.object_types["minecraft:diamond_ore"]=GameMapCellType(3)
-        self.object_types["polycraft:plastic_chest"]=GameMapCellType(4)
+        self.object_types["polycraft:plastic_chest"]=GameMapCellType(4) # Facing
         self.object_types["minecraft:iron_pickaxe"]=InventoryItemType(5)
         self.object_types["minecraft:crafting_table"]=GameMapCellType(6)
         self.object_types["minecraft:wooden_door"] = GameMapCellType(7)
@@ -251,7 +275,7 @@ class PolycraftMetaModel(MetaModel):
         obj_attributes["steve_x"] = steve_obj['pos'][0]
         obj_attributes["steve_y"] = steve_obj['pos'][1]
         obj_attributes["steve_z"] = steve_obj['pos'][2]
-        obj_attributes["steve_facing"] = steve_obj["facing"]
+        # obj_attributes["steve_facing"] = steve_obj["facing"] # Need to create an enum for the directions (NORTH, ...)
         obj_attributes["steve_yaw"] = steve_obj["yaw"]
         obj_attributes["steve_pitch"] = steve_obj["pitch"]
         return obj_attributes
@@ -274,7 +298,7 @@ class PolycraftMetaModel(MetaModel):
         steve_attributes = self._get_steve_attributes(world_state.location)
         for attr_name, attr_value in steve_attributes.items():
             pddl_problem.init.append(['=', [attr_name], attr_value])
-        pddl_problem.init.append(['=', ['facing_block'], world_state.facing_block['name']])
+        pddl_problem.init.append(['=', ['facing_block'], self.object_types[world_state.facing_block['name']].block_type])
 
         # Add game map cells
         for cell, cell_attr in world_state.game_map.items():
@@ -320,7 +344,7 @@ class PolycraftMetaModel(MetaModel):
         steve_attributes = self._get_steve_attributes(world_state.location)
         for attr_name, attr_value in steve_attributes.items():
             pddl_state.numeric_fluents[attr_name]=attr_value
-        pddl_state.numeric_fluents['facing_block'] = world_state.facing_block['name']
+        pddl_state.numeric_fluents['facing_block'] = self.object_types[world_state.facing_block['name']].block_type
 
         # Add game map cells
         for cell, cell_attr in world_state.game_map.items():

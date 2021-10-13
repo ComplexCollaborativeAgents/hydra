@@ -82,8 +82,7 @@ class PddlDomainExporter():
     def to_file(self, pddl_domain:PddlPlusDomain, output_file_name):
         out_file = open(output_file_name, "w")
         out_file.write("(define(domain %s)\n" % pddl_domain.name)
-        out_file.write(
-            "\t(:requirements :typing :durative-actions :duration-inequalities :fluents :time :negative-preconditions :timed-initial-literals)\n")
+        out_file.write(f"\t(:requirements {' '.join(pddl_domain.requirements)})\n")
         out_file.write("\t(:types %s)\n" % " ".join(pddl_domain.types))
 
         # Print predicates
