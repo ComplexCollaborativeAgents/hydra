@@ -26,16 +26,16 @@ def run_repairing_sb_experiments():
     # for agent in [AgentType.Baseline]:
     #    run_performance_stats(novelties, seed=1, agent_type=agent, samples=samples)
 
-    trial_start = 0
+    trial_start = 1
     num_trials = 1
-    per_trial = 1
-    novelties = {1: [6, 7, 8, 9, 10], 2: [6, 7, 8, 9, 10], 3: [6, 7]}
+    per_trial = 5
+    novelties = {22: [1], 23: [1], 24: [1]}
     # novelties = {1: [6, 7, 8, 9, 10]}
     # novelties = {1: [6,], 2:[6,], 3:[6, ]}
     notify_novelty = True
     lookup = load_lookup()
 
-    for agent in [AgentType.RepairingHydra]:
+    for agent in [AgentType.Hydra]:
         for trial in range(trial_start, trial_start + num_trials):
             random.seed()
             run_performance_stats(novelties,

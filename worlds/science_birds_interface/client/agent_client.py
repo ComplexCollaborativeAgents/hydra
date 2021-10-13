@@ -428,3 +428,34 @@ class AgentClient:
         self._send_command(RequestCodes.GetNoisyGroundTruthWithoutScreenshot)
         gt = self.read_ground_truth_from_stream()
         return gt
+
+if __name__ == "__main__":
+    """ TEST AGENT """
+    with open('./server_client_config.json', 'r') as config:
+        sc_json_config = json.load(config)
+
+    client = AgentClient(**sc_json_config[0])
+    try:
+        client.connect_to_server()
+        client.configure(2888)
+        img = client.do_screenshot()
+
+        game_state = client.get_game_state()
+
+        info = client.load_level(3)
+        client.do_screenshot()
+        level = client.get_current_level()
+
+        client.fully_zoom_in()
+        client.fully_zoom_out()
+        info = client.shoot(172, 276, 943, 264, 0, 0, False)
+
+        image, ground_truth = client.get_ground_truth_with_screenshot()
+        ground_truth = client.get_ground_truth_without_screenshot()
+        noisy_image, noisy_truth = client.get_noisy_ground_truth_with_screenshot()
+        noisy_truth = client.get_noisy_ground_truth_without_screenshot()
+
+        info = client.restart_level()
+        client.disconnect_from_server()
+    except socket.error as e:
+        print("Error in client-server communication: " + str(e))

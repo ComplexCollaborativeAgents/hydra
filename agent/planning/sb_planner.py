@@ -62,16 +62,23 @@ class SBPlanner(HydraPlanner):
                                                                                       self.current_problem_prefix))
 
     def get_plan_actions(self,count=0):
-        nyx.runner("%s/sb_domain.pddl" % str(settings.SB_PLANNING_DOCKER_PATH),
-                   "%s/sb_prob.pddl" % str(settings.SB_PLANNING_DOCKER_PATH),
-                   ['-vv', '-to:%s' % str(settings.SB_TIMEOUT), '-noplan', '-search:bfs',
-                    # '-th:%s' % str(self.meta_model.constant_numeric_fluents['time_limit']),
-                    '-t:%s' % str(settings.SB_DELTA_T)])
 
-        plan_actions = self.extract_actions_from_plan_trace(
-            "%s/plan_sb_prob.pddl" % str(settings.SB_PLANNING_DOCKER_PATH))
+        plan_actions = []
 
-        print(plan_actions)
+        try:
+            nyx.runner("%s/sb_domain.pddl" % str(settings.SB_PLANNING_DOCKER_PATH),
+                       "%s/sb_prob.pddl" % str(settings.SB_PLANNING_DOCKER_PATH),
+                       ['-vv', '-to:%s' % str(settings.SB_TIMEOUT), '-noplan', '-search:bfs', '-custom_heuristic:2', '-th:10',
+                        # '-th:%s' % str(self.meta_model.constant_numeric_fluents['time_limit']),
+                        '-t:%s' % str(settings.SB_DELTA_T)])
+
+            plan_actions = self.extract_actions_from_plan_trace(
+                "%s/plan_sb_prob.pddl" % str(settings.SB_PLANNING_DOCKER_PATH))
+
+        except Exception as e_inst:
+            print(e_inst)
+
+        # print(plan_actions)
 
         if len(plan_actions) > 0:
             if (plan_actions[0].action_name == "syntax error") and (count < 1):
@@ -98,6 +105,14 @@ class SBPlanner(HydraPlanner):
                                          # float(str(lines_list[i + 1].split('angle:')[1].split(',')[0])),
                                          float(line.split(':')[0]))
                     plan_actions.append(TimedAction(action_angle_time[0], action_angle_time[1]))
+
+                ## TAP UPDATE
+                # if "bird_action" in line:
+                #     action_angle_time = (line.split(':')[1].split('[')[0].replace('(', '').replace(')', '').strip(),
+                #                          float(str(lines_list[i + 1].split('angle:')[1].split(',')[0])),
+                #                          float(line.split(':')[0]))
+                #     plan_actions.append(TimedAction(action_angle_time[0], action_angle_time[2]))
+
                 if "syntax error" in line:
                     plan_actions.append(TimedAction("syntax error", 0.0))
                     break

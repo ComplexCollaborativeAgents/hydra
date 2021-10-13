@@ -1,8 +1,9 @@
 (define (domain angry_birds_scaled)
     (:requirements :typing :disjunctive-preconditions :fluents :time :negative-preconditions)
-    (:types bird pig block platform)
-    (:predicates (bird_released ?b - bird) (pig_dead ?p - pig) (angle_adjusted) (block_explosive ?bl - block) (pig_killed))
+    (:types bird pig block platform external_agent marker_point)
+    (:predicates (bird_released ?b - bird) (pig_dead ?p - pig) (angle_adjusted) (block_explosive ?bl - block) (pig_killed) (bird_tapped ?b - bird) (tap_enabled))
     (:functions (x_bird ?b - bird) (y_bird ?b - bird) (v_bird ?b - bird) (vx_bird ?b - bird) (vy_bird ?b - bird) (m_bird ?b - bird) (bird_id ?b - bird) (bounce_count ?b - bird)
+                (bird_type ?b - bird) ;; BIRD TYPES: RED=0, YELLOW=1, BLACK=2, WHITE=3, BLUE=4 ;;
                 (gravity) (angle_rate) (angle) (active_bird) (ground_damper) (max_angle) (gravity_factor)
                 (base_life_wood_multiplier) (base_life_ice_multiplier) (base_life_stone_multiplier) (base_life_tnt_multiplier)
                 (base_mass_wood_multiplier) (base_mass_ice_multiplier) (base_mass_stone_multiplier) (base_mass_tnt_multiplier)
@@ -12,6 +13,12 @@
                 (x_platform ?pl - platform) (y_platform ?pl - platform) (platform_width ?pl - platform) (platform_height ?pl - platform)
                 (x_block ?bl - block) (y_block ?bl - block) (block_width ?bl - block) (block_height ?bl - block) (block_life ?bl - block) (block_mass ?bl - block) (block_stability ?bl - block)
                 (points_score)
+                (x_agent ?ea - external_agent) (y_agent ?ea - external_agent) (agent_height ?ea - external_agent) (agent_width ?ea - external_agent) 
+                (vx_agent ?ea - external_agent) (vy_agent ?ea - external_agent) (timing_agent ?ea - external_agent)
+                (agent_type ?ea - external_agent) ;; AGENT TYPES: MAGICIAN=0, WIZARD=1, BUTTERFLY=2, WORM=3
+                ;; 
+                (x_marker ?mp - marker_point) (y_marker ?mp - marker_point) ;; POINTS WHICH THE AGENTS MOVE AROUND (made explicit to avoid chacking all blocks and platforms, CHECK WITH OTHERS?).
+                ;;
                 ;; WOOD LIFE = 0.75   WOOD MASS COEFFICIENT = 0.375 ;; ICE LIFE = 0.75   ICE MASS COEFFICIENT = 0.375 ;; STONE LIFE = 1.2   STONE MASS COEFFICIENT = 0.375
                 ;; WOOD LIFE MULTIPLIER = 1.0 ;; ICE LIFE MULTIPLIER = 0.5 ;; STONE LIFE MULTIPLIER = 2.0
                 ;; THESE VALUES NEED TO BE VERIFIED
@@ -295,5 +302,157 @@
         )
     )
 
+    ;; TAP POWER ACTIONS & EVENTS
+    ;; BIRD TYPES: RED=0, YELLOW=1, BLACK=2, WHITE=3, BLUE=4 ;;
+
+    (:action yellow_bird_action
+      :parameters (?b - bird)
+      :precondition (and
+        (tap_enabled)
+      	(= (active_bird) (bird_id ?b))
+      	(= (bird_type ?b) 1)
+      	(bird_released ?b)
+        (= (bounce_count ?b) 0)
+        (< (x_bird ?b) 800)
+        (not (bird_tapped ?b))
+      )
+      :effect (and
+      	(assign (vx_bird ?b) (* (vx_bird ?b) 2))
+      	(assign (v_bird ?b) (* (v_bird ?b) 2))
+      	(bird_tapped ?b)
+  	  )
+    )
+
+    ; (:action black_bird_action
+    ;   :parameters (?b - bird)
+    ;   :precondition (and
+    ;       (tap_enabled)
+    ;   	(= (active_bird) (bird_id ?b))
+    ;   	(= (bird_type ?b) 2)
+    ;   	(bird_released ?b)
+    ;     (= (bounce_count ?b) 0)
+    ;     (< (x_bird ?b) 800)
+    ;     (not (bird_tapped ?b))
+    ;   )
+    ;   :effect (and
+    ;   	(assign (vx_bird ?b) 0)
+    ;   	(assign (vy_bird ?b) 0)
+    ;   	(bird_tapped ?b)
+  	 ;  )
+    ; )
+
+    (:action white_bird_action
+      :parameters (?b - bird)
+      :precondition (and
+        (tap_enabled)
+      	(= (active_bird) (bird_id ?b))
+      	(= (bird_type ?b) 3)
+      	(bird_released ?b)
+        (= (bounce_count ?b) 0)
+        (< (x_bird ?b) 800)
+        (not (bird_tapped ?b))
+      )
+      :effect (and
+      	(assign (vx_bird ?b) 0)
+      	(bird_tapped ?b)
+  	  )
+    )
+
+    (:event explode_block_from_bird
+        :parameters (?b - bird ?bl_near - block)
+        :precondition (and
+            (tap_enabled)
+        	(= (active_bird) (bird_id ?b))
+        	(or
+      			(and (= (bird_type ?b) 2) (= (bounce_count ?b) 1) )
+      			(and (= (bird_type ?b) 3) (= (bounce_count ?b) 1) (bird_tapped ?b) )
+  			)
+            (> (block_stability ?bl_near) 0)
+            (> (block_life ?bl_near) 0)
+            (<= (- (x_bird ?b) (x_block ?bl_near)) 70 )
+            (>= (- (x_bird ?b) (x_block ?bl_near)) -70 )
+            (<= (- (y_bird ?b) (y_block ?bl_near)) 70 )
+            (>= (- (y_bird ?b) (y_block ?bl_near)) -70 )
+        )
+        :effect (and
+            (assign (block_life ?bl_near) 0)
+            (assign (block_stability ?bl_near) 0)
+        )
+    )
+
+    (:event explode_pig_from_bird
+        :parameters (?b - bird ?p - pig)
+        :precondition (and
+            (tap_enabled)
+        	(= (active_bird) (bird_id ?b))
+        	(or
+      			(and (= (bird_type ?b) 2) (= (bounce_count ?b) 1) )
+      			(and (= (bird_type ?b) 3) (= (bounce_count ?b) 1) (bird_tapped ?b) )
+  			)
+            (not (pig_dead ?p))
+            (<= (- (x_bird ?b) (x_pig ?p)) 50 )
+            (>= (- (x_bird ?b) (x_pig ?p)) -50 )
+            (<= (- (y_bird ?b) (y_pig ?p)) 50 )
+            (>= (- (y_bird ?b) (y_pig ?p)) -50 )
+        )
+        :effect (and
+            (pig_dead ?p)
+            (pig_killed)
+        )
+    )
+
+    ;; EXTERNAL AGENT EVENTS
+    ;; AGENT TYPES: MAGICIAN=0, WIZARD=1, BUTTERFLY=2, WORM=3
+
+    (:process agent_movement
+        :parameters (?ea - external_agent)
+        :precondition (and )
+        :effect (and
+            (increase (x_agent ?ea) (* #t (* 1.0 (vx_agent ?ea))))
+            (increase (y_agent ?ea) (* #t (* 1.0 (vy_agent ?ea))))
+            (increase (timing_agent) (* #t 1))
+        )
+    )
+
+    ;; IS MODELING THE MOVEMENT EVEN NECESSARY?
+    (:event agent_01_bump_change_direction
+        :parameters (?ea - external_agent ?mp - marker_point)
+        :precondition (and 
+            (or (= (agent_type ?ea) 0)
+                (= (agent_type ?ea) 1))
+            (= (x_agent ?ea) (x_marker ?mp))
+            (= (y_agent ?ea) (y_marker ?mp))
+        )
+        :effect (and 
+            (assign (vx_agent ?ea) (* (vx_agent ?ea) -1))
+            (assign (vy_agent ?ea) (* (vy_agent ?ea) -1))
+        )
+    )
+
+    (:event agent_01_timed_change_direction
+        :parameters (?ea - external_agent)
+        :precondition (and 
+            (or (= (agent_type ?ea) 0)
+                (= (agent_type ?ea) 1))
+            (>= (timing_agent ?ea) 1)
+        )
+        :effect (and 
+            (assign (vx_agent ?ea) (* (vx_agent ?ea) -1))
+            (assign (vy_agent ?ea) (* (vy_agent ?ea) -1))
+        )
+    )
+
+    (:event agent_2_bump_change_direction
+        :parameters (?ea - external_agent ?mp - marker_point)
+        :precondition (and 
+            (= (agent_type ?ea) 2)
+            (= (x_agent ?ea) (x_marker ?mp))
+            (= (y_agent ?ea) (y_marker ?mp))
+        )
+        :effect (and 
+            (assign (vx_agent ?ea) (* (vx_agent ?ea) (DIRECTION OF NEXT MARKER ON THE CONVEX HULL)))
+            (assign (vy_agent ?ea) (* (vy_agent ?ea) (DIRECTION OF NEXT MARKER ON THE CONVEX HULL)))
+        )
+    )
 
 )

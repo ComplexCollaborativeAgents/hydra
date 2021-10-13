@@ -1,2 +1,2 @@
-from worlds.wsu.objects.objects import __version__
+from .objects import __version__
 
