@@ -4,8 +4,8 @@ import settings
 import logging
 import random
 from agent.planning.meta_model import *
-import worlds.polycraft_world as poly
-
+from worlds.polycraft_world import *
+from agent.planning.pddl_plus import *
 logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("polycraft_meta_model")
 logger.setLevel(logging.INFO)
@@ -62,39 +62,26 @@ class PddlObjectType():
         return '{}_{}'.format(type, obj)
 
 
-class SteveType(PddlObjectType):
-    ''' The Steve object. Based on the world state 'location' property '''
-    def __init__(self):
-        super(SteveType, self).__init__()
-        self.pddl_type = "steve"
-
-    def _compute_observable_obj_attributes(self, obj, problem_params:dict):
-        obj_attributes = dict()
-        obj_attributes["x"] = obj['pos'][0]
-        obj_attributes["y"] = obj['pos'][1]
-        obj_attributes["z"] = obj['pos'][2]
-        obj_attributes["facing"] = obj["facing"]
-        obj_attributes["yaw"] = obj["yaw"]
-        obj_attributes["pitch"] = obj["pitch"]
-        return obj_attributes
-
-    def _get_name(self, obj):
-        return 'steve'
+# Inventory items
 
 class InventoryItemType(PddlObjectType):
-    def __init__(self):
+    def __init__(self, block_type=-1):
         super().__init__()
         self.pddl_type = "inventory_item"
+        self.block_type = block_type
 
     def _compute_observable_obj_attributes(self, obj, problem_params: dict):
         obj_attributes = dict()
         (item_id, item_attr) = obj
         for attr_name, attr_value in item_attr.items():
             if attr_name != "item":
-                obj_attributes[attr_name]=attr_value
+                if type(attr_value)==bool or ( type(attr_value)==str and type.lower() in ["true", "false"] ):
+                    obj_attributes[attr_name]=bool(attr_value)
+                else:
+                    obj_attributes[attr_name]=attr_value
 
-        if self.pddl_type != "inventory_item":
-            obj_attributes["item_type"] = self.pddl_type
+        if self.pddl_type != -1:
+            obj_attributes["block_type"] = self.block_type
 
         return obj_attributes
 
@@ -102,15 +89,13 @@ class InventoryItemType(PddlObjectType):
         (item_id, item_attr) = obj
         return "inventory_{}".format(item_id, item_attr["item"])
 
-class IronPickaxeType(InventoryItemType):
-    def __init__(self):
-        super().__init__()
-        self.pddl_type = "iron_pickaxe"
+#### Cell Types
 
 class GameMapCellType(PddlObjectType):
-    def __init__(self,block_life_multiplier = 1.0, block_mass_coeff=1.0):
+    def __init__(self,block_type=-1):
         super().__init__()
         self.pddl_type = "cell"
+        self.block_type = block_type
 
     def _compute_observable_obj_attributes(self, obj, problem_params:dict):
         obj_attributes = dict()
@@ -118,15 +103,18 @@ class GameMapCellType(PddlObjectType):
 
         for attr_name, attr_value in cell_attr.items():
             if attr_name != 'name':
-                obj_attributes[attr_name] = attr_value
+                if type(attr_value)== bool or attr_value.lower() in ["true", "false"]:
+                    obj_attributes[attr_name]=bool(attr_value)
+                else:
+                    obj_attributes[attr_name]=attr_value
 
         x, y, z = cell_id.split(",")
         obj_attributes["x"] = int(x)
         obj_attributes["y"] = int(y)
         obj_attributes["z"] = int(z)
 
-        if self.pddl_type != "cell":
-            obj_attributes["cell_type"] = self.pddl_type
+        if self.block_type != -1:
+            obj_attributes["block_type"] = self.block_type
 
         return obj_attributes
 
@@ -135,49 +123,12 @@ class GameMapCellType(PddlObjectType):
         return "cell_{}".format("_".join(cell_id.split(",")))
 
 
-class BedrockType(GameMapCellType):
-    def __init__(self):
-        super().__init__()
-        self.pddl_type = "bedrock"
-
 class AirType(GameMapCellType):
-    def __init__(self):
-        super().__init__()
-        self.pddl_type = "air"
+    def __init__(self, block_type):
+        super().__init__(block_type)
 
     def _compute_observable_obj_attributes(self, obj, problem_params:dict):
         return dict() # Ignoring air blocks in the PDDL
-
-class LogType(GameMapCellType):
-    def __init__(self):
-        super().__init__()
-        self.pddl_type = "log"
-
-class DiamondOreType(GameMapCellType):
-    def __init__(self):
-        super().__init__()
-        self.pddl_type = "diamond_ore"
-
-class PlasticChestType(GameMapCellType):
-    def __init__(self):
-        super().__init__()
-        self.pddl_type = "plastic_chest"
-
-class CraftingTableType(GameMapCellType):
-    def __init__(self):
-        super().__init__()
-        self.pddl_type = "crafting_table"
-
-class BlockOfPlatinumType(GameMapCellType):
-    def __init__(self):
-        super().__init__()
-        self.pddl_type = "block_of_platinum"
-
-class WoodenDoorType(GameMapCellType):
-    def __init__(self):
-        super().__init__()
-        self.pddl_type = "wooden_door"
-
 
 class PolycraftMetaModel(MetaModel):
 
@@ -196,30 +147,116 @@ class PolycraftMetaModel(MetaModel):
 
         # Mapping of type to Pddl object. All objects of this type will be clones of this pddl object
         self.object_types = dict()
-        self.object_types["minecraft:bedrock"]=BedrockType()
-        self.object_types["minecraft:air"]=AirType()
-        self.object_types["minecraft:log"]=LogType()
-        self.object_types["minecraft:diamond_ore"]=DiamondOreType()
-        self.object_types["polycraft:plastic_chest"]=PlasticChestType()
-        self.object_types["minecraft:iron_pickaxe"]=IronPickaxeType()
-        self.object_types["minecraft:crafting_table"]=CraftingTableType()
+        self.object_types["minecraft:air"]=AirType(0)
+        self.object_types["minecraft:bedrock"]=GameMapCellType(1)
+        self.object_types["minecraft:log"]=GameMapCellType(2)
+        self.object_types["minecraft:diamond_ore"]=GameMapCellType(3)
+        self.object_types["polycraft:plastic_chest"]=GameMapCellType(4)
+        self.object_types["minecraft:iron_pickaxe"]=InventoryItemType(5)
+        self.object_types["minecraft:crafting_table"]=GameMapCellType(6)
+        self.object_types["minecraft:wooden_door"] = GameMapCellType(7)
+        self.object_types["polycraft:block_of_platinum"] = GameMapCellType(8)
+        self.object_types["polycraft:tree_tap"] = GameMapCellType(9)
+        self.object_types["minecraft:planks"] = InventoryItemType(10)
+        self.object_types["minecraft:stick"] = InventoryItemType(11)
+        self.object_types["polycraft:wooden_pogo_stick"] = InventoryItemType(12)
+        self.object_types["polycraft:block_of_titanium"] = InventoryItemType(13)
+        self.object_types["minecraft:diamond_block"] = InventoryItemType(14)
+        self.object_types["polycraft:sack_polyisoprene_pellets"] = InventoryItemType(15)
+        self.object_types["minecraft:diamond"] = InventoryItemType(16)
 
-        self.object_types["minecraft:wooden_door"] = WoodenDoorType()
-        self.object_types["polycraft:block_of_platinum"] = BlockOfPlatinumType()
 
-
-    def create_pddl_domain(self, observed_state) -> PddlPlusDomain:
+    def create_pddl_domain(self, world_state:PolycraftState) -> PddlPlusDomain:
         ''' Create a PDDL+ domain for the given observed state '''
         domain_file = "{}/{}".format(str(self.docker_path), "polycraft_domain_template.pddl")
         domain_parser = PddlDomainParser()
         pddl_domain = domain_parser.parse_pddl_domain(domain_file)
 
         # Add actions for recipes
+        self._add_do_recipe_actions(pddl_domain, world_state)
 
         # Add actions for trades
+        self._add_do_trade_actions(pddl_domain, world_state)
 
+        return pddl_domain
 
-    def create_pddl_problem(self, world_state : poly.PolycraftState):
+    def _add_do_recipe_actions(self, pddl_domain, world_state):
+        ''' Add a do_recipe action for every recipe in the world state '''
+        for recipe_id, recipe in enumerate(world_state.recipes):
+            recipe_action = PddlPlusWorldChange(WorldChangeTypes.action)
+            recipe_action.name = f'do_recipe_{recipe_id}'
+
+            # Parameters
+            param_list = []
+            for input_item in recipe['inputs']:
+                param_list.extend([f'?slot{input_item["slot"]}', '-', 'inventory_item'])
+            recipe_action.parameters.append(param_list)
+
+            # Effects
+            assert (len(recipe['outputs']) == 1)  # Assuming a recipe creates a single item
+            output = recipe['outputs'][0]
+            stack_size = output["stackSize"]
+            item_type = self.object_types[output["Item"]].block_type
+            recipe_action.effects.append(['assign', ['crafted_item'], item_type])
+            recipe_action.effects.append(['assign', ['crafted_item_count'], stack_size])
+
+            # Preconditions
+            for input_item in recipe['inputs']:
+                slot = input_item["slot"]
+                stack_size = input_item["stackSize"]
+                item_type = self.object_types[input_item["Item"]].block_type
+                recipe_action.preconditions.append(["=", ['item_type', f'?slot{slot}'], item_type])
+                recipe_action.preconditions.append([">=", ['count', f'?slot{slot}'], stack_size])
+
+                recipe_action.effects.append(['decrease', ['count', f'?slot{slot}'], stack_size])
+
+            pddl_domain.actions.append(recipe_action)
+
+    def _add_do_trade_actions(self, pddl_domain, world_state):
+        ''' Add a do_recipe action for every recipe in the world state '''
+        for trader, trades in world_state.trades.items():
+            for trade_id, trade in enumerate(trades):
+                recipe_action = PddlPlusWorldChange(WorldChangeTypes.action)
+                recipe_action.name = f'do_trade_{trader}_{trade_id}'
+
+                # Parameters
+                param_list = []
+                for input_item in trade['inputs']:
+                    param_list.extend([f'?slot{input_item["slot"]}', '-', 'inventory_item'])
+                recipe_action.parameters.append(param_list)
+
+                # Effects
+                assert (len(trade['outputs']) == 1)  # Assuming a recipe creates a single item
+                output = trade['outputs'][0]
+                stack_size = output["stackSize"]
+                item_type = self.object_types[output["Item"]].block_type
+                recipe_action.effects.append(['assign', ['traded_item'], item_type])
+                recipe_action.effects.append(['assign', ['traded_item_count'], stack_size])
+
+                # Preconditions
+                for input_item in trade['inputs']:
+                    slot = input_item["slot"]
+                    stack_size = input_item["stackSize"]
+                    item_type = self.object_types[input_item["Item"]].block_type
+                    recipe_action.preconditions.append(["=", ['item_type', f'?slot{slot}'], item_type])
+                    recipe_action.preconditions.append([">=", ['count', f'?slot{slot}'], stack_size])
+
+                    recipe_action.effects.append(['decrease', ['count', f'?slot{slot}'], stack_size])
+
+                pddl_domain.actions.append(recipe_action)
+
+    def _get_steve_attributes(self, steve_obj):
+        ''' Extract Steve's attributes fromthe relevant state object '''
+        obj_attributes = dict()
+        obj_attributes["steve_x"] = steve_obj['pos'][0]
+        obj_attributes["steve_y"] = steve_obj['pos'][1]
+        obj_attributes["steve_z"] = steve_obj['pos'][2]
+        obj_attributes["steve_facing"] = steve_obj["facing"]
+        obj_attributes["steve_yaw"] = steve_obj["yaw"]
+        obj_attributes["steve_pitch"] = steve_obj["pitch"]
+        return obj_attributes
+
+    def create_pddl_problem(self, world_state : PolycraftState):
         ''' Creates a PDDL problem file in which the given world state is the initial state '''
 
         pddl_problem = PddlPlusProblem()
@@ -230,19 +267,14 @@ class PolycraftMetaModel(MetaModel):
         pddl_problem.init = []
         pddl_problem.goal = []
 
-
         # A dictionary with global problem parameters
         problem_params = dict()
 
-        # Add objects
-
-
-        # A dictionary with current state parameters that are not object related
-        state_params = dict()
-
         # Add Steve location to init state
-        steve_type = SteveType()
-        steve_type.add_object_to_problem(pddl_problem, world_state.location, state_params)
+        steve_attributes = self._get_steve_attributes(world_state.location)
+        for attr_name, attr_value in steve_attributes.items():
+            pddl_problem.init.append(['=', [attr_name], attr_value])
+        pddl_problem.init.append(['=', ['facing_block'], world_state.facing_block['name']])
 
         # Add game map cells
         for cell, cell_attr in world_state.game_map.items():
@@ -267,7 +299,7 @@ class PolycraftMetaModel(MetaModel):
                 type = InventoryItemType()
             else:
                 type = self.object_types[type_str]
-            type.add_object_to_problem(pddl_problem, (item_id, item_attr), state_params)
+            type.add_object_to_problem(pddl_problem, (item_id, item_attr), problem_params)
 
         # Currently modeling other entities only via their trades TODO: Re-consider this
 
@@ -276,7 +308,7 @@ class PolycraftMetaModel(MetaModel):
 
         return pddl_problem
 
-    def create_pddl_state(self, world_state: poly.PolycraftState) -> PddlPlusState:
+    def create_pddl_state(self, world_state: PolycraftState) -> PddlPlusState:
         ''' Translate the given observed world state to a PddlPlusState object '''
 
         pddl_state = PddlPlusState()
@@ -284,9 +316,11 @@ class PolycraftMetaModel(MetaModel):
         # A dictionary with current state parameters that are not object related
         state_params = dict()
 
-        # Add Steve location to state
-        steve_type = SteveType()
-        steve_type.add_object_to_state(pddl_state, world_state.location, state_params)
+        # Add Steve's attributes
+        steve_attributes = self._get_steve_attributes(world_state.location)
+        for attr_name, attr_value in steve_attributes.items():
+            pddl_state.numeric_fluents[attr_name]=attr_value
+        pddl_state.numeric_fluents['facing_block'] = world_state.facing_block['name']
 
         # Add game map cells
         for cell, cell_attr in world_state.game_map.items():
@@ -346,3 +380,32 @@ class PolycraftMetaModel(MetaModel):
         #     type.add_object_to_state(pddl_state, obj, state_params)
 
         return pddl_state
+
+
+
+
+    def action_to_pddl(self, action: PolycraftAction):
+
+        if issubclass(action, PolyTP):
+            return
+
+
+
+        class PolyTP(PolycraftAction):
+            """ Teleport to a position "dist" away from the xyz coordinates"""
+
+            def __init__(self, x: int, y: int, z: int, dist: int = 0):
+                super().__init__()
+                self.x = x
+                self.y = y
+                self.z = z
+                self.dist = dist
+
+            def __str__(self):
+                return "<PolyTP pos=({}, {}, {}) dist={} success={}>".format(self.x, self.y, self.z, self.dist,
+                                                                             self.success)
+
+            def do(self, poly_client: poly.PolycraftInterface) -> dict:
+                result = poly_client.TP_TO_POS(self.x, self.y, self.z, distance=self.dist)
+                self.success = self.is_success(result)
+                return result
