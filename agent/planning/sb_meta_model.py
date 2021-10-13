@@ -266,11 +266,11 @@ class BirdType(PddlObjectType):
         obj_attributes = dict()
 
         slingshot = problem_params["slingshot"]
-        groundOffset = problem_params["groundOffset"]
+        ground_offset = problem_params["groundOffset"]
 
         # In the initial state, the planner assumes the birds are on the sling
         slingshot_x = get_slingshot_x(slingshot)
-        slingshot_y = get_slingshot_y(groundOffset, slingshot)
+        slingshot_y = get_slingshot_y(ground_offset, slingshot)
 
         if "initial_state" in problem_params and problem_params["initial_state"] == True:
             obj_attributes["x_bird"] = slingshot_x
@@ -278,7 +278,7 @@ class BirdType(PddlObjectType):
             obj_attributes["v_bird"] = round((9.5 / 2.7) * (get_scale(slingshot)) * (self.hyper_parameters["velocity_multiplier"]/10) )
         else:
             obj_attributes["x_bird"] = get_x_coordinate(obj)
-            obj_attributes["y_bird"] = get_y_coordinate(obj, groundOffset)
+            obj_attributes["y_bird"] = get_y_coordinate(obj, ground_offset)
 
             # Need to separate the case where we're before shooting the bird and after.
             # Before: the bird location is considered as the location of the slingshot,
@@ -335,9 +335,9 @@ class BlockType(PddlObjectType):
 
         obj_attributes = dict()
 
-        groundOffset = problem_params["groundOffset"]
+        ground_offset = problem_params["groundOffset"]
         obj_attributes["x_block"] = get_x_coordinate(obj)
-        obj_attributes["y_block"] = get_y_coordinate(obj, groundOffset)
+        obj_attributes["y_block"] = get_y_coordinate(obj, ground_offset)
         obj_attributes["block_height"] = get_height(obj)
         obj_attributes["block_width"] = get_width(obj)
         return obj_attributes
@@ -345,22 +345,22 @@ class BlockType(PddlObjectType):
     def _compute_obj_attributes(self, obj, problem_params: dict):
         obj_attributes = self._compute_observable_obj_attributes(obj, problem_params)
 
-        groundOffset = problem_params["groundOffset"]
+        ground_offset = problem_params["groundOffset"]
         obj_attributes["block_life"] = self.__compute_block_life()
         obj_attributes["block_mass"] = self.__compute_block_mass()
         obj_attributes["block_stability"] = self.__compute_stability(obj_attributes["block_width"],
                                                                      obj_attributes["block_height"],
                                                                      obj_attributes["y_block"],
-                                                                     groundOffset)
+                                                                     ground_offset)
         return obj_attributes
 
     def __compute_block_life(self):
         return str(math.ceil(265 * self.hyper_parameters["block_life_multiplier"]))
     def __compute_block_mass(self):
         return str(self.hyper_parameters["block_mass_coeff"])
-    def __compute_stability(self, bl_width, bl_height, bl_y, groundOffset):
+    def __compute_stability(self, bl_width, bl_height, bl_y, ground_offset):
         return round(265 * (bl_width / (bl_height + 1)) \
-               * (1 - (bl_y / (groundOffset + 1))) \
+               * (1 - (bl_y / (ground_offset + 1))) \
                * self.hyper_parameters["block_mass_coeff"])
 
 
@@ -456,18 +456,19 @@ class ScienceBirdsMetaModel(MetaModel):
                 sling = o
         return sling
 
-    ''' Converts twang angle to the corresponding action time '''
     @staticmethod
     def action_time_to_angle(action_time: float, state: PddlPlusState):
+        """ Converts twang angle to the corresponding action time """
         return action_time * float(state[('angle_rate',)]) + float(state[('angle',)])
 
-    ''' Converts a twang angle to the time of the twang action. '''
+
     @staticmethod
     def angle_to_action_time(angle: float, state: PddlPlusState):
+        """ Converts a twang angle to the time of the twang action. """
         return (angle - float(state[('angle',)]))/float(state[('angle_rate',)])
 
-    ''' Creates an SB action from a PDDL action_angle_time triple outputted by the planner '''
     def create_sb_action(self, timed_action : TimedAction, processed_state: ProcessedSBState):
+        """ Creates an SB action from a PDDL action_angle_time triple outputted by the planner """
         # Compute angle from action time
         pddl_state = self.create_pddl_problem(processed_state).get_init_state()
         angle = self.action_time_to_angle(timed_action.start_at, pddl_state)
@@ -480,8 +481,8 @@ class ScienceBirdsMetaModel(MetaModel):
                             3000, ref_point.X, ref_point.Y)
         return action
 
-    ''' Create a PDDL+ TimedAction object from an SB action and state '''
     def create_timed_action(self, sb_shoot: SB.SBShoot, sb_state :ProcessedSBState):
+        """ Create a PDDL+ TimedAction object from an SB action and state """
         ref_x = sb_shoot.ref_x
         ref_y = sb_shoot.ref_y
         release_x = ref_x + sb_shoot.dx
@@ -556,22 +557,22 @@ class ScienceBirdsMetaModel(MetaModel):
             type_str = obj[1]['type']
 
             if 'bird' in type_str.lower() or (get_x_coordinate(obj) <= get_slingshot_x(slingshot) and not 'slingshot' in type_str):
-                type = self.object_types["bird"]
+                bird_obj_type = self.object_types["bird"]
             else:
                 if type_str in self.object_types:
-                    type = self.object_types[type_str]
+                    bird_obj_type = self.object_types[type_str]
                 else:
                     logger.debug("Unknown object type: %s" % type_str)
                     # TODO Handle unknown objects in some way (Error? default object?)
                     continue
             # print("(create pddl problem) Object_type: " + str(type_str) +"/" + str(type) + " [" + str(get_x_coordinate(obj)) + ", " + str(get_y_coordinate(obj, problem_params["groundOffset"])) + "] ")
             # Add object of this type to the problem
-            type.add_object_to_problem(pddl_problem, obj, problem_params)
+            bird_obj_type.add_object_to_problem(pddl_problem, obj, problem_params)
 
         # Add dummy platform and block if none exists TODO: Why do we need this?
-        if problem_params["has_platform"]==False:
+        if not problem_params["has_platform"]:
             pddl_problem.objects.append(['dummy_platform','platform'])
-        if problem_params["has_block"]==False:
+        if not problem_params["has_block"]:
             pddl_problem.objects.append(['dummy_block','block'])
 
         # Add constants fluents
@@ -606,8 +607,9 @@ class ScienceBirdsMetaModel(MetaModel):
                 pddl_problem.goal.append(['pig_dead', pig])
         return pddl_problem
 
-    ''' Get the ground offset '''
+
     def get_ground_offset(self, slingshot):
+        """ Get the ground offset """
         return slingshot[1]['polygon'].bounds[3]
 
     ''' Translate the given observed SBState to a PddlPlusState object. 
@@ -650,9 +652,10 @@ class ScienceBirdsMetaModel(MetaModel):
 
         return pddl_state
 
-    ''' Create a simplified version of the given problem, to help the planner plan 
-    TODO: Move this to planner'''
+
     def create_simplified_problem(self, prob : PddlPlusProblem):
+        """ Create a simplified version of the given problem, to help the planner plan
+         TODO: Move this to planner"""
         prob_simplified = PddlPlusProblem()
         prob_simplified.name = copy.copy(prob.name)
         prob_simplified.domain = copy.copy(prob.domain)
@@ -661,7 +664,7 @@ class ScienceBirdsMetaModel(MetaModel):
         removed_list = []
         first_bird_spotted = False
         for obj in prob.objects:
-            if ((obj[1] == 'bird') and not first_bird_spotted):
+            if (obj[1] == 'bird') and not first_bird_spotted:
                 first_bird_spotted = True
             elif obj[1] == 'bird':
                 removed_list.append(obj[0])
@@ -679,8 +682,9 @@ class ScienceBirdsMetaModel(MetaModel):
         prob_simplified.goal.append(['pig_killed'])
         return prob_simplified
 
-    ''' Created an even more simplified version of the problem to speed up planner ?'''
+
     def create_super_simplified_problem(self, prob :PddlPlusProblem):
+        """ Created an even more simplified version of the problem to speed up planner ?"""
         prob_super_simplified = PddlPlusProblem()
         prob_super_simplified.name = copy.copy(prob.name)
         prob_super_simplified.domain = copy.copy(prob.domain)
@@ -690,12 +694,12 @@ class ScienceBirdsMetaModel(MetaModel):
         super_removed_list = []
         first_bird_spotted = False
         for obj in prob.objects:
-            if ((obj[1] == 'bird') and not first_bird_spotted):
+            if (obj[1] == 'bird') and not first_bird_spotted:
                 first_bird_spotted = True
             elif obj[1] == 'bird':
                 removed_list.append(obj[0])
                 prob_super_simplified.objects.remove(obj)
-            elif (obj[1] == 'block'):
+            elif obj[1] == 'block':
                 super_removed_list.append(obj[0])
                 prob_super_simplified.objects.remove(obj)
 

@@ -1,6 +1,6 @@
 import itertools
 
-class State():
+class State:
     """This is the most abstract state class that captures the current state of the game"""
 
     newid = itertools.count()
@@ -10,7 +10,7 @@ class State():
     def get_rl_id(self):
         return self.id
 
-class Action():
+class Action:
     """
     This class defines actions and will be specialized in worlds
     """
@@ -23,11 +23,12 @@ class Action():
         return self.id
 
 class InvokeBasicRL(Action):
-    def __init__(self,state):
+    def __init__(self, state):
+       super().__init__()
        self.state = state
 
 
-class World():
+class World:
     def __init__(self):
         self.actions = []
         self.current_state = None

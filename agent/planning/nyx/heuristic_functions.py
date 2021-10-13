@@ -13,7 +13,7 @@ def heuristic_function(state):
 
         # CARTPOLE++ HEURISTIC
 
-        if (state.state_vars["['total_failure']"]):
+        if state.state_vars["['total_failure']"]:
             return 999999
         return math.sqrt(math.pow(state.state_vars["['pos_x']"], 2) + math.pow(state.state_vars["['theta_x']"], 2) + math.pow(
             state.state_vars["['theta_x_dot']"], 2) + math.pow(state.state_vars["['pos_x_dot']"], 2) + math.pow(
