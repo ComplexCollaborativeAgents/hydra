@@ -18,7 +18,7 @@ class PddlParserUtils:
         for line in in_file.readlines():
             if line.strip().startswith(";"): # A comment line
                 continue
-            line_tokens = line.replace("(", " ( ").replace(")"," ) ").split()
+            line_tokens = line.lower().replace("(", " ( ").replace(")"," ) ").split()
             for token in line_tokens:
                 if len(token.strip())==0:
                     continue
@@ -254,6 +254,8 @@ class PddlDomainParser():
             if len(element)>0: # Element is a non-leaf
                 if element[0] == "domain":
                     domain.name = element[1]
+                elif element[0] == ":requirements":
+                    domain.requirements = element[1:]
                 elif element[0]==":types":
                     domain.types = self.parse_types(element)
                 elif element[0] == ":predicates":

@@ -1,4 +1,4 @@
-from worlds.wsu.generator.cartpoleplusplus import CartPoleBulletEnv
+from .cartpoleplusplus import CartPoleBulletEnv
 
 
 class CartPole(CartPoleBulletEnv):

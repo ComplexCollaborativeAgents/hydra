@@ -12,6 +12,7 @@ NO_PLANNING = False
 NO_REPAIR = False
 NO_PDDL_CONSISTENCY = False
 SB_DEV_MODE = True
+NOVELTY_POSSIBLE = False
 
 SB_PLANNER_MEMORY_LIMIT = 50 # memory limit for UPMurphi (in MB)
 SB_DELTA_T = 0.05 # time discretisation for UPMurphi
@@ -33,8 +34,9 @@ SCIENCE_BIRDS_BIN_DIR = path.join(ROOT_PATH,'bin')
 SCIENCE_BIRDS_LEVELS_DIR = path.join(SCIENCE_BIRDS_BIN_DIR,'linux','Levels','novelty_level_0','type2','Levels')
 POLYCRAFT_DIR = path.join(ROOT_PATH, 'bin', 'pal', 'PolycraftAIGym')
 SB_INIT_COLOR_MAP = path.join(ROOT_PATH,'worlds','science_birds_interface','demo','ColorMap.json')
-SB_SIM_SPEED = 20 # run at real time
-SB_GT_FREQ = int(30/SB_SIM_SPEED)
+SB_SIM_SPEED = 1 # run at real time
+# SB_GT_FREQ = int(30/SB_SIM_SPEED)
+SB_GT_FREQ = 10
 SB_CLASSIFICATION_THRESHOLD = 0.5
 
 HYDRA_MODEL_REVISION_ATTEMPTS = 5
@@ -54,6 +56,7 @@ POLYCRAFT_LEVEL_DIR = path.join(ROOT_PATH, 'bin', 'pal', 'POGO_100_PN')  # Path 
 
 SB_PLANNING_DOCKER_PATH = path.join(ROOT_PATH, 'agent', 'planning', 'sb_planning')
 CARTPOLE_PLANNING_DOCKER_PATH = path.join(ROOT_PATH, 'agent', 'planning', 'cartpole_planning')
+CARTPOLEPLUSPLUS_PLANNING_DOCKER_PATH = path.join(ROOT_PATH, 'agent', 'planning', 'cartpoleplusplus_planning')
 POLYCRAFT_PLANNING_DOCKER_PATH = path.join(ROOT_PATH, 'agent', 'planning', 'polycraft_docker_scripts')
 
 VAL_DOCKER_PATH = path.join(ROOT_PATH, 'agent', 'planning', 'val_scripts')

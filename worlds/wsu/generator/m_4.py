@@ -2,7 +2,7 @@ import math
 import numpy as np
 import os.path
 
-from worlds.wsu.generator.cartpoleplusplus import CartPoleBulletEnv
+from .cartpoleplusplus import CartPoleBulletEnv
 
 
 class CartPolePPMock4(CartPoleBulletEnv):

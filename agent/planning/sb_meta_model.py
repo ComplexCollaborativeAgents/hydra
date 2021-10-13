@@ -246,6 +246,8 @@ class BirdType(PddlObjectType):
         self.hyper_parameters["m_bird"] = 1
         self.hyper_parameters["bounce_count"] = 0
         self.hyper_parameters["bird_released"] = False
+        ## TAP UPDATE
+        # self.hyper_parameters["bird_tapped"] = False
         self.hyper_parameters["velocity_multiplier"] = 10
 
     def _compute_obj_attributes(self, obj, problem_params: dict):
@@ -285,6 +287,13 @@ class BirdType(PddlObjectType):
                 obj_attributes["x_bird"] = slingshot_x
                 obj_attributes["y_bird"] = slingshot_y
 
+        ## TAP UPDATE
+        ## Encode bird type/colour in the PDDL+ model
+        # obj_attributes["bird_type"] = 0
+        # bird_map = {"red": 0, "yellow": 1, "black": 2, "white": 3, "blue": 4}
+        # for key in bird_map:
+        #     if key in self._get_name(obj).lower():
+        #         obj_attributes["bird_type"] = bird_map[key]
 
         obj_attributes["bird_id"] = problem_params["bird_index"]
         problem_params["bird_index"] = problem_params["bird_index"] + 1
@@ -399,7 +408,7 @@ class ScienceBirdsMetaModel(MetaModel):
                                           'v_bird_multiplier'],
                          constant_numeric_fluents={
                              'active_bird': 0,
-                              'angle_rate': 20,
+                              'angle_rate': 40,
                              'ground_damper': 0.3,
                              'base_life_wood_multiplier': 1.0,
                              'base_life_ice_multiplier': 0.5,
@@ -579,11 +588,13 @@ class ScienceBirdsMetaModel(MetaModel):
         # Initial angle value to prune un-promising trajectories which only hit the ground
         closest_obj_x, closest_obj_y = get_closest_object_xy(pddl_problem)
         min_angle, max_angle = estimate_launch_angle(slingshot, Point2D(closest_obj_x, closest_obj_y), self)
-        problem_params["angle"] = min_angle
+        problem_params["angle"] = 0.0
         pddl_problem.init.append(['=', ['angle'], problem_params["angle"]])
         problem_params["max_angle"] = max_angle
         pddl_problem.init.append(['=', ['max_angle'], problem_params["max_angle"]])
 
+        problem_params["points_score"] = len(problem_params["birds"])
+        pddl_problem.init.append(['=', ['points_score'], problem_params["points_score"]])
 
         # Add goal
         pigs = problem_params["pigs"]
