@@ -263,8 +263,6 @@ class PddlPlusState():
         for fluent_name in self.boolean_fluents:
             print("%s" % str(fluent_name))
 
-
-
     # Deep clone
     def clone(self):
         new_state = PddlPlusState()

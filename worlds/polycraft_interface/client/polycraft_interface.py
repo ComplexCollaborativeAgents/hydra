@@ -297,7 +297,7 @@ class PolycraftInterface:
             raise ValueError("Polycraft command TRADE recieved an invalid trade (number of items)")
 
         cmd = "TRADE {} ".format(entity_id)
-        cmd += " ".join(["{} {}".format(item[0], item[1]) for item in items])
+        cmd += " ".join(["{} {}".format(item['Item'], item['stackSize']) for item in items])
         self._send_cmd(cmd)
         return self._recv_response("TRADE")
 

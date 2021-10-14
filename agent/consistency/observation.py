@@ -29,19 +29,6 @@ class HydraObservation:
         subprocess.run(cmd, shell=True)
         pickle.dump(self, open("{}/{}_observation.p".format(trace_dir,prefix), 'wb'))
 
-    def load_observation(full_path):
-        return pickle.load(open(full_path, 'rb'))
-
-    def log_observation(self,prefix):
-        ''' Stores the observation in a file specified by the prefix'''
-        trace_dir = "{}/agent/consistency/trace/observations".format(settings.ROOT_PATH)
-        cmd = "mkdir -p {}".format(trace_dir)
-        subprocess.run(cmd, shell=True)
-        pickle.dump(self, open("{}/{}_observation.p".format(trace_dir,prefix), 'wb'))
-
-    def load_observation(full_path):
-        return pickle.load(open(full_path, 'rb'))
-
 
 class ScienceBirdsObservation(HydraObservation):
     ''' An object that represents an observation of the SB game '''

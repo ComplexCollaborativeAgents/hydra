@@ -101,7 +101,7 @@ class PolyTurn(PolycraftAction):
 
 class PolyTilt(PolycraftAction):
     """ Tilt the actor's focus up/down in the x axis (horizontal) in increments of 15 degrees """
-    def __init__(self, pitch: int):
+    def __init__(self, pitch: str):
         super().__init__()
         self.pitch = pitch
 
@@ -318,9 +318,9 @@ class PolycraftState(State):
             actions.append(PolyTurn(direction))
 
         # Tilt up/down
-        for angle in range(180, 0, -45):
-            actions.append(PolyTilt(angle))
-            
+        for tilt_dir in poly.TiltDir:
+            actions.append(PolyTilt(tilt_dir.value))
+
         # Break a block
         actions.append(PolyBreak())
 
@@ -345,12 +345,33 @@ class PolycraftState(State):
             actions.append(PolyDeleteItem(item_name))
 
         # Make a trade for an item with an entity NOTE: May need to be adjacent TODO: decide whether or not to enforce adjacency in valid action?
-        for trade in self.trades:
-            actions.append(PolyTradeItems(trade['entity_id'], trade['input']))
+        for trader, trades in self.trades.items():
+            for trade in trades:
+                actions.append(PolyTradeItems(trader, trade['inputs']))
 
         # Craft an item NOTE: will need to be adjacent to crafting bench for 3x3 crafts TODO: decide whether or not to enforce adjaceny in valid action?
         for recipe in self.recipes:
-            actions.append(PolyCraftItem(recipe=recipe['inputs']))
+            # Create recipe list, filling zeros for empty slots
+            slot_to_item = dict()
+            for recipe_item in recipe['inputs']:
+                item_name = recipe_item['Item']
+                assert(recipe_item['stackSize']==1) # Currently supporting only one item per slot recipes
+                slot = recipe_item['slot']
+                slot_to_item[slot]=item_name
+
+            # Infer if this is a 3x3 or 2x2 recipe
+            if max(slot_to_item.keys())>3: # then this is  3x3 recipe
+                recipe_size = 9
+            else: # then this is a 2x2 recipe
+                recipe_size = 4
+            recipe_items = []
+            for i in range(recipe_size):
+                if i in slot_to_item:
+                    recipe_items.append(slot_to_item[i])
+                else:
+                    recipe_items.append("0")
+
+            actions.append(PolyCraftItem(recipe=recipe_items))
 
         return actions
 
@@ -413,6 +434,8 @@ class Polycraft(World):
         while listening and not pipe.stdout.closed:
             try:
                 line = pipe.stdout.readline()
+                if len(line)>0:
+                    logger.debug(line)
                 queue.put(line)
                 sys.stdout.flush()
                 pipe.stdout.flush()

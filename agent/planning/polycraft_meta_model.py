@@ -75,7 +75,7 @@ class InventoryItemType(PddlObjectType):
         (item_id, item_attr) = obj
         for attr_name, attr_value in item_attr.items():
             if attr_name != "item":
-                if type(attr_value)==bool or ( type(attr_value)==str and type.lower() in ["true", "false"] ):
+                if type(attr_value)==bool or ( type(attr_value)==str and attr_value.lower() in ["true", "false"] ):
                     obj_attributes[attr_name]=bool(attr_value)
                 else:
                     obj_attributes[attr_name]=attr_value
@@ -111,9 +111,9 @@ class GameMapCellType(PddlObjectType):
                     obj_attributes[attr_name]=attr_value
 
         x, y, z = cell_id.split(",")
-        obj_attributes["x"] = int(x)
-        obj_attributes["y"] = int(y)
-        obj_attributes["z"] = int(z)
+        obj_attributes["cell_x"] = int(x)
+        obj_attributes["cell_y"] = int(y)
+        obj_attributes["cell_z"] = int(z)
 
         if self.block_type != -1:
             obj_attributes["block_type"] = self.block_type
@@ -146,13 +146,62 @@ class LogType(GameMapCellType):
 
         return obj_attributes
 
-
 class AirType(GameMapCellType):
     def __init__(self, block_type):
         super().__init__(block_type)
 
     def _compute_observable_obj_attributes(self, obj, problem_params:dict):
         return dict() # Ignoring air blocks in the PDDL
+
+# Entity types
+
+class EntityType(PddlObjectType):
+    IGNORED_ENTITY_ATTRIBUTES = ['equipment', 'pos', 'name']
+    def __init__(self,entity_type=-1):
+        super().__init__()
+        self.pddl_type = "entity"
+        self.entity_type = entity_type
+
+    def _compute_observable_obj_attributes(self, obj, problem_params:dict):
+        obj_attributes = dict()
+        obj_attributes["entity_type"] = self.entity_type
+
+        (entity_id, entity_attr)=obj
+
+        for attr_name, attr_value in entity_attr.items():
+            if attr_name != 'type' and attr_name not in EntityType.IGNORED_ENTITY_ATTRIBUTES:
+                if type(attr_value)== bool or (type(attr_value)==str and attr_value.lower() in ["true", "false"]):
+                    obj_attributes[attr_name]=bool(attr_value)
+                else:
+                    obj_attributes[attr_name]=attr_value
+
+        x, y, z = entity_attr['pos']
+        obj_attributes["entity_x"] = x
+        obj_attributes["entity_y"] = y
+        obj_attributes["entity_z"] = z
+
+
+        return obj_attributes
+
+    def _get_name(self, obj):
+        (entity_id, entity_attr)=obj
+        return "entity_{}".format(entity_id)
+
+class EntityItemType(EntityType):
+    ITEM_TO_ENUM = {"minecraft:sapling":1}
+
+    def __init__(self,entity_type=-1):
+        super().__init__(entity_type)
+
+    def _compute_observable_obj_attributes(self, obj, problem_params:dict):
+        obj_attributes = super()._compute_observable_obj_attributes(obj, problem_params)
+
+        obj_attributes.pop('damage') # Not supported yet
+        obj_attributes.pop('maxdamage') # Not supported yet
+
+        obj_attributes['item'] = EntityItemType.ITEM_TO_ENUM[obj_attributes['item']] # Convert item to enum
+
+        return obj_attributes
 
 class PolycraftMetaModel(MetaModel):
 
@@ -188,6 +237,9 @@ class PolycraftMetaModel(MetaModel):
         self.object_types["minecraft:diamond_block"] = InventoryItemType(14)
         self.object_types["polycraft:sack_polyisoprene_pellets"] = InventoryItemType(15)
         self.object_types["minecraft:diamond"] = InventoryItemType(16)
+        self.object_types["EntityTrader"] = EntityType(17)
+        self.object_types["EntityPogoist"] = EntityType(18)
+        self.object_types["EntityItem"] = EntityItemType(19)
 
 
     def create_pddl_domain(self, world_state:PolycraftState) -> PddlPlusDomain:
@@ -325,7 +377,11 @@ class PolycraftMetaModel(MetaModel):
                 type = self.object_types[type_str]
             type.add_object_to_problem(pddl_problem, (item_id, item_attr), problem_params)
 
-        # Currently modeling other entities only via their trades TODO: Re-consider this
+        # Add other entities
+        for entity, entity_attr in world_state.entities.items():
+            type_str = entity_attr["type"]
+            type = self.object_types[type_str]
+            type.add_object_to_problem(pddl_problem, (entity, entity_attr), problem_params)
 
         # Add goal
         pddl_problem.goal.append(['pogo_created',])

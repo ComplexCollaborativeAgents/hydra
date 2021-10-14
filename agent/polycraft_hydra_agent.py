@@ -1,6 +1,7 @@
 import random
 import datetime
 
+from agent.consistency.observation import HydraObservation
 from agent.planning.polycraft_meta_model import PolycraftMetaModel
 from worlds.polycraft_interface.client.polycraft_interface import TiltDir
 import worlds.polycraft_interface.client.polycraft_interface as poly
@@ -11,6 +12,34 @@ from agent.planning.nyx import nyx
 
 logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("Polycraft")
+
+
+
+class PolycraftObservation(HydraObservation):
+    ''' An object that represents an observation of the SB game '''
+
+    def __init__(self):
+        self.states = [] # A sequence of polycraft states
+        self.actions = []  # A sequence of polycraft actions
+        self.rewards = [] # The reward obtained from performing each action
+        self.actions_success = [] # Whether the performed action was successful or not
+
+    def get_initial_state(self):
+        return self.states[0]
+
+    def get_pddl_states_in_trace(self, meta_model: PolycraftMetaModel = PolycraftMetaModel()) -> list: # TODO: Refactor and move this to the meta model?
+        ''' Returns a sequence of PDDL states that are the observed intermediate states '''
+        observed_state_seq = []
+        for state in self.states:
+            pddl = meta_model.create_pddl_state(state)
+            observed_state_seq.append(pddl)
+        return observed_state_seq
+
+    def get_pddl_plan(self, meta_model: PolycraftMetaModel = PolycraftMetaModel):
+        ''' Returns a PDDL+ plan object with a single action that is the action that was performed '''
+        raise NotImplementedError()
+
+
 
 class PolycraftPlanner(HydraPlanner):
     ''' Planner for the polycraft domain'''
@@ -180,14 +209,6 @@ class PolycraftHydraAgent(HydraAgent):
                 # Interact with it
                 env.interact(entity_id)
 
-
-        meta_model = PolycraftMetaModel()
-        pddl_state = meta_model.create_pddl_state(current_state)
-
-
-        available_actions = current_state.get_available_actions()
-
-
     def choose_action(self, world_state: PolycraftState):
         ''' Choose which action to perform in the given state '''
 
@@ -223,6 +244,7 @@ class PolycraftRandomAgent(PolycraftHydraAgent):
 
     def _choose_random(self, world_state: PolycraftState):
         ''' Choose a random action from the list of possible actions '''
+        world_state.get_available_actions()
         action_class = random.choice([PolyTP, PolyEntityTP, PolyTurn, PolyTilt, PolyTilt, PolyBreak, PolyInteract,
                                       PolySelectItem, PolyUseItem, PolyPlaceItem, PolyCollect, PolyDeleteItem, PolyTradeItems,
                                       PolyCraftItem])
@@ -295,7 +317,7 @@ class PolycraftRandomAgent(PolycraftHydraAgent):
 
 
 
-class PolycraftMiningAgent(PolycraftHydraAgent):
+class PolycraftDoingAgent(PolycraftHydraAgent):
     ''' An agent that mines every available block '''
     def __init__(self):
         super().__init__()
@@ -304,80 +326,5 @@ class PolycraftMiningAgent(PolycraftHydraAgent):
         ''' Choose which action to perform in the given state '''
 
         logger.info("World state summary is: {}".format(str(world_state)))
-        world_state.get_available_actions()
-        # Choose random action types
-        chosen_action = self._choose_random(world_state)
-
-        return chosen_action
-
-    def _choose_random(self, world_state: PolycraftState):
-        ''' Choose a random action from the list of possible actions '''
-        action_class = random.choice([PolyTP, PolyEntityTP, PolyTurn, PolyTilt, PolyTilt, PolyBreak, PolyInteract,
-                                      PolySelectItem, PolyUseItem, PolyPlaceItem, PolyCollect, PolyDeleteItem, PolyTradeItems,
-                                      PolyCraftItem])
-
-        if action_class == PolyTP:
-            coordinate = random.choice(list(world_state.game_map.keys())).split(",")
-            return PolyTP(coordinate[0], coordinate[1], coordinate[2])
-        elif action_class == PolyEntityTP:
-            npcs = [npc for npc in world_state.entities.keys()]
-            if len(npcs) > 0:
-                npc = random.choice(npcs)
-                return PolyEntityTP(npc)
-            else:
-                return PolyNoAction()
-        elif action_class == PolyTurn:
-            dir = random.choice(range(0, 360, 15))
-            return PolyTurn(dir)
-        elif action_class == PolyTilt:
-            angle = random.choice([pitch.value for pitch in list(TiltDir)])    # Choose from DOWN, FORWARD, and UP
-            return PolyTilt(angle)
-        elif action_class == PolyBreak:
-            return PolyBreak()
-        elif action_class == PolySelectItem:
-            items = [item['item'] for item in world_state.inventory.values()]
-            if len(items) > 0:
-                item_name = random.choice(items)
-                return PolySelectItem(item_name)
-            else:
-                return PolyNoAction()   # No items to select
-        elif action_class == PolyUseItem:
-            return PolyUseItem()
-        elif action_class == PolyPlaceItem:
-            items = [item['item'] for item in world_state.inventory.values()]
-            if len(items) > 0:
-                item_name = random.choice(items)
-                return PolyPlaceItem(item_name)
-            else:
-                return PolyNoAction()   # No items to place
-        elif action_class == PolyDeleteItem:
-            items = [item['item'] for item in world_state.inventory.values()]
-            if len(items) > 0:
-                item_name = random.choice(items)
-                return PolyDeleteItem(item_name)
-            else:
-                return PolyNoAction()   # No items to place
-        elif action_class == PolyCollect:
-            return PolyCollect()
-        elif action_class == PolyInteract:
-            npcs = [npc for npc in world_state.entities.keys()]
-            if len(npcs) > 0:
-                npc = random.choice(npcs)
-                return PolyInteract(npc)
-            else:
-                return PolyNoAction()   # Do nothing.
-        elif action_class == PolyTradeItems:
-            # Choose trade from list of possible trades
-            if len(world_state.trades) > 0:
-                random_trade = random.choice(world_state.trades)
-            else:
-                return PolyNoAction()
-            return PolyTradeItems(random_trade['entity_id'], random_trade['input'])
-        elif action_class == PolyCraftItem:
-            if len(world_state.trades) > 0:
-                random_recipe = random.choice(world_state.recipes)
-            else:
-                return PolyNoAction()
-            return PolyCraftItem(random_recipe)
-        else:
-            raise ValueError("Bad action class {}".format(action_class))
+        actions = world_state.get_available_actions()
+        return random.choice(actions)
