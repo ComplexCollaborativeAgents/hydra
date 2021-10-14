@@ -209,6 +209,15 @@ class PolyCollect(PolycraftAction):
         self.success = self.is_success(result)
         return result
 
+class PolyGiveUp(PolycraftAction):
+    ''' An action in which the agent gives up'''
+    def __str__(self):
+        return "<PolyGiveUp success={}>".format(self.success)
+
+    def do(self, poly_client: poly.PolycraftInterface) -> dict:
+        result = poly_client.GIVE_UP()
+        self.success = self.is_success(result)
+        return result
 
 class PolyDeleteItem(PolycraftAction):
     """ Deletes the item in the player's inventory to prevent a fail state where the player is unable to pick up items due to having a full inventory """

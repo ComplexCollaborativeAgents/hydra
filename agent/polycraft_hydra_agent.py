@@ -13,6 +13,7 @@ from agent.planning.nyx import nyx
 logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("Polycraft")
 
+import json
 
 
 class PolycraftObservation(HydraObservation):
@@ -328,3 +329,53 @@ class PolycraftDoingAgent(PolycraftHydraAgent):
         logger.info("World state summary is: {}".format(str(world_state)))
         actions = world_state.get_available_actions()
         return random.choice(actions)
+
+
+class PolycraftTPAgent(PolycraftHydraAgent):
+    ''' An agent that moves around between blocks and other entities '''
+    def __init__(self):
+        super().__init__()
+
+    def choose_action(self, world_state: PolycraftState):
+        ''' Choose which action to perform in the given state '''
+
+        logger.info("World state summary is: {}".format(str(world_state)))
+
+        actions = []
+        for coords, block in world_state.game_map.items():
+            # if block['isAccessible']: # TODO: Explore why everything seems inaccessible
+            x, y, z = coords.split(',')
+            actions.append(PolyTP(int(x), int(y), int(z)))
+
+        return random.choice(actions)
+
+
+class PolycraftDoNothingAgent(PolycraftHydraAgent):
+    ''' An agent that does nothing '''
+    def __init__(self):
+        super().__init__()
+
+    def choose_action(self, world_state: PolycraftState):
+        return PolyNoAction()
+
+
+class PolycraftDoListAgent(PolycraftHydraAgent):
+    ''' An agent that performs a prescribed list of actions, after which it terminates '''
+    def __init__(self):
+        super().__init__()
+
+        self.cells_to_visit = None
+
+    def choose_action(self, world_state: PolycraftState):
+        if self.cells_to_visit is None:
+            self.cells_to_visit = list()
+            for coords, block in world_state.game_map.items():
+                # if block['isAccessible']: # TODO: Explore why everything seems inaccessible
+                self.cells_to_visit.append(coords)
+
+        if len(self.cells_to_visit)==0:
+            return PolyGiveUp()
+        else:
+            coords = self.cells_to_visit.pop(0)
+            x, y, z = coords.split(',')
+            return PolyTP(int(x), int(y), int(z))

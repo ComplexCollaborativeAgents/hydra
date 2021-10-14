@@ -426,7 +426,11 @@ class PolycraftMetaModel(MetaModel):
                 type = self.object_types[type_str]
             type.add_object_to_state(pddl_state, (item_id, item_attr), state_params)
 
-        # Currently modeling other entities only via their trades TODO: Re-consider this
+        # Add other entities
+        for entity, entity_attr in world_state.entities.items():
+            type_str = entity_attr["type"]
+            type = self.object_types[type_str]
+            type.add_object_to_state(pddl_state, (entity, entity_attr), state_params)
 
 
         # A dictionary with global problem parameters
@@ -462,30 +466,3 @@ class PolycraftMetaModel(MetaModel):
         return pddl_state
 
 
-
-
-    def action_to_pddl(self, action: PolycraftAction):
-
-        if issubclass(action, PolyTP):
-            return
-
-
-
-        class PolyTP(PolycraftAction):
-            """ Teleport to a position "dist" away from the xyz coordinates"""
-
-            def __init__(self, x: int, y: int, z: int, dist: int = 0):
-                super().__init__()
-                self.x = x
-                self.y = y
-                self.z = z
-                self.dist = dist
-
-            def __str__(self):
-                return "<PolyTP pos=({}, {}, {}) dist={} success={}>".format(self.x, self.y, self.z, self.dist,
-                                                                             self.success)
-
-            def do(self, poly_client: poly.PolycraftInterface) -> dict:
-                result = poly_client.TP_TO_POS(self.x, self.y, self.z, distance=self.dist)
-                self.success = self.is_success(result)
-                return result
