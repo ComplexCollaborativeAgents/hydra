@@ -51,7 +51,8 @@ SB_ANOMOLY_DETECTOR_THRESHOLD = 0.55
 SCIENCE_BIRDS_SERVER_CMD = 'java -jar {}'.format(path.join(SCIENCE_BIRDS_BIN_DIR, 'linux', 'game_playing_interface.jar'))
 POLYCRAFT_SERVER_CMD = "./gradlew --no-daemon --stacktrace runclient"   # Must be run in pal/PolycraftAIGym
 POLYCRAFT_HEADLESS = "xvfb-run -s '-screen 0 1280x1024x24'" # Prepend to Polycraft run command to run headless
-POLYCRAFT_DEFAULT_LEVEL_DIR = path.join(POLYCRAFT_DIR, "pogo_100_PN")   # Path to levels that come with the Polycraft distribution
+POLYCRAFT_NON_NOVELTY_LEVEL_DIR = path.join(POLYCRAFT_DIR, "pogo_100_PN")   # Path to Polycraft pre-novelty levels
+POLYCRAFT_NOVELTY_LEVEL_DIR = path.join(POLYCRAFT_DIR, "shared_novelty", "POGO")
 POLYCRAFT_LEVEL_DIR = path.join(ROOT_PATH, 'bin', 'pal', 'POGO_100_PN')  # Path to the polycraft levels directory.  NOTE: Please update this in your "local_settings.py" (create it if it doesn't exist)
 
 
