@@ -86,64 +86,77 @@ def type_to_class(type):
                'stone_triang_2': 'stone', 'stone_square_small_2': 'stone',
                'stone_circle_small_1': 'stone', 'stone_square_tiny_1': 'stone', 'stone_triang_hole_1': 'stone',
                'stone_triang_hole_2': 'stone',
-               'pig_basic_medium_3': 'pig', 'pig_basic_medium_1': 'pig', 'pig_basic_small_1': 'pig',
-               'Slingshot': 'slingshot', 'TNT': 'TNT','Platform':'platform'}
+               'stone_rect_tiny_2': 'stone',
+               'stone_circle_small_2': 'stone',
+               'pig_basic_medium_3': 'pig', 'pig_basic_medium_1': 'pig', 'pig_basic_small_1': 'pig', 'pig_basic_small_3': 'pig',
+               'Slingshot': 'slingshot', 'TNT': 'TNT','Platform':'platform',
+               'worm': 'worm',
+               'magician': 'magician',
+               'wizard': 'wizard',
+               'butterfly': 'butterfly'}
     if type in classes:
         return classes[type]
     else:
-        print(type)
         assert 'novel' in type
         return type
 
 
-def train_classifier(file=os.path.join(settings.ROOT_PATH,'data/science_birds/perception/object_class_level_0.csv')):
+def train_classifier(file=os.path.join(settings.ROOT_PATH,'data/science_birds/perception/pII/object_class.csv'), on_full_data=False):
     reader = csv.DictReader(open(file, 'r'), classification_cols())
     df = pd.read_csv(file)
     print(len(df.iloc[:, 0]))
     y = [type_to_class(x) for x in df.iloc[:, 0]]
     x = df.iloc[:, 1:]
-    x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.1)
-    logreg = lm.LogisticRegression(max_iter=500000,multi_class='ovr')
-    logreg.fit(x_train, y_train)
-    predictions = logreg.predict(x_test)
-    print(classification_report(y_test, predictions))
+    logreg = lm.LogisticRegression(max_iter=500000, multi_class='ovr')
+    if not on_full_data:
+        x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.1)
+        logreg.fit(x_train, y_train)
+        predictions = logreg.predict(x_test)
+        print(classification_report(y_test, predictions))
+    else:
+        logreg.fit(x,y)
     return logreg
 # probably need some preprocessing
 
 def test_classifier(logreg,file = os.path.join(settings.ROOT_PATH,'data/science_birds/perception/object_class_level_1.csv')):
     reader = csv.DictReader(open(file, 'r'), classification_cols())
     df = pd.read_csv(file)
-    print(len(df.iloc[:, 0]))
-    y = [type_to_class(x) for x in df.iloc[:, 0]]
-    x = df.iloc[:, 1:]
-    probs  = {}
-    errors = []
-    for type in y:
-        probs[type] = []
+    performance=[]
     for row in df.to_numpy():
         type = type_to_class(row[0])
         prediction = logreg.predict_proba([row[1:]])
-        pred_type = logreg.classes_[prediction[0].argmax()]
+        proposal = logreg.classes_[prediction[0].argmax()]
         probability = max(prediction[0])
-        if type == pred_type:
-            probs[type].append(probability)
-        elif 'novel' in type:
-            probs[type].append({'type':type,'prediction':pred_type,'probability':probability})
+        if probability > settings.SB_CLASSIFICATION_THRESHOLD:
+            pred_decision = proposal
         else:
-            errors.append({'type':type,'prediction':pred_type,'probability':probability})
-    print(len(errors))
-    for key,value in probs.items():
-        if 'novel' in key:
-            p = [v['probability'] for v in value]
-            probs[key] = [max(p),sum(p)/len(p)]
-        else:
-            probs[key] = [min(value) , sum(value)/len(value)]
-    return probs,errors
+            pred_decision = 'unknown'
+        if proposal=='unknown' or 'novel' in type or proposal != type:
+            performance.append({'env_type':type,
+                                'proposal': proposal,
+                                'probability': probability,
+                                'pred_decision': pred_decision,
+                               })
+    return performance
+
+
+
+
 
 if __name__ == '__main__':
     import pickle
-#    logreg = pickle.load(open('{}/data/science_birds/perception/logreg.p'.format(settings.ROOT_PATH), 'rb'))
-    logreg = train_classifier()
-    probs, errors = test_classifier(logreg)
+
+    #### train/load
+    #logreg = train_classifier(on_full_data=True)
+    #pickle.dump(logreg, open('{}/data/science_birds/perception/logreg_pII.p'.format(settings.ROOT_PATH), 'wb'))
+
+
+    ### test
+    logreg = pickle.load(open('{}/data/science_birds/perception/logreg_pII.p'.format(settings.ROOT_PATH), 'rb'))
+    performance = test_classifier(logreg, file=os.path.join(settings.ROOT_PATH,'data/science_birds/perception/pII/novel_objects_level1_type_9_10.csv'))
+    #performance= test_classifier(logreg, file=os.path.join(settings.ROOT_PATH,'data/science_birds/perception/pII/object_class.csv'))
+
+    for item in performance:
+        print(item)
 
 #    pickle.dump(logreg,open('{}/data/science_birds/perception/logreg.p'.format(settings.ROOT_PATH), 'wb'))
