@@ -1,4 +1,5 @@
 import datetime
+import time
 
 import settings
 from agent.hydra_agent import logger, NN_PROB, PDDL_PROB, NOVELTY_EXISTANCE_NOT_GIVEN, NOVELTY_LIKELIHOOD
@@ -92,10 +93,15 @@ class SBHydraAgent(HydraAgent):
         self.cumulative_plan_time = 0
 
         while True:
+
+            # TODO: figure out a way of restarting the level or bypassing the dead bird in the observation
+
             observation = ScienceBirdsObservation()  # Create an observation object to track on what happend
             raw_state = self.env.get_current_state()
 
             if raw_state.game_state.value == GameState.PLAYING.value:
+                self.env.sb_client.batch_ground_truth(1, 1)
+                raw_state = self.env.get_current_state()
                 self.handle_game_playing(observation, raw_state)
                 if (settings.NOVELTY_POSSIBLE):
                     self._compute_novelty_likelihood(observation)
@@ -109,6 +115,7 @@ class SBHydraAgent(HydraAgent):
                 return self.handle_evaluation_terminated()
             elif raw_state.game_state.value == GameState.REQUESTNOVELTYLIKELIHOOD.value:
                 self.handle_request_novelty_likelihood()
+                time.sleep(5/settings.SB_SIM_SPEED)
             elif raw_state.game_state.value == GameState.NEWTRIAL.value:
                 self.handle_new_trial()
             elif raw_state.game_state.value == GameState.MAIN_MENU.value:
@@ -289,10 +296,6 @@ class SBHydraAgent(HydraAgent):
 
         processed_state = self.perception.process_state(raw_state)
         observation.state = processed_state
-
-        # logger.info("\nRAW observation: " + str(raw_state.) + "\n")
-        logger.info("\nPROCESSED observation objects: " + str(processed_state.objects))
-        logger.info("\nPROCESSED observation novel: " + str(processed_state.novel_objects()))
 
         self.choose_action(observation)
 
