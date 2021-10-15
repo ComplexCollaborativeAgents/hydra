@@ -2,7 +2,9 @@ import re
 from collections import namedtuple
 from typing import List, Tuple, Iterator, Dict, Union, Optional
 
+from agent.consistency.observation import HydraObservation
 from agent.consistency.pddl_plus_simulator import PddlPlusSimulator
+from agent.planning.meta_model import MetaModel
 from agent.planning.pddl_plus import PddlPlusPlan, PddlPlusProblem, PddlPlusDomain, PddlPlusWorldChange, \
     WorldChangeTypes, PddlPlusState
 
@@ -18,6 +20,7 @@ from agent.planning.nyx.syntax.trace import Trace as NyxTrace
 TraceItem = namedtuple('TraceItem', ['state', 'time', 'world_changes'])
 Trace = List[TraceItem]
 NyxHappening = Union[Action, Event, Process]
+SimulationOutput = Tuple[Optional[PddlPlusState], Optional[float], Optional[Trace]]
 
 
 class NyxPddlPlusSimulator(PddlPlusSimulator):
@@ -25,13 +28,24 @@ class NyxPddlPlusSimulator(PddlPlusSimulator):
     def __init__(self, allow_cascading_effects: bool = True):
         super().__init__(allow_cascading_effects=allow_cascading_effects)
 
+    def get_expected_trace(self,
+                           observation: HydraObservation,
+                           meta_model: MetaModel,
+                           delta_t: float = 0.05,
+                           max_t: Optional[float] = None) -> Tuple[Trace, PddlPlusPlan]:
+        problem = meta_model.create_pddl_problem(observation.get_initial_state())
+        domain = meta_model.create_pddl_domain(observation.get_initial_state())
+        plan = observation.get_pddl_plan(meta_model)
+        _, _, trace = self.simulate(plan, problem, domain, delta_t=delta_t, max_t=max_t)
+        return trace, plan
+
     def simulate(self,
                  plan_to_simulate: PddlPlusPlan,
                  problem: PddlPlusProblem,
                  domain: PddlPlusDomain,
                  delta_t: float,
                  max_t: Optional[float] = None,
-                 max_iterations: float = 1000) -> Trace:
+                 max_iterations: float = 1000) -> SimulationOutput:
         grounded_pddl = self.grounded_instance(domain, problem)
         return self.simulate_grounded_instance(plan_to_simulate, grounded_pddl, delta_t, max_t=max_t)
 
@@ -39,14 +53,17 @@ class NyxPddlPlusSimulator(PddlPlusSimulator):
                                    plan_to_simulate: PddlPlusPlan,
                                    grounded_pddl: PDDL.GroundedPDDLInstance,
                                    delta_t: float,
-                                   max_t: Optional[float] = None) -> Trace:
+                                   max_t: Optional[float] = None) -> SimulationOutput:
         nyx_constants.set_delta_t(delta_t)
         nyx_plan = self._nyx_plan(plan_to_simulate, grounded_pddl, max_t=max_t)
 
         nyx_trace = nyx_plan.simulate(grounded_pddl.init_state,
                                       grounded_pddl,
                                       double_events=self.allow_cascading_effects)
-        return self._hydra_trace(nyx_trace)
+        hydra_trace = self._hydra_trace(nyx_trace)
+        if len(hydra_trace) == 0:
+            return None, None, None
+        return hydra_trace[-1].state, hydra_trace[-1].time, hydra_trace
 
     def grounded_instance(self,
                           domain: PddlPlusDomain,
