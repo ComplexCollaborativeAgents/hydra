@@ -3,6 +3,7 @@
     (:types bird pig block platform)
     (:predicates (bird_released ?b - bird) (pig_dead ?p - pig) (angle_adjusted) (block_explosive ?bl - block) (pig_killed))
     (:functions (x_bird ?b - bird) (y_bird ?b - bird) (v_bird ?b - bird) (vx_bird ?b - bird) (vy_bird ?b - bird) (m_bird ?b - bird) (bird_id ?b - bird) (bounce_count ?b - bird)
+                (bird_type ?b - bird) ;; BIRD TYPES: RED=0, YELLOW=1, BLACK=2, WHITE=3, BLUE=4 ;;
                 (gravity) (angle_rate) (angle) (active_bird) (ground_damper) (max_angle) (gravity_factor)
                 (base_life_wood_multiplier) (base_life_ice_multiplier) (base_life_stone_multiplier) (base_life_tnt_multiplier)
                 (base_mass_wood_multiplier) (base_mass_ice_multiplier) (base_mass_stone_multiplier) (base_mass_tnt_multiplier)
@@ -295,5 +296,45 @@
         )
     )
 
+    (:event explode_block_from_bird
+        :parameters (?b - bird ?bl_near - block)
+        :precondition (and
+        	(= (active_bird) (bird_id ?b))
+        	; (or
+      			(= (bird_type ?b) 2) (> (bounce_count ?b) 0)
+      			; (and (= (bird_type ?b) 3) (= (bounce_count ?b) 1) (bird_tapped ?b) )
+  			; )
+            (> (block_stability ?bl_near) 0)
+            (> (block_life ?bl_near) 0)
+            (<= (- (x_bird ?b) (x_block ?bl_near)) 70 )
+            (>= (- (x_bird ?b) (x_block ?bl_near)) -70 )
+            (<= (- (y_bird ?b) (y_block ?bl_near)) 70 )
+            (>= (- (y_bird ?b) (y_block ?bl_near)) -70 )
+        )
+        :effect (and
+            (assign (block_life ?bl_near) 0)
+            (assign (block_stability ?bl_near) 0)
+        )
+    )
+
+    (:event explode_pig_from_bird
+        :parameters (?b - bird ?p - pig)
+        :precondition (and
+        	(= (active_bird) (bird_id ?b))
+        	; (or
+      			(= (bird_type ?b) 2) (> (bounce_count ?b) 0)
+      			; (and (= (bird_type ?b) 3) (= (bounce_count ?b) 1) (bird_tapped ?b) )
+  			; )
+            (not (pig_dead ?p))
+            (<= (- (x_bird ?b) (x_pig ?p)) 70 )
+            (>= (- (x_bird ?b) (x_pig ?p)) -70 )
+            (<= (- (y_bird ?b) (y_pig ?p)) 70 )
+            (>= (- (y_bird ?b) (y_pig ?p)) -70 )
+        )
+        :effect (and
+            (pig_dead ?p)
+            (pig_killed)
+        )
+    )
 
 )

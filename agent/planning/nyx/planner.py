@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 # Four spaces as indentation [no tabs]
 import bisect
+import collections
 from hmac import new
 
-from agent.planning.nyx import heuristic_functions
+import agent.planning.nyx.heuristic_functions as heuristic_functions
 from agent.planning.nyx.PDDL import PDDL_Parser
 import agent.planning.nyx.syntax.constants as constants
 import time, copy
@@ -11,7 +12,7 @@ from agent.planning.nyx.syntax.visited_state import VisitedState
 from agent.planning.nyx.syntax.state import State
 
 # (NOT AVAILABLE YET ON MASTER BRANCH)
-# import semantic_attachments.semantic_attachment
+import agent.planning.nyx.semantic_attachments as semantic_attachments
 
 class Planner:
 
@@ -28,10 +29,10 @@ class Planner:
 
     def __init__(self):
         self.initial_state = None
-        self.reached_goal_state = None
+        self.reached_goal_states = list()
         self.explored_states = 0
         # self.total_visited = 0
-        self.queue = []
+        self.queue = collections.deque()
         self.visited_hashmap = {}
 
 
@@ -40,56 +41,71 @@ class Planner:
         start_solve_time = time.time()
         # Parser
         parser = PDDL_Parser(domain, problem)
+        grounded_instance = parser.grounded_instance
         # Parsed data
-        state = parser.init_state
-        self.initial_state = parser.init_state
+        state = grounded_instance.init_state
+        self.initial_state = grounded_instance.init_state
 
         print("\t* model parse time: " + str("{:5.4f}".format(time.time() - start_solve_time)) + "s")
 
         # Do nothing
-        if parser.goals_func(state, constants):
+        if grounded_instance.goals(state, constants):
             return []
 
         # Search
         self.visited_hashmap[hash(VisitedState(state))] = VisitedState(state)
-        self.queue = [state]
+        self.queue = collections.deque([state])
         while self.queue:
-            state = self.queue.pop(0)
-            for aa in state.get_applicable_happenings(parser.grounded_actions):
+            state = self.queue.popleft()
+            from_state = VisitedState(state)
+            time_passed = round(state.time + constants.DELTA_T, constants.NUMBER_PRECISION)
+            for aa in grounded_instance.actions.get_applicable(state):
                 new_state = None
                 if aa == constants.TIME_PASSING_ACTION:
                     new_state = state
-                    # first check for triggered events, followed by processes
-                    happenings_list = state.get_applicable_happenings(parser.grounded_events) + state.get_applicable_happenings(parser.grounded_processes)
+                    # new_state = State(t=round(state.time, constants.NUMBER_PRECISION), g=state.g + 1, predecessor=state, predecessor_action=aa)
+                    # first check for triggered events, then semantic attachment methods, followed by processes, and events again if '-dblevent' flag is true
+                    happenings_list = grounded_instance.events.get_applicable(state)
                     for hp in happenings_list:
-                        new_state = new_state.apply_happening(hp, create_new_state=new_state is state)
+                        new_state = new_state.apply_happening(hp, from_state=from_state, create_new_state=new_state is state)
 
-                    # # (NOT AVAILABLE YET ON MASTER BRANCH)
-                    # # check whether any semantic attachment processes are active, if applicable
-                    # if constants.SEMANTIC_ATTACHMENT:
-                    #     new_state = semantic_attachments.semantic_attachment.external_function(new_state)
+                    # check whether any semantic attachment processes are active, if applicable
+                    if constants.SEMANTIC_ATTACHMENT:
+                        if new_state is state:
+                            new_state = State(t=round(state.time, constants.NUMBER_PRECISION), g=state.g + 1, predecessor=state, predecessor_action=aa)
+                        new_state = semantic_attachments.semantic_attachment.external_function(new_state)
+
+                    # first check for triggered events, followed by processes
+                    happenings_list = grounded_instance.processes.get_applicable(state)
+                    for hp in happenings_list:
+                        new_state = new_state.apply_happening(hp, from_state=from_state, create_new_state=new_state is state)
 
                     # check triggered events again, after applying the effects of events and processes.
                     if constants.DOUBLE_EVENT_CHECK:
-                        happenings_list_2 = new_state.get_applicable_happenings(parser.grounded_events)
+                        happenings_list_2 = grounded_instance.events.get_applicable(state)
                         for hp2 in happenings_list_2:
-                            new_state = new_state.apply_happening(hp2, create_new_state=new_state is state)
+                            new_state = new_state.apply_happening(hp2, from_state=from_state, create_new_state=new_state is state)
 
                     if new_state is state:
                         new_state = copy.deepcopy(state)
-                        new_state.predecessor_hashed = hash(VisitedState(state))
+                        new_state.predecessor_hashed = hash(from_state)
 
-                    new_state.set_time(round(round(state.time, constants.NUMBER_PRECISION) + round(constants.DELTA_T, constants.NUMBER_PRECISION), constants.NUMBER_PRECISION))
+                    new_state.set_time(time_passed)
                     new_state.predecessor_action = aa
                 else:
-                    new_state = state.apply_happening(aa)
+                    new_state = state.apply_happening(aa, from_state=from_state)
                 self.explored_states += 1
+
                 new_state_hash = hash(VisitedState(new_state))
                 if new_state_hash not in self.visited_hashmap and new_state.time <= constants.TIME_HORIZON:
-                    if parser.goals_func(new_state, constants):
-                        self.reached_goal_state = new_state
+                    if grounded_instance.goals(new_state, constants):
+                        self.reached_goal_states.append(new_state)
                         # self.total_visited = len(self.visited_hashmap)
-                        return self.reached_goal_state
+                        if (constants.ANYTIME):
+                            time_checkpoint = time.time() - start_solve_time
+                            print('[' + str("{:6.2f}".format(time_checkpoint)) + '] ==> found goals: ' + str(len(self.reached_goal_states)))
+                        else:
+                            return self.reached_goal_states
                     self.visited_hashmap[new_state_hash] = VisitedState(new_state)
                     self.enqueue_state(new_state)
 
@@ -103,6 +119,8 @@ class Planner:
                 #     print(new_state)
 
             if (time.time() - start_solve_time) >= constants.TIMEOUT:
+                if (constants.ANYTIME):
+                    return self.reached_goal_states
                 return None
 
         return None
@@ -111,7 +129,7 @@ class Planner:
         if constants.SEARCH_BFS:
             self.queue.append(n_state)
         elif constants.SEARCH_DFS:
-            self.queue.insert(0, n_state)
+            self.queue.appendleft(n_state)
         elif constants.SEARCH_GBFS:
             n_state.set_h_heuristic(heuristic_functions.heuristic_function(n_state))
             ''' changing enqueue to bisect.insort ==> needs performance comparison '''
@@ -124,8 +142,8 @@ class Planner:
 
         elif constants.SEARCH_ASTAR:
             n_state.set_h_heuristic(heuristic_functions.heuristic_function(n_state))
-            self.queue.insert(0, n_state)
-            self.queue = sorted(self.queue, key=lambda elem: (elem.h + elem.g))
+            self.queue.appendleft(n_state)
+            self.queue = collections.deque(sorted(self.queue, key=lambda elem: (elem.h + elem.g)))
 
         if constants.PRINT_ALL_STATES:
             print(n_state)

@@ -1,11 +1,8 @@
 #!/usr/bin/env python
 # Four spaces as indentation [no tabs]
 
-import itertools
 import copy
-from agent.planning.nyx.syntax.action import Action
-from agent.planning.nyx.syntax.event import Event
-from agent.planning.nyx.syntax.process import Process
+
 import agent.planning.nyx.syntax.constants as constants
 from agent.planning.nyx.syntax.visited_state import VisitedState
 
@@ -18,11 +15,15 @@ class State:
 
     def __init__(self, t=0.0, h=0.0, g=0.0, state_vars={}, predecessor=None, predecessor_action=None):
         if predecessor is not None:
+            if isinstance(predecessor, VisitedState):
+                self.predecessor_hashed = hash(predecessor)
+                predecessor = predecessor.state
+            else:
+                self.predecessor_hashed = hash(VisitedState(predecessor))
             self.time = round(predecessor.time,constants.NUMBER_PRECISION)
             self.h = h
             self.g = (predecessor.g+1) if constants.TRACK_G else 0.0
             self.state_vars = copy.copy(predecessor.state_vars)
-            self.predecessor_hashed = hash(VisitedState(predecessor))
             self.predecessor_action = predecessor_action
         else:
             self.time = round(t,constants.NUMBER_PRECISION)
@@ -37,11 +38,11 @@ class State:
     # -----------------------------------------------
 
     def __str__(self):
-        return '\t\tstate: ' + \
-               '\n\t\t  time: ' + str(self.time) + \
-               '\n\t\t  h: ' + str(self.h) + \
-               '\n\t\t  g: ' + str(self.g) + \
-               '\n\t\t  state vars: ' + str([list(i) for i in self.state_vars.items()])
+        return '\tstate: ' + \
+               '\n\t  time: ' + str(self.time) + \
+               '\n\t  h: ' + str(self.h) + \
+               '\n\t  g: ' + str(self.g) + \
+               '\n\t  state vars: ' + str([list(i) for i in self.state_vars.items()])
 
     # -----------------------------------------------
     # Equality
@@ -206,12 +207,13 @@ class State:
     # Apply a grounded action/happening and return the resulting successor state
     # -----------------------------------------------
 
-    def apply_happening(self, happening, create_new_state=True):
+    def apply_happening(self, happening, from_state=None, create_new_state=True):
         # if happening.name == 'time-passing':
         #     successor = State(t=self.time+constants.DELTA_T, g=self.g+1, predecessor=self, predecessor_action=happening)
         # else:
         if create_new_state:
-            successor = State(t=round(self.time, constants.NUMBER_PRECISION), g=self.g + 1, predecessor=self, predecessor_action=happening)
+            predecessor = self if from_state is None else from_state
+            successor = State(t=self.time, g=self.g + 1, predecessor=predecessor, predecessor_action=happening)
         else:
             successor = self
         happening.effects_func(successor, constants)

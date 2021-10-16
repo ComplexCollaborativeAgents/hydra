@@ -1,5 +1,5 @@
 import sys
-#sys.path.append('./src')
+sys.path.append('./src')
 sys.path.append('..')
 from datetime import datetime
 import time
@@ -11,7 +11,7 @@ import json
 import socket
 from math import cos, sin, degrees, pi
 try:
-    from worlds.science_birds_interface.client.agent_client import AgentClient, GameState, RequestCodes
+    from client.agent_client import AgentClient, GameState, RequestCodes
     from trajectory_planner.trajectory_planner import SimpleTrajectoryPlanner
     from computer_vision.GroundTruthReader import GroundTruthReader,NotVaildStateError
     from computer_vision.game_object import GameObjectType
@@ -26,20 +26,21 @@ except ModuleNotFoundError:
     from src.computer_vision.GroundTruthTest import GroundTruthTest
 
 import logging
-import pathlib
-SB_ROOT = pathlib.Path(__file__).parent.parent
 
 
 class ClientNaiveAgent(Thread):
     """Naive agent (server/client version)"""
-    def __init__(self, agent_ind, agent):
+    def __init__(self, agent_ind, agent_configs):
+
+        #test for a single shot
+        self.shot_done = False
 
         self.agent_ind = agent_ind
 
         #################initalising the logger#################
         #file_handler saves all logs to a log file with agent_ind
 
-        self.logger = logging.getLogger(str(self.agent_ind))
+        self.logger = logging.getLogger(self.agent_ind)
 
         formatter = logging.Formatter("%(asctime)s-Agent %(name)s-%(levelname)s : %(message)s")
 
@@ -49,33 +50,33 @@ class ClientNaiveAgent(Thread):
         stream_handler = logging.StreamHandler()
         stream_handler.setLevel(logging.WARNING)
         stream_handler.setFormatter(formatter)
-        #if agent_configs.save_logs:
-        #    file_handler = logging.FileHandler(os.path.join("log","%s.log"%(self.agent_ind)))
-        #    file_handler.setLevel(logging.DEBUG)
-        #    file_handler.setFormatter(formatter)
-        #    self.logger.addHandler(file_handler)
+        if agent_configs.save_logs:
+            file_handler = logging.FileHandler(os.path.join("log","%s.log"%(self.agent_ind)))
+            file_handler.setLevel(logging.DEBUG)
+            file_handler.setFormatter(formatter)
+            self.logger.addHandler(file_handler)
         self.logger.addHandler(stream_handler)
 
-        #agent_ip = agent_configs.agent_host
-        #agent_port = agent_configs.agent_port
-        #observer_ip = agent_configs.observer_host
-        #observer_port = agent_configs.observer_port
+        agent_ip = agent_configs.agent_host
+        agent_port = agent_configs.agent_port
+        observer_ip = agent_configs.observer_host
+        observer_port = agent_configs.observer_port
 
 
         ########################################################
 
         #Wrapper of the communicating messages
 
-        self.ar = agent #AgentClient(agent_ip, agent_port, logger = self.logger)
+        self.ar = AgentClient(agent_ip, agent_port, logger = self.logger)
 
         #the observer agent can only execute 6 command: configure, screenshot
         #and the four groundtruth related ones
         #self.observer_ar = AgentClient(observer_ip, observer_port)
 
-        # try:
-        #    self.ar.connect_to_server()
-        #except socket.error as e:
-        #    self.logger.error("Error in client-server communication: " + str(e))
+        try:
+            self.ar.connect_to_server()
+        except socket.error as e:
+            self.logger.error("Error in client-server communication: " + str(e))
 
 
 #do not use observer
@@ -89,19 +90,19 @@ class ClientNaiveAgent(Thread):
         self.failed_counter = 0
         self.solved = []
         self.tp = SimpleTrajectoryPlanner()
-        self.id = agent_ind # 28888
+        self.id = 28888
         self.first_shot = True
         self.prev_target = None
         self.novelty_existence = -1;
-        self.sim_speed = 50
+        self.sim_speed = 20
         self.prev_gt = None
         self.repeated_gt_counter = 0
         self.gt_patient = 10
         self.if_check_gt = False
 
         #load model coef
-        self.model = np.loadtxt(SB_ROOT / "model",delimiter=",")
-        self.target_class = list(map(lambda x : x.replace("\n", ""),open(SB_ROOT / 'target_class').readlines()))
+        self.model = np.loadtxt("model",delimiter=",")
+        self.target_class = list(map(lambda x : x.replace("\n", ""),open('target_class').readlines()))
         #self._logger = logging.getLogger("ClientNaiveAgent") remove for updated logger version
 
     def sample_state(self, request = RequestCodes.GetNoisyGroundTruthWithScreenshot, frequency = 0.5):
@@ -206,7 +207,7 @@ class ClientNaiveAgent(Thread):
         return n_levels
 
     def run(self):
-        # self.ar.configure(self.id)
+        self.ar.configure(self.id)
         #do not use observer
         #self.observer_ar.configure(self.id)
         self.ar.set_game_simulation_speed(self.sim_speed)
@@ -238,6 +239,7 @@ class ClientNaiveAgent(Thread):
             #print(‘simulation speed set to ', sim_speed)
 
             #test for multi-thread groundtruth reading
+            #if not self.shot_done:
             state = self.solve()
             # try:
             #     state = self.solve()
@@ -346,8 +348,7 @@ class ClientNaiveAgent(Thread):
             elif state == GameState.EVALUATION_TERMINATED:
                 #store info and disconnect the agent as the evaluation is finished
                 self.logger.critical("Evaluation terminated.")
-                return
-
+                exit(0)
     def _update_reader(self, dtype, if_check_gt=False):
         '''
         update the ground truth reader with 4 different types of ground truth if the ground truth is vaild
@@ -394,6 +395,12 @@ class ClientNaiveAgent(Thread):
             vision = GroundTruthReader(ground_truth,self.model,self.target_class)
 
         return vision
+
+    def save_batch_gt(self,path,batch_gt):
+        batch_gt = str(batch_gt)
+        batch_gt = batch_gt.replace("'","\"")
+        with open(path, "w") as batch_gt_file:
+            print(batch_gt, file=batch_gt_file)
 
     def solve(self):
         """
@@ -549,7 +556,12 @@ class ClientNaiveAgent(Thread):
 
                             # the science birds game will use the true ref_point for the shot
                             # only the release point is required here
-                            self.ar.shoot_and_record_ground_truth(release_point.X, release_point.Y, 0, tap_time, 1)
+                            batch_gt = self.ar.shoot_and_record_ground_truth(release_point.X, release_point.Y, 0, tap_time, 1, 0)
+                            #batch_gt = self.ar.batch_ground_truth(1,3)
+                            #save batch gt for debugging
+                            #self.save_batch_gt("batch_gt.json",batch_gt)
+                            self.shot_done = True
+                            vision = self._update_reader(ground_truth_type, self.if_check_gt)
                             time.sleep(2/self.sim_speed)
                             state = self.ar.get_game_state()
                             if state == GameState.PLAYING:
