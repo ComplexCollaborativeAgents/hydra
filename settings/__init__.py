@@ -33,8 +33,8 @@ SCIENCE_BIRDS_LEVELS_DIR = path.join(SCIENCE_BIRDS_BIN_DIR,'linux','Levels','nov
 POLYCRAFT_DIR = path.join(ROOT_PATH, 'bin', 'pal', 'PolycraftAIGym')
 SB_INIT_COLOR_MAP = path.join(ROOT_PATH,'worlds','science_birds_interface','demo','ColorMap.json')
 SB_SIM_SPEED = 30 # run at real time
-# SB_GT_FREQ = int(30/2*SB_SIM_SPEED)
-SB_GT_FREQ = 30
+SB_GT_FREQ = int(30/SB_SIM_SPEED)
+# SB_GT_FREQ = 30
 SB_CLASSIFICATION_THRESHOLD = 0.5
 SB_N_FRAMES = 100
 
