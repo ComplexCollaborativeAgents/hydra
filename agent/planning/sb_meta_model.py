@@ -289,11 +289,11 @@ class BirdType(PddlObjectType):
 
         ## TAP UPDATE
         ## Encode bird type/colour in the PDDL+ model
-        # obj_attributes["bird_type"] = 0
-        # bird_map = {"red": 0, "yellow": 1, "black": 2, "white": 3, "blue": 4}
-        # for key in bird_map:
-        #     if key in self._get_name(obj).lower():
-        #         obj_attributes["bird_type"] = bird_map[key]
+        obj_attributes["bird_type"] = 0
+        bird_map = {"red": 0, "yellow": 1, "black": 2, "white": 3, "blue": 4}
+        for key in bird_map:
+            if key in self._get_name(obj).lower():
+                obj_attributes["bird_type"] = bird_map[key]
 
         obj_attributes["bird_id"] = problem_params["bird_index"]
         problem_params["bird_index"] = problem_params["bird_index"] + 1
