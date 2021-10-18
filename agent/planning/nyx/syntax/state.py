@@ -23,13 +23,13 @@ class State:
                 predecessor = predecessor.state
             else:
                 self.predecessor_hashed = hash(VisitedState(predecessor))
-            self.time = round(predecessor.time,constants.NUMBER_PRECISION)
+            self._time = round(predecessor.time,constants.NUMBER_PRECISION)
             self._h = h
             self._g = (predecessor.g+1) if constants.TRACK_G else 0.0
             self.state_vars = copy.copy(predecessor.state_vars)
             self.predecessor_action = predecessor_action
         else:
-            self.time = round(t,constants.NUMBER_PRECISION)
+            self._time = round(t,constants.NUMBER_PRECISION)
             self._h = h
             self._g = g
             self.state_vars = state_vars
@@ -98,11 +98,13 @@ class State:
     # time
     # -----------------------------------------------
 
-    def get_time(self):
-        return self.time
+    @property
+    def time(self):
+        return self._time
 
-    def set_time(self, val):
-        self.time = val
+    @time.setter
+    def time(self, val):
+        self._time = val
 
     # -----------------------------------------------
     # instantiation of state variables from problem init

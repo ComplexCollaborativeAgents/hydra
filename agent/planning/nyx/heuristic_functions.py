@@ -82,6 +82,7 @@ class SBHeuristic(AbstractHeuristic):
         if len(active_bird_string) < 1:
             # This heuristic doesn't know what do to without a birb
             node.h = self._backup_heuristic(node)
+            return node.h
         active_bird_string = active_bird_string[0][10:]
         bird_released = node.state_vars.get("['bird_released'" + active_bird_string)
         # Only have meaningful heuristic if bird is not yet launched. Once bird is launched, after that we just watch.
@@ -115,6 +116,7 @@ class SBHeuristic(AbstractHeuristic):
                 # In this situation, we can't reason about ballistics.
                 # I have concluded that this situation doesn't arise, but left this just in case to prevent div by 0.
                 node.h = self._backup_heuristic(node)
+                return node.h
 
             y_0 = node.state_vars["['y_bird'" + active_bird_string]
             x_0 = node.state_vars["['x_bird'" + active_bird_string]
@@ -132,15 +134,46 @@ class SBHeuristic(AbstractHeuristic):
             if min_y > bbox_maxy or max_y < bbox_miny:
                 # I expect that the entire shot passing under the lowest object is unlikely, but it's very easy to rule out.
                 node.h = SBHeuristic.LARGE_VALUE  # missed everything in the level entirely
-
+                return node.h
             # This prevents shots that hit the ground before reaching any targets, though some levels might need it?
             hit_ground_time = (- v_y_0 + np.sqrt(np.power(v_y_0, 2) + 2 * gravity * y_0)) / (2 * gravity)
             hit_ground_x = x_0 + v_x * hit_ground_time
             if hit_ground_x < bbox_minx:
                 node.h = SBHeuristic.LARGE_VALUE
+            else:
+                return self.distance_to_pig(node, (x_0, y_0, v_x, v_y_0))
         else:
             node.h = self._backup_heuristic(node)
         return node.h
 
-    def _backup_heuristic(self, node):
-        return 1 / (1 + node.state_vars["['points_score']"])
+    @staticmethod
+    def _backup_heuristic(node):
+        """
+        If nothing else works - but what state are we in when we get here? No pigs? No birds? something else?
+        """
+        return 0 # 1 / (1 + node.state_vars["['points_score']"])
+
+    @staticmethod
+    def distance_to_pig(node, bird_coords):
+        """
+        Returns the distance (in planning time steps) to the closest pig.
+        """
+        # Plan:
+        # 1. get pigs
+        # 2. find closest pig
+        # 3. divide distance to closets pig by? (scalar product of velocity and unit direction to pig. is that too involved?)
+        # BIRD_X = 0
+        # BIRD_Y = 1
+        # BIRD_VX = 2
+        # BIRD_VY = 3
+        targets_x = {obj[7:]: node.state_vars[obj] for obj in node.state_vars.keys() if obj.startswith("['x_pig")}
+        targets_y = {obj[7:]: node.state_vars[obj] for obj in node.state_vars.keys() if obj.startswith("['y_pig")}
+        targets_xy = [(targets_x[o_id], targets_y[o_id]) for o_id in targets_x.keys()]
+        dists = [(pig[0] - bird_coords[0]) ** 2 + (pig[1] - bird_coords[1]) ** 2 for pig in targets_xy]
+        closest_ind = np.argmin(dists)
+        vec_in_direction = targets_xy[closest_ind][0], targets_xy[closest_ind][1] / \
+                           math.sqrt(targets_xy[closest_ind][0] **2 + targets_xy[closest_ind][1] ** 2)
+        speed_in_direction = bird_coords[2] * vec_in_direction[0] + bird_coords[3] * vec_in_direction[1]
+        value = max(0, (math.sqrt(dists[closest_ind]) / speed_in_direction) / 0.05)
+        return value
+

@@ -143,7 +143,7 @@ class ScienceBirds(World):
 
         cmd2 = 'cd {} && {} {} {} {} > game_playing_interface.log'.format(settings.SCIENCE_BIRDS_BIN_DIR + "/linux/",
                                                                        settings.SCIENCE_BIRDS_SERVER_CMD,
-                                                                       '--config-path {}'.format(os.path.join(settings.ROOT_PATH,'data','science_birds','config',config.name)) if config else '',
+                                                                       '--config-path {}'.format(os.path.join(settings.ROOT_PATH,'data','science_birds','config',config)) if config else '',
                                                                        '--headless' if settings.HEADLESS else '',
                                                                        '--dev' if settings.SB_DEV_MODE else ''
                                                                        )
