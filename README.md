@@ -26,7 +26,18 @@ pytest
 5. Create the hydra python environment (same as Science Birds above - again, not needed if already installed)
 6. Polycraft will need to do a one time setup.  Navigate to `bin/pal` and run `xvfb-run -s '-screen 0 1280x1024x24' ./gradlew --no-daemon --stacktrace runclient`.  This will run Polycraft independently in headless mode.  Gradle will install any dependencies that the java runtime needs, and eventually a message will appear in the log output `[EXP] game initialization completed`, which signifies that Polycraft is ready to use.  Exit out of the application.
 
-   7.1. Level file naming convention (using POGO_L01_T01_S01_X0010_A_U0002_V2 as an example)
+## Testing Polycraft
+   There exists a `test_polycraft.py` file within `tests/` that tests if the installation is working by loading a level and running a set of random actions upon it.  To run it:  
+   1. `cd tests`
+   2. `pytest -ra test_polycraft.py::test_polycraft_random`
+
+   For testing the polycraft Hydra agent, use the following:
+   1. `cd tests`
+   2. `pytest -ra test_polycraft.py::test_polycraft_hydra`
+
+
+## Polycraft levels for benchmarking
+   1. Level file naming convention (using POGO_L01_T01_S01_X0010_A_U0002_V2 as an example)
       |Segment|Description|
       |---|---|
       | POGO | task name |  
@@ -38,17 +49,8 @@ pytest
       | UXXXX | U means that the agent will not be informed of novelty presence. K means that novelty presence will be given.  The number that follows is the episode number in which novelty is introduced.  The count starts at 0. |  
       | VX | Variant of the same trial (different levels, same trial structure) |  
       
-   7.2. The level directories for pre-novelty (PN) and novelty levels exist within `pogo_100_PN` and `shared_novelty/POGO` respectively.  For the levels within `shared_novelty/POGO`, inside the overall folder, there exists subsets of novelty levels and types. The lowest level of the directory contain more zipped files, which must be unzipped before being used.
-   7.3. Additional note: The Polycraft application is unable to run non-headless when used in the `polycraft_dispatcher.py` or in `bin/pal/PolycraftAIGym/LaunchTournament.py` or any other python script that runs it via subprocess on its own.  A workaround would be to run the application in a separate command line window using `./gradlew --no-daemon --stacktrace runclient` (also can be found in settings.POLYCRAFT_SERVER_CMD) from within the `bin/pal` directory, then setting up another Python script with a `Polycraft` world object with the optional `launch` boolean set to False. The caveat with this is that you will need to time the agent start when the Polycraft application is fully initialized, or the process will crash.  
-
-## Testing Polycraft
-   There exists a `test_polycraft.py` file within `tests/` that tests if the installation is working by loading a level and running a set of random actions upon it.  To run it:  
-   1. `cd tests`
-   2. `pytest -ra test_polycraft.py::test_polycraft_random`
-
-   For testing the polycraft Hydra agent, use the following:
-   1. `cd tests`
-   2. `pytest -ra test_polycraft.py::test_polycraft_hydra`
+   2. The level directories for pre-novelty (PN) and novelty levels exist within `pogo_100_PN` and `shared_novelty/POGO` respectively.  For the levels within `shared_novelty/POGO`, inside the overall folder, there exists subsets of novelty levels and types. The lowest level of the directory contain more zipped files, which must be unzipped before being used.
+   3. Additional note: The Polycraft application is unable to run non-headless when used in the `polycraft_dispatcher.py` or in `bin/pal/PolycraftAIGym/LaunchTournament.py` or any other python script that runs it via subprocess on its own.  A workaround would be to run the application in a separate command line window using `./gradlew --no-daemon --stacktrace runclient` (also can be found in settings.POLYCRAFT_SERVER_CMD) from within the `bin/pal` directory, then setting up another Python script with a `Polycraft` world object with the optional `launch` boolean set to False. The caveat with this is that you will need to time the agent start when the Polycraft application is fully initialized, or the process will crash.  
 
 
 ## Building Docker

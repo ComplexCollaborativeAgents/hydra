@@ -56,7 +56,7 @@ if __name__ == '__main__':
     logger.info("starting to generate observations")
     env = Polycraft(launch=True)
     try:
-        obs_generator(env, agent=PolycraftDoListAgent())
+        obs_generator(env, agent=PolycraftManualAgent())
     finally:
         env.kill()
     #

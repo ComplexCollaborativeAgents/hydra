@@ -21,7 +21,7 @@ from utils.state import State, Action, World
 
 logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("Polycraft")
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 
 
 class PolycraftAction(Action):
@@ -51,19 +51,17 @@ class PolyNoAction(PolycraftAction):
 
 
 class PolyTP(PolycraftAction):
-    """ Teleport to a position "dist" away from the xyz coordinates"""
-    def __init__(self, x: int, y: int, z: int, dist: int = 0):
+    """ Teleport to a position "dist" away from the given cell (cell name is its coordinates)"""
+    def __init__(self, cell:str, dist: int = 0):
         super().__init__()
-        self.x = x
-        self.y = y
-        self.z = z
+        self.cell = cell
         self.dist = dist
 
     def __str__(self):
-        return "<PolyTP pos=({}, {}, {}) dist={} success={}>".format(self.x, self.y, self.z, self.dist, self.success)
+        return "<PolyTP pos=({}) dist={} success={}>".format(self.cell, self.dist, self.success)
 
     def do(self, poly_client: poly.PolycraftInterface) -> dict:
-        result = poly_client.TP_TO_POS(self.x, self.y, self.z, distance=self.dist)
+        result = poly_client.TP_TO_POS(self.cell, distance=self.dist)
         self.success = self.is_success(result)
         return result
 
@@ -281,8 +279,7 @@ class PolycraftState(State):
     """ Current State of Polycraft """
     def __init__(self, step_num: int, facing_block: str,  location: dict, game_map: dict,
                  entities: dict, inventory: dict, current_item: str,
-                 recipes: list, trades: list, terminal: bool, step_cost: float,
-                 last_cmd_success: bool):
+                 recipes: list, trades: list, terminal: bool, step_cost: float):
         super().__init__()
 
         self.id = step_num
@@ -296,10 +293,27 @@ class PolycraftState(State):
         self.trades = trades
         self.terminal = terminal
         self.step_cost = step_cost
-        self.last_cmd_success = last_cmd_success # TODO: update this later, knowing if an action failed or not is important
+
+    @staticmethod
+    def create_current_state(poly_client : poly.PolycraftInterface):
+        ''' Create the current state by calling a SENSE_ALL command '''
+        # Call API
+        sensed = poly_client.SENSE_ALL()
+
+        # Extract values from SENSE_ALL
+        step_num = sensed['step']
+        facing_block = sensed['blockInFront']
+        inventory = sensed['inventory']
+        currently_selected = sensed['inventory']['selectedItem']
+        pos = sensed['player']
+        entities = sensed['entities']
+        game_map = sensed['map']
+        terminal = sensed['gameOver']
+        return PolycraftState(step_num, facing_block, pos, game_map, entities,
+                              inventory, currently_selected, None, None, terminal, -1)
 
     def __str__(self):
-        return "< Step: {} | Action Cost: {} | Inventory: {} >".format(self.id, self.step_cost, self.inventory)
+        return "< Step: {} | Action Cost: {} | Location: {} | Inventory: {} >".format(self.id, self.step_cost, self.location, self.inventory)
 
     def get_block_at(self, x: int, y: int, z: int) -> tuple:
         """ Helper function to get info of a block at coordinates xyz from the game map (type, accessibility) """
@@ -316,7 +330,7 @@ class PolycraftState(State):
         for coords, block in self.game_map.items():
             if block['isAccessible']:
                 x, y, z = coords.split(',')
-                actions.append(PolyTP(int(x), int(y), int(z)))
+                actions.append(PolyTP(coords))
 
         # TP to entity
         for entity in self.entities:
@@ -328,7 +342,7 @@ class PolycraftState(State):
 
         # Tilt up/down
         for tilt_dir in poly.TiltDir:
-            actions.append(PolyTilt(tilt_dir.value))
+            actions.append(PolyTilt(tilt_dir))
 
         # Break a block
         actions.append(PolyBreak())
@@ -396,6 +410,54 @@ class PolycraftState(State):
 
     def is_terminal(self) -> bool:
         return self.terminal
+
+    def diff(self, other_state):
+        ''' Return the differences between the states '''
+        diff_dict = {}
+        if self.facing_block!=other_state.facing_block:
+            diff_dict['facing_block'] = {'self':self.facing_block, 'other':other_state.facing_block}
+
+        if self.location!=other_state.location:
+            location_diff_dict = dict()
+            for loc_attr in self.location:
+                if self.location[loc_attr]!=other_state.location[loc_attr]:
+                    location_diff_dict[loc_attr] = {'self':self.location[loc_attr], 'other':other_state.location[loc_attr]}
+            diff_dict['location']=location_diff_dict
+
+        if self.game_map!=other_state.game_map:
+            game_map_diff_dict = dict()
+            for cell in self.game_map:
+                if self.game_map[cell]!=other_state.game_map[cell]:
+                    game_map_diff_dict[cell] = {'self': self.game_map[cell], 'other':other_state.game_map[cell]}
+            diff_dict['game_map']=game_map_diff_dict
+
+        if self.inventory!=other_state.inventory:
+            inventory_diff_dict = dict()
+            for item, item_attr in self.inventory.items():
+                if item not in other_state.inventory:
+                    inventory_diff_dict[item]={'self': item_attr, 'other':None}
+                else:
+                    if item_attr!=other_state.inventory[item]:
+                        inventory_diff_dict[item] = {'self': item_attr, 'other': other_state.inventory[item]}
+            diff_dict['inventory']=inventory_diff_dict
+
+        if self.entities!=other_state.entities:
+            entities_diff_dict = dict()
+            for entity_id, entity_attr in self.entities.items():
+                if entity_id not in other_state.entities:
+                    entities_diff_dict[entity_id]={'self': entity_attr, 'other':None}
+                else:
+                    if entity_attr!=other_state.entities[entity_id]:
+                        entities_diff_dict[entity_id] = {'self':entity_attr, 'other':other_state.entities[entity_id]}
+            diff_dict['entities'] = entities_diff_dict
+
+        if self.current_item!=other_state.current_item:
+            diff_dict['current_item'] = {'self':self.current_item, 'other':other_state.current_item}
+
+        if self.step_cost!=other_state.step_cost:
+            diff_dict['step_cost'] = {'self': self.step_cost, 'other': other_state.step_cost}
+
+        return diff_dict
 
 
 class Polycraft(World):
@@ -652,29 +714,23 @@ class Polycraft(World):
         """
         Query polycraft instance using low level interface and return State
         """
-        # Call API
+        # Call SENSE ALL API
         try:
-            sensed = self.poly_client.SENSE_ALL()
+            current_state = PolycraftState.create_current_state(self.poly_client)
         except (BrokenPipeError, KeyboardInterrupt) as err:
             self.kill()
             logger.error("Polycraft server connection interrupted (broken pipe or keyboard interrupt")
             raise err
 
-        # Extract values from SENSE_ALL
-        step_num = sensed['step']
-        facing_block = sensed['blockInFront']
-        inventory = sensed['inventory']
-        currently_selected = sensed['inventory']['selectedItem']
-        pos = sensed['player']
-        entities = sensed['entities']
-        game_map = sensed['map']
-        terminal = sensed['gameOver']
-        step_cost = self.get_level_total_step_cost()
+        # Populate current recipes and trades
+        current_state.trades = copy.copy(self.current_trades)
+        current_state.recipes = copy.copy(self.current_recipes)
 
-        return PolycraftState(step_num, facing_block, pos, game_map, entities,
-                              inventory, currently_selected, copy.copy(self.current_recipes), 
-                              copy.copy(self.current_trades), terminal, step_cost,
-                              self.last_cmd_success)
+        # Obtain current cost
+        step_cost = self.get_level_total_step_cost()
+        current_state.step_cost = step_cost
+
+        return current_state
 
     def populate_current_recipes(self):
         """

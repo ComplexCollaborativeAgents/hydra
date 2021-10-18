@@ -3,6 +3,7 @@ import datetime
 
 from agent.consistency.observation import HydraObservation
 from agent.planning.polycraft_meta_model import PolycraftMetaModel
+from agent.planning.polycraft_planning.actions import *
 from worlds.polycraft_interface.client.polycraft_interface import TiltDir
 import worlds.polycraft_interface.client.polycraft_interface as poly
 from agent.planning.pddlplus_parser import *
@@ -40,7 +41,11 @@ class PolycraftObservation(HydraObservation):
         ''' Returns a PDDL+ plan object with a single action that is the action that was performed '''
         raise NotImplementedError()
 
-
+    def print(self):
+        for i in len(self.states):
+            print(f'State[{i}] {str(self.states[i])}')
+            print(f'Action[{i}] {str(self.actions[i])}')
+            print(f'Success[{i}] {str(self.actions_success[i])}')
 
 class PolycraftPlanner(HydraPlanner):
     ''' Planner for the polycraft domain'''
@@ -252,7 +257,7 @@ class PolycraftRandomAgent(PolycraftHydraAgent):
 
         if action_class == PolyTP:
             coordinate = random.choice(list(world_state.game_map.keys())).split(",")
-            return PolyTP(coordinate[0], coordinate[1], coordinate[2])
+            return PolyTP(coordinate)
         elif action_class == PolyEntityTP:
             npcs = [npc for npc in world_state.entities.keys()]
             if len(npcs) > 0:
@@ -264,7 +269,7 @@ class PolycraftRandomAgent(PolycraftHydraAgent):
             dir = random.choice(range(0, 360, 15))
             return PolyTurn(dir)
         elif action_class == PolyTilt:
-            angle = random.choice([pitch.value for pitch in list(TiltDir)])    # Choose from DOWN, FORWARD, and UP
+            angle = random.choice(list(TiltDir))    # Choose from DOWN, FORWARD, and UP
             return PolyTilt(angle)
         elif action_class == PolyBreak:
             return PolyBreak()
@@ -331,6 +336,38 @@ class PolycraftDoingAgent(PolycraftHydraAgent):
         return random.choice(actions)
 
 
+
+
+class PolycraftDoNothingAgent(PolycraftHydraAgent):
+    ''' An agent that does nothing '''
+    def __init__(self):
+        super().__init__()
+
+    def choose_action(self, world_state: PolycraftState):
+        return PolyNoAction()
+
+
+class PolycraftTPAllAgent(PolycraftHydraAgent):
+    ''' An agent that performs a prescribed list of actions, after which it terminates '''
+    def __init__(self):
+        super().__init__()
+
+        self.cells_visited = set()
+
+    def choose_action(self, world_state: PolycraftState):
+        cells_to_visit = []
+        for coords, block in world_state.game_map.items():
+            if block['isAccessible'] and coords not in self.cells_visited: # TODO: Explore why everything seems inaccessible
+                cells_to_visit.append(coords)
+
+        if len(cells_to_visit)==0:
+            return PolyGiveUp()
+        else:
+            coords = cells_to_visit.pop(0)
+            self.cells_visited.add(coords)
+            return PolyTP(coords, dist=1)
+
+
 class PolycraftTPAgent(PolycraftHydraAgent):
     ''' An agent that moves around between blocks and other entities '''
     def __init__(self):
@@ -343,39 +380,25 @@ class PolycraftTPAgent(PolycraftHydraAgent):
 
         actions = []
         for coords, block in world_state.game_map.items():
-            # if block['isAccessible']: # TODO: Explore why everything seems inaccessible
-            x, y, z = coords.split(',')
-            actions.append(PolyTP(int(x), int(y), int(z)))
+            if block['isAccessible']:
+                actions.append(PolyTP(coords))
 
         return random.choice(actions)
 
 
-class PolycraftDoNothingAgent(PolycraftHydraAgent):
-    ''' An agent that does nothing '''
+class PolycraftManualAgent(PolycraftHydraAgent):
+    ''' An agent that queries the user for actions USED FOR DEBUGGING '''
     def __init__(self):
         super().__init__()
+        self.command_seq = 0
+        # self.commands = [PolyTP("43,17,42"), PolyTilt(TiltDir.FORWARD), PolyTurn(90), PolyTurn(90), PolyTurn(90), PolyTurn(90), PolyTurn(45), PolyTurn(90), PolyTurn(90), PolyTurn(90), PolyTurn(90)]
+        self.commands = [PolyMoveToAndBreak("43,17,42"), PolyCraftItem(["minecraft:log", "0", "0", "0"])]
 
     def choose_action(self, world_state: PolycraftState):
-        return PolyNoAction()
-
-
-class PolycraftDoListAgent(PolycraftHydraAgent):
-    ''' An agent that performs a prescribed list of actions, after which it terminates '''
-    def __init__(self):
-        super().__init__()
-
-        self.cells_to_visit = None
-
-    def choose_action(self, world_state: PolycraftState):
-        if self.cells_to_visit is None:
-            self.cells_to_visit = list()
-            for coords, block in world_state.game_map.items():
-                # if block['isAccessible']: # TODO: Explore why everything seems inaccessible
-                self.cells_to_visit.append(coords)
-
-        if len(self.cells_to_visit)==0:
-            return PolyGiveUp()
+        if self.command_seq<len(self.commands):
+            cmd = self.commands[self.command_seq]
+            self.command_seq=self.command_seq+1
         else:
-            coords = self.cells_to_visit.pop(0)
-            x, y, z = coords.split(',')
-            return PolyTP(int(x), int(y), int(z))
+            return PolyGiveUp()
+
+        return cmd

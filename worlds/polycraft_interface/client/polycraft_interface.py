@@ -28,10 +28,6 @@ class TiltDir(enum.Enum):
     FORWARD = "FORWARD"
     UP = "UP"
 
-    @classmethod
-    def is_tilt_dir(cls, dir:str):
-        return dir in cls.__members__
-
 class MoveDir(enum.Enum):
     FORWARD = "w" # Forward 1 meter
     LEFT = "a" # Left 1 meter
@@ -41,6 +37,13 @@ class MoveDir(enum.Enum):
     FR = "e" # Forward Right diagonal sqrt 2 meter
     BL = "z" # Backward Left diagonal sqrt 2 meter
     BR = "c" # Backward Right diagonal sqrt 2 meter
+
+
+class FacingDir(enum.Enum):
+    NORTH = "NORTH" # [0,0,-1]
+    SOUND = "SOUTH" # [0,0,1]
+    WEST = "WEST" # [-1,0,0]
+    EAST = "EAST" # [1,0,0]
 
 
 class PolycraftInterface:
@@ -193,12 +196,8 @@ class PolycraftInterface:
 
     def SMOOTH_TILT(self, pitch: TiltDir) -> dict:
         """ Sets the actor's pitch (vertical) to -45/0/45 (down/forward/up) to look at objects at different elevations. (Use TiltDir enums respectively) """
-        if TiltDir.is_tilt_dir(pitch):
-            cmd = "SMOOTH_TILT {}".format(str(pitch))
-            self._send_cmd(cmd)
-        else:
-            raise ValueError("Polycraft command SMOOTH_TILT recieved invalid parameter: {}".format(pitch))
-
+        cmd = "SMOOTH_TILT {}".format(pitch.value)
+        self._send_cmd(cmd)
         return self._recv_response("SMOOTH_TILT")
 
     def TURN(self, angle: int) -> dict:
@@ -210,9 +209,15 @@ class PolycraftInterface:
         else:
             raise ValueError("Polycraft command TURN recieved invalid parameter: {}".format(angle))
 
-    def TP_TO_POS(self, x: int, y: int, z: int, distance: int = 0) -> dict:
+    def MOVE(self, move_dir: MoveDir) -> dict:
         """Teleport actor to x/y/z coordinate, [distance] blocks south of the position.  Also resets orientation to North and pitch to 0."""
-        cmd = "TP_TO {} {} {} {}".format(x, y, z, distance)
+        cmd = "MOVE {}".format(move_dir.value)
+        self._send_cmd(cmd)
+        return self._recv_response("MOVE")
+
+    def TP_TO_POS(self, cell: str, distance: int) -> dict:
+        """Teleport actor to x/y/z coordinate, [distance] blocks south of the position.  Also resets orientation to North and pitch to 0."""
+        cmd = "TP_TO {} {}".format(cell, distance)
         self._send_cmd(cmd)
         return self._recv_response("TP_TO")
     

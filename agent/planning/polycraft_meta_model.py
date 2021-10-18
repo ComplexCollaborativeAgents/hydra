@@ -4,6 +4,7 @@ import settings
 import logging
 import random
 from agent.planning.meta_model import *
+from agent.planning.polycraft_planning.actions import PolyMoveToAndBreak
 from worlds.polycraft_world import *
 from agent.planning.pddl_plus import *
 logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
@@ -465,4 +466,67 @@ class PolycraftMetaModel(MetaModel):
 
         return pddl_state
 
-
+#
+#     def create_pddl_action(self, state: PolycraftState, action: PolycraftAction):
+#         ''' Create a PDDL+ action representing doing the given polycarft action in the given polycraft state '''
+#
+#         poly_action_to_pddl_action = dict()
+#         poly_action_to_pddl_action[PolyTP : PddlTP]
+#
+#         return poly_action_to_pddl_action[action](action)
+#
+#
+#
+# class PddlPolycraftAction():
+#     ''' A class representing a PDDL+ action in polycraft '''
+#     def to_pddl(self)->str:
+#         ''' This method should be implemented by sublcasses and output a string representation of the corresponding PDDL+ action '''
+#         raise NotImplementedError()
+#
+# class PddlMoveToAndBreak(PddlPolycraftAction):
+#     def __init__(self, poly_action:PolyMoveToAndBreak):
+#         self.poly_action = poly_action
+#
+#     def to_pddl(self)->str:
+#         return f'(move_and_break {self.poly_action.cell})'
+#
+# class PddlCollect(PddlPolycraftAction):
+#     def __init__(self, poly_action:PolyCollect):
+#         self.poly_action = poly_action
+#
+#     def to_pddl(self)->str:
+#         return f'(collect)'
+#
+#
+# class PddlTP(PddlPolycraftAction):
+#     def __init__(self, poly_action:PolyTP):
+#         self.cell = poly_action.cell
+#         assert(poly_action.dist==1) # TODO: Design choice: allowing only distance 1 teleporting
+#
+#
+#     def to_pddl(self): # Returns a pair of (lifted action, binding)
+#         pddl_action = PddlPlusWorldChange(WorldChangeTypes.action)
+#         pddl_action.name = "tp_to_cell"
+#         pddl_action.parameters = ["?c", "-", "cell"]
+#         return (pddl_action, {"?c" : self.cell})
+# #
+# # class PolyTP(PolycraftAction):
+# #     """ Teleport to a position "dist" away from the xyz coordinates"""
+# #
+# #     def __init__(self, x: int, y: int, z: int, dist: int = 0):
+# #         super().__init__()
+# #         self.x = x
+# #         self.y = y
+# #         self.z = z
+# #         self.dist = dist
+# #
+# #     def __str__(self):
+# #         return "<PolyTP pos=({}, {}, {}) dist={} success={}>".format(self.x, self.y, self.z, self.dist,
+# #                                                                      self.success)
+# #
+# #     def do(self, poly_client: poly.PolycraftInterface) -> dict:
+# #         result = poly_client.TP_TO_POS(self.x, self.y, self.z, distance=self.dist)
+# #         self.success = self.is_success(result)
+# #         return result
+#
+#

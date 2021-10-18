@@ -19,8 +19,6 @@ def launch_polycraft():
     logger.info("teardown tests")
     env.kill()
 
-
-# @pytest.mark.skip()
 def test_polycraft_random(launch_polycraft: poly.Polycraft):
     ''' Connect to polycraft and perform actions '''
 
