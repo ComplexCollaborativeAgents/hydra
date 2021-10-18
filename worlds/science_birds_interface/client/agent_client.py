@@ -173,7 +173,7 @@ class AgentClient:
             'Received configuration: Round = %d, time_limit=%d, levels = %d',
             round_number, limit, levels
         )
-        return (round_number, limit, levels)
+        return round_number, limit, levels
 
     def ready_for_new_set(self):
         self._logger.info("Ready for new data set with appropriate agent.")

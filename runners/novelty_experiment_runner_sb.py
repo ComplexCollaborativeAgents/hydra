@@ -14,7 +14,7 @@ from runners.run_sb_stats import *
 
 logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("novelty_experiment_runner")
-logger.setLevel(logging.INFOG)
+logger.setLevel(logging.DEBUG)
 
 # Paths
 SB_BIN_PATH = pathlib.Path(settings.SCIENCE_BIRDS_BIN_DIR) / 'linux'
@@ -33,7 +33,7 @@ EXPORT_TRIALS = False   # Export trials xml file
 NUM_TRIALS = 1      # Number of trials to run per known/unknown, novelty level and type
 PER_TRIAL = 5      # Levels per trial
 BEFORE_NOVELTY = 1 # Levels in a trial before novelty is introduced
-NOVELTIES = {"22": ["1"]}  # Novelties to use in the experiment (IE, trials to run)
+NOVELTIES = {"0": ["2"]}  # Novelties to use in the experiment (IE, trials to run)
 #NOVELTIES = {"1": ["6", "7", "8", "9", "10"], "2": ["6", "7", "8", "9", "10"], "3": ["6", "7"]}
 
 
@@ -51,13 +51,15 @@ class NoveltyExperimentRunnerSB:
 
     def __init__(self,
                  agent_type: AgentType,
-                 novelties: dict = NOVELTIES,
+                 novelties=None,
                  num_trials: int = NUM_TRIALS,
                  levels_per_trial: int = PER_TRIAL,
                  levels_before_novelty: int = BEFORE_NOVELTY,
                  export_trials: bool = EXPORT_TRIALS,
                  results_path: pathlib.Path = RESULTS_PATH):
         
+        if novelties is None:
+            novelties = NOVELTIES
         self.agent_type = agent_type
         self.novelties = novelties
         self.num_trials = num_trials
@@ -114,7 +116,7 @@ class NoveltyExperimentRunnerSB:
         """
         random.seed() # Randomize seed
         
-        trial = list()
+        levels = list()
 
         for index in range(self.levels_per_trial):
             next_level = ""
@@ -124,13 +126,13 @@ class NoveltyExperimentRunnerSB:
             else:   # Collect from novel levels
                 next_level = self.levels[novelty_level][novelty_type].pop()
 
-            trial.append(next_level)
+            levels.append(next_level)
 
-        logger.debug("Created trial: {}".format(["{}\n".format(level) for level in trial]))
+        logger.debug("Created trial: {}".format(["{}\n".format(level) for level in levels]))
 
-        return trial
+        return levels
 
-    def run_trial(self, trial: list, notify: str, trial_num: int, trial_type: str,  novelty_level: str, config_file: pathlib.Path = None) -> pandas.DataFrame:
+    def run_trial(self, levels: list, notify: str, trial_num: int, trial_type: str, novelty_level: str, config_file: pathlib.Path = None) -> pandas.DataFrame:
         """ Run a trial """
 
         notify_novelty = notify == constants.KNOWN
@@ -144,7 +146,7 @@ class NoveltyExperimentRunnerSB:
                 config = SB_CONFIG_PATH / "trial_config_{}_{}.xml".format(trial_num, date_time_str)
                 logger.debug("Exporting trial to {}".format(config))
 
-            prepare_config(TEMPLATE_PATH, config, trial, notify_novelty)
+            prepare_config(TEMPLATE_PATH, config, levels, notify_novelty)
         else:
             config = config_file
 
@@ -293,10 +295,10 @@ class NoveltyExperimentRunnerSB:
                             if novelty_level in NON_NOVEL_LEVELS:
                                 was_notified = constants.NON_NOVELTY_PERFORMANCE
 
-                            trial = self.construct_trial(novelty_level, novelty_type, self.levels_before_novelty)
+                            levels = self.construct_trial(novelty_level, novelty_type, self.levels_before_novelty)
 
                             # Run the trial
-                            trial_results = self.run_trial(trial, was_notified, trial_num, trial_type, novelty_level)
+                            trial_results = self.run_trial(levels, was_notified, trial_num, trial_type, novelty_level)
                             experiment_results = experiment_results.append(trial_results)
 
                             # Export results to file
@@ -465,7 +467,7 @@ class NoveltyExperimentRunnerSB:
 
 
 if __name__ == '__main__':
-    experiment_runner = NoveltyExperimentRunnerSB(AgentType.RepairingHydra, export_trials=False)
+    experiment_runner = NoveltyExperimentRunnerSB(AgentType.Hydra, export_trials=False)
 
     experiment_runner.run_experiment()
     # experiment_runner.run_experiment(configs=[SB_CONFIG_PATH / "trial_config_1_6.xml"])

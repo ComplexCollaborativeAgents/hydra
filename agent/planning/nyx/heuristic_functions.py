@@ -1,48 +1,146 @@
+import numpy as np
 
+from agent.planning.nyx.abstract_heuristic import AbstractHeuristic
 from agent.planning.nyx.syntax.state import State
 import agent.planning.nyx.syntax.constants as constants
 import math
 
-def heuristic_function(state):
-    # return 0
+def get_heuristic_function(heuristic = constants.CUSTOM_HEURISTIC_ID):
+    if heuristic == 1:
+        return CartpolePlusPlusHeuristic()
+    elif heuristic == 2:
+        return BadSBHeuristic()
+    elif heuristic == 3:
+        return PolyCraftHeuristic()
+    elif heuristic == 4:
+        return CartpoltHeuristic()
+    elif heuristic == 5:
+        return SBHeuristic()
+    else:
+        return AbstractHeuristic() # Implements the null heuristic
 
-    if constants.CUSTOM_HEURISTIC_ID == 1:
+class CartpolePlusPlusHeuristic(AbstractHeuristic):
+    """
+    CARTPOLE++ HEURISTIC
+    """
+    def evaluate(self, node):
+        if node.state_vars["['total_failure']"]:
+            node.h = 999999
+        else:
+            node.h = math.sqrt(math.pow(node.state_vars["['pos_x']"], 2) +
+                               math.pow(node.state_vars["['theta_x']"], 2) +
+                               math.pow(node.state_vars["['theta_x_dot']"], 2) +
+                               math.pow(node.state_vars["['pos_x_dot']"], 2) +
+                               math.pow(node.state_vars["['theta_x_ddot']"], 2) +
+                               math.pow(node.state_vars["['pos_x_ddot']"], 2) +
+                               math.pow(node.state_vars["['pos_y']"], 2) +
+                               math.pow(node.state_vars["['theta_y']"], 2) +
+                               math.pow(node.state_vars["['theta_y_dot']"], 2) +
+                               math.pow(node.state_vars["['pos_y_dot']"], 2) +
+                               math.pow(node.state_vars["['theta_y_ddot']"], 2) +
+                               math.pow(node.state_vars["['pos_y_ddot']"], 2)) * \
+                     (node.state_vars["['time_limit']"] - node.state_vars["['elapsed_time']"])
+        return node.h
 
-        # CARTPOLE++ HEURISTIC
 
-        if (state.state_vars["['total_failure']"]):
-            return 999999
-        return math.sqrt(math.pow(state.state_vars["['pos_x']"], 2) + math.pow(state.state_vars["['theta_x']"], 2) + math.pow(
-            state.state_vars["['theta_x_dot']"], 2) + math.pow(state.state_vars["['pos_x_dot']"], 2) + math.pow(
-            state.state_vars["['theta_x_ddot']"], 2) + math.pow(state.state_vars["['pos_x_ddot']"], 2) +
-            math.pow(state.state_vars["['pos_y']"], 2) + math.pow(state.state_vars["['theta_y']"], 2) + math.pow(
-                state.state_vars["['theta_y_dot']"], 2) + math.pow(state.state_vars["['pos_y_dot']"], 2) + math.pow(
-                state.state_vars["['theta_y_ddot']"], 2) + math.pow(state.state_vars["['pos_y_ddot']"], 2)) * (
-                           state.state_vars["['time_limit']"] - state.state_vars["['elapsed_time']"])
-
-    elif constants.CUSTOM_HEURISTIC_ID == 2:
-
-        # SCIENCE BIRDS HEURISTIC
-
-        return 1 / (1 + state.state_vars["['points_score']"])
+class BadSBHeuristic(AbstractHeuristic):
+    """
+    Score heuristic for science birds - only useful for GBFS, and not very good even then.
+    """
+    def evaluate(self, node):
+        node.h =  1 / (1 + node.state_vars["['points_score']"])
+        return node.h
 
         # return 0
+PolyCraftHeuristic = AbstractHeuristic
 
-    elif constants.CUSTOM_HEURISTIC_ID == 3:
 
-        # POLYCRAFT HEURISTIC
-
-        return 0
-
-    elif constants.CUSTOM_HEURISTIC_ID == 4:
-
+class CartpoltHeuristic(AbstractHeuristic):
         # CARTPOLE HEURISTIC
+        def evaluate(self, node):
+            node.h = math.sqrt(math.pow(node.state_vars["['x']"], 2) + math.pow(node.state_vars["['theta']"], 2) +
+                               math.pow(node.state_vars["['theta_dot']"], 2) + math.pow(node.state_vars["['x_dot']"], 2) +
+                               math.pow(node.state_vars["['theta_ddot']"], 2) + math.pow(node.state_vars["['x_ddot']"], 2)) * \
+                     (node.state_vars["['time_limit']"] - node.state_vars["['elapsed_time']"])
+            return node.h
 
-        return math.sqrt(math.pow(state.state_vars["['x']"], 2) + math.pow(state.state_vars["['theta']"], 2) + math.pow(
-            state.state_vars["['theta_dot']"], 2) + math.pow(state.state_vars["['x_dot']"], 2) + math.pow(
-            state.state_vars["['theta_ddot']"], 2) + math.pow(state.state_vars["['x_ddot']"], 2)) * (
-                       state.state_vars["['time_limit']"] - state.state_vars["['elapsed_time']"])
+class SBHeuristic(AbstractHeuristic):
+    """
+    Heuristic for science birds.
+    """
 
+    LARGE_VALUE = 999999
 
-    else:
-        return 0
+    def evaluate(self, node):
+        # This heuristic only calculates ballistic birds hitting the bounding box that has targets in it. Any change
+        # from ballistic motion (e.g. friction, bird powers, updrafts) will require a new heuristic.
+
+        # Find active bird ID
+        active_bird_string = [key for key in node.state_vars.keys()
+                              if (key.startswith("['bird_id',")
+                                  and node.state_vars[key] == node.state_vars["['active_bird']"])]
+        if len(active_bird_string) < 1:
+            # This heuristic doesn't know what do to without a birb
+            node.h = self._backup_heuristic(node)
+        active_bird_string = active_bird_string[0][10:]
+        bird_released = node.state_vars.get("['bird_released'" + active_bird_string)
+        # Only have meaningful heuristic if bird is not yet launched. Once bird is launched, after that we just watch.
+        if not bird_released:
+            # Find the bounding box for all targets:
+            targets_x = {obj[9:]:node.state_vars[obj] for obj in node.state_vars.keys() if obj.startswith("['x_block")}
+            targets_x.update({obj[7:]:node.state_vars[obj] for obj in node.state_vars.keys() if obj.startswith("['x_pig")})
+            targets_w = {obj[13:]:node.state_vars[obj] for obj in node.state_vars.keys() if obj.startswith("['block_width")}
+            pig_radii = {obj[12:]:node.state_vars[obj] for obj in node.state_vars.keys() if obj.startswith("['pig_radius")}
+            targets_w.update(pig_radii)
+            targets_max_x = [targets_x[o_id] + targets_w[o_id] for o_id in targets_x.keys()]
+            targets_min_x = [targets_x[o_id] - targets_w[o_id] for o_id in targets_x.keys()]
+            bbox_minx = min(targets_min_x)
+            bbox_maxx = max(targets_max_x)
+            targets_y = {obj[9:]:node.state_vars[obj] for obj in node.state_vars.keys() if obj.startswith("['y_block")}
+            targets_y.update({obj[7:]:node.state_vars[obj] for obj in node.state_vars.keys() if obj.startswith("['y_pig")})
+            targets_h = {obj[14:]:node.state_vars[obj] for obj in node.state_vars.keys() if obj.startswith("['block_height")}
+            targets_h.update(pig_radii)
+            targets_max_y = [targets_x[o_id] + targets_w[o_id] for o_id in targets_x.keys()]
+            targets_min_y = [targets_x[o_id] - targets_w[o_id] for o_id in targets_x.keys()]
+            bbox_maxy = max(targets_max_y)
+            bbox_miny = min(targets_min_y)
+
+            # Find bird trajectory:
+            angle = node.state_vars["['angle']"]
+            # I would love to know where these calculations came from. v_x looks like an approximation of cos(angle), but that will only be correct for angles up to ~15 degrees
+            v_y_0 = node.state_vars["['v_bird'" + active_bird_string] * (
+                    (4 * angle * (180 - angle)) / (40500 - (angle * (180 - angle))))
+            v_x = node.state_vars["['v_bird'" + active_bird_string] * (1 - ((np.power((angle * 0.0174533), 2)) / 2))
+            if v_x == 0:
+                # In this situation, we can't reason about ballistics.
+                # I have concluded that this situation doesn't arise, but left this just in case to prevent div by 0.
+                node.h = self._backup_heuristic(node)
+
+            y_0 = node.state_vars["['y_bird'" + active_bird_string]
+            x_0 = node.state_vars["['x_bird'" + active_bird_string]
+            gravity = node.state_vars["['gravity']"]
+
+            # Bounding box intersections:
+            t_x_min_box = (bbox_minx - x_0) / v_x
+            t_x_max_box = (bbox_maxx - x_0) / v_x
+            y_top = y_0 + (0.5 * np.power(v_y_0, 2)) / gravity
+            y_enter = y_0 + v_y_0 - 0.5 * gravity * np.power(t_x_min_box, 2)
+            y_exit = y_0 + v_y_0 - 0.5 * gravity * np.power(t_x_max_box, 2)
+            max_y = max(y_top, y_enter, y_exit)
+            min_y = min(y_enter, y_exit)
+
+            if min_y > bbox_maxy or max_y < bbox_miny:
+                # I expect that the entire shot passing under the lowest object is unlikely, but it's very easy to rule out.
+                node.h = SBHeuristic.LARGE_VALUE  # missed everything in the level entirely
+
+            # This prevents shots that hit the ground before reaching any targets, though some levels might need it?
+            hit_ground_time = (- v_y_0 + np.sqrt(np.power(v_y_0, 2) + 2 * gravity * y_0)) / (2 * gravity)
+            hit_ground_x = x_0 + v_x * hit_ground_time
+            if hit_ground_x < bbox_minx:
+                node.h = SBHeuristic.LARGE_VALUE
+        else:
+            node.h = self._backup_heuristic(node)
+        return node.h
+
+    def _backup_heuristic(self, node):
+        return 1 / (1 + node.state_vars["['points_score']"])
