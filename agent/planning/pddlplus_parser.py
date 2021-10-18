@@ -46,6 +46,8 @@ class PddlParserUtils:
         for line in in_file.readlines():
             if line.strip().startswith(";"): # A comment line
                 continue
+            if ';' in line:
+                line = line[:line.find(';')] # strip away inline comment
             line_tokens = line.lower().replace("(", " ( ").replace(")"," ) ").split()
             for token in line_tokens:
                 if len(token.strip())==0:

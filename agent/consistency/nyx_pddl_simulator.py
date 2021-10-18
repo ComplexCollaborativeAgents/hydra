@@ -1,3 +1,4 @@
+import math
 import re
 from collections import namedtuple
 from typing import List, Tuple, Iterator, Dict, Union, Optional
@@ -45,21 +46,28 @@ class NyxPddlPlusSimulator(PddlPlusSimulator):
                  domain: PddlPlusDomain,
                  delta_t: float,
                  max_t: Optional[float] = None,
-                 max_iterations: float = 1000) -> SimulationOutput:
+                 max_iterations: int = 1000) -> SimulationOutput:
         grounded_pddl = self.grounded_instance(domain, problem)
-        return self.simulate_grounded_instance(plan_to_simulate, grounded_pddl, delta_t, max_t=max_t)
+        return self.simulate_grounded_instance(plan_to_simulate,
+                                               grounded_pddl,
+                                               delta_t,
+                                               max_t=max_t,
+                                               max_iterations=max_iterations)
 
     def simulate_grounded_instance(self,
                                    plan_to_simulate: PddlPlusPlan,
                                    grounded_pddl: PDDL.GroundedPDDLInstance,
                                    delta_t: float,
-                                   max_t: Optional[float] = None) -> SimulationOutput:
+                                   max_t: Optional[float] = None,
+                                   max_iterations: int = 1000) -> SimulationOutput:
         nyx_constants.set_delta_t(delta_t)
-        nyx_plan = self._nyx_plan(plan_to_simulate, grounded_pddl, max_t=max_t)
+        nyx_plan = self._nyx_plan(plan_to_simulate, grounded_pddl, delta_t, max_t=max_t)
 
         nyx_trace = nyx_plan.simulate(grounded_pddl.init_state,
                                       grounded_pddl,
-                                      double_events=self.allow_cascading_effects)
+                                      double_events=self.allow_cascading_effects,
+                                      max_iterations=max_iterations,
+                                      check_fired=True)
         hydra_trace = self._hydra_trace(nyx_trace)
         if len(hydra_trace) == 0:
             return None, None, None
@@ -114,6 +122,7 @@ class NyxPddlPlusSimulator(PddlPlusSimulator):
     @classmethod
     def _nyx_plan(cls, plan: PddlPlusPlan,
                   grounded_pddl: PDDL.GroundedPDDLInstance,
+                  delta_t: float,
                   expand_time_passing: bool = True,
                   max_t: Optional[float] = None) -> NyxPlan:
         nyx_plan = NyxPlan()
@@ -121,7 +130,8 @@ class NyxPddlPlusSimulator(PddlPlusSimulator):
 
         for action in plan:
             nyx_action = action_lookup.get(action.action_name)
-            nyx_plan.append_action(nyx_action, action.start_at, expand_time_passing=expand_time_passing)
+            start_time = math.floor(action.start_at / delta_t) * delta_t
+            nyx_plan.append_action(nyx_action, start_time, expand_time_passing=expand_time_passing)
 
         if max_t is not None:
             nyx_plan.pass_time(max_t)
