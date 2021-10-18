@@ -8,12 +8,15 @@ from agent.planning.nyx.syntax.visited_state import VisitedState
 
 
 class State:
+    # TODO this should be called "node", not "state", because it holds fields like the predecessor and heuristic value.
 
     # -----------------------------------------------
     # Initialize
     # -----------------------------------------------
 
-    def __init__(self, t=0.0, h=0.0, g=0.0, state_vars={}, predecessor=None, predecessor_action=None):
+    def __init__(self, t=0.0, h=0.0, g=0.0, state_vars=None, predecessor=None, predecessor_action=None):
+        if state_vars is None:
+            state_vars = {}
         if predecessor is not None:
             if isinstance(predecessor, VisitedState):
                 self.predecessor_hashed = hash(predecessor)
@@ -21,14 +24,14 @@ class State:
             else:
                 self.predecessor_hashed = hash(VisitedState(predecessor))
             self.time = round(predecessor.time,constants.NUMBER_PRECISION)
-            self.h = h
-            self.g = (predecessor.g+1) if constants.TRACK_G else 0.0
+            self._h = h
+            self._g = (predecessor.g+1) if constants.TRACK_G else 0.0
             self.state_vars = copy.copy(predecessor.state_vars)
             self.predecessor_action = predecessor_action
         else:
             self.time = round(t,constants.NUMBER_PRECISION)
-            self.h = h
-            self.g = g
+            self._h = h
+            self._g = g
             self.state_vars = state_vars
             self.predecessor_hashed = None
             self.predecessor_action = None
@@ -68,24 +71,28 @@ class State:
     # Heuristic Estimate
     # -----------------------------------------------
 
-    def get_h_heuristic(self):
-        return self.h
+    @property
+    def h(self):
+        return self._h
 
-    def calculate_h_heuristic(self):
-        self.h = 0
-
-    def set_h_heuristic(self, val):
-        self.h = val
+    @h.setter
+    def h(self, value):
+        """
+        Update heuristic value, but only if it dominates the one we already have.
+        """
+        if value > self._h:
+            self._h = value
 
     # -----------------------------------------------
     # Traversed Depth
     # -----------------------------------------------
+    @property
+    def g(self):
+        return self._g
 
-    def get_g_heuristic(self):
-        return self.g
-
-    def set_g_heuristic(self, val):
-        self.g = val
+    @g.setter
+    def g(self, val):
+        self._g = val
 
     # -----------------------------------------------
     # time

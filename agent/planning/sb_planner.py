@@ -76,6 +76,8 @@ class SBPlanner(HydraPlanner):
                 "%s/plan_sb_prob.pddl" % str(settings.SB_PLANNING_DOCKER_PATH))
 
         except Exception as e_inst:
+            import traceback
+            traceback.print_exc()
             print(e_inst)
 
         # print(plan_actions)
