@@ -82,13 +82,13 @@ def type_to_class(type):
                'stone_rect_fat_1': 'stone', 'stone_rect_medium_1': 'stone', 'stone_circle_1': 'stone',
                'stone_square_small_1': 'stone', 'stone_rect_small_1': 'stone', 'stone_rect_big_1': 'stone',
                'stone_square_tiny_2': 'stone',
-               'stone_square_hole_1': 'stone', 'stone_rect_tiny_1': 'stone', 'stone_triang_1': 'stone',
+               'stone_square_hole_1': 'stone', 'stone_rect_tiny_1': 'stone', 'stone_triang_1': 'stone', 'stone_rect_fat_2': 'stone', 'stone_rect_big_2': 'stone',
                'stone_triang_2': 'stone', 'stone_square_small_2': 'stone',
                'stone_circle_small_1': 'stone', 'stone_square_tiny_1': 'stone', 'stone_triang_hole_1': 'stone',
                'stone_triang_hole_2': 'stone',
                'stone_rect_tiny_2': 'stone',
                'stone_circle_small_2': 'stone',
-               'pig_basic_medium_3': 'pig', 'pig_basic_medium_1': 'pig', 'pig_basic_small_1': 'pig', 'pig_basic_small_3': 'pig',
+               'pig_basic_medium_3': 'pig', 'pig_basic_medium_1': 'pig', 'pig_basic_small_1': 'pig', 'pig_basic_small_3': 'pig', 'pig_basic_small_6': 'pig',
                'Slingshot': 'slingshot', 'TNT': 'TNT','Platform':'platform',
                'worm': 'worm',
                'magician': 'magician',
@@ -97,11 +97,12 @@ def type_to_class(type):
     if type in classes:
         return classes[type]
     else:
+        print(type)
         assert 'novel' in type
         return type
 
 
-def train_classifier(file=os.path.join(settings.ROOT_PATH,'data/science_birds/perception/pII/object_class.csv'), on_full_data=False):
+def train_classifier(file=os.path.join(settings.ROOT_PATH,'data/science_birds/perception/pII/non_novel_objects.csv'), on_full_data=False):
     reader = csv.DictReader(open(file, 'r'), classification_cols())
     df = pd.read_csv(file)
     print(len(df.iloc[:, 0]))
@@ -147,16 +148,17 @@ if __name__ == '__main__':
     import pickle
 
     #### train/load
-    #logreg = train_classifier(on_full_data=True)
-    #pickle.dump(logreg, open('{}/data/science_birds/perception/logreg_pII.p'.format(settings.ROOT_PATH), 'wb'))
+    logreg = train_classifier(on_full_data=True)
+    pickle.dump(logreg, open('{}/data/science_birds/perception/logreg_pII.p'.format(settings.ROOT_PATH), 'wb'))
 
 
     ### test
-    logreg = pickle.load(open('{}/data/science_birds/perception/logreg_pII.p'.format(settings.ROOT_PATH), 'rb'))
+    #logreg = pickle.load(open('{}/data/science_birds/perception/logreg_pII.p'.format(settings.ROOT_PATH), 'rb'))
     performance = test_classifier(logreg, file=os.path.join(settings.ROOT_PATH,'data/science_birds/perception/pII/novel_objects_level1_type_9_10.csv'))
     #performance= test_classifier(logreg, file=os.path.join(settings.ROOT_PATH,'data/science_birds/perception/pII/object_class.csv'))
 
     for item in performance:
         print(item)
+
 
 #    pickle.dump(logreg,open('{}/data/science_birds/perception/logreg.p'.format(settings.ROOT_PATH), 'wb'))
