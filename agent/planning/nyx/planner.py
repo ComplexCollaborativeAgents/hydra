@@ -100,6 +100,7 @@ class Planner:
                             time_checkpoint = time.time() - start_solve_time
                             print('[' + str("{:6.2f}".format(time_checkpoint)) + '] ==> found goals: ' + str(len(self.reached_goal_states)))
                         else:
+                            print(f'************** g value of solution: {self.reached_goal_states[0].g}')
                             return self.reached_goal_states
                     self.visited_hashmap[new_state_hash] = VisitedState(new_state)
                     self.enqueue_state(new_state)

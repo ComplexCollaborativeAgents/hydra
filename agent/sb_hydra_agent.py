@@ -1,7 +1,7 @@
 import datetime
 
 import settings
-from agent.hydra_agent import logger, NN_PROB, PDDL_PROB, NOVELTY_EXISTANCE_NOT_GIVEN, NOVELTY_LIKELIHOOD
+from agent.hydra_agent import logger, NN_PROB, PDDL_PROB, NOVELTY_EXISTENCE_NOT_GIVEN, NOVELTY_LIKELIHOOD
 from agent.planning.sb_planner import SBPlanner
 from agent.repair.meta_model_repair import *
 
@@ -12,23 +12,15 @@ from state_prediction.anomaly_detector_fc_multichannel import FocusedSBAnomalyDe
 from utils.point2D import Point2D
 from worlds.science_birds_interface.client.agent_client import GameState
 from agent.hydra_agent import HydraAgent
-logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
-logger = logging.getLogger("hydra_agent")
-
-# Flags from ANU
-NOVELTY_EXISTANCE_NOT_GIVEN = -1 # The self.novelty_existance value indicating that novelty detection is not given by the environment
-
-# stats_per_level dictionary keys
-NN_PROB = "nn_novelty_likelihood"
-PDDL_PROB = "pddl_novelty_likelihood"
-NOVELTY_LIKELIHOOD = "novelty_likelihood"
 
 
 class SBHydraAgent(HydraAgent):
-    '''
+    """
     Probably needs to subclass for each domain. We will cross that bridge when we get there
-    '''
-    def __init__(self,env=None, agent_stats = list()):
+    """
+    def __init__(self, env=None, agent_stats=None):
+        if agent_stats is None:
+            agent_stats = list()
         logger.info("[hydra_agent_server] :: Agent Created")
 
         super().__init__(planner = SBPlanner(ScienceBirdsMetaModel()),
@@ -58,6 +50,7 @@ class SBHydraAgent(HydraAgent):
 
 
     def reinit(self):
+        """ Prepare this agent for a new trial. """
         logging.info('Reinit...')
         self.env.history = []
         self.perception = Perception()
@@ -78,7 +71,7 @@ class SBHydraAgent(HydraAgent):
         self.pddl_prob_per_level = []
 
     def main_loop(self,max_actions=1000):
-        ''' Runs the agent. Returns False if the evaluation has not ended, and True if it has ended.'''
+        """ Runs the agent. Returns False if the evaluation has not ended, and True if it has ended."""
 
         logger.info("[hydra_agent_server] :: Entering main loop")
         logger.info("[hydra_agent_server] :: Delta t = {}".format(str(settings.SB_DELTA_T)))
@@ -97,7 +90,7 @@ class SBHydraAgent(HydraAgent):
 
             if raw_state.game_state.value == GameState.PLAYING.value:
                 self.handle_game_playing(observation, raw_state)
-                if (settings.NOVELTY_POSSIBLE):
+                if settings.NOVELTY_POSSIBLE:
                     self._compute_novelty_likelihood(observation)
             elif raw_state.game_state.value == GameState.WON.value:
                 self.handle_game_won()
@@ -127,7 +120,7 @@ class SBHydraAgent(HydraAgent):
 #        self.novelty_existence = self.env.sb_client.get_novelty_info()
 
     def handle_new_trial(self):
-        ''' Handle what happens when the agent receives a NEWTRIAL request'''
+        """ Handle what happens when the agent receives a NEWTRIAL request"""
 
         # DO something to start a fresh agent for a new training set
         (time_limit, interaction_limit, n_levels, attempts_per_level, mode, seq_or_set,
@@ -141,7 +134,7 @@ class SBHydraAgent(HydraAgent):
         #self.novelty_existence = self.env.sb_client.get_novelty_info()
 
     def handle_request_novelty_likelihood(self):
-        ''' Handle what happens when the agent receives a REQUESTNOVELTYLIKELIHOOD request'''
+        """ Handle what happens when the agent receives a REQUESTNOVELTYLIKELIHOOD request"""
 
         logger.info("[hydra_agent_server] :: Requesting Novelty Likelihood. Novelyy likelihood is {}".format(
             self.novelty_likelihood))
@@ -159,7 +152,7 @@ class SBHydraAgent(HydraAgent):
         self.env.sb_client.report_novelty_likelihood(novelty_likelihood, non_novelty_likelihood,ids,novelty_level,novelty_description)
 
     def handle_evaluation_terminated(self):
-        ''' Handle what happens when the agent receives a EVALUATION_TERMINATED request'''
+        """ Handle what happens when the agent receives a EVALUATION_TERMINATED request"""
 
         # store info and disconnect the agent as the evaluation is finished
         self._handle_end_of_level(True)
@@ -167,7 +160,7 @@ class SBHydraAgent(HydraAgent):
         return True
 
     def handle_new_training_set(self):
-        ''' Handle what happens when the agent receives a NEWTRAININGSET request'''
+        """ Handle what happens when the agent receives a NEWTRAININGSET request"""
 
         # DO something to start a fresh agent for a new training set
         (time_limit, interaction_limit, n_levels, attempts_per_level, mode, seq_or_set,
@@ -179,17 +172,17 @@ class SBHydraAgent(HydraAgent):
         #self.novelty_existence = self.env.sb_client.get_novelty_info()
 
     def handle_game_lost(self):
-        ''' Handle what happens when the agent receives a LOST request'''
+        """ Handle what happens when the agent receives a LOST request"""
         self._handle_end_of_level(False)
 
     def handle_game_won(self):
-        ''' Handle what happens when the agent receives a WON request'''
+        """ Handle what happens when the agent receives a WON request"""
         self._handle_end_of_level(True)
         return self.cumulative_plan_time, self.overall_plan_time
 
     def _compute_novelty_likelihood(self, observation: ScienceBirdsObservation):
-        ''' Computes the novelty likelihood for the given observation
-        Also updates the stats_for_level object with the computed novelty probability by the two models.  '''
+        """ Computes the novelty likelihood for the given observation
+        Also updates the stats_for_level object with the computed novelty probability by the two models.  """
 
         logging.info('Computing novelty likelihood...')
 
@@ -204,7 +197,7 @@ class SBHydraAgent(HydraAgent):
             self.stats_for_level[PDDL_PROB].append(self.novelty_existence)
             self.novelty_likelihood = self.novelty_existence
         else:
-            assert self.novelty_existence==NOVELTY_EXISTANCE_NOT_GIVEN # The flag denoting that we do not get novelty info from the environment
+            assert self.novelty_existence == NOVELTY_EXISTENCE_NOT_GIVEN # The flag denoting that we do not get novelty info from the environment
 
             if observation.hasUnknownObj():
                 self.stats_for_level[NN_PROB].append(1.0)
@@ -215,7 +208,7 @@ class SBHydraAgent(HydraAgent):
                 try:
                     cnn_novelty, cnn_prob = self.detector.detect(observation)
                 except:
-                    logging.info('CNN Index out of Bounds in game playing')
+                    logging.info('CNN Index out of Bounds in game playing')  #TODO: catch only the oob exception
                     cnn_prob=1.0 # TODO: Think about this design choice
 
                 self.stats_for_level[NN_PROB].append(cnn_prob)
@@ -261,7 +254,7 @@ class SBHydraAgent(HydraAgent):
         self.stats_for_level[NOVELTY_LIKELIHOOD]=self.novelty_likelihood
 
     def _handle_end_of_level(self, success):
-        ''' This is called when a level has ended, either in a win or a lose our come '''
+        """ This is called when a level has ended, either in a win or a lose our come """
         self.completed_levels.append(success)
         logger.info("[hydra_agent_server] :: Level {} Complete - WIN={}".format(self.current_level, success))
         logger.info("[hydra_agent_server] :: Cumulative planning time only = {}".format(str(self.cumulative_plan_time)))
@@ -285,7 +278,7 @@ class SBHydraAgent(HydraAgent):
 
 
     def handle_game_playing(self, observation, raw_state):
-        ''' Handle what happens when the agent receives a PLAYING request'''
+        """ Handle what happens when the agent receives a PLAYING request"""
 
         processed_state = self.perception.process_state(raw_state)
         observation.state = processed_state
@@ -297,7 +290,7 @@ class SBHydraAgent(HydraAgent):
         self.choose_action(observation)
 
     def choose_action(self, observation : ScienceBirdsObservation):
-        ''' Choose which action to perform in the current obseration '''
+        """ Choose which action to perform in the current obseration """
         processed_state = observation.state
         self.shot_num += 1
         if processed_state:
@@ -349,7 +342,7 @@ class SBHydraAgent(HydraAgent):
             logger.info("[hydra_agent_server] :: Reward {} Game State {}".format(reward, raw_state.game_state))
 
     def __get_default_action(self, state : ProcessedSBState):
-        ''' A default action taken by the Hydra agent if planning fails'''
+        """ A default action taken by the Hydra agent if planning fails"""
 
         logger.info("[hydra_agent_server] :: __get_default_action")
         problem = self.meta_model.create_pddl_problem(state)
@@ -361,9 +354,9 @@ class SBHydraAgent(HydraAgent):
         try:
             active_bird = pddl_state.get_active_bird()
         except:
-            active_bird = None
+            active_bird = None # TODO catch only appropriate exception
         try:
-            pig_x, pig_y = get_random_pig_xy(problem)
+            pig_x, pig_y = get_random_pig_xy(problem) # TODO: try to shoot at _all_ pigs
             if settings.SB_DEFAULT_SHOT == 'RANDOM_PIG':
                 min_angle, max_angle = estimate_launch_angle(self.planner.meta_model.get_slingshot(state), Point2D(pig_x, pig_y), self.meta_model)
                 default_time = self.meta_model.angle_to_action_time(min_angle, pddl_state)
@@ -378,27 +371,27 @@ class SBHydraAgent(HydraAgent):
                 logger.info("invalid setting for SB_DEFAULT_SHOT, taking default angle of 20")
                 default_time = self.meta_model.angle_to_action_time(20, pddl_state)
         except:
-            logger.info("Unable to shoot at a random pig, taking default angle of 20")
+            logger.info("Unable to shoot at a random pig, taking default angle of 20") # TODO carch only appropriate exception
             default_time = self.meta_model.angle_to_action_time(20, pddl_state)
         return TimedAction("pa-twang %s" % active_bird, default_time)
 
-    def set_env(self,env):
-        '''Probably bad to have two pointers here'''
+    def set_env(self, env):
+        """Probably bad to have two pointers here"""
         self.env = env
 
     def run_next_action(self):
-        ''' Runs the agent until it performs an action'''
+        """ Runs the agent until it performs an action"""
 
         while True:
             evaluation_done = self.main_loop(max_actions=1)
             if self.observations[-1].action is not None:
                 return
-            if evaluation_done == True:
+            if evaluation_done:
                 return
 
     def find_last_obs(self):
-        ''' Finds the last observations of the game. That is, the last observation that has intermediate states.
-        TODO: Is this the best way to implement this?'''
+        """ Finds the last observations of the game. That is, the last observation that has intermediate states.
+        TODO: Is this the best way to implement this?"""
 
         i = -1
         if len(self.observations)==0:
@@ -411,11 +404,13 @@ class SBHydraAgent(HydraAgent):
 
 
 class RepairingSBHydraAgent(SBHydraAgent):
-    ''' Repairing Hydra agent for the SB domain '''
+    """ Repairing Hydra agent for the SB domain """
 
-    def __init__(self,env=None, agent_stats = list()):
+    def __init__(self, env=None, agent_stats=None):
         super().__init__(env, agent_stats=agent_stats)
         # Repair and detection variables
+        if agent_stats is None:
+            agent_stats = list()
         self.revision_attempts = 0
         self.meta_model_repair = ScienceBirdsMetaModelRepair(self.meta_model)
 
@@ -424,7 +419,7 @@ class RepairingSBHydraAgent(SBHydraAgent):
         self.revision_attempts = 0
 
     def process_final_observation(self):
-        ''' This is called after winning or losing a level. '''
+        """ This is called after winning or losing a level. """
         self.stats_for_level[NOVELTY_LIKELIHOOD]=self.novelty_likelihood
         # The consistency score per level for this level is the mean over the consistency scored of this level's observations
         self.nn_prob_per_level.insert(0,
@@ -435,7 +430,7 @@ class RepairingSBHydraAgent(SBHydraAgent):
 
 
     def handle_evaluation_terminated(self):
-        ''' Handle what happens when the agent receives a EVALUATION_TERMINATED request'''
+        """ Handle what happens when the agent receives a EVALUATION_TERMINATED request"""
         # store info and disconnect the agent as the evaluation is finished
         self.process_final_observation()
         return super().handle_evaluation_terminated()
@@ -448,10 +443,11 @@ class RepairingSBHydraAgent(SBHydraAgent):
         self.process_final_observation()
         super().handle_game_lost()
 
-    ''' Handle what happens when the agent receives a PLAYING request'''
+
     def handle_game_playing(self, observation, raw_state):
+        """ Handle what happens when the agent receives a PLAYING request"""
         last_obs = self.find_last_obs()
-        if last_obs!=None:
+        if last_obs is not None:
             if REPAIR_CALLS not in self.stats_for_level:
                 self.stats_for_level[REPAIR_CALLS] = 0
             if REPAIR_TIME not in self.stats_for_level:
@@ -470,7 +466,7 @@ class RepairingSBHydraAgent(SBHydraAgent):
         super().handle_game_playing(observation, raw_state)
 
     def repair_meta_model(self, last_obs):
-        ''' Repair the meta model based on the last observation'''
+        """ Repair the meta model based on the last observation"""
         self.stats_for_level[REPAIR_CALLS] = self.stats_for_level[REPAIR_CALLS] + 1
         self.revision_attempts += 1
         logger.info("Initiating repair number {}".format(self.revision_attempts))
@@ -482,21 +478,21 @@ class RepairingSBHydraAgent(SBHydraAgent):
             logger.info(
                 "Repair done! Consistency: %.2f, Repair:\n %s" % (consistency, "\n".join(repair_description)))
         except:
-            # TODO: fix this hack
+            # TODO: fix this hack, catch correct exception
             logger.info("Repair failed!")
         self.stats_for_level[REPAIR_TIME] = time.time() - start_repair_time
 
     def should_repair(self, observation: ScienceBirdsObservation):
-        '''
+        """
         Checks if the current model should be repaired
         If we are going to repair for a level, it will be a repair with the first shot's observations for that level.
-        '''
+        """
 
-        # If novelty existance is given, use the given
+        # If novelty existence is given, use the given
         if self.revision_attempts >= settings.HYDRA_MODEL_REVISION_ATTEMPTS:
             return False
 
-        if self.novelty_existence != NOVELTY_EXISTANCE_NOT_GIVEN:
+        if self.novelty_existence != NOVELTY_EXISTENCE_NOT_GIVEN:
             return self.novelty_existence==1
 
         if observation.hasUnknownObj():

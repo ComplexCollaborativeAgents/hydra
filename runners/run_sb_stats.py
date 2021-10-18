@@ -19,7 +19,6 @@ from agent.sb_hydra_agent import SBHydraAgent, RepairingSBHydraAgent
 import settings
 import logging
 
-from worlds.science_birds_interface.demo.naive_agent_groundtruth import ClientNaiveAgent
 
 logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("run_sb_states")
@@ -39,7 +38,7 @@ class AgentType(enum.Enum):
 
 NOVELTY = 0
 TYPE = 2
-SAMPLES = 100
+SAMPLES = 10
 AGENT = AgentType.Hydra
 
 def extract_levels(source, destination=None):
@@ -149,8 +148,7 @@ def get_bird_count(level_path):
                 if bird_type is not None:
                     birds[bird_type] += 1
     except Exception:
-        import traceback
-        traceback.print_exc()
+        pass
     return birds
 
 def compute_stats(results_path, agent, agent_stats=None):
@@ -330,13 +328,13 @@ def run_performance_stats(novelties: dict,
     for novelty, types in novelties.items():
         for novelty_type in types:
             pattern = 'Levels/novelty_level_{}/type{}/Levels/*.xml'.format(novelty, novelty_type)
-
             levels = list(levels_path.glob(pattern))
 
             number_samples = len(levels)
             if samples is not None:
                 number_samples = min(number_samples, samples)
             levels = levels[:number_samples]
+            # levels = random.sample(levels, number_samples) # TODO: Discuss design: this sampling kills the order of the levels, causing the non-novel levels to appear after the novel ones
 
             if level_lookup:
                 levels = [levels_path / l for l in level_lookup[str(novelty)][str(novelty_type)]]
@@ -346,7 +344,7 @@ def run_performance_stats(novelties: dict,
             post_directories = None
 
             agent_stats = list()
-            with run_agent(config, agent_type, agent_stats) as env: # TODO: Typo?
+            with run_agent(config.name, agent_type, agent_stats) as env: # TODO: Typo?
                 post_directories = glob_directories(SB_BIN_PATH, 'Agent*')
 
             results_directory = diff_directories(pre_directories, post_directories)

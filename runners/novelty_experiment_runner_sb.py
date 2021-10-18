@@ -14,7 +14,7 @@ from runners.run_sb_stats import *
 
 logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("novelty_experiment_runner")
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFOG)
 
 # Paths
 SB_BIN_PATH = pathlib.Path(settings.SCIENCE_BIRDS_BIN_DIR) / 'linux'
@@ -33,7 +33,7 @@ EXPORT_TRIALS = False   # Export trials xml file
 NUM_TRIALS = 1      # Number of trials to run per known/unknown, novelty level and type
 PER_TRIAL = 5      # Levels per trial
 BEFORE_NOVELTY = 1 # Levels in a trial before novelty is introduced
-NOVELTIES = {"0": ["2"]}  # Novelties to use in the experiment (IE, trials to run)
+NOVELTIES = {"22": ["1"]}  # Novelties to use in the experiment (IE, trials to run)
 #NOVELTIES = {"1": ["6", "7", "8", "9", "10"], "2": ["6", "7", "8", "9", "10"], "3": ["6", "7"]}
 
 
@@ -51,15 +51,13 @@ class NoveltyExperimentRunnerSB:
 
     def __init__(self,
                  agent_type: AgentType,
-                 novelties=None,
+                 novelties: dict = NOVELTIES,
                  num_trials: int = NUM_TRIALS,
                  levels_per_trial: int = PER_TRIAL,
                  levels_before_novelty: int = BEFORE_NOVELTY,
                  export_trials: bool = EXPORT_TRIALS,
                  results_path: pathlib.Path = RESULTS_PATH):
         
-        if novelties is None:
-            novelties = NOVELTIES
         self.agent_type = agent_type
         self.novelties = novelties
         self.num_trials = num_trials
@@ -467,7 +465,7 @@ class NoveltyExperimentRunnerSB:
 
 
 if __name__ == '__main__':
-    experiment_runner = NoveltyExperimentRunnerSB(AgentType.Hydra, export_trials=False)
+    experiment_runner = NoveltyExperimentRunnerSB(AgentType.RepairingHydra, export_trials=False)
 
     experiment_runner.run_experiment()
     # experiment_runner.run_experiment(configs=[SB_CONFIG_PATH / "trial_config_1_6.xml"])
