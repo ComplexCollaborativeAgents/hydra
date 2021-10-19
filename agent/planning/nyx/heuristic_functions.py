@@ -85,8 +85,15 @@ class SBHeuristic(AbstractHeuristic):
             return node.h
         active_bird_string = active_bird_string[0][10:]
         bird_released = node.state_vars.get("['bird_released'" + active_bird_string)
-        # Only have meaningful heuristic if bird is not yet launched. Once bird is launched, after that we just watch.
-        if not bird_released:
+        if bird_released:
+            # Bird is in air - heuristic value = distance to nearest pig in planning steps.
+            x_0 = node.state_vars["['x_bird'" + active_bird_string]
+            y_0 = node.state_vars["['y_bird'" + active_bird_string]
+            v_x = node.state_vars["['vx_bird'" + active_bird_string]
+            v_y = node.state_vars["['vy_bird'" + active_bird_string]
+            node.h = self.time_to_pig(node, (x_0, y_0, v_x, v_y))
+            return node.h
+        else:
             # Find the bounding box for all targets:
             targets_x = {obj[9:]:node.state_vars[obj] for obj in node.state_vars.keys() if obj.startswith("['x_block")}
             targets_x.update({obj[7:]:node.state_vars[obj] for obj in node.state_vars.keys() if obj.startswith("['x_pig")})
@@ -141,9 +148,9 @@ class SBHeuristic(AbstractHeuristic):
             if hit_ground_x < bbox_minx:
                 node.h = SBHeuristic.LARGE_VALUE
             else:
-                return self.distance_to_pig(node, (x_0, y_0, v_x, v_y_0))
-        else:
-            node.h = self._backup_heuristic(node)
+                # Same calculation using only x values -> shoot at closest pig first
+                node.h =  self.time_to_pig_x(node, (x_0, y_0, v_x, v_y_0))
+                pass
         return node.h
 
     @staticmethod
@@ -154,7 +161,7 @@ class SBHeuristic(AbstractHeuristic):
         return 0 # 1 / (1 + node.state_vars["['points_score']"])
 
     @staticmethod
-    def distance_to_pig(node, bird_coords):
+    def time_to_pig(node, bird_coords):
         """
         Returns the distance (in planning time steps) to the closest pig.
         """
@@ -171,9 +178,13 @@ class SBHeuristic(AbstractHeuristic):
         targets_xy = [(targets_x[o_id], targets_y[o_id]) for o_id in targets_x.keys()]
         dists = [(pig[0] - bird_coords[0]) ** 2 + (pig[1] - bird_coords[1]) ** 2 for pig in targets_xy]
         closest_ind = np.argmin(dists)
-        vec_in_direction = targets_xy[closest_ind][0], targets_xy[closest_ind][1] / \
-                           math.sqrt(targets_xy[closest_ind][0] **2 + targets_xy[closest_ind][1] ** 2)
+        vec_in_direction = (targets_xy[closest_ind][0] - bird_coords[0]) ** 2 / dists[closest_ind], \
+                           (targets_xy[closest_ind][1] - bird_coords[1]) ** 2 / dists[closest_ind]
         speed_in_direction = bird_coords[2] * vec_in_direction[0] + bird_coords[3] * vec_in_direction[1]
-        value = max(0, (math.sqrt(dists[closest_ind]) / speed_in_direction) / 0.05)
+        value = max(0, math.sqrt(dists[closest_ind]) / (speed_in_direction * constants.DELTA_T))
         return value
 
+    @staticmethod
+    def time_to_pig_x(node, bird_coords):
+        target_x = min([node.state_vars[obj] for obj in node.state_vars.keys() if obj.startswith("['x_pig")])
+        return max(0, (target_x - bird_coords[0]) / (bird_coords[2] * constants.DELTA_T))
