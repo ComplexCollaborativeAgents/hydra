@@ -72,8 +72,12 @@ class SBHeuristic(AbstractHeuristic):
     LARGE_VALUE = 999999
 
     def evaluate(self, node):
-        # This heuristic only calculates ballistic birds hitting the bounding box that has targets in it. Any change
-        # from ballistic motion (e.g. friction, bird powers, updrafts) will require a new heuristic.
+        # Bird powers:
+        # red + black: none\no need to deal with here
+        # yellow: accelerates. Just don't check falling short, because can accelerate at peak and reach blocks.
+        # white: modeled as "shoots straight down when tapped". Remove "passes over everything" check.
+        # Blue: adding a 20% margin to the bounding box is probably pretty good. Some experimentation can narrow that to a more accurate number.
+
 
         # Find active bird ID
         active_bird_string = [key for key in node.state_vars.keys()
@@ -94,28 +98,16 @@ class SBHeuristic(AbstractHeuristic):
             node.h = self.time_to_pig(node, (x_0, y_0, v_x, v_y))
             return node.h
         else:
-            # Find the bounding box for all targets:
-            targets_x = {obj[9:]:node.state_vars[obj] for obj in node.state_vars.keys() if obj.startswith("['x_block")}
-            targets_x.update({obj[7:]:node.state_vars[obj] for obj in node.state_vars.keys() if obj.startswith("['x_pig")})
-            targets_w = {obj[13:]:node.state_vars[obj] for obj in node.state_vars.keys() if obj.startswith("['block_width")}
-            pig_radii = {obj[12:]:node.state_vars[obj] for obj in node.state_vars.keys() if obj.startswith("['pig_radius")}
-            targets_w.update(pig_radii)
-            targets_max_x = [targets_x[o_id] + targets_w[o_id] for o_id in targets_x.keys()]
-            targets_min_x = [targets_x[o_id] - targets_w[o_id] for o_id in targets_x.keys()]
-            bbox_minx = min(targets_min_x)
-            bbox_maxx = max(targets_max_x)
-            targets_y = {obj[9:]:node.state_vars[obj] for obj in node.state_vars.keys() if obj.startswith("['y_block")}
-            targets_y.update({obj[7:]:node.state_vars[obj] for obj in node.state_vars.keys() if obj.startswith("['y_pig")})
-            targets_h = {obj[14:]:node.state_vars[obj] for obj in node.state_vars.keys() if obj.startswith("['block_height")}
-            targets_h.update(pig_radii)
-            targets_max_y = [targets_x[o_id] + targets_w[o_id] for o_id in targets_x.keys()]
-            targets_min_y = [targets_x[o_id] - targets_w[o_id] for o_id in targets_x.keys()]
-            bbox_maxy = max(targets_max_y)
-            bbox_miny = min(targets_min_y)
-
+            # Find type of bird
+            bird_type = [active_bird_string.startswith(", red") or active_bird_string.startswith(", black"),
+                         active_bird_string.startswith(", yellow"), active_bird_string.startswith(", white"),
+                         active_bird_string.startswith(", blue")]
+            BIRD_RED_BLACK = 0
+            BIRD_YELLOW = 1
+            BIRD_WHITE = 2
+            BIRD_BLUE = 3
             # Find bird trajectory:
             angle = node.state_vars["['angle']"]
-            # I would love to know where these calculations came from. v_x looks like an approximation of cos(angle), but that will only be correct for angles up to ~15 degrees
             v_y_0 = node.state_vars["['v_bird'" + active_bird_string] * (
                     (4 * angle * (180 - angle)) / (40500 - (angle * (180 - angle))))
             v_x = node.state_vars["['v_bird'" + active_bird_string] * (1 - ((np.power((angle * 0.0174533), 2)) / 2))
@@ -129,24 +121,60 @@ class SBHeuristic(AbstractHeuristic):
             x_0 = node.state_vars["['x_bird'" + active_bird_string]
             gravity = node.state_vars["['gravity']"]
 
-            # Bounding box intersections:
-            t_x_min_box = (bbox_minx - x_0) / v_x
-            t_x_max_box = (bbox_maxx - x_0) / v_x
-            y_top = y_0 + (0.5 * np.power(v_y_0, 2)) / gravity
-            y_enter = y_0 + v_y_0 - 0.5 * gravity * np.power(t_x_min_box, 2)
-            y_exit = y_0 + v_y_0 - 0.5 * gravity * np.power(t_x_max_box, 2)
-            max_y = max(y_top, y_enter, y_exit)
-            min_y = min(y_enter, y_exit)
+            # Find the bounding box for all targets:
+            targets_x = {obj[9:]: node.state_vars[obj] for obj in node.state_vars.keys() if obj.startswith("['x_block")}
+            targets_x.update(
+                {obj[7:]: node.state_vars[obj] for obj in node.state_vars.keys() if obj.startswith("['x_pig")})
+            targets_w = {obj[13:]:node.state_vars[obj] for obj in node.state_vars.keys() if obj.startswith("['block_width")}
+            pig_radii = {obj[12:]: node.state_vars[obj] for obj in node.state_vars.keys() if
+                         obj.startswith("['pig_radius")}
+            targets_w.update(pig_radii)
+            targets_min_x = [targets_x[o_id] - targets_w[o_id] for o_id in targets_x.keys()]
+            bbox_minx = min(targets_min_x)
 
-            if min_y > bbox_maxy or max_y < bbox_miny:
-                # I expect that the entire shot passing under the lowest object is unlikely, but it's very easy to rule out.
-                node.h = SBHeuristic.LARGE_VALUE  # missed everything in the level entirely
-                return node.h
-            # This prevents shots that hit the ground before reaching any targets, though some levels might need it?
-            hit_ground_time = (- v_y_0 + np.sqrt(np.power(v_y_0, 2) + 2 * gravity * y_0)) / (2 * gravity)
-            hit_ground_x = x_0 + v_x * hit_ground_time
-            if hit_ground_x < bbox_minx:
-                node.h = SBHeuristic.LARGE_VALUE
+            if bird_type[BIRD_RED_BLACK] or bird_type[BIRD_YELLOW] or bird_type[BIRD_BLUE]:
+                targets_max_x = [targets_x[o_id] + targets_w[o_id] for o_id in targets_x.keys()]
+                bbox_maxx = max(targets_max_x)
+                targets_y = {obj[9:]:node.state_vars[obj] for obj in node.state_vars.keys() if obj.startswith("['y_block")}
+                targets_y.update({obj[7:]:node.state_vars[obj] for obj in node.state_vars.keys() if obj.startswith("['y_pig")})
+                targets_h = {obj[14:]:node.state_vars[obj] for obj in node.state_vars.keys() if obj.startswith("['block_height")}
+                targets_h.update(pig_radii)
+                targets_max_y = [targets_x[o_id] + targets_w[o_id] for o_id in targets_x.keys()]
+                targets_min_y = [targets_x[o_id] - targets_w[o_id] for o_id in targets_x.keys()]
+                bbox_maxy = max(targets_max_y)
+                bbox_miny = min(targets_min_y)
+
+                # Bounding box intersections:
+                t_x_min_box = (bbox_minx - x_0) / v_x
+                t_x_max_box = (bbox_maxx - x_0) / v_x
+                y_top = y_0 + (0.5 * np.power(v_y_0, 2)) / gravity
+                y_enter = y_0 + v_y_0 - 0.5 * gravity * np.power(t_x_min_box, 2)
+                y_exit = y_0 + v_y_0 - 0.5 * gravity * np.power(t_x_max_box, 2)
+                max_y = max(y_top, y_enter, y_exit)
+                min_y = min(y_enter, y_exit)
+
+                if bird_type[BIRD_BLUE]:
+                    min_y -= min_y * 0.2
+                    max_y += max_y * 0.2
+
+                if min_y > bbox_maxy or max_y < bbox_miny:
+                    # I expect that the entire shot passing under the lowest object is unlikely, but it's very easy to rule out.
+                    node.h = SBHeuristic.LARGE_VALUE  # missed everything in the level entirely
+                    return node.h
+
+            if bird_type[BIRD_RED_BLACK] or bird_type[BIRD_WHITE] or bird_type[BIRD_BLUE]:
+                # Hitting the ground spot
+                hit_ground_time = (- v_y_0 + np.sqrt(np.power(v_y_0, 2) + 2 * gravity * y_0)) / (2 * gravity)
+                hit_ground_x = x_0 + v_x * hit_ground_time
+
+                if bird_type[BIRD_BLUE]:
+                    hit_ground_x += hit_ground_x * 0.2
+
+                # This prevents shots that hit the ground before reaching any targets, though some levels might need it?
+                if hit_ground_x < bbox_minx:
+                    node.h = SBHeuristic.LARGE_VALUE
+                    return node.h
+
             else:
                 # Same calculation using only x values -> shoot at closest pig first
                 node.h =  self.time_to_pig_x(node, (x_0, y_0, v_x, v_y_0))
