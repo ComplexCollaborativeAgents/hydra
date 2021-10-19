@@ -182,9 +182,9 @@ class SBHeuristic(AbstractHeuristic):
                            (targets_xy[closest_ind][1] - bird_coords[1]) ** 2 / dists[closest_ind]
         speed_in_direction = bird_coords[2] * vec_in_direction[0] + bird_coords[3] * vec_in_direction[1]
         value = max(0, math.sqrt(dists[closest_ind]) / (speed_in_direction * constants.DELTA_T))
-        return value
+        return int(value)
 
     @staticmethod
     def time_to_pig_x(node, bird_coords):
         target_x = min([node.state_vars[obj] for obj in node.state_vars.keys() if obj.startswith("['x_pig")])
-        return max(0, (target_x - bird_coords[0]) / (bird_coords[2] * constants.DELTA_T))
+        return int(max(0, (target_x - bird_coords[0]) / (bird_coords[2] * constants.DELTA_T)))
