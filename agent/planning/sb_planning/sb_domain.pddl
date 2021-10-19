@@ -43,6 +43,7 @@
         :effect (and
             (decrease (vy_bird ?b) (* #t (* 1.0 (gravity)) ))
             (increase (y_bird ?b) (* #t (* 1.0 (vy_bird ?b))))
+            ;(increase (y_bird ?b) (- (* #t (* 1.0 (vy_bird ?b))) (* (* 0.5 (* #t #t)) (* 1.0 (gravity))))) ; analytical solution. Appears to have detrimental effect on winning.
             (increase (x_bird ?b) (* #t (* 1.0 (vx_bird ?b))))
         )
     )
