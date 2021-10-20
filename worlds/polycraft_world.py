@@ -32,6 +32,7 @@ class BlockType(enum.Enum):
     AIR = "minecraft:air"
     BEDROCK = "minecraft:bedrock"
     BLOCK_OF_PLATINUM = "polycraft:block_of_platinum"
+    WOODER_DOOR = "minecraft:wooden_door"
 
 class ItemType(enum.Enum):
     WOODEN_POGO_STICK = "polycraft:wooden_pogo_stick"
@@ -498,7 +499,7 @@ class PolycraftState(State):
 
         # Craft an item NOTE: will need to be adjacent to crafting bench for 3x3 crafts TODO: decide whether or not to enforce adjaceny in valid action?
         for i in range(len(self.recipes)):
-            actions.append(PolyCraftItem(self.get_recipe_action(i)))
+            actions.append(PolyCraftItem.create_action(self.recipes[i]))
 
         return actions
 
@@ -510,13 +511,6 @@ class PolycraftState(State):
                 if recipe_output['Item'] == item_name:
                     recipes_indices.append(i)
         return recipes_indices
-
-    def get_recipe_action(self, recipe_index) -> PolyCraftItem:
-        ''' Returns a PolyCraftITem action for the recipe in the given index '''
-        ''' Create recipe list, filling zeros for empty slots '''
-        recipe = self.recipes[recipe_index]
-        return PolyCraftItem.create_action(recipe)
-
 
     def summary(self):
         '''returns a summary of state'''

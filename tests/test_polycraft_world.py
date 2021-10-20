@@ -145,7 +145,7 @@ def test_agent_mine_with_pickaxe(launch_polycraft: poly.Polycraft, execution_num
         assert(dist_to_pogoist<=2)
 
 
-@pytest.mark.parametrize('execution_number', range(5))
+@pytest.mark.parametrize('execution_number', range(1))
 def test_craft_items(launch_polycraft: poly.Polycraft, execution_number):
     ''' Test mining logs, crafting planks from the logs, and crafting sticks from planks '''
     env = launch_polycraft
@@ -162,7 +162,8 @@ def test_craft_items(launch_polycraft: poly.Polycraft, execution_number):
     # Make planks
     planks_recipe_indices = state.get_recipe_indices_for(poly.ItemType.PLANKS.value)
     assert(len(planks_recipe_indices)==1)
-    action = state.get_recipe_action(planks_recipe_indices[0])
+    recipe = state.recipes[planks_recipe_indices[0]]
+    action = PolyCraftItem.create_action(recipe)
     after_state, step_cost = agent.do(action, env)
     assert(after_state.has_item(poly.ItemType.PLANKS.value))
     state = after_state
@@ -170,7 +171,8 @@ def test_craft_items(launch_polycraft: poly.Polycraft, execution_number):
     # Make stick
     stick_recipe_indices = state.get_recipe_indices_for(poly.ItemType.STICK.value)
     assert(len(stick_recipe_indices)==1)
-    action = state.get_recipe_action(stick_recipe_indices[0])
+    recipe = state.recipes[stick_recipe_indices[0]]
+    action = PolyCraftItem.create_action(recipe)
     after_state, step_cost = agent.do(action, env)
     assert(after_state.has_item(poly.ItemType.STICK.value))
 
@@ -230,7 +232,8 @@ def test_mine_diamonds(launch_polycraft: poly.Polycraft, execution_number):
     # Craft the diamond block
     diamond_block_recipe_indices = state.get_recipe_indices_for(poly.ItemType.DIAMOND_BLOCK.value)
     assert (len(diamond_block_recipe_indices) == 1)
-    action = state.get_recipe_action(diamond_block_recipe_indices[0])
+    recipe = state.recipes[diamond_block_recipe_indices[0]]
+    action = PolyCraftItem.create_action(recipe)
     after_state, step_cost = agent.do(action, env)
     assert (after_state.has_item(poly.ItemType.DIAMOND_BLOCK.value))
 
@@ -255,23 +258,77 @@ def test_trade_logs(launch_polycraft: poly.Polycraft):
 
     # Trade
     # Find relevant trader and trade
-    item_type_to_trades = get_item_to_trades(state)
-    trades = item_type_to_trades[ItemType.BLOCK_OF_TITANIUM.value]
+    trades = get_trades_for(state, desired_inputs=[{'Item': BlockType.BLOCK_OF_PLATINUM.value, 'stackSize': 1, 'slot': 0}],
+                   desired_outputs=[{'Item': ItemType.BLOCK_OF_TITANIUM.value, 'stackSize': 1, 'slot': 5}])
 
-    for (trader_id, trade) in trades:
-        inputs = trade['inputs']
-        if len(inputs)==1 and inputs[0]['Item']==BlockType.BLOCK_OF_PLATINUM.value and inputs[0]['stackSize']==1:
-            action = PolyEntityTP(trader_id,1)
-            after_state, step_cost = agent.do(action, env)
-            assert (action.success)
+    assert(len(trades)>0)
+    (trader_id, trade) = trades[0]
+    action = PolyEntityTP(trader_id,1)
+    agent.do(action, env)
+    assert (action.success)
 
-            action = PolyTradeItems(trader_id, [{"Item": BlockType.BLOCK_OF_PLATINUM.value, "stackSize":1}])
-            after_state, step_cost = agent.do(action, env)
-            assert (action.success)
-            assert(after_state.count_items_of_type(ItemType.BLOCK_OF_TITANIUM.value))
-            return # All done!
+    action = PolyTradeItems(trader_id, [{"Item": BlockType.BLOCK_OF_PLATINUM.value, "stackSize":1}])
+    after_state, step_cost = agent.do(action, env)
+    assert (action.success)
+    assert(after_state.count_items_of_type(ItemType.BLOCK_OF_TITANIUM.value)>=1)
+    return # All done!
 
-    assert(False) # Relevant trade not found
+
+def test_trade_two_titanium_blocks(launch_polycraft: poly.Polycraft):
+    ''' Mine 2 platinum blocks and then trade them for two titanium blocks '''
+    env = launch_polycraft
+    agent, state = _setup_env(env)
+
+    # Select iron pickaxe
+    action = poly.PolySelectItem(poly.ItemType.IRON_PICKAXE.value)
+    after_state, step_cost = agent.do(action, env)
+    assert(action.success)
+    assert(after_state.get_selected_item()==poly.ItemType.IRON_PICKAXE.value)
+    state = after_state
+
+    # Collect block of platinum
+    action = CollectAndMineItem(BlockType.BLOCK_OF_PLATINUM.value, 2, [BlockType.BLOCK_OF_PLATINUM.value])
+    after_state, step_cost = agent.do(action, env)
+    assert(action.success)
+    assert(after_state.count_items_of_type(BlockType.BLOCK_OF_PLATINUM.value)>=2)
+    state = after_state
+
+    # Find relevant trader and trade
+    trades = get_trades_for(state, desired_inputs=[{'Item': BlockType.BLOCK_OF_PLATINUM.value, 'stackSize': 1, 'slot': 0}],
+                   desired_outputs=[{'Item': ItemType.BLOCK_OF_TITANIUM.value, 'stackSize': 1, 'slot': 5}])
+
+    assert(len(trades)>0)
+    (trader_id, trade) = trades[0]
+    action = PolyEntityTP(trader_id,1)
+    agent.do(action, env)
+    assert (action.success)
+
+    # Trade 1
+    action = PolyTradeItems(trader_id, [{"Item": BlockType.BLOCK_OF_PLATINUM.value, "stackSize":1}])
+    after_state, step_cost = agent.do(action, env)
+    assert (action.success)
+    assert (after_state.count_items_of_type(ItemType.BLOCK_OF_TITANIUM.value) >= 1)
+
+    # Trade 2
+    action = PolyTradeItems(trader_id, [{"Item": BlockType.BLOCK_OF_PLATINUM.value, "stackSize":1}])
+    after_state, step_cost = agent.do(action, env)
+    assert (action.success)
+    assert (after_state.count_items_of_type(ItemType.BLOCK_OF_TITANIUM.value) >= 2)
+
+
+@pytest.mark.parametrize('execution_number', range(5))
+def test_open_door(launch_polycraft: poly.Polycraft, execution_number):
+    env = launch_polycraft
+    agent, state = _setup_env(env)
+
+    # Find door
+    doors = state.get_cells_of_type(BlockType.WOODER_DOOR.value)
+    for door in doors:
+        print(f"Open door at {door}")
+        action = TeleportAndFaceCell(door)
+        after_state, step_cost = agent.do(action, env)
+        diff = after_state.diff(state)
+        print_diff(diff)
 
 def test_helper_functions():
     ''' Test some of the helper functions '''

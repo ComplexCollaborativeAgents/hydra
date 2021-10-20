@@ -104,6 +104,15 @@ def get_item_to_trades(state: PolycraftState):
             item_type_to_trades[item_type].append( (trader_entity_id, trade) )
     return item_type_to_trades
 
+def get_trades_for(state:PolycraftState, desired_inputs, desired_outputs):
+    ''' Return a list of (trader_id, trade) tuples for trades of the specified format '''
+    results = []
+    for trader_entity_id, trades in state.trades.items():
+        for trade in trades:
+            if trade['outputs']==desired_outputs and trade['inputs']==desired_inputs:
+                results.append((trader_entity_id, trade))
+    return results
+
 def print_item_to_trades(items_to_trades: dict):
     ''' A helper function that prints the item to trade dictionary in a pretty way'''
     for item_type, trades in items_to_trades.items():

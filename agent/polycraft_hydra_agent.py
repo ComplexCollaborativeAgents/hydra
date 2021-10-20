@@ -140,6 +140,112 @@ class PolycraftPlanner(HydraPlanner):
                     break
         return  plan_actions
 
+
+
+class FixedPlanPlanner(HydraPlanner):
+    ''' Planner for the polycraft domain that follows the following fixed plan:
+    1) Mine diamonds and craft 2 diamons blocks
+    2) Mine logs and make 2 sticks.
+    3) Mine platinum and trade to titanium blocks
+    4) Obtain the pallets somehow
+    '''
+
+    def __init__(self, meta_model = PolycraftMetaModel(), planning_path = settings.POLYCRAFT_PLANNING_DOCKER_PATH):
+        super().__init__(meta_model)
+
+    def make_plan(self,state: PolycraftState):
+        # Stopping condition
+        if state.count_items_of_type(ItemType.WOODEN_POGO_STICK.value)>0:
+            logger.info("Already have the pogo stick! why plan?")
+            return [PolyNoAction()]
+
+        # Else, need to craft the pogo stick. Step 1: get recipe for it
+        recipe_index = state.get_recipe_indices_for(ItemType.WOODEN_POGO_STICK.value)
+        pogo_recipe = state.recipes[recipe_index]
+        ingredients = dict()
+        for input in pogo_recipe['inputs']:
+            item_type = input['Item']
+            quantity = input['stackSize']
+            if item_type not in ingredients:
+                ingredients[item_type]=quantity
+            else:
+                ingredients[item_type] = ingredients[item_type] + quantity
+
+
+        # Step 2: comput what we're missing
+        missing_ingredients = dict()
+        for ingredient_type, ingredient_quantity in ingredients.items():
+            count = state.count_items_of_type(ingredient_type)
+            missing = ingredient_quantity-count
+            if missing>0:
+                missing_ingredients[ingredient_type] = missing
+
+        # If all is here - craft the pogo stick!
+        if len(missing_ingredients)==0:
+            return [PolyCraftItem.create_action(pogo_recipe)]
+
+        if ItemType.DIAMOND_BLOCK.value in missing_ingredients:
+            return self._plan_for_diamond_blocks(state, missing_ingredients)
+        if ItemType.STICK.value in missing_ingredients:
+            return self._plan_for_sticks(state, missing_ingredients)
+        if ItemType.BLOCK_OF_TITANIUM.value in missing_ingredients:
+            return self._plan_for_blocks_of_titanium(state, missing_ingredients)
+        if ItemType.SACK_POLYISOPRENE_PELLETS.value in missing_ingredients:
+            return self._plan_for_sack_polyisoprene_pellets(state, missing_ingredients)
+
+        logger.info("Ingredients missing that we have no fixed plan for. Missing ingredients are:")
+        for ingredient_type, ingredient_quantity in missing_ingredients.items():
+            logger.info(f'\t {ingredient_type} : {ingredient_quantity}')
+        return None
+
+    def _plan_for_diamond_blocks(self, state:PolycraftState, missing_ingredients:dict):
+        ''' Mine diamonds and craft them toa  diamong block '''
+        plan = []
+        # Select iron pickaxe
+        selected_item = state.get_selected_item()
+        if ItemType.IRON_PICKAXE.value!=selected_item:
+            plan.append(PolySelectItem(ItemType.IRON_PICKAXE.value))
+
+        # Mine diamonds per desired block
+        missing_diamond_blocks = missing_ingredients[ItemType.DIAMOND_BLOCK.value]
+        missing_diamonds = missing_diamond_blocks*9
+        missing_diamonds = missing_diamonds - state.count_items_of_type(ItemType.DIAMOND.value)
+        if missing_diamonds>0:
+            plan.append(CollectAndMineItem(ItemType.DIAMOND.value, missing_diamonds, [BlockType.DIAMOND_ORE.value]))
+
+        # Craft
+        diamond_block_recipe_indices = state.get_recipe_indices_for(poly.ItemType.DIAMOND_BLOCK.value)
+        assert (len(diamond_block_recipe_indices) == 1)
+        recipe = state.recipes[diamond_block_recipe_indices[0]]
+        for i in range(missing_diamond_blocks):
+            plan.append(PolyCraftItem.create_action(recipe))
+        return plan
+
+    def _plan_for_sticks(self, state:PolycraftState, missing_ingredients:dict):
+        plan = []
+
+        # Mine logs per desired block
+        missing_sticks = missing_ingredients[ItemType.STICK.value]
+        missing_logs = missing_sticks * 2
+        missing_logs = missing_logs - state.count_items_of_type(BlockType.LOG.value)
+        if missing_logs > 0:
+            plan.append(CollectAndMineItem(BlockType.LOG.value, missing_logs, [BlockType.LOG.value]))
+
+        # Craft
+        stick_recipe_indices = state.get_recipe_indices_for(poly.ItemType.STICK.value)
+        assert (len(stick_recipe_indices) == 1)
+        recipe = state.recipes[stick_recipe_indices[0]]
+        for i in range(missing_sticks):
+            plan.append(PolyCraftItem.create_action(recipe))
+        return plan
+
+    def _plan_for_blocks_of_titanium(self, state:PolycraftState, missing_ingredients:dict):
+        return None
+
+
+    def _plan_for_sack_polyisoprene_pellets(self, state:PolycraftState, missing_ingredients:dict):
+        return None
+
 class PolycraftHydraAgent(HydraAgent):
     ''' A Hydra agent for Polycraft of all the Hydra agents '''
     def __init__(self, planner: HydraPlanner = PolycraftPlanner(),
@@ -325,7 +431,7 @@ class PolycraftRandomAgent(PolycraftHydraAgent):
                 random_recipe = random.choice(world_state.recipes)
             else:
                 return PolyNoAction()
-            return PolyCraftItem(random_recipe)
+            return PolyCraftItem.create_action(random_recipe)
         else:
             raise ValueError("Bad action class {}".format(action_class))
 
