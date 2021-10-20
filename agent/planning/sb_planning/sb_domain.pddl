@@ -207,22 +207,6 @@
         )
     )
 
-
-    ; (:event remove_unsupported_block_destroyed
-    ;     :parameters (?bl_bottom - block ?bl_top - block)
-    ;     :precondition (and
-    ;         (or (<= (block_life ?bl_bottom) 0) (<= (block_stability ?bl_bottom) 0))
-    ;         (<= (x_block ?bl_bottom) (+ (x_block ?bl_top) (/ (block_width ?bl_top) 2) ) )
-    ;         (>= (x_block ?bl_bottom) (- (x_block ?bl_top) (/ (block_width ?bl_top) 2) ) )
-    ;         (<= (y_block ?bl_bottom) (- (y_block ?bl_top) (/ (block_height ?bl_top) 2) ) )
-    ;     )
-    ;     :effect (and
-    ;         (assign (block_life ?bl_top) (- (block_life ?bl_top) 100) )
-    ;         (assign (y_block ?bl_top) (/ (block_height ?bl_top) 2) )
-    ;         (assign (block_stability ?bl_top) 0)
-    ;     )
-    ; )
-
     (:event explode_block
         :parameters (?bl_tnt - block ?bl_near - block)
         :precondition (and
@@ -334,6 +318,7 @@
         :effect (and
             (pig_dead ?p)
             (pig_killed)
+            (increase (points_score) 5000)
         )
     )
 

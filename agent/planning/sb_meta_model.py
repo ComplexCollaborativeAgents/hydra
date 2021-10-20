@@ -243,7 +243,7 @@ class BirdType(PddlObjectType):
         # self.hyper_parameters["v_bird"] = 270
         self.hyper_parameters["vx_bird"] = 0
         self.hyper_parameters["vy_bird"] = 0
-        self.hyper_parameters["m_bird"] = 1
+        self.hyper_parameters["m_bird"] = {'red': 1, 'yellow': 0.75, 'black': 1.5, 'white': 0.4, 'blue': 0.1} # {"red"= 0, "yellow"= 1, "black"= 2, "white"= 3, "blue"= 4}
         self.hyper_parameters["bounce_count"] = 0
         self.hyper_parameters["bird_released"] = False
         ## TAP UPDATE
@@ -256,7 +256,7 @@ class BirdType(PddlObjectType):
         # obj_attributes["v_bird"] = self.hyper_parameters["v_bird"]
         obj_attributes["vx_bird"] = self.hyper_parameters["vx_bird"]
         obj_attributes["vy_bird"] = self.hyper_parameters["vy_bird"]
-        obj_attributes["m_bird"] = self.hyper_parameters["m_bird"]
+        # obj_attributes["m_bird"] = self.hyper_parameters["m_bird"]
         obj_attributes["bounce_count"] = self.hyper_parameters["bounce_count"]
         obj_attributes["bird_released"] = self.hyper_parameters["bird_released"]
 
@@ -294,6 +294,7 @@ class BirdType(PddlObjectType):
         for key in bird_map:
             if key in self._get_name(obj).lower():
                 obj_attributes["bird_type"] = bird_map[key]
+                obj_attributes["m_bird"] = self.hyper_parameters["m_bird"][key]
 
         obj_attributes["bird_id"] = problem_params["bird_index"]
         problem_params["bird_index"] = problem_params["bird_index"] + 1

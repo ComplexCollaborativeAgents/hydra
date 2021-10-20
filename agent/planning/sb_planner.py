@@ -68,7 +68,7 @@ class SBPlanner(HydraPlanner):
         try:
             nyx.runner("%s/sb_domain.pddl" % str(settings.SB_PLANNING_DOCKER_PATH),
                        "%s/sb_prob.pddl" % str(settings.SB_PLANNING_DOCKER_PATH),
-                       ['-vv', '-to:%s' % str(settings.SB_TIMEOUT), '-noplan', '-search:gbfs', '-custom_heuristic:5', '-th:10',
+                       ['-vv', '-to:%s' % str(settings.SB_TIMEOUT), '-noplan', '-search:astar', '-custom_heuristic:5', '-th:10',
                         # '-th:%s' % str(self.meta_model.constant_numeric_fluents['time_limit']),
                         '-t:%s' % str(settings.SB_DELTA_T)])
 
