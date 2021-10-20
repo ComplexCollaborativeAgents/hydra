@@ -1,5 +1,5 @@
 import logging
-from worlds.polycraft_world import Polycraft
+from worlds.polycraft_world import Polycraft, BlockType
 from agent.planning.pddlplus_parser import PddlProblemExporter,PddlDomainParser, PddlDomainExporter
 from agent.planning.polycraft_meta_model import PolycraftMetaModel
 from agent.polycraft_hydra_agent import *
@@ -12,11 +12,7 @@ logger = logging.getLogger("Polycraft")
 
 def obs_generator(env:Polycraft, agent: PolycraftHydraAgent = PolycraftHydraAgent()):
     ''' Generate observations for learning polycraft world '''
-    test_level = path.join(settings.ROOT_PATH, "bin", "pal", "pogo_100_PN", "POGO_L00_T01_S01_X0100_U9999_V0_G00000_I0020_N0.json")
     dumps_path = pathlib.Path(settings.ROOT_PATH) / "data" / "polycraft" / "dumps"
-    env.init_selected_level(test_level)
-
-    agent.start_level(env) # Collect recipes and trades
 
     state = env.get_current_state()
 
@@ -51,46 +47,44 @@ def obs_generator(env:Polycraft, agent: PolycraftHydraAgent = PolycraftHydraAgen
         if state.terminal==True:
             break
 
+def generate_obs_of_mining_diamonds(env:Polycraft, agent:PolycraftHydraAgent, iteration=0):
+    ''' Generate a set of states we obtain after mining a diamond ore block'''
+    dumps_path = pathlib.Path(settings.ROOT_PATH) / "data" / "polycraft" / "dumps"
+
+    state = env.get_current_state()
+
+    # Select iron pickaxe
+    action = PolySelectItem(ItemType.IRON_PICKAXE.value)
+    after_state, step_cost = agent.do(action, env)
+    assert(action.success)
+    assert(after_state.get_selected_item()==ItemType.IRON_PICKAXE.value)
+    state = after_state
+
+    # Mine
+    diamond_cells = state.get_cells_of_type(BlockType.DIAMOND_ORE.value, only_accessible=True)
+    cell = diamond_cells[0]
+    action = PolyBreakAndCollect(cell)
+    with open(dumps_path / "data_polycraft_action_{}.p".format(iteration),"wb") as out:
+        pickle.dump(action, out)
+
+    logger.info("State[{}]: {}".format(iteration, str(state)))
+    logger.info("Chosen action: {}".format(action))
+
+    agent.do(action, env)
+
+    with open(dumps_path / "data_polycraft_obs_{}.p".format(i),"wb") as out:
+        pickle.dump(agent.current_observation, out)
+
 if __name__ == '__main__':
+    test_level = path.join(settings.ROOT_PATH, "bin", "pal", "pogo_100_PN", "POGO_L00_T01_S01_X0100_U9999_V0_G00000_I0020_N0.json")
     logger.info("starting to generate observations")
-    env = Polycraft(launch=True)
     try:
-        obs_generator(env, agent=PolycraftManualAgent())
+        env = Polycraft(launch=True)
+        test_level = path.join(test_level)
+        for i in range(3):
+            env.init_selected_level(test_level)
+            agent = PolycraftManualAgent()
+            agent.start_level(env) # Collect recipes and trades
+            generate_obs_of_mining_diamonds(env, agent=agent, iteration=i)
     finally:
         env.kill()
-    #
-    #
-    #
-    #
-    # dumps_path = pathlib.Path(settings.ROOT_PATH) / "data" / "polycraft" / "dumps"
-    # with open(dumps_path / "test_polycraft_obs_49.p", "rb") as in_file:
-    #     obs = pickle.load(in_file)
-    #
-    # print(obs)
-    # import agent.repair.action_learner as learner
-    # learner.process_trajectory(obs, PolycraftMetaModel())
-
-    # dumps_path = pathlib.Path(settings.ROOT_PATH) / "data" / "polycraft" / "dumps"
-    # #
-    # world_state = None
-    # with open(dumps_path / "test_polycraft_state_1.p", "rb") as in_file:
-    #     world_state = pickle.load(in_file)
-    #
-    # print(world_state)
-    # meta_model = PolycraftMetaModel()
-    # pddl_problem =meta_model.create_pddl_problem(world_state)
-    #
-    # PddlProblemExporter().to_file(pddl_problem, dumps_path / "poly-problem.pddl")
-    #
-    # hydra_agent = PolycraftHydraAgent()
-    # hydra_agent.choose_action(world_state)
-
-
-    #
-    # pddl_domain = meta_model.create_pddl_domain(world_state)
-    # PddlDomainExporter().to_file(pddl_domain, dumps_path / "poly-domain.pddl")
-    #
-    # #
-    # #
-    # # pddl_state = meta_model.create_pddl_state(world_state)
-    # # print(pddl_state.to_pddl())

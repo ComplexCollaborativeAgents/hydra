@@ -41,10 +41,30 @@ class MoveDir(enum.Enum):
 
 class FacingDir(enum.Enum):
     NORTH = "NORTH" # [0,0,-1]
-    SOUND = "SOUTH" # [0,0,1]
+    SOUTH = "SOUTH" # [0,0,1]
     WEST = "WEST" # [-1,0,0]
     EAST = "EAST" # [1,0,0]
 
+    def get_angle_to(self, target_dir):
+        ''' Return the angle needed to change this FacingDir object to the target dir'''
+        if self==target_dir:
+            return 0
+        if (self==FacingDir.NORTH and target_dir==FacingDir.EAST) or \
+                (self == FacingDir.EAST and target_dir == FacingDir.SOUTH) or \
+                (self==FacingDir.SOUTH and target_dir==FacingDir.WEST) or \
+                (self == FacingDir.WEST and target_dir == FacingDir.NORTH):
+            return 90
+        if (self==FacingDir.NORTH and target_dir==FacingDir.SOUTH) or \
+                (self==FacingDir.SOUTH and target_dir==FacingDir.NORTH) or \
+                (self == FacingDir.EAST and target_dir == FacingDir.WEST) or \
+                (self == FacingDir.WEST and target_dir == FacingDir.EAST):
+            return 180
+        if (self == FacingDir.NORTH and target_dir == FacingDir.WEST) or \
+                (self == FacingDir.WEST and target_dir == FacingDir.SOUTH) or \
+                (self == FacingDir.SOUTH and target_dir == FacingDir.EAST) or \
+                (self == FacingDir.EAST and target_dir == FacingDir.NORTH):
+            return 270
+        raise ValueError(f"No turning found for {self.value} and {target_dir.value}")
 
 class PolycraftInterface:
     """ Low level interface to Polycraft Tournament """

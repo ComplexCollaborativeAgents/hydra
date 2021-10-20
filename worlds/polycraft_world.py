@@ -25,6 +25,14 @@ logger.setLevel(logging.INFO)
 
 
 # Useful constants
+class BlockType(enum.Enum):
+    DIAMOND_ORE = "minecraft:diamond_ore"
+    LOG = "minecraft:log"
+    CRAFTING_TABLE = "minecraft:crafting_table"
+    AIR = "minecraft:air"
+    BEDROCK = "minecraft:bedrock"
+    BLOCK_OF_PLATINUM = "polycraft:block_of_platinum"
+
 class ItemType(enum.Enum):
     WOODEN_POGO_STICK = "polycraft:wooden_pogo_stick"
     PLANKS = "minecraft:planks"
@@ -253,7 +261,7 @@ class PolyDeleteItem(PolycraftAction):
 class PolyTradeItems(PolycraftAction):
     """
     Perform a trade action with an adjacent entity. Accepts up to 5 items, and can result in up to 5 items.
-    "items" is a list of tuples with format ("item_name", quantity) -> (str, int)
+    "items" is a list of tuples with format ( {"item_name": str, "stackSize":int} )
     """
     def __init__(self, entity_id: str, items: list):
         super().__init__()
@@ -410,6 +418,24 @@ class PolycraftState(State):
             if entry_attr["item"]==item_type:
                 entries.append(entry)
         return entries
+
+    def get_entities_of_type(self, entity_type:str):
+        ''' Return all the entities of a given type '''
+        entities_to_return = []
+        for entity, entity_attr in self.entities.items():
+            if entity_attr["type"]==entity_type:
+                entities_to_return.append(entity)
+        return entities_to_return
+
+
+    def count_items_of_type(self, item_type:str):
+        ''' Counts the number of items of a given type '''
+        count = 0
+        inventory_entries = self.get_inventory_entries_of_type(item_type)
+        for entry in inventory_entries:
+            entry_attr = self.inventory[entry]
+            count = count+entry_attr["count"]
+        return count
 
     def has_item(self, item_type:str, count:int = 1):
         ''' Checks if we have enough items of the given type '''

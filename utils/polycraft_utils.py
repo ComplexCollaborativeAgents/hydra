@@ -11,7 +11,7 @@ def has_new_item(state_diff: dict):
     for inventory_item, diff_attr in state_diff["inventory"].items():
         if diff_attr['other']==None: # New item
             return True
-        if diff_attr['self']['count']==diff_attr['other']['count']+1: # Count incremented
+        if diff_attr['self']['count'] > diff_attr['other']['count']: # Count incremented
             return True
     return False
 
@@ -30,7 +30,7 @@ def print_diff(state_diff: dict):
         if "self" in item_attr:
             print(f'{item}:{item_attr}')
         else:
-            for sub_item, sub_item_attr in state_diff[item]:
+            for sub_item, sub_item_attr in state_diff[item].items():
                 print(f'{item}.{sub_item}:{sub_item_attr}')
 
 
@@ -82,7 +82,7 @@ def print_recipe_tree(item_type_to_recipes: dict(), root_item_type: ItemType):
             recipes = item_type_to_recipes[item_type]
             new_indent = f"\t{indent}"
             for i, recipe in enumerate(recipes):
-                print(f'{new_indent} Recipes {i} for {item_type}')
+                print(f'{new_indent} Recipe {i+1}/{len(recipes)} for {item_type}')
                 new_new_indent = f'\t{new_indent}'
                 for (type, count) in recipe:
                     print(f'{new_new_indent} {type} {count}')
@@ -90,10 +90,36 @@ def print_recipe_tree(item_type_to_recipes: dict(), root_item_type: ItemType):
                         if type not in closed:
                             open.append((new_indent, type))
 
+def get_item_to_trades(state: PolycraftState):
+    ''' A helper function that computes the recipe tree for creating a given ItemType '''
+    item_type_to_trades = dict()
+    for trader_entity_id, trades in state.trades.items():
+        for trade in trades:
+            outputs = trade['outputs']
+            assert(len(outputs)==1) # TODO: Consider this assumption that a trade only outputs a single item type
+            output = outputs[0]
+            item_type = output['Item']
+            if item_type not in item_type_to_trades:
+                item_type_to_trades[item_type] = []
+            item_type_to_trades[item_type].append( (trader_entity_id, trade) )
+    return item_type_to_trades
+
+def print_item_to_trades(items_to_trades: dict):
+    ''' A helper function that prints the item to trade dictionary in a pretty way'''
+    for item_type, trades in items_to_trades.items():
+        print(f'Trades to obtain {item_type}:')
+        for (trader, trade) in trades:
+            print(f'\t Trader {trader} wants ')
+            for input in trade['inputs']:
+                print(f'\t \t {input}')
 
 def cell_to_coordinates(cell:str)->list:
     ''' Converts a cell id of the form "x,y,z" to a list of int coordinates [int(x),int(y),int(z)]'''
     return [int(coord) for coord in cell.split(",")]
+
+def coordinates_to_cell(coordinates: list)->str:
+    ''' Converts a list of cell coordinates ([x,y,z]) to a cell id ("x,y,z") '''
+    return ",".join([str(coord) for coord in coordinates])
 
 def compute_cell_distance(pos1:list, pos2:list):
     ''' Computes Euclidean distance between two vectors. TODO: Understand why math.dist() is not working in our conda environment '''

@@ -2,6 +2,7 @@ import random
 import datetime
 
 from agent.consistency.observation import HydraObservation
+from utils.polycraft_utils import *
 from agent.planning.polycraft_meta_model import PolycraftMetaModel
 from agent.planning.polycraft_planning.actions import *
 from worlds.polycraft_interface.client.polycraft_interface import TiltDir
@@ -145,6 +146,8 @@ class PolycraftHydraAgent(HydraAgent):
                  meta_model_repair: MetaModelRepair = None):
         super().__init__(planner, meta_model_repair)
 
+        self.active_plan = None
+
     def start_level(self, env: Polycraft):
         ''' Initialize datastructures for a new level and perform exploratory actions to get familiar with the current level.
         These actions are needed before calling the planner
@@ -172,11 +175,54 @@ class PolycraftHydraAgent(HydraAgent):
     def choose_action(self, world_state: PolycraftState):
         ''' Choose which action to perform in the given state '''
 
-        logger.info("World state summary is: {}".format(str(world_state)))
+        # If no active plan - need to create one (this should happen in the beginning of a level)
+        if self.active_plan is None:
+            self.active_plan = self.planner.make_plan(world_state)
+        else: # Check if the active plan is working or if we need to replan
+            assert(len(self.current_observation.actions)>0)
+            last_action = self.current_observation.actions[-1]
+            if last_action.success==False:
+                logger.info("Last action failed, replanning...")
+                self.active_plan = self.planner.make_plan(world_state)
+            else:
+                logger.info("Continue to perform the current plan")
 
-        plan = self.planner.make_plan(world_state)
+        # If no plan found, choose default action
+        if self.active_plan is None or len(self.active_plan)>0:
+            return self._choose_default_action()
 
-        return plan[0]
+        # Perform the next action in the plan
+        assert(len(self.active_plan)>0)
+        action = self.active_plan.pop(0)
+        return action
+
+    def _choose_default_action(self, world_state: PolycraftState):
+        ''' Choose a default action. Current policy: try to mine something if available.
+         Otherwise, try to collect an item.
+         Otherwise do a no-op. '''
+
+        # Try to mine a block
+        type_to_cells = world_state.get_type_to_cells()
+        non_air_types = [block_type for block_type in type_to_cells.keys() if block_type!=BlockType.AIR.value]
+        while len(non_air_types)>0:
+            type_index = random.choice(range(len(non_air_types)))
+            type_to_mine = non_air_types.pop(type_index)
+            cells = world_state.get_cells_of_type(type_to_mine, only_accessible=True)
+            if len(cells)>0:
+                cell = random.choice(cells)
+                return PolyBreakAndCollect(cell)
+
+        # Try to collect an item
+        entity_items = world_state.get_entities_of_type(EntityType.ITEM.value)
+        while len(entity_items)>0:
+            entity_index = random.choice(range(len(entity_items)))
+            entity_to_collect = entity_items.pop(entity_index)
+            entity_attr = world_state.entities[entity_to_collect]
+            entity_cell = coordinates_to_cell(entity_attr["pos"])
+            if world_state.game_map[entity_cell]["isAccessible"]:
+                return PolyEntityTP(entity_to_collect)
+
+        return PolyNoAction()
 
     def do(self, action: PolycraftAction, env : Polycraft):
         ''' Perform the given aciton in the given environment '''

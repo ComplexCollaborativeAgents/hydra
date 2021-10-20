@@ -4,7 +4,6 @@ import settings
 import logging
 import random
 from agent.planning.meta_model import *
-from agent.planning.polycraft_planning.actions import PolyMoveToAndBreak
 from worlds.polycraft_world import *
 from agent.planning.pddl_plus import *
 logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
@@ -221,10 +220,10 @@ class PolycraftMetaModel(MetaModel):
 
         # Mapping of type to Pddl object. All objects of this type will be clones of this pddl object
         self.object_types = dict()
-        self.object_types["minecraft:air"]=AirType(0)
-        self.object_types["minecraft:bedrock"]=GameMapCellType(1)
-        self.object_types["minecraft:log"]=LogType(2) # Variant
-        self.object_types["minecraft:diamond_ore"]=GameMapCellType(3)
+        self.object_types[BlockType.AIR.value]=AirType(0)
+        self.object_types[BlockType.BEDROCK.value]=GameMapCellType(1)
+        self.object_types[BlockType.LOG.value]=LogType(2) # Variant
+        self.object_types[BlockType.DIAMOND_ORE.value]=GameMapCellType(3)
         self.object_types["polycraft:plastic_chest"]=GameMapCellType(4) # Facing
         self.object_types["minecraft:iron_pickaxe"]=InventoryItemType(5)
         self.object_types["minecraft:crafting_table"]=GameMapCellType(6)

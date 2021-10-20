@@ -5,7 +5,7 @@ import logging
 import pathlib
 
 from utils.polycraft_utils import *
-from agent.planning.polycraft_planning.actions import PolyBreakAndCollect
+from agent.planning.polycraft_planning.actions import *
 import worlds.polycraft_world as poly
 from agent.polycraft_hydra_agent import PolycraftObservation, PolycraftManualAgent
 
@@ -174,6 +174,104 @@ def test_craft_items(launch_polycraft: poly.Polycraft, execution_number):
     after_state, step_cost = agent.do(action, env)
     assert(after_state.has_item(poly.ItemType.STICK.value))
 
+@pytest.mark.parametrize('execution_number', range(5))
+def test_mine_diamonds(launch_polycraft: poly.Polycraft, execution_number):
+    ''' Test mining logs, crafting planks from the logs, and crafting sticks from planks '''
+    env = launch_polycraft
+    agent, state = _setup_env(env)
+
+    # Select iron pickaxe
+    action = poly.PolySelectItem(poly.ItemType.IRON_PICKAXE.value)
+    after_state, step_cost = agent.do(action, env)
+    assert(action.success)
+    assert(after_state.get_selected_item()==poly.ItemType.IRON_PICKAXE.value)
+    state = after_state
+
+    # Mine
+    diamond_cells = state.get_cells_of_type(poly.BlockType.DIAMOND_ORE.value, only_accessible=True)
+    mined_diamonds = 0
+    current_diamonds_in_inventory = len(state.get_inventory_entries_of_type(poly.ItemType.DIAMOND.value))
+    assert(current_diamonds_in_inventory==0)
+    while current_diamonds_in_inventory<9 and len(diamond_cells)>0:
+        # Mine the diamond
+        cell = diamond_cells[0]
+        action = PolyBreakAndCollect(cell)
+        after_state, step_cost = agent.do(action, env)
+
+        if action.success==True:
+            assert(has_new_item(after_state.diff(state)))
+            old_diamonds_in_inventory = current_diamonds_in_inventory
+            current_diamonds_in_inventory = after_state.count_items_of_type(poly.ItemType.DIAMOND.value)
+            assert (current_diamonds_in_inventory >= old_diamonds_in_inventory)
+            logger.info(f'Diamond collected from {cell}!')
+        else:
+            # Diamond not mined, maybe pogoist stole it
+            dist_to_pogoist = distance_to_nearest_pogoist(after_state, cell)
+            assert(dist_to_pogoist <= 2)
+            logger.info(f'Diamond mined by pogoist stole it from {cell} :(')
+
+        # Find next diamond to mine
+        state = after_state
+        diamond_cells = state.get_cells_of_type(poly.BlockType.DIAMOND_ORE.value, only_accessible=True)
+
+    logger.info(f'A total of {current_diamonds_in_inventory} were mined!')
+    assert(current_diamonds_in_inventory>=9)
+
+    # Go to crafting table
+    crafting_table_cells = state.get_cells_of_type(poly.BlockType.CRAFTING_TABLE.value, only_accessible=True)
+    assert(len(crafting_table_cells)==1)
+    target_cell = crafting_table_cells[0]
+    action = poly.PolyTP(target_cell, dist=1)
+    after_state, step_cost = agent.do(action, env)
+    assert(action.success)
+    distance_to_table = compute_cell_distance(cell_to_coordinates(target_cell), after_state.location['pos'])
+    assert(distance_to_table<2)
+
+    # Craft the diamond block
+    diamond_block_recipe_indices = state.get_recipe_indices_for(poly.ItemType.DIAMOND_BLOCK.value)
+    assert (len(diamond_block_recipe_indices) == 1)
+    action = state.get_recipe_action(diamond_block_recipe_indices[0])
+    after_state, step_cost = agent.do(action, env)
+    assert (after_state.has_item(poly.ItemType.DIAMOND_BLOCK.value))
+
+def test_trade_logs(launch_polycraft: poly.Polycraft):
+    ''' Test getting logs and trading them for titanium '''
+    env = launch_polycraft
+    agent, state = _setup_env(env)
+
+    # Select iron pickaxe
+    action = poly.PolySelectItem(poly.ItemType.IRON_PICKAXE.value)
+    after_state, step_cost = agent.do(action, env)
+    assert(action.success)
+    assert(after_state.get_selected_item()==poly.ItemType.IRON_PICKAXE.value)
+    state = after_state
+
+    # Collect block of platinum
+    action = CollectAndMineItem(BlockType.BLOCK_OF_PLATINUM.value, 1, [BlockType.BLOCK_OF_PLATINUM.value])
+    after_state, step_cost = agent.do(action, env)
+    assert(action.success)
+    assert(after_state.count_items_of_type(BlockType.BLOCK_OF_PLATINUM.value)>=1)
+    state = after_state
+
+    # Trade
+    # Find relevant trader and trade
+    item_type_to_trades = get_item_to_trades(state)
+    trades = item_type_to_trades[ItemType.BLOCK_OF_TITANIUM.value]
+
+    for (trader_id, trade) in trades:
+        inputs = trade['inputs']
+        if len(inputs)==1 and inputs[0]['Item']==BlockType.BLOCK_OF_PLATINUM.value and inputs[0]['stackSize']==1:
+            action = PolyEntityTP(trader_id,1)
+            after_state, step_cost = agent.do(action, env)
+            assert (action.success)
+
+            action = PolyTradeItems(trader_id, [{"Item": BlockType.BLOCK_OF_PLATINUM.value, "stackSize":1}])
+            after_state, step_cost = agent.do(action, env)
+            assert (action.success)
+            assert(after_state.count_items_of_type(ItemType.BLOCK_OF_TITANIUM.value))
+            return # All done!
+
+    assert(False) # Relevant trade not found
 
 def test_helper_functions():
     ''' Test some of the helper functions '''
@@ -184,7 +282,18 @@ def test_helper_functions():
     state = obs.states[1]
     item_to_recipe = get_recipe_tree(state, poly.ItemType.WOODEN_POGO_STICK)
     assert(poly.ItemType.WOODEN_POGO_STICK.value in item_to_recipe)
+    print(" ")
     print_recipe_tree(item_to_recipe, poly.ItemType.WOODEN_POGO_STICK)
+
+    item_to_trades = get_item_to_trades(state)
+    print(" ")
+    print_item_to_trades(item_to_trades)
+
+    print(" ")
+    type_to_cells = state.get_type_to_cells()
+    for type, cells in type_to_cells.items():
+        if type not in [poly.BlockType.AIR.value, poly.BlockType.BEDROCK.value]:
+            print(f'{type} in cells {cells}')
 
     log_cells = state.get_cells_of_type(poly.ItemType.LOG.value)
     assert(len(log_cells)>0)
