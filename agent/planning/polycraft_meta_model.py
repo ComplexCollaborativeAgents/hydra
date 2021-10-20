@@ -156,7 +156,7 @@ class AirType(GameMapCellType):
 
 # Entity types
 
-class EntityType(PddlObjectType):
+class Entity(PddlObjectType):
     IGNORED_ENTITY_ATTRIBUTES = ['equipment', 'pos', 'name']
     def __init__(self,entity_type=-1):
         super().__init__()
@@ -170,7 +170,7 @@ class EntityType(PddlObjectType):
         (entity_id, entity_attr)=obj
 
         for attr_name, attr_value in entity_attr.items():
-            if attr_name != 'type' and attr_name not in EntityType.IGNORED_ENTITY_ATTRIBUTES:
+            if attr_name != 'type' and attr_name not in Entity.IGNORED_ENTITY_ATTRIBUTES:
                 if type(attr_value)== bool or (type(attr_value)==str and attr_value.lower() in ["true", "false"]):
                     obj_attributes[attr_name]=bool(attr_value)
                 else:
@@ -188,7 +188,7 @@ class EntityType(PddlObjectType):
         (entity_id, entity_attr)=obj
         return "entity_{}".format(entity_id)
 
-class EntityItemType(EntityType):
+class EntityItemType(Entity):
     ITEM_TO_ENUM = {"minecraft:sapling":1}
 
     def __init__(self,entity_type=-1):
@@ -238,9 +238,9 @@ class PolycraftMetaModel(MetaModel):
         self.object_types["minecraft:diamond_block"] = InventoryItemType(14)
         self.object_types["polycraft:sack_polyisoprene_pellets"] = InventoryItemType(15)
         self.object_types["minecraft:diamond"] = InventoryItemType(16)
-        self.object_types["EntityTrader"] = EntityType(17)
-        self.object_types["EntityPogoist"] = EntityType(18)
-        self.object_types["EntityItem"] = EntityItemType(19)
+        self.object_types[EntityType.TRADER.value] = Entity(17)
+        self.object_types[EntityType.POGOIST.value] = Entity(18)
+        self.object_types[EntityType.ITEM.value] = EntityItemType(19)
 
 
     def create_pddl_domain(self, world_state:PolycraftState) -> PddlPlusDomain:

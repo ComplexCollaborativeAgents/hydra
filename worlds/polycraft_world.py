@@ -1,4 +1,5 @@
 import json
+import math
 import os
 import sys
 import queue
@@ -15,20 +16,37 @@ import settings
 import worlds.polycraft_interface.client.polycraft_interface as poly
 # from trajectory_planner.trajectory_planner import SimpleTrajectoryPlanner
 from utils.host import Host
-from agent.planning.pddlplus_parser import PddlPlusProblem
 from utils.state import State, Action, World
-
+import enum
 
 logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("Polycraft")
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 
+
+# Useful constants
+class ItemType(enum.Enum):
+    WOODEN_POGO_STICK = "polycraft:wooden_pogo_stick"
+    PLANKS = "minecraft:planks"
+    STICK = "minecraft:stick"
+    LOG = "minecraft:log"
+    BLOCK_OF_TITANIUM = "polycraft:block_of_titanium"
+    SACK_POLYISOPRENE_PELLETS = "polycraft:sack_polyisoprene_pellets"
+    DIAMOND_BLOCK = "minecraft:diamond_block"
+    DIAMOND = "minecraft:diamond"
+    IRON_PICKAXE = "minecraft:iron_pickaxe"
+
+class EntityType(enum.Enum):
+    POGOIST = "EntityPogoist"
+    TRADER = "EntityTrader"
+    ITEM = "EntityItem"
 
 class PolycraftAction(Action):
     ''' Polycraft World Action '''
 
     def __init__(self):
         self.success = None
+        self.command_result = None # The result returned by the server for doing this command. Initialized as None.
 
     def is_success(self, result: dict):
         try:
@@ -254,17 +272,57 @@ class PolyTradeItems(PolycraftAction):
 class PolyCraftItem(PolycraftAction):
     """
     Craft an item using resources from the actor's inventory.
-    "recipe" is a collapsed list of strings that represents a 2x2 or 3x3 matrix.
-    For a 2x2, recipe would be a list with length 4
-    for a 3x3, recipe would be a list with length 9
-    Example:
-        2x2: ["minecraft:plank", "0", "minecraft:plank", "0"] -> creates sticks
-        3x3: ["minecraft:plank", "minecraft:plank", "0", "minecraft:plank", "minecraft:plank", "0", "0", "0", "0"]
-        NOTE: "0" stands for a null/empty space in the matrix
+    [From Stephen Goss's (UTD) explanation in Slack]
+    Recipes in Minecraft work in a 3x3 matrix format. So the sticks recipe is stored as [[planks, 0, 0],[planks, 0, 0],[0,0,0]].
+    This means that you need sticks in slots 0 and 3.  The 2x2 crafting matrix represents a sub-matrix of the regular 3x3 grid.
+    The problem is that slots only have one integer identifier, so the matrix is flattened out into an array starting with the top left slot.
+    NOTE: "0" stands for a null/empty space in the matrix
     """
     def __init__(self, recipe: list):
         super().__init__()
         self.recipe = recipe
+
+    @staticmethod
+    def create_action(recipe_obj):
+        ''' Create a PolyCraftItem action from a given recipe object '''
+        slot_to_item = dict()
+        recipe_inputs = recipe_obj['inputs']
+
+        # Ugly special case of slot=-1 which occurs in planks. Assumption: if slot==-1 it means it doesn't matter. TODO: Verify this with UTD
+        if len(recipe_inputs)==1 and recipe_inputs[0]['slot']==-1:
+            adjusted_recipe_inputs = list()
+            adjusted_recipe_inputs.append({'Item': recipe_inputs[0]['Item'], 'slot':0, 'stackSize':recipe_inputs[0]['stackSize']})
+            recipe_inputs = adjusted_recipe_inputs
+
+        for recipe_item in recipe_inputs:
+            item_name = recipe_item['Item']
+            assert (recipe_item['stackSize'] == 1)  # Currently supporting only one item per slot recipes
+            slot = recipe_item['slot']
+            slot_to_item[slot] = item_name
+
+        # TODO: Better understand the behavior of this with UTD
+        matrix = list()
+        for i in range(3):
+            row = list()
+            matrix.append(row)
+            for j in range(3):
+                row.append("0")
+
+        for slot, item in slot_to_item.items():
+            row = math.floor(slot/3)
+            col = slot % 3
+            matrix[row][col]=item
+
+        # Infer if this is a 3x3 or 2x2 recipe
+        if max(slot_to_item.keys()) > 3:  # then this is  3x3 recipe
+            recipe_dim = 3
+        else:  # then this is a 2x2 recipe
+            recipe_dim = 2
+        recipe_items = []
+        for row in range(recipe_dim):
+            for col in range(recipe_dim):
+                recipe_items.append(matrix[row][col])
+        return PolyCraftItem(recipe=recipe_items)
 
     def __str__(self):
         return "<PolyCraftItem recipe={} success={}>".format(self.recipe, self.success)
@@ -323,6 +381,46 @@ class PolycraftState(State):
         
         return self.game_map[coord_str]["name"], self.game_map["isAccesible"]
 
+    def get_cells_of_type(self, item_type : str, only_accessible=False):
+        ''' returns a list of cells that are of the given type '''
+        cells = []
+        for cell, cell_attr in self.game_map.items():
+            if cell_attr["name"]==item_type:
+                if only_accessible and cell_attr['isAccessible']==False:
+                    continue
+                cells.append(cell)
+        return cells
+
+    def get_type_to_cells(self):
+        ''' Returns a dictionary of cell type to the list of cells of that type '''
+        type_to_cells = dict()
+        for cell, cell_attr in self.game_map.items():
+            cell_type = cell_attr["name"]
+            if cell_type not in type_to_cells:
+                type_to_cells[cell_type]=list()
+            type_to_cells[cell_type].append(cell)
+        return type_to_cells
+
+    def get_inventory_entries_of_type(self, item_type:str):
+        ''' Returns the inventory entries that contain an item of the given type '''
+        entries = []
+        for entry, entry_attr in self.inventory.items():
+            if entry=="selectedItem": # Do not consider the selected item
+                continue
+            if entry_attr["item"]==item_type:
+                entries.append(entry)
+        return entries
+
+    def has_item(self, item_type:str, count:int = 1):
+        ''' Checks if we have enough items of the given type '''
+        return len(self.get_inventory_entries_of_type(item_type))>count-1
+
+    def get_selected_item(self):
+        ''' Returns the type of item currently selected '''
+        if "selectedItem" not in self.inventory:
+            return None
+        return self.inventory["selectedItem"]["item"]
+
     def get_available_actions(self):
         actions = []
 
@@ -373,30 +471,26 @@ class PolycraftState(State):
                 actions.append(PolyTradeItems(trader, trade['inputs']))
 
         # Craft an item NOTE: will need to be adjacent to crafting bench for 3x3 crafts TODO: decide whether or not to enforce adjaceny in valid action?
-        for recipe in self.recipes:
-            # Create recipe list, filling zeros for empty slots
-            slot_to_item = dict()
-            for recipe_item in recipe['inputs']:
-                item_name = recipe_item['Item']
-                assert(recipe_item['stackSize']==1) # Currently supporting only one item per slot recipes
-                slot = recipe_item['slot']
-                slot_to_item[slot]=item_name
-
-            # Infer if this is a 3x3 or 2x2 recipe
-            if max(slot_to_item.keys())>3: # then this is  3x3 recipe
-                recipe_size = 9
-            else: # then this is a 2x2 recipe
-                recipe_size = 4
-            recipe_items = []
-            for i in range(recipe_size):
-                if i in slot_to_item:
-                    recipe_items.append(slot_to_item[i])
-                else:
-                    recipe_items.append("0")
-
-            actions.append(PolyCraftItem(recipe=recipe_items))
+        for i in range(len(self.recipes)):
+            actions.append(PolyCraftItem(self.get_recipe_action(i)))
 
         return actions
+
+    def get_recipe_indices_for(self, item_name)-> list():
+        ''' Return all the recipe indices that output an item of the given type '''
+        recipes_indices = list()
+        for i, recipe in enumerate(self.recipes):
+            for recipe_output in recipe['outputs']:
+                if recipe_output['Item'] == item_name:
+                    recipes_indices.append(i)
+        return recipes_indices
+
+    def get_recipe_action(self, recipe_index) -> PolyCraftItem:
+        ''' Returns a PolyCraftITem action for the recipe in the given index '''
+        ''' Create recipe list, filling zeros for empty slots '''
+        recipe = self.recipes[recipe_index]
+        return PolyCraftItem.create_action(recipe)
+
 
     def summary(self):
         '''returns a summary of state'''
@@ -484,7 +578,7 @@ class Polycraft(World):
         self.current_trades = dict() # Maps entity id to its trades
         self.last_cmd_success = True
         self.ready_for_cmds = False
-        
+
         if launch:
             logger.info("Launching Polycraft instance")
             self.launch_polycraft()
@@ -698,6 +792,7 @@ class Polycraft(World):
             try:
                 results = action.do(self.poly_client)   # Perform each polycraft action's unique do command which uses the Polycraft API
                 self.last_cmd_success = results['command_result']['result'] == "SUCCESS"    # Update if last command was successful or not
+                action.command_result = results['command_result']
                 logger.debug(str(action))
             except (BrokenPipeError, KeyboardInterrupt) as err:
                 logger.error("Polycraft server connection interrupted ({})".format(err))

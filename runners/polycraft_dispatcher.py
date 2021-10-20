@@ -2,10 +2,11 @@ import pathlib
 
 from worlds.polycraft_world import *
 from agent.hydra_agent import HydraAgent
+from agent.polycraft_hydra_agent import PolycraftHydraAgent
 
 
 class PolycraftDispatcher():
-    def __init__(self, agent: HydraAgent):
+    def __init__(self, agent: PolycraftHydraAgent):
         self.env = None
         self.agent = agent
 
@@ -77,11 +78,9 @@ class PolycraftDispatcher():
                     'novelty_description': novelty_description
                 }
 
-            # Agent chooses an action
+            # Agent chooses an action and performs it
             action = self.agent.choose_action(current_state)
-
-            # Perform the action
-            next_state, step_cost = self.env.act(action)    # Note this returns step cost for the action
+            next_state, step_cost = self.agent.do(action, self.env)
 
             current_state = next_state
 

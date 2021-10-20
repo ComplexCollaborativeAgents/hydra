@@ -16,7 +16,7 @@ def obs_generator(env:Polycraft, agent: PolycraftHydraAgent = PolycraftHydraAgen
     dumps_path = pathlib.Path(settings.ROOT_PATH) / "data" / "polycraft" / "dumps"
     env.init_selected_level(test_level)
 
-    agent.explore_level(env) # Collect recipes and trades
+    agent.start_level(env) # Collect recipes and trades
 
     state = env.get_current_state()
 
@@ -38,7 +38,6 @@ def obs_generator(env:Polycraft, agent: PolycraftHydraAgent = PolycraftHydraAgen
 
         after_state, step_cost = env.act(action)
 
-        observation.actions_success.append(env.last_cmd_success)
         observation.rewards.append(-step_cost)
 
         with open(dumps_path / "test_polycraft_obs_{}.p".format(i),"wb") as out:

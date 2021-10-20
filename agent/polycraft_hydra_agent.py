@@ -24,7 +24,6 @@ class PolycraftObservation(HydraObservation):
         self.states = [] # A sequence of polycraft states
         self.actions = []  # A sequence of polycraft actions
         self.rewards = [] # The reward obtained from performing each action
-        self.actions_success = [] # Whether the performed action was successful or not
 
     def get_initial_state(self):
         return self.states[0]
@@ -45,7 +44,6 @@ class PolycraftObservation(HydraObservation):
         for i in len(self.states):
             print(f'State[{i}] {str(self.states[i])}')
             print(f'Action[{i}] {str(self.actions[i])}')
-            print(f'Success[{i}] {str(self.actions_success[i])}')
 
 class PolycraftPlanner(HydraPlanner):
     ''' Planner for the polycraft domain'''
@@ -141,71 +139,20 @@ class PolycraftPlanner(HydraPlanner):
                     break
         return  plan_actions
 
-    # def run_val(self):
-    #
-    #     # chdir("%s" % settings.PLANNING_DOCKER_PATH)
-    #
-    #     unobscured_plan_list = []
-    #
-    #     # COPY DOMAIN FILE TO VAL DIRECTORY FOR VALIDATION.
-    #     cmd = 'cp {}/sb_domain.pddl {}/val_domain.pddl'.format(str(settings.SB_PLANNING_DOCKER_PATH), str(settings.VAL_DOCKER_PATH))
-    #     subprocess.run(cmd, shell=True)
-    #
-    #     # COPY PROBLEM FILE TO VAL DIRECTORY FOR VALIDATION.
-    #     cmd = 'cp {}/sb_prob.pddl {}/val_prob.pddl'.format(str(settings.SB_PLANNING_DOCKER_PATH), str(settings.VAL_DOCKER_PATH))
-    #     subprocess.run(cmd, shell=True)
-    #
-    #     with open("%s/docker_plan_trace.txt" % str(settings.SB_PLANNING_DOCKER_PATH)) as plan_trace_file:
-    #         for i, line in enumerate(plan_trace_file):
-    #             # print(str(i) + " =====> " + str(line))
-    #             if " pa-twang " in line:
-    #                 # print(str(lines_list[i]))
-    #                 # print(float(str(lines_list[i+1].split('angle:')[1].split(',')[0])))
-    #                 unobscured_plan_list.append(line)
-    #
-    #     # COPY ACTIONS DIRECTLY INTO A TEXT FILE FOR VALIDATION WITH VAL.
-    #     val_plan = open("%s/val_plan.pddl" % str(settings.VAL_DOCKER_PATH), "w")
-    #     for acn in unobscured_plan_list:
-    #         val_plan.write(acn)
-    #     val_plan.close()
-    #
-    #
-    #     chdir("%s" % settings.VAL_DOCKER_PATH)
-    #
-    #     completed_process = subprocess.run(('docker', 'build', '-t', 'val_from_dockerfile', '.'), capture_output=True)
-    #     out_file = open("docker_build_trace.txt", "wb")
-    #     out_file.write(completed_process.stdout)
-    #     if len(completed_process.stderr)>0:
-    #         out_file.write(str.encode("\n Stderr: \n"))
-    #         out_file.write(completed_process.stderr)
-    #     out_file.close()
-    #
-    #     completed_process = subprocess.run(('docker', 'run', 'val_from_dockerfile', 'val_domain.pddl', 'val_prob.pddl', 'val_plan.pddl'), capture_output=True)
-    #     out_file = open("docker_validation_trace.txt", "wb")
-    #     out_file.write(completed_process.stdout)
-    #     if len(completed_process.stderr)>0:
-    #         out_file.write(str.encode("\n Stderr: \n"))
-    #         out_file.write(completed_process.stderr)
-    #     out_file.close()
-
-
-
-
-
-
-
 class PolycraftHydraAgent(HydraAgent):
     ''' A Hydra agent for Polycraft of all the Hydra agents '''
     def __init__(self, planner: HydraPlanner = PolycraftPlanner(),
                  meta_model_repair: MetaModelRepair = None):
         super().__init__(planner, meta_model_repair)
 
-    def explore_level(self, env: Polycraft):
-        ''' Perform exploratory actions to get familiar with the current level. This is needed before calling the planner '''
+    def start_level(self, env: Polycraft):
+        ''' Initialize datastructures for a new level and perform exploratory actions to get familiar with the current level.
+        These actions are needed before calling the planner
+        '''
+
+        # Explore the level
         env.populate_current_recipes()
-
         current_state = env.get_current_state()
-
         # Try to interact with all other agents
         for entity_id, entity_attr in current_state.entities.items():
             if entity_attr['type']=='EntityTrader':
@@ -215,6 +162,13 @@ class PolycraftHydraAgent(HydraAgent):
                 # Interact with it
                 env.interact(entity_id)
 
+        # Initialize the current observation object
+        current_state = env.get_current_state()
+        self.current_observation = PolycraftObservation() # Start a new observation object for this level
+        self.current_observation.states.append(current_state)
+        self.observations_list.append(self.current_observation)
+
+
     def choose_action(self, world_state: PolycraftState):
         ''' Choose which action to perform in the given state '''
 
@@ -223,6 +177,14 @@ class PolycraftHydraAgent(HydraAgent):
         plan = self.planner.make_plan(world_state)
 
         return plan[0]
+
+    def do(self, action: PolycraftAction, env : Polycraft):
+        ''' Perform the given aciton in the given environment '''
+        self.current_observation.actions.append(action)
+        next_state, step_cost =  env.act(action)  # Note this returns step cost for the action
+        self.current_observation.states.append(next_state)
+        self.current_observation.rewards.append(step_cost)
+        return next_state, step_cost
 
     def should_repair(self, observation):
         ''' Choose if the agent should repair its meta model based on the given observation '''
@@ -322,22 +284,6 @@ class PolycraftRandomAgent(PolycraftHydraAgent):
             raise ValueError("Bad action class {}".format(action_class))
 
 
-
-class PolycraftDoingAgent(PolycraftHydraAgent):
-    ''' An agent that mines every available block '''
-    def __init__(self):
-        super().__init__()
-
-    def choose_action(self, world_state: PolycraftState):
-        ''' Choose which action to perform in the given state '''
-
-        logger.info("World state summary is: {}".format(str(world_state)))
-        actions = world_state.get_available_actions()
-        return random.choice(actions)
-
-
-
-
 class PolycraftDoNothingAgent(PolycraftHydraAgent):
     ''' An agent that does nothing '''
     def __init__(self):
@@ -351,7 +297,6 @@ class PolycraftTPAllAgent(PolycraftHydraAgent):
     ''' An agent that performs a prescribed list of actions, after which it terminates '''
     def __init__(self):
         super().__init__()
-
         self.cells_visited = set()
 
     def choose_action(self, world_state: PolycraftState):
@@ -391,8 +336,7 @@ class PolycraftManualAgent(PolycraftHydraAgent):
     def __init__(self):
         super().__init__()
         self.command_seq = 0
-        # self.commands = [PolyTP("43,17,42"), PolyTilt(TiltDir.FORWARD), PolyTurn(90), PolyTurn(90), PolyTurn(90), PolyTurn(90), PolyTurn(45), PolyTurn(90), PolyTurn(90), PolyTurn(90), PolyTurn(90)]
-        self.commands = [PolyMoveToAndBreak("43,17,42"), PolyCraftItem(["minecraft:log", "0", "0", "0"])]
+        self.commands = []
 
     def choose_action(self, world_state: PolycraftState):
         if self.command_seq<len(self.commands):
