@@ -161,6 +161,7 @@ class PolycraftHydraAgent(HydraAgent):
         super().__init__(planner, meta_model_repair)
         self.active_plan = None
         self.active_action = None
+        self.current_observation = None
 
     def start_level(self, env: Polycraft):
         ''' Initialize datastructures for a new level and perform exploratory actions to get familiar with the current level.
@@ -184,6 +185,8 @@ class PolycraftHydraAgent(HydraAgent):
         self.current_observation.states.append(current_state)
         self.observations_list.append(self.current_observation)
         self.env = env
+        self.active_action = None
+        self.active_plan = None
 
 
     def choose_action(self, world_state: PolycraftState):

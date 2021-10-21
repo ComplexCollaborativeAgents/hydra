@@ -64,6 +64,7 @@ class PolycraftDispatcher():
         ''' Run the agent in a single level until done '''
 
         current_state = self.env.get_current_state()
+        self.agent.start_level(self.env) # Agent performing exploratory actions
         while True:
             novelty = 0
 

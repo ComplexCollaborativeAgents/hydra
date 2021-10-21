@@ -12,6 +12,7 @@ from agent.polycraft_hydra_agent import *
 
 logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("TestPolycraftWorld")
+logger.setLevel(logging.INFO)
 
 TEST_LEVEL = pathlib.Path(
     settings.POLYCRAFT_NON_NOVELTY_LEVEL_DIR) / "POGO_L00_T01_S01_X0100_U9999_V0_G00000_I0020_N0.json"
@@ -38,9 +39,6 @@ def test_fixed_planner(launch_polycraft):
     assert(state.terminal==False)
     agent.planner = FixedPlanPlanner()
     while state.terminal==False and state.count_items_of_type(ItemType.WOODEN_POGO_STICK.value)==0:
-        logs_in_cells = len(state.get_type_to_cells()[BlockType.LOG.value])
-        logs_in_inventory = state.count_items_of_type(BlockType.LOG.value)
-        logger.info(f"Logs left in the environment is {logs_in_cells}, Logs in inventory = {logs_in_inventory}")
         action = agent.choose_action(state)
         after_state, step_cost = agent.do(action, env)
         state = after_state

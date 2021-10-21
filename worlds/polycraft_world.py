@@ -21,7 +21,7 @@ import enum
 
 logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("Polycraft")
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 
 
 # Useful constants
@@ -406,7 +406,7 @@ class PolycraftState(State):
         pos = sensed['player']
         entities = sensed['entities']
         game_map = sensed['map']
-        terminal = sensed['gameOver'] or sensed['goalAchieved']
+        terminal = sensed['gameOver'] or sensed['goal']['goalAchieved']
         return PolycraftState(step_num, facing_block, pos, game_map, entities,
                               inventory, currently_selected, None, None, terminal, -1)
 
