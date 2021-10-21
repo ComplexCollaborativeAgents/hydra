@@ -66,7 +66,7 @@ class SBPlanner(HydraPlanner):
         plan_actions = []
 
         try:
-            nyx.runner("%s/sb_domain.pddl" % str(settings.SB_PLANNING_DOCKER_PATH),
+            nyx.runner("%s/orig_tap_sb_domain.pddl" % str(settings.SB_PLANNING_DOCKER_PATH),
                        "%s/sb_prob.pddl" % str(settings.SB_PLANNING_DOCKER_PATH),
                        ['-vv', '-to:%s' % str(settings.SB_TIMEOUT), '-noplan', '-search:astar', '-custom_heuristic:5', '-th:10',
                         # '-th:%s' % str(self.meta_model.constant_numeric_fluents['time_limit']),
@@ -109,16 +109,16 @@ class SBPlanner(HydraPlanner):
                     plan_actions.append(TimedAction(action_angle_time[0], action_angle_time[1]))
 
                 ## TAP UPDATE
-                # if "bird_action" in line:
-                #     action_angle_time = (line.split(':')[1].split('[')[0].replace('(', '').replace(')', '').strip(),
-                #                          float(str(lines_list[i + 1].split('angle:')[1].split(',')[0])),
-                #                          float(line.split(':')[0]))
-                #     plan_actions.append(TimedAction(action_angle_time[0], action_angle_time[2]))
+                if "bird_action" in line:
+                    action_angle_time = (line.split(':')[1].split('[')[0].replace('(', '').replace(')', '').strip(),
+                                         # float(str(lines_list[i + 1].split('angle:')[1].split(',')[0])),
+                                         float(line.split(':')[0]))
+                    plan_actions.append(TimedAction(action_angle_time[0], action_angle_time[1]))
 
                 if "syntax error" in line:
                     plan_actions.append(TimedAction("syntax error", 0.0))
                     break
-        return  plan_actions
+        return plan_actions
 
     def run_val(self):
 

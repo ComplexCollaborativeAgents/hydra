@@ -247,7 +247,7 @@ class BirdType(PddlObjectType):
         self.hyper_parameters["bounce_count"] = 0
         self.hyper_parameters["bird_released"] = False
         ## TAP UPDATE
-        # self.hyper_parameters["bird_tapped"] = False
+        self.hyper_parameters["bird_tapped"] = False
         self.hyper_parameters["velocity_multiplier"] = 10
 
     def _compute_obj_attributes(self, obj, problem_params: dict):
@@ -262,7 +262,7 @@ class BirdType(PddlObjectType):
 
         return obj_attributes
 
-    def _compute_observable_obj_attributes(self, obj, problem_params:dict):
+    def _compute_observable_obj_attributes(self, obj, problem_params: dict):
         obj_attributes = dict()
 
         slingshot = problem_params["slingshot"]
@@ -288,12 +288,12 @@ class BirdType(PddlObjectType):
                 obj_attributes["y_bird"] = slingshot_y
 
         ## TAP UPDATE
-        ## Encode bird type/colour in the PDDL+ model
-        # obj_attributes["bird_type"] = 0
-        # bird_map = {"red": 0, "yellow": 1, "black": 2, "white": 3, "blue": 4}
-        # for key in bird_map:
-        #     if key in self._get_name(obj).lower():
-        #         obj_attributes["bird_type"] = bird_map[key]
+        # Encode bird type/colour in the PDDL+ model
+        obj_attributes["bird_type"] = 0
+        bird_map = {"red": 0, "yellow": 1, "black": 2, "white": 3, "blue": 4}
+        for key in bird_map:
+            if key in self._get_name(obj).lower():
+                obj_attributes["bird_type"] = bird_map[key]
 
         obj_attributes["bird_id"] = problem_params["bird_index"]
         problem_params["bird_index"] = problem_params["bird_index"] + 1
@@ -467,7 +467,7 @@ class ScienceBirdsMetaModel(MetaModel):
         """ Converts a twang angle to the time of the twang action. """
         return (angle - float(state[('angle',)]))/float(state[('angle_rate',)])
 
-    def create_sb_action(self, timed_action : TimedAction, processed_state: ProcessedSBState):
+    def create_sb_action(self, timed_action: TimedAction, processed_state: ProcessedSBState, tap_timing=3000):
         """ Creates an SB action from a PDDL action_angle_time triple outputted by the planner """
         # Compute angle from action time
         pddl_state = self.create_pddl_problem(processed_state).get_init_state()
@@ -478,10 +478,10 @@ class ScienceBirdsMetaModel(MetaModel):
         ref_point = tp.get_reference_point(processed_state.sling)
         release_point_from_plan = tp.find_release_point(processed_state.sling, math.radians(angle))
         action = SB.SBShoot(release_point_from_plan.X, release_point_from_plan.Y,
-                            3000, ref_point.X, ref_point.Y)
+                            tap_timing, ref_point.X, ref_point.Y)
         return action
 
-    def create_timed_action(self, sb_shoot: SB.SBShoot, sb_state :ProcessedSBState):
+    def create_timed_action(self, sb_shoot: SB.SBShoot, sb_state: ProcessedSBState):
         """ Create a PDDL+ TimedAction object from an SB action and state """
         ref_x = sb_shoot.ref_x
         ref_y = sb_shoot.ref_y

@@ -312,13 +312,13 @@ class SBHydraAgent(HydraAgent):
             timed_action = plan[0]
 
             ## TAP UPDATE
-            # if len(plan) > 1 and "bird_action" in plan[1].action_name:
-            #     t_time = int((plan[1].start_at - plan[0].start_at) * 1000)
-            #     sb_action = self.meta_model.create_sb_action(timed_action, processed_state, tap_timing=t_time)
-            #     logger.info("[hydra_agent_server] :: Taking tap action: [{}] {}ms after launch. ".format(
-            #         str(plan[1].action_name), str(t_time)))
-            # else:
-            #     sb_action = self.meta_model.create_sb_action(timed_action, processed_state)
+            if len(plan) > 1 and "bird_action" in plan[1].action_name:
+                t_time = int((plan[1].start_at - plan[0].start_at) * 1000)
+                sb_action = self.meta_model.create_sb_action(timed_action, processed_state, tap_timing=t_time)
+                logger.info("[hydra_agent_server] :: Taking tap action: [{}] {}ms after launch. ".format(
+                    str(plan[1].action_name), str(t_time)))
+            else:
+                sb_action = self.meta_model.create_sb_action(timed_action, processed_state)
 
             logger.info("[hydra_agent_server] :: Taking action: {}".format(str(timed_action.action_name)))
             sb_action = self.meta_model.create_sb_action(timed_action, processed_state)

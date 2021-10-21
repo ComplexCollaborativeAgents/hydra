@@ -5,7 +5,7 @@ import shortuuid
 
 # Create your own local_settings.py file in this directory if you want
 # to override this variable and not run headless
-HEADLESS = True
+HEADLESS = False
 SCREENSHOT = False
 DEBUG = False
 NO_PLANNING = False
@@ -14,11 +14,11 @@ NO_PDDL_CONSISTENCY = False
 SB_DEV_MODE = True
 NOVELTY_POSSIBLE = False
 
-SB_PLANNER_MEMORY_LIMIT = 50 # memory limit for UPMurphi (in MB)
-SB_DELTA_T = 0.05 # time discretisation for UPMurphi
-SB_TIMEOUT = 30 # timeout for the planning phase (in seconds)
+SB_PLANNER_MEMORY_LIMIT = 50  # memory limit for UPMurphi (in MB)
+SB_DELTA_T = 0.05  # time discretisation for UPMurphi
+SB_TIMEOUT = 30  # timeout for the planning phase (in seconds)
 SB_DEFAULT_SHOT = 'RANDOM_PIG'
-SB_PLANNER_SIMPLIFICATION_SEQUENCE = [1,2] # the order of problem simplications attempted to generate a plan
+SB_PLANNER_SIMPLIFICATION_SEQUENCE = [1, 2]  # the order of problem simplications attempted to generate a plan
 
 
 CP_PLANNER_MEMORY_LIMIT = 50 # memory limit for UPMurphi (in MB)
