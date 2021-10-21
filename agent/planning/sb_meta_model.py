@@ -250,7 +250,7 @@ class AgentType(PddlObjectType):
         self.hyper_parameters["x_max_border"] = 800
         self.hyper_parameters["x_min_border"] = 0
         self.hyper_parameters["y_max_border"] = 600
-        self.hyper_parameters["y_min_border"] = 0
+        self.hyper_parameters["y_min_border"] = -10
 
     def _compute_obj_attributes(self, obj, problem_params:dict):
         obj_attributes = self._compute_observable_obj_attributes(obj, problem_params)
@@ -601,6 +601,24 @@ class ScienceBirdsMetaModel(MetaModel):
         self.object_types["bird"].hyper_parameters["velocity_multiplier"] = self.constant_numeric_fluents["v_bird_multiplier"]
 
         logger.debug("\n\n")
+        ex_agent_types = {'magician', 'wizard', 'butterfly', 'worm'}
+        x_max_blocks = 0
+        x_min_blocks = 800
+        y_min_blocks = 600
+        y_max_blocks = 0
+
+        just_in_case_platforms = []
+        for objj in sb_state.objects.items():
+            if 'bird' not in objj[1]['type'] and (get_x_coordinate(objj) > get_slingshot_x(slingshot)) and not 'slingshot' in objj[1]['type']:
+                if objj[1]['type'] not in ex_agent_types:
+                    x_max_blocks = max(get_x_coordinate(objj),x_max_blocks)
+                    x_min_blocks = min(get_x_coordinate(objj), x_min_blocks)
+                    y_max_blocks = max(get_y_coordinate(objj,problem_params["groundOffset"]), y_max_blocks)
+                    y_min_blocks = min(get_y_coordinate(objj,problem_params["groundOffset"]), y_min_blocks)
+                if objj[1]['type'] == 'platform':
+                    # while iterating through all objects store platforms so they can be used to define borders for the worm agent (in the subsequent loop through level objects)
+                    just_in_case_platforms.append(objj)
+
         # Add objects to problem
         for obj in sb_state.objects.items():
             # Get type
@@ -615,7 +633,32 @@ class ScienceBirdsMetaModel(MetaModel):
                     logger.debug("Unknown object type: %s" % type_str)
                     # TODO Handle unknown objects in some way (Error? default object?)
                     continue
-            # print("(create pddl problem) Object_type: " + str(type_str) +"/" + str(type) + " [" + str(get_x_coordinate(obj)) + ", " + str(get_y_coordinate(obj, problem_params["groundOffset"])) + "] ")
+
+            if type_str in ex_agent_types:
+                # print("(create pddl problem) Object_type: " + str(type_str) +"/" + str(type) + " [" + str(get_x_coordinate(obj)) + ", " + str(get_y_coordinate(obj, problem_params["groundOffset"])) + "] ")
+
+                if type_str=='magician':
+                    type.hyper_parameters["x_min_border"]= x_max_blocks if get_x_coordinate(obj) >= x_max_blocks else get_slingshot_x(slingshot)
+                    type.hyper_parameters["x_max_border"] = x_min_blocks if get_x_coordinate(obj) <= x_min_blocks else 800 #800px=rightmost edge of window
+                if type_str=='wizard':
+                    type.hyper_parameters["x_min_border"] = get_slingshot_x(slingshot)
+                    type.hyper_parameters["x_max_border"] = 800  # 800px=rightmost edge of window
+                    type.hyper_parameters["y_min_border"] = y_max_blocks
+                    type.hyper_parameters["y_max_border"] = 600  # 600px=top edge of window
+                if type_str=='butterfly':
+                    type.hyper_parameters["x_min_border"] = x_min_blocks * 0.75
+                    type.hyper_parameters["x_max_border"] = x_max_blocks * 1.25
+                    type.hyper_parameters["y_min_border"] = 0
+                    type.hyper_parameters["y_max_border"] = y_max_blocks * 1.25  # 600px=top edge of window
+                if type_str=='worm':
+                    for pl in just_in_case_platforms:
+                        if (abs(get_x_coordinate(obj)-get_x_coordinate(pl)) <= (get_width(pl)/2)) and (abs(get_y_coordinate(obj,problem_params["groundOffset"])-get_y_coordinate(pl,problem_params["groundOffset"])) <= (get_height(pl)/2)):
+                            type.hyper_parameters["x_min_border"] = get_x_coordinate(pl) - (get_width(pl)/2)
+                            type.hyper_parameters["x_max_border"] = get_x_coordinate(pl) + (get_width(pl)/2)
+                            type.hyper_parameters["y_min_border"] = get_y_coordinate(pl,problem_params["groundOffset"]) - (get_height(pl)/2)
+                            type.hyper_parameters["y_max_border"] = get_y_coordinate(pl,problem_params["groundOffset"]) + (get_height(pl)/2)
+                            break
+
             # Add object of this type to the problem
             type.add_object_to_problem(pddl_problem, obj, problem_params)
 
@@ -750,6 +793,9 @@ class ScienceBirdsMetaModel(MetaModel):
                 removed_list.append(obj[0])
                 prob_super_simplified.objects.remove(obj)
             elif (obj[1] == 'block'):
+                super_removed_list.append(obj[0])
+                prob_super_simplified.objects.remove(obj)
+            elif (obj[1] == 'magician') or (obj[1] == 'wizard') or (obj[1] == 'butterfly') or (obj[1] == 'worm'):
                 super_removed_list.append(obj[0])
                 prob_super_simplified.objects.remove(obj)
 
