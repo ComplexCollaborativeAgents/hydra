@@ -89,12 +89,36 @@ class SBHeuristic(AbstractHeuristic):
             return node.h
         active_bird_string = active_bird_string[0][10:]
         bird_released = node.state_vars.get("['bird_released'" + active_bird_string)
+
+        # near end of bounding box:
+        targets_x = {obj[9:]: node.state_vars[obj] for obj in node.state_vars.keys() if obj.startswith("['x_block")}
+        targets_x.update(
+            {obj[7:]: node.state_vars[obj] for obj in node.state_vars.keys() if obj.startswith("['x_pig")})
+        targets_w = {obj[13:]: node.state_vars[obj] for obj in node.state_vars.keys() if
+                     obj.startswith("['block_width")}
+        pig_radii = {obj[12:]: node.state_vars[obj] for obj in node.state_vars.keys() if
+                     obj.startswith("['pig_radius")}
+        targets_w.update(pig_radii)
+        targets_min_x = [targets_x[o_id] - targets_w[o_id] for o_id in targets_x.keys()]
+        bbox_minx = min(targets_min_x)
+
         if bird_released:
-            # Bird is in air - heuristic value = distance to nearest pig in planning steps.
+            # The bird is in the air
             x_0 = node.state_vars["['x_bird'" + active_bird_string]
             y_0 = node.state_vars["['y_bird'" + active_bird_string]
             v_x = node.state_vars["['vx_bird'" + active_bird_string]
             v_y = node.state_vars["['vy_bird'" + active_bird_string]
+            # Step 1: discourage tapping before we reach the bounding box
+            if node.state_vars["['bird_tapped'" + active_bird_string]:
+                if x_0 < bbox_minx:
+                    node.h = SBHeuristic.LARGE_VALUE
+                    return node.h
+                else:
+                    if v_x == 0.0 or v_y == 0.0:
+                        # Bird has been tapped and stopped - what to do here??
+                        node.h = 0
+                        return node.h
+            # else: heuristic value = distance to nearest pig in planning steps.
             node.h = self.time_to_pig(node, (x_0, y_0, v_x, v_y))
             return node.h
         else:
@@ -121,18 +145,8 @@ class SBHeuristic(AbstractHeuristic):
             x_0 = node.state_vars["['x_bird'" + active_bird_string]
             gravity = node.state_vars["['gravity']"]
 
-            # Find the bounding box for all targets:
-            targets_x = {obj[9:]: node.state_vars[obj] for obj in node.state_vars.keys() if obj.startswith("['x_block")}
-            targets_x.update(
-                {obj[7:]: node.state_vars[obj] for obj in node.state_vars.keys() if obj.startswith("['x_pig")})
-            targets_w = {obj[13:]:node.state_vars[obj] for obj in node.state_vars.keys() if obj.startswith("['block_width")}
-            pig_radii = {obj[12:]: node.state_vars[obj] for obj in node.state_vars.keys() if
-                         obj.startswith("['pig_radius")}
-            targets_w.update(pig_radii)
-            targets_min_x = [targets_x[o_id] - targets_w[o_id] for o_id in targets_x.keys()]
-            bbox_minx = min(targets_min_x)
-
             if bird_type[BIRD_RED_BLACK] or bird_type[BIRD_YELLOW] or bird_type[BIRD_BLUE]:
+                # far end of bounding box
                 targets_max_x = [targets_x[o_id] + targets_w[o_id] for o_id in targets_x.keys()]
                 bbox_maxx = max(targets_max_x)
                 targets_y = {obj[9:]:node.state_vars[obj] for obj in node.state_vars.keys() if obj.startswith("['y_block")}
@@ -177,7 +191,7 @@ class SBHeuristic(AbstractHeuristic):
 
             else:
                 # Same calculation using only x values -> shoot at closest pig first
-                node.h =  self.time_to_pig_x(node, (x_0, y_0, v_x, v_y_0))
+                node.h = self.time_to_pig_x(node, (x_0, y_0, v_x, v_y_0))
                 pass
         return node.h
 

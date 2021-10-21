@@ -1,5 +1,5 @@
 (define (domain angry_birds_scaled)
-    (:requirements :typing :durative-actions :disjunctive-preconditions :duration-inequalities :fluents :time :negative-preconditions :timed-initial-literals)
+    (:requirements :typing :disjunctive-preconditions :fluents :time :negative-preconditions)
     (:types bird pig block platform)
     (:predicates (bird_released ?b - bird) (pig_dead ?p - pig) (angle_adjusted) (block_explosive ?bl - block) (pig_killed) (bird_tapped ?b - bird))
     (:functions (x_bird ?b - bird) (y_bird ?b - bird) (v_bird ?b - bird) (vx_bird ?b - bird) (vy_bird ?b - bird) (m_bird ?b - bird) (bird_id ?b - bird) (bounce_count ?b - bird)
