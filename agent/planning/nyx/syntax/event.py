@@ -83,8 +83,5 @@ class Event(HappeningMixin):
 
     def copy_replace(self, element, mapping):
         if isinstance(element, list):
-            result = []
-            for e in element:
-                result.append(self.copy_replace(e, mapping))
-            return result
+            return [self.copy_replace(e, mapping) for e in element]
         return mapping.get(element, element)
