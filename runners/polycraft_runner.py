@@ -1,5 +1,5 @@
 from runners.polycraft_dispatcher import PolycraftDispatcher
-from agent.polycraft_hydra_agent import PolycraftHydraAgent
+from agent.polycraft_hydra_agent import PolycraftHydraAgent, FixedPlanPlanner
 import argparse
 from utils.host import Host
 from worlds.polycraft_world import *
@@ -32,18 +32,19 @@ def main():
     config_logging()
     arguments = parse()
 
-    trials = [os.path.join(settings.POLYCRAFT_LEVEL_DIR, "POGO_10game_prenovelty", "POGO_L00_T01_S01", "X0010", "POGO_L00_T01_S01_X0010_A_U9999_V0")]
+    # trials = [os.path.join(settings.POLYCRAFT_LEVEL_DIR, "POGO_10game_prenovelty", "POGO_L00_T01_S01", "X0010", "POGO_L00_T01_S01_X0010_A_U9999_V0")]
+    trials = [os.path.join(settings.POLYCRAFT_LEVEL_DIR)]
 
-    agent = PolycraftHydraAgent()
+    agent = PolycraftHydraAgent(planner=FixedPlanPlanner())
 
     dispatcher = PolycraftDispatcher(agent=agent)
+    try:
+        dispatcher.experiment_start(trials=trials)
 
-    dispatcher.experiment_start(trials=trials)
+        dispatcher.run_trials()
 
-    dispatcher.run_trials()
-
-    dispatcher.experiment_end()
-
+    finally:
+        dispatcher.experiment_end() # Important to clean up memory and connection to polycraft server
 
 if __name__ == '__main__':
     main()

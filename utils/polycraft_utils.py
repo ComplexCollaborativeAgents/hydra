@@ -38,6 +38,31 @@ def print_diff(state_diff: dict, prefix = ""):
                 print(f'Unidentified: {item}:{item_attr}')
 
 
+def get_ingredients_for_recipe(recipe_obj):
+    ''' Get the ingredients needed for the given recipe as a dictionary of {item_type : quantity_needed} '''
+    ingredients = dict()
+    for input in recipe_obj['inputs']:
+        item_type = input['Item']
+        quantity = input['stackSize']
+        if item_type not in ingredients:
+            ingredients[item_type] = quantity
+        else:
+            ingredients[item_type] = ingredients[item_type] + quantity
+    return ingredients
+
+def compute_missing_ingredients(recipe_obj, state:PolycraftState):
+    ''' Returns a dictionary mapping item type to quantity, representing the recipe ingredients
+    we don't have yet '''
+    ingredients = get_ingredients_for_recipe(recipe_obj)
+    missing_ingredients = dict()
+    for ingredient_type, ingredient_quantity in ingredients.items():
+        count = state.count_items_of_type(ingredient_type)
+        missing = ingredient_quantity - count
+        if missing > 0:
+            missing_ingredients[ingredient_type] = missing
+    return missing_ingredients
+
+
 def get_recipe_tree(state: PolycraftState, item_type :str):
     ''' A helper function that computes the recipe tree for creating a given ItemType '''
     item_type_to_recipes = dict()
@@ -47,9 +72,8 @@ def get_recipe_tree(state: PolycraftState, item_type :str):
         item_type = open.pop()
         closed.add(item_type)
 
-        recipes = []
-        recipes = state.get_recipes_for(item_type)
-        for recipe_obj in recipes:
+        recipes_for_item_type = []
+        for recipe_obj in state.get_all_recipes_for(item_type):
             type_to_count = dict()
             for recipe_input in recipe_obj['inputs']:
                 input_item_type = recipe_input['Item']
@@ -64,9 +88,9 @@ def get_recipe_tree(state: PolycraftState, item_type :str):
             recipe = []
             for type, count in type_to_count.items():
                 recipe.append((type, count))
-            recipes.append(recipe)
-        if len(recipes)>0:
-            item_type_to_recipes[item_type] = recipes
+            recipes_for_item_type.append(recipe)
+        if len(recipes_for_item_type)>0:
+            item_type_to_recipes[item_type] = recipes_for_item_type
 
     return item_type_to_recipes
 
@@ -199,3 +223,19 @@ def compute_missing_ingridients(recipe, state: PolycraftState):
         if missing > 0:
             missing_ingredients[ingredient_type] = missing
     return missing_ingredients
+
+def get_adjacent_cells(cell:str):
+    ''' Returns the cells adjacent to the given cell, assuming all are on the same ground level (y-axis) '''
+    coord = cell_to_coordinates(cell)
+    deltas = [[0,0,1], [1,0,0], [0,0,-1], [-1,0,0]]
+    for delta in deltas:
+        new_coord = [sum(x) for x in zip(coord, delta)]
+        yield coordinates_to_cell(new_coord)
+
+def is_adjacent_to_steve(cell:str, state:PolycraftState):
+    ''' Checks if the given cell is adjacent ot steve's cell in the given state '''
+    steve_cell = coordinates_to_cell(state.location["pos"])
+    for adjacent_cell in get_adjacent_cells(cell):
+        if adjacent_cell==steve_cell:
+            return True
+    return False

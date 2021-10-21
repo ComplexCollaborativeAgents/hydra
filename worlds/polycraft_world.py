@@ -21,7 +21,7 @@ import enum
 
 logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("Polycraft")
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 
 
 # Useful constants
@@ -46,6 +46,8 @@ class ItemType(enum.Enum):
     DIAMOND = "minecraft:diamond"
     IRON_PICKAXE = "minecraft:iron_pickaxe"
     TREE_TAP = "polycraft:tree_tap"
+    SAPLING = "minecraft:sapling"
+    KEY = "polycraft:key"
 
 class EntityType(enum.Enum):
     POGOIST = "EntityPogoist"
@@ -56,6 +58,7 @@ class PolycraftAction(Action):
     ''' Polycraft World Action '''
 
     def __init__(self):
+        self.name = type(self).__name__
         self.success = None
         self.command_result = None # The result returned by the server for doing this command. Initialized as None.
 
@@ -65,9 +68,11 @@ class PolycraftAction(Action):
         except KeyError as err:
             return False
 
+    def __str__(self):
+        return f"<{self.name} success={self.success}>"
+
     def do(self, poly_client: poly.PolycraftInterface) -> dict:
         raise NotImplementedError("Subclasses of PolycraftAction should implement this")
-
 
 class PolyNoAction(PolycraftAction):
     """ A no action (do nothing) """
@@ -224,6 +229,16 @@ class PolyPlaceItem(PolycraftAction):
         self.success = self.is_success(result)
         return result
 
+class PolyPlaceTreeTap(PolycraftAction):
+    """ Places a tree tap (polycraft:tree_tap) """
+    def __init__(self):
+        super().__init__()
+
+    def do(self, poly_client: poly.PolycraftInterface) -> dict:
+        result = poly_client.PLACE_TREE_TAP()
+        self.success = self.is_success(result)
+        return result
+
 
 class PolyCollect(PolycraftAction):
     """ Collect item from block in front of actor - use for collecting rubber from a tree tap. """
@@ -278,6 +293,20 @@ class PolyTradeItems(PolycraftAction):
         result = poly_client.TRADE(self.entity_id, self.items)
         self.success = self.is_success(result)
         return result
+
+    @staticmethod
+    def create_action(trader_id, trade_obj):
+        ''' Create a PolyCraftItem action from a given recipe object '''
+        trade_inputs = trade_obj['inputs']
+
+        # Arrange trade inputs in the required format
+        trade_list = []
+        for recipe_item in trade_inputs:
+            item_name = recipe_item['Item']
+            quantity = recipe_item['stackSize']
+            trade_list.append({"Item": item_name, "stackSize": quantity})
+
+        return PolyTradeItems(entity_id=trader_id, items=trade_list)
 
 
 class PolyCraftItem(PolycraftAction):
@@ -377,7 +406,7 @@ class PolycraftState(State):
         pos = sensed['player']
         entities = sensed['entities']
         game_map = sensed['map']
-        terminal = sensed['gameOver']
+        terminal = sensed['gameOver'] or sensed['goalAchieved']
         return PolycraftState(step_num, facing_block, pos, game_map, entities,
                               inventory, currently_selected, None, None, terminal, -1)
 
@@ -439,6 +468,10 @@ class PolycraftState(State):
             entry_attr = self.inventory[entry]
             count = count+entry_attr["count"]
         return count
+
+    def is_facing_type(self, item_type:str):
+        ''' checks if Steve is facing a cell of the given type '''
+        return self.facing_block["name"] == item_type
 
     def has_item(self, item_type:str, count:int = 1):
         ''' Checks if we have enough items of the given type '''
@@ -505,7 +538,7 @@ class PolycraftState(State):
 
         return actions
 
-    def get_recipes_for(self, item_name) -> list():
+    def get_all_recipes_for(self, item_name) -> list():
         ''' Return all the recipe that output an item of the given type '''
         recipes = list()
         for i, recipe in enumerate(self.recipes):
@@ -513,6 +546,50 @@ class PolycraftState(State):
                 if recipe_output['Item'] == item_name:
                     recipes.append(recipe)
         return recipes
+
+    def get_recipe_for(self, item_name) -> list():
+        ''' Return a single recipe that output an item of the given type '''
+        recipes = list()
+        for i, recipe in enumerate(self.recipes):
+            for recipe_output in recipe['outputs']:
+                if recipe_output['Item'] == item_name:
+                    return recipe
+
+    def get_all_trades_for(self, input_items, output_item):
+        ''' Return a list of (trader_id, trade) tuples for trades
+        in which we obtain the output item using only items from the input items '''
+        results = []
+        for trader_entity_id, trades in self.trades.items():
+            for trade in trades:
+                outputs = trade['outputs']
+                for output in outputs:
+                    if output['Item']==output_item:
+                        has_inputs = True
+                        for input in trade['inputs']:
+                            if input['Item'] not in input_items:
+                                has_inputs=False
+                        if has_inputs:
+                            results.append((trader_entity_id, trade))
+                        break
+        return results
+
+    def get_trade_for(self, item_to_get, items_to_give):
+        ''' Return a singe tuple (trader_id, trade) tuples for trades
+        in which we obtain the output item using only items from the input items '''
+        for trader_entity_id, trades in self.trades.items():
+            for trade in trades:
+                outputs = trade['outputs']
+                for output in outputs:
+                    if output['Item']==item_to_get:
+                        has_inputs = True
+                        for input in trade['inputs']:
+                            if input['Item'] not in items_to_give:
+                                has_inputs=False
+                        if has_inputs:
+                            return (trader_entity_id, trade)
+                        break
+        logger.info(f"No trades found where input={items_to_give} and output={output}")
+        return None
 
     def summary(self):
         '''returns a summary of state'''

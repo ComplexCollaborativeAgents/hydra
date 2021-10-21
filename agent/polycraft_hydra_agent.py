@@ -6,7 +6,6 @@ from utils.polycraft_utils import *
 from agent.planning.polycraft_meta_model import PolycraftMetaModel
 from agent.planning.polycraft_planning.actions import *
 from worlds.polycraft_interface.client.polycraft_interface import TiltDir
-import worlds.polycraft_interface.client.polycraft_interface as poly
 from agent.planning.pddlplus_parser import *
 from agent.hydra_agent import HydraAgent, HydraPlanner, MetaModelRepair
 from worlds.polycraft_world import *
@@ -143,13 +142,7 @@ class PolycraftPlanner(HydraPlanner):
 
 
 class FixedPlanPlanner(HydraPlanner):
-    ''' Planner for the polycraft domain that follows the following fixed plan:
-    1) Mine diamonds and craft 2 diamons blocks
-    2) Mine logs and make 2 sticks.
-    3) Mine platinum and trade to titanium blocks
-    4) Obtain the pallets somehow
-    '''
-
+    ''' Planner for the polycraft domain that follows the following fixed plan, specified in the CreateWoodenPogoStick macro action '''
     def __init__(self, meta_model = PolycraftMetaModel(), planning_path = settings.POLYCRAFT_PLANNING_DOCKER_PATH):
         super().__init__(meta_model)
 
@@ -159,106 +152,19 @@ class FixedPlanPlanner(HydraPlanner):
             logger.info("Already have the pogo stick! why plan?")
             return [PolyNoAction()]
 
-        # Else, need to craft the pogo stick. Step 1: get recipe for it
-        recipes = state.get_recipes_for(ItemType.WOODEN_POGO_STICK.value)
-        assert(len(recipes)>0)
-        pogo_recipe = recipes[0]
-        ingredients = dict()
-        for input in pogo_recipe['inputs']:
-            item_type = input['Item']
-            quantity = input['stackSize']
-            if item_type not in ingredients:
-                ingredients[item_type]=quantity
-            else:
-                ingredients[item_type] = ingredients[item_type] + quantity
-
-
-        # Step 2: comput what we're missing
-        missing_ingredients = dict()
-        for ingredient_type, ingredient_quantity in ingredients.items():
-            count = state.count_items_of_type(ingredient_type)
-            missing = ingredient_quantity-count
-            if missing>0:
-                missing_ingredients[ingredient_type] = missing
-
-        # If all is here - craft the pogo stick!
-        if len(missing_ingredients)==0:
-            return [PolyCraftItem.create_action(pogo_recipe)]
-
-        if ItemType.DIAMOND_BLOCK.value in missing_ingredients:
-            return self._plan_for_diamond_blocks(state, missing_ingredients)
-        if ItemType.STICK.value in missing_ingredients:
-            return self._plan_for_sticks(state, missing_ingredients)
-        if ItemType.BLOCK_OF_TITANIUM.value in missing_ingredients:
-            return self._plan_for_blocks_of_titanium(state, missing_ingredients)
-        if ItemType.SACK_POLYISOPRENE_PELLETS.value in missing_ingredients:
-            return self._plan_for_sack_polyisoprene_pellets(state, missing_ingredients)
-
-        logger.info("Ingredients missing that we have no fixed plan for. Missing ingredients are:")
-        for ingredient_type, ingredient_quantity in missing_ingredients.items():
-            logger.info(f'\t {ingredient_type} : {ingredient_quantity}')
-        return None
-
-    def _plan_for_diamond_blocks(self, state:PolycraftState, missing_ingredients:dict):
-        ''' Mine diamonds and craft them toa  diamong block '''
-        plan = []
-        # Select iron pickaxe
-        selected_item = state.get_selected_item()
-        if ItemType.IRON_PICKAXE.value!=selected_item:
-            plan.append(PolySelectItem(ItemType.IRON_PICKAXE.value))
-
-        # Mine diamonds per desired block
-        missing_diamond_blocks = missing_ingredients[ItemType.DIAMOND_BLOCK.value]
-        missing_diamonds = missing_diamond_blocks*9
-        missing_diamonds = missing_diamonds - state.count_items_of_type(ItemType.DIAMOND.value)
-        if missing_diamonds>0:
-            plan.append(CollectAndMineItem(ItemType.DIAMOND.value, missing_diamonds, [BlockType.DIAMOND_ORE.value]))
-
-        # Craft
-        diamond_block_recipes = state.get_recipes_for(poly.ItemType.DIAMOND_BLOCK.value)
-        assert (len(diamond_block_recipes) == 1)
-        recipe = diamond_block_recipes[0]
-        for i in range(missing_diamond_blocks):
-            plan.append(PolyCraftItem.create_action(recipe))
-        return plan
-
-    def _plan_for_sticks(self, state:PolycraftState, missing_ingredients:dict):
-        plan = []
-
-        # Mine logs per desired block
-        missing_sticks = missing_ingredients[ItemType.STICK.value]
-        missing_logs = missing_sticks * 2
-        missing_logs = missing_logs - state.count_items_of_type(BlockType.LOG.value)
-        if missing_logs > 0:
-            plan.append(CollectAndMineItem(BlockType.LOG.value, missing_logs, [BlockType.LOG.value]))
-
-        # Craft
-        stick_recipes = state.get_recipes_for(poly.ItemType.STICK.value)
-        assert (len(stick_recipes) == 1)
-        recipe = stick_recipes[0]
-        for i in range(missing_sticks):
-            plan.append(PolyCraftItem.create_action(recipe))
-        return plan
-
-    def _plan_for_blocks_of_titanium(self, state:PolycraftState, missing_ingredients:dict):
-        return None
-
-
-    def _plan_for_sack_polyisoprene_pellets(self, state:PolycraftState, missing_ingredients:dict):
-        return None
+        return [CreateWoodenPogoStick()]
 
 class PolycraftHydraAgent(HydraAgent):
     ''' A Hydra agent for Polycraft of all the Hydra agents '''
     def __init__(self, planner: HydraPlanner = PolycraftPlanner(),
                  meta_model_repair: MetaModelRepair = None):
         super().__init__(planner, meta_model_repair)
-
         self.active_plan = None
+        self.active_action = None
 
     def start_level(self, env: Polycraft):
         ''' Initialize datastructures for a new level and perform exploratory actions to get familiar with the current level.
-        These actions are needed before calling the planner
-        '''
+        These actions are needed before calling the planner  '''
 
         # Explore the level
         env.populate_current_recipes()
@@ -277,6 +183,7 @@ class PolycraftHydraAgent(HydraAgent):
         self.current_observation = PolycraftObservation() # Start a new observation object for this level
         self.current_observation.states.append(current_state)
         self.observations_list.append(self.current_observation)
+        self.env = env
 
 
     def choose_action(self, world_state: PolycraftState):
@@ -291,17 +198,24 @@ class PolycraftHydraAgent(HydraAgent):
             if last_action.success==False:
                 logger.info("Last action failed, replanning...")
                 self.active_plan = self.planner.make_plan(world_state)
+                self.active_action = None
             else:
                 logger.info("Continue to perform the current plan")
 
         # If no plan found, choose default action
-        if self.active_plan is None or len(self.active_plan)>0:
-            return self._choose_default_action()
+        if self.active_plan is None or (len(self.active_plan)==0 and self.active_action is None):
+            logger.info("No active plan or action has been assigned: choose a default action")
+            return self._choose_default_action(world_state)
 
         # Perform the next action in the plan
+        if self.active_action is not None and self.active_action.is_done()==False: # If there is an active action tat is not done, continue doing it
+            return self.active_action
+
         assert(len(self.active_plan)>0)
-        action = self.active_plan.pop(0)
-        return action
+        action_to_do = self.active_plan.pop(0)
+        if isinstance(action_to_do, MacroAction):
+            self.active_action = action_to_do
+        return action_to_do
 
     def _choose_default_action(self, world_state: PolycraftState):
         ''' Choose a default action. Current policy: try to mine something if available.
@@ -333,6 +247,8 @@ class PolycraftHydraAgent(HydraAgent):
 
     def do(self, action: PolycraftAction, env : Polycraft):
         ''' Perform the given aciton in the given environment '''
+        if isinstance(action, MacroAction):
+            action.set_current_state(env.get_current_state())
         self.current_observation.actions.append(action)
         next_state, step_cost =  env.act(action)  # Note this returns step cost for the action
         self.current_observation.states.append(next_state)
