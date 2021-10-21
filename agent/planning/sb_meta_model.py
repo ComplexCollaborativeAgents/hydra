@@ -643,7 +643,8 @@ class ScienceBirdsMetaModel(MetaModel):
                 if type_str=='wizard':
                     type.hyper_parameters["x_min_border"] = get_slingshot_x(slingshot)
                     type.hyper_parameters["x_max_border"] = 800  # 800px=rightmost edge of window
-                    type.hyper_parameters["y_min_border"] = y_max_blocks
+                    # type.hyper_parameters["y_min_border"] = y_max_blocks
+                    type.hyper_parameters["y_min_border"] = 0 # TODO: the wizard can be at any height in the level. Currently, blocks are ignored, will update with exclusion zones soon
                     type.hyper_parameters["y_max_border"] = 600  # 600px=top edge of window
                 if type_str=='butterfly':
                     type.hyper_parameters["x_min_border"] = x_min_blocks * 0.75
@@ -725,6 +726,7 @@ class ScienceBirdsMetaModel(MetaModel):
         # Above line redundant since we're storing the slingshot also, but it seems easier to store it also to save computations of the offset everytime we use it.
         state_params["pigs"] = set()
         state_params["birds"] = set()
+        state_params["external_agents"] = set()
         state_params["initial_state"] = False  # This marks that SBState describes the initial state. Used for setting the bird's location in the slingshot's location. TODO: Reconsider this design choice
 
         # Add objects to problem

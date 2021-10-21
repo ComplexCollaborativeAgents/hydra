@@ -438,6 +438,7 @@ class RepairingSBHydraAgent(SBHydraAgent):
     def __init__(self,env=None, agent_stats = list()):
         super().__init__(env, agent_stats=agent_stats)
         # Repair and detection variables
+        settings.NOVELTY_POSSIBLE = True
         self.revision_attempts = 0
         self.meta_model_repair = ScienceBirdsMetaModelRepair(self.meta_model)
 
