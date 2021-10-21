@@ -236,6 +236,50 @@ class PigType(PddlObjectType):
 
         return obj_attributes
 
+class AgentType(PddlObjectType):
+    def __init__(self):
+        super(AgentType,self).__init__()
+        self.pddl_type = "external_agent"
+        self.hyper_parameters["agent_types"] = {'magician': 0, 'wizard': 1, 'butterfly': 2, 'worm': 3, 'unknown': 4}
+        self.hyper_parameters["agent_velocities"] = {'magician': [10.4,0], 'wizard': [10.4,10.4], 'butterfly': [0,0], 'worm': [10.4,0], 'unknown': [0,0]}
+        self.hyper_parameters["vx_agent"] = 0
+        self.hyper_parameters["vy_agent"] = 0
+        self.hyper_parameters["timing_agent"] = 0
+        self.hyper_parameters["agent_dead"] = False
+        self.hyper_parameters["pddl_type"] = "external_agent"
+        self.hyper_parameters["x_max_border"] = 800
+        self.hyper_parameters["x_min_border"] = 0
+        self.hyper_parameters["y_max_border"] = 600
+        self.hyper_parameters["y_min_border"] = 0
+
+    def _compute_obj_attributes(self, obj, problem_params:dict):
+        obj_attributes = self._compute_observable_obj_attributes(obj, problem_params)
+        obj_attributes["timing_agent"] = self.hyper_parameters["timing_agent"]
+        obj_attributes["agent_dead"] = self.hyper_parameters["agent_dead"]
+        # obj_attributes[""] = self.hyper_parameters[""]
+
+        return obj_attributes
+
+    def _compute_observable_obj_attributes(self, obj, problem_params:dict):
+        problem_params["has_external_agent"] = True
+        obj_attributes = dict()
+        obj_attributes["agent_type"] = self.hyper_parameters["agent_types"][obj[1]['type'].lower()]
+        obj_attributes["x_agent"] = get_x_coordinate(obj)
+        obj_attributes["y_agent"] = get_y_coordinate(obj, problem_params["groundOffset"])
+        obj_attributes["vx_agent"] = self.hyper_parameters["agent_velocities"][obj[1]['type'].lower()][0]
+        obj_attributes["vy_agent"] = self.hyper_parameters["agent_velocities"][obj[1]['type'].lower()][1]
+        obj_attributes["agent_height"] = get_height(obj)
+        obj_attributes["agent_width"] = get_width(obj)
+
+        obj_attributes["x_min_border"] = get_slingshot_x(problem_params["slingshot"])
+        obj_attributes["x_max_border"] = self.hyper_parameters["x_max_border"]
+        obj_attributes["y_min_border"] = self.hyper_parameters["y_min_border"]
+        obj_attributes["y_min_border"] = self.hyper_parameters["y_max_border"]
+
+        problem_params["external_agents"].add(self._get_name(obj))
+
+        return obj_attributes
+
 class BirdType(PddlObjectType):
     def __init__(self):
         super(BirdType, self).__init__()
@@ -439,6 +483,10 @@ class ScienceBirdsMetaModel(MetaModel):
         self.object_types["ice"] = IceType()
         self.object_types["stone"] = StoneType()
         self.object_types["TNT"] = TNTType()
+        self.object_types["magician"] = AgentType()
+        self.object_types["wizard"] = AgentType()
+        self.object_types["butterfly"] = AgentType()
+        self.object_types["worm"] = AgentType()
 
         # self.object_types["wood"].hyper_parameters["block_life"] = self.constant_numeric_fluents["base_life_wood_multiplier"] * 265
         # self.object_types["stone"].hyper_parameters["block_life"] = self.constant_numeric_fluents["base_life_stone_multiplier"] * 265
@@ -478,7 +526,7 @@ class ScienceBirdsMetaModel(MetaModel):
         ref_point = tp.get_reference_point(processed_state.sling)
         release_point_from_plan = tp.find_release_point(processed_state.sling, math.radians(angle))
         action = SB.SBShoot(release_point_from_plan.X, release_point_from_plan.Y,
-                            3000, ref_point.X, ref_point.Y)
+                            0, ref_point.X, ref_point.Y)
         return action
 
     ''' Create a PDDL+ TimedAction object from an SB action and state '''
@@ -528,6 +576,7 @@ class ScienceBirdsMetaModel(MetaModel):
         problem_params = dict()
         problem_params["has_platform"]=False
         problem_params["has_block"]=False
+        problem_params["has_external_agent"]=False
         problem_params["bird_index"]=0
         problem_params["slingshot"]=slingshot
         problem_params["groundOffset"] = self.get_ground_offset(slingshot)
@@ -536,6 +585,7 @@ class ScienceBirdsMetaModel(MetaModel):
         # Above line redundant since we're storing the slingshot also, but it seems easier to store it also to save computations of the offset everytime we use it.
         problem_params["pigs"] = set()
         problem_params["birds"] = set()
+        problem_params["external_agents"] = set()
         problem_params["initial_state"]=True # This marks that SBState describes the initial state. Used for setting the bird's location in the slingshot's location. TODO: Reconsider this design choice
 
         self.object_types["wood"].hyper_parameters["block_life_multiplier"] = self.constant_numeric_fluents["base_life_wood_multiplier"] * self.constant_numeric_fluents["meta_wood_multiplier"]
@@ -574,6 +624,8 @@ class ScienceBirdsMetaModel(MetaModel):
             pddl_problem.objects.append(['dummy_platform','platform'])
         if problem_params["has_block"]==False:
             pddl_problem.objects.append(['dummy_block','block'])
+        if problem_params["has_external_agent"]==False:
+            pddl_problem.objects.append(['dummy_agent','external_agent'])
 
         # Add constants fluents
         for numeric_fluent in self.constant_numeric_fluents:
@@ -623,6 +675,7 @@ class ScienceBirdsMetaModel(MetaModel):
         state_params = dict()
         state_params["has_platform"] = False
         state_params["has_block"] = False
+        state_params["has_external_agent"]=False
         state_params["bird_index"] = 0
         state_params["slingshot"] = slingshot
         state_params["groundOffset"] = self.get_ground_offset(slingshot)

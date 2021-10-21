@@ -298,6 +298,24 @@ class SBHydraAgent(HydraAgent):
         processed_state = self.perception.process_state(raw_state)
         observation.state = processed_state
 
+        # # Track movement of external agents in comparison with birds (flat shot: v_bird ~= vx_bird)
+        # problem = self.meta_model.create_pddl_problem(processed_state)
+        # pddl_state = PddlPlusState(problem.init)
+        # default_time = self.meta_model.angle_to_action_time(10, pddl_state)
+        # tim_act = TimedAction("pa-twang blueBird_-336", default_time)
+        # sb1_action = self.meta_model.create_sb_action(tim_act, processed_state)
+        # st = time.time()
+        # self.env.sb_client.fast_shoot(sb1_action.ref_x+sb1_action.dx, sb1_action.ref_y+sb1_action.dy, 0, sb1_action.tap, settings.SB_GT_FREQ)
+        # interstates = self.env.sb_client.batch_ground_truth(1, 100)
+        # en = time.time() - st
+        # magi_coords = []
+        # blu_coords = []
+        # for ob in interstates:
+        #     magi0_polygon = copy.deepcopy(self.perception.process_state(SBState(ob, None, None)).objects['-2738']['polygon'])
+        #     blu0_polygon = copy.deepcopy(self.perception.process_state(SBState(ob, None, None)).objects['-336']['polygon'])
+        #     magi_coords.append(round(abs(magi0_polygon.bounds[2] + magi0_polygon.bounds[0]) / 2))
+        #     blu_coords.append(round(abs(blu0_polygon.bounds[2] + blu0_polygon.bounds[0]) / 2))
+
         self.choose_action(observation)
 
     def choose_action(self, observation : ScienceBirdsObservation):
