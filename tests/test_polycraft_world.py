@@ -157,24 +157,55 @@ def test_craft_items(launch_polycraft: poly.Polycraft, execution_number):
     action = PolyBreakAndCollect(log_cells[0])
     after_state, step_cost = agent.do(action, env)
     assert(after_state.has_item(poly.ItemType.LOG.value))
+    assert(has_new_item(after_state.diff(state)))
+    state = after_state
+
+    log_cells = state.get_cells_of_type(poly.ItemType.LOG.value)
+    assert (len(log_cells) > 0)
+    action = PolyBreakAndCollect(log_cells[0])
+    after_state, step_cost = agent.do(action, env)
+    assert(has_new_item(after_state.diff(state)))
     state = after_state
 
     # Make planks
-    planks_recipe_indices = state.get_recipe_indices_for(poly.ItemType.PLANKS.value)
-    assert(len(planks_recipe_indices)==1)
-    recipe = state.recipes[planks_recipe_indices[0]]
-    action = PolyCraftItem.create_action(recipe)
+    planks_recipes = state.get_recipes_for(poly.ItemType.PLANKS.value)
+    assert(len(planks_recipes)==1)
+    planks_recipe = planks_recipes[0]
+    action = PolyCraftItem.create_action(planks_recipe)
     after_state, step_cost = agent.do(action, env)
     assert(after_state.has_item(poly.ItemType.PLANKS.value))
     state = after_state
 
     # Make stick
-    stick_recipe_indices = state.get_recipe_indices_for(poly.ItemType.STICK.value)
-    assert(len(stick_recipe_indices)==1)
-    recipe = state.recipes[stick_recipe_indices[0]]
+    stick_recipes = state.get_recipes_for(poly.ItemType.STICK.value)
+    assert(len(stick_recipes)==1)
+    recipe = stick_recipes[0]
     action = PolyCraftItem.create_action(recipe)
     after_state, step_cost = agent.do(action, env)
     assert(after_state.has_item(poly.ItemType.STICK.value))
+    state = after_state
+
+    # Make nire planks
+    action = PolyCraftItem.create_action(planks_recipe)
+    after_state, step_cost = agent.do(action, env)
+    assert (has_new_item(after_state.diff(state)))
+    state = after_state
+
+    # Move to a crafting table
+    after_state, step_cost = _go_to_crafting_table(agent, env, state)
+    state = after_state
+
+    # Craft
+    tree_tap_recipes = state.get_recipes_for(poly.ItemType.TREE_TAP.value)
+    assert(len(tree_tap_recipes)==1)
+    recipe = tree_tap_recipes[0]
+    missing_ingridients = compute_missing_ingridients(recipe, state)
+    assert (len(missing_ingridients) == 0)
+
+    action = PolyCraftItem.create_action(recipe)
+    after_state, step_cost = agent.do(action, env)
+    assert(after_state.has_item(poly.ItemType.TREE_TAP.value))
+
 
 @pytest.mark.parametrize('execution_number', range(5))
 def test_mine_diamonds(launch_polycraft: poly.Polycraft, execution_number):
@@ -220,22 +251,30 @@ def test_mine_diamonds(launch_polycraft: poly.Polycraft, execution_number):
     assert(current_diamonds_in_inventory>=9)
 
     # Go to crafting table
-    crafting_table_cells = state.get_cells_of_type(poly.BlockType.CRAFTING_TABLE.value, only_accessible=True)
-    assert(len(crafting_table_cells)==1)
-    target_cell = crafting_table_cells[0]
-    action = poly.PolyTP(target_cell, dist=1)
-    after_state, step_cost = agent.do(action, env)
-    assert(action.success)
-    distance_to_table = compute_cell_distance(cell_to_coordinates(target_cell), after_state.location['pos'])
-    assert(distance_to_table<2)
+    after_state, step_cost = _go_to_crafting_table(agent, env, state)
+    state = after_state
 
     # Craft the diamond block
-    diamond_block_recipe_indices = state.get_recipe_indices_for(poly.ItemType.DIAMOND_BLOCK.value)
-    assert (len(diamond_block_recipe_indices) == 1)
-    recipe = state.recipes[diamond_block_recipe_indices[0]]
+    diamond_block_recipes = state.get_recipes_for(poly.ItemType.DIAMOND_BLOCK.value)
+    assert (len(diamond_block_recipes) == 1)
+    recipe = diamond_block_recipes[0]
     action = PolyCraftItem.create_action(recipe)
     after_state, step_cost = agent.do(action, env)
     assert (after_state.has_item(poly.ItemType.DIAMOND_BLOCK.value))
+
+
+def _go_to_crafting_table(agent, env, state):
+    ''' Teleport to an accessible crafting table'''
+    crafting_table_cells = state.get_cells_of_type(poly.BlockType.CRAFTING_TABLE.value, only_accessible=True)
+    assert (len(crafting_table_cells) == 1)
+    target_cell = crafting_table_cells[0]
+    action = poly.PolyTP(target_cell, dist=1)
+    after_state, step_cost = agent.do(action, env)
+    assert (action.success)
+    distance_to_table = compute_cell_distance(cell_to_coordinates(target_cell), after_state.location['pos'])
+    assert (distance_to_table < 2)
+    return after_state, step_cost
+
 
 def test_trade_logs(launch_polycraft: poly.Polycraft):
     ''' Test getting logs and trading them for titanium '''
@@ -327,20 +366,56 @@ def test_open_door(launch_polycraft: poly.Polycraft, execution_number):
         print(f"Open door at {door}")
         action = TeleportAndFaceCell(door)
         after_state, step_cost = agent.do(action, env)
+        assert(action.success)
+        state = after_state
         diff = after_state.diff(state)
         print_diff(diff)
+
+        action = PolyUseItem()
+        after_state, step_cost = agent.do(action, env)
+        diff = after_state.diff(state)
+        print_diff(diff)
+        # TODO: Assert the effects of this action has occured
+
+@pytest.mark.parametrize('execution_number', range(5))
+def test_open_chest(launch_polycraft: poly.Polycraft, execution_number):
+    env = launch_polycraft
+    agent, state = _setup_env(env)
+
+    # Find door
+    chests = state.get_cells_of_type(BlockType.PLASTIC_CHEST.value)
+    for chest in chests:
+        print(f"Open chest at {chest}")
+        action = TeleportAndFaceCell(chest)
+        after_state, step_cost = agent.do(action, env)
+        assert(action.success)
+        state = after_state
+
+        action = PolyUseItem()
+        after_state, step_cost = agent.do(action, env)
+        diff = after_state.diff(state)
+        print_diff(diff)
+        # TODO: Assert the effects of this action has occured
+
+def test_craft_tree_tap():
+    ''' Test crafting a tree tap and using it '''
+    env = launch_polycraft
+    agent, state = _setup_env(env)
+    # item_to_recipe = get_recipe_tree(state, poly.ItemType.TREE_TAP)
 
 def test_helper_functions():
     ''' Test some of the helper functions '''
     test_path = pathlib.Path(settings.ROOT_PATH) / "tests"
-    with open(test_path / "polycraft_obs_tp_agent.p", "rb") as in_file:
+    state = None
+    with open(test_path / "polycraft_obs_for_test.p", "rb") as in_file:
         obs = pickle.load(in_file)
-
+    assert(obs is not None)
     state = obs.states[1]
-    item_to_recipe = get_recipe_tree(state, poly.ItemType.WOODEN_POGO_STICK)
-    assert(poly.ItemType.WOODEN_POGO_STICK.value in item_to_recipe)
+
+    item_to_recipe = get_recipe_forest(state)
+    assert (poly.ItemType.WOODEN_POGO_STICK.value in item_to_recipe)
     print(" ")
-    print_recipe_tree(item_to_recipe, poly.ItemType.WOODEN_POGO_STICK)
+    print_recipe_forest(item_to_recipe)
 
     item_to_trades = get_item_to_trades(state)
     print(" ")

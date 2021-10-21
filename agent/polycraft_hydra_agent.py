@@ -160,8 +160,9 @@ class FixedPlanPlanner(HydraPlanner):
             return [PolyNoAction()]
 
         # Else, need to craft the pogo stick. Step 1: get recipe for it
-        recipe_index = state.get_recipe_indices_for(ItemType.WOODEN_POGO_STICK.value)
-        pogo_recipe = state.recipes[recipe_index]
+        recipes = state.get_recipes_for(ItemType.WOODEN_POGO_STICK.value)
+        assert(len(recipes)>0)
+        pogo_recipe = recipes[0]
         ingredients = dict()
         for input in pogo_recipe['inputs']:
             item_type = input['Item']
@@ -214,9 +215,9 @@ class FixedPlanPlanner(HydraPlanner):
             plan.append(CollectAndMineItem(ItemType.DIAMOND.value, missing_diamonds, [BlockType.DIAMOND_ORE.value]))
 
         # Craft
-        diamond_block_recipe_indices = state.get_recipe_indices_for(poly.ItemType.DIAMOND_BLOCK.value)
-        assert (len(diamond_block_recipe_indices) == 1)
-        recipe = state.recipes[diamond_block_recipe_indices[0]]
+        diamond_block_recipes = state.get_recipes_for(poly.ItemType.DIAMOND_BLOCK.value)
+        assert (len(diamond_block_recipes) == 1)
+        recipe = diamond_block_recipes[0]
         for i in range(missing_diamond_blocks):
             plan.append(PolyCraftItem.create_action(recipe))
         return plan
@@ -232,9 +233,9 @@ class FixedPlanPlanner(HydraPlanner):
             plan.append(CollectAndMineItem(BlockType.LOG.value, missing_logs, [BlockType.LOG.value]))
 
         # Craft
-        stick_recipe_indices = state.get_recipe_indices_for(poly.ItemType.STICK.value)
-        assert (len(stick_recipe_indices) == 1)
-        recipe = state.recipes[stick_recipe_indices[0]]
+        stick_recipes = state.get_recipes_for(poly.ItemType.STICK.value)
+        assert (len(stick_recipes) == 1)
+        recipe = stick_recipes[0]
         for i in range(missing_sticks):
             plan.append(PolyCraftItem.create_action(recipe))
         return plan

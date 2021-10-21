@@ -40,14 +40,18 @@ class TeleportAndFaceCell(PolycraftAction):
         current_facing = poly.FacingDir(current_state.location["facing"])
         turn_angle = current_facing.get_angle_to(required_facing)
         if turn_angle == 0:
+            self.success = self.is_success(result)
             return result
         else:
             turn_action = PolyTurn(turn_angle)
             result = turn_action.do(poly_client)
-            if turn_action.is_success(result) == False:
+            self.success = turn_action.is_success(result)
+            self.command_result = result
+            if self.success == False:
                 logger.info(f"teleport_and_face_cell({self.cell}) failed during TURN, Message: {result}")
-                return result
-
+            else:
+                self.success = True
+            return result
 
 class PolyBreakAndCollect(PolycraftAction):
     """ Teleport near a brick, break it, and collect the resulting item """

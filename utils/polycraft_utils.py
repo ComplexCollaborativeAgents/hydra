@@ -24,29 +24,32 @@ def get_new_entity_items(state_diff: dict):
             new_entity_items.append((entity_id, entity_attr['self']))
     return new_entity_items
 
-def print_diff(state_diff: dict):
+def print_diff(state_diff: dict, prefix = ""):
     ''' For debug: pretty printing of a state diff '''
     for item, item_attr in state_diff.items():
         if "self" in item_attr:
-            print(f'{item}:{item_attr}')
+            print(f'{prefix}.{item}')
+            print(f'\t Self: {item_attr["self"]}')
+            print(f'\t Other: {item_attr["other"]}')
         else:
-            for sub_item, sub_item_attr in state_diff[item].items():
-                print(f'{item}.{sub_item}:{sub_item_attr}')
+            if type(item_attr)==dict:
+                print_diff(item_attr, prefix=f'{prefix}.{item}')
+            else:
+                print(f'Unidentified: {item}:{item_attr}')
 
 
-def get_recipe_tree(state: PolycraftState, item_type :ItemType):
+def get_recipe_tree(state: PolycraftState, item_type :str):
     ''' A helper function that computes the recipe tree for creating a given ItemType '''
     item_type_to_recipes = dict()
-    open = [item_type.value]
+    open = [item_type]
     closed = set()
     while len(open)>0:
         item_type = open.pop()
         closed.add(item_type)
 
         recipes = []
-        recipe_indices = state.get_recipe_indices_for(item_type)
-        for recipe_idx in recipe_indices:
-            recipe_obj = state.recipes[recipe_idx]
+        recipes = state.get_recipes_for(item_type)
+        for recipe_obj in recipes:
             type_to_count = dict()
             for recipe_input in recipe_obj['inputs']:
                 input_item_type = recipe_input['Item']
@@ -66,7 +69,6 @@ def get_recipe_tree(state: PolycraftState, item_type :ItemType):
             item_type_to_recipes[item_type] = recipes
 
     return item_type_to_recipes
-
 
 def print_recipe_tree(item_type_to_recipes: dict(), root_item_type: ItemType):
     ''' A helper function that prints a given item type to recipe in the form of a tree rooted by the given item_type '''
@@ -89,6 +91,36 @@ def print_recipe_tree(item_type_to_recipes: dict(), root_item_type: ItemType):
                     if type in item_type_to_recipes:
                         if type not in closed:
                             open.append((new_indent, type))
+
+def get_recipe_forest(state: PolycraftState):
+    recipe_output_types = set()
+    for outputs in [recipe["outputs"] for recipe in state.recipes]:
+        for output in outputs:
+            recipe_output_types.add(output['Item'])
+
+    processed_types = set()
+    forest = dict()
+    while len(recipe_output_types)>0:
+        output_type = recipe_output_types.pop()
+        item_type_to_recipes = get_recipe_tree(state, output_type)
+        for item_type in item_type_to_recipes:
+            processed_types.add(item_type)
+            if item_type in recipe_output_types:
+                recipe_output_types.remove(item_type)
+            if item_type not in forest:
+                forest[item_type] = item_type_to_recipes[item_type]
+
+    return forest
+
+def print_recipe_forest(item_type_to_recipes: dict()):
+    ''' A helper function that prints a given item type to recipe in the form of a tree rooted by the given item_type '''
+    for item_type, recipes in item_type_to_recipes.items():
+        print(f'Recipes for {item_type}')
+        for i, recipe in enumerate(recipes):
+            print(f'\t Recipe {i + 1}/{len(recipes)} for {item_type}')
+            for (type, count) in recipe:
+                print(f'\t\t {type} {count}')
+
 
 def get_item_to_trades(state: PolycraftState):
     ''' A helper function that computes the recipe tree for creating a given ItemType '''
@@ -146,3 +178,24 @@ def distance_to_nearest_pogoist(after_state, cell):
             if dist<min_distance_to_pogoist:
                 min_distance_to_pogoist = dist
     return min_distance_to_pogoist
+
+
+def compute_missing_ingridients(recipe, state: PolycraftState):
+    ''' Returns a dictionary of the missing ingredients needed to complete a recipe '''
+    ingredients = dict()
+    for input in recipe['inputs']:
+        item_type = input['Item']
+        quantity = input['stackSize']
+        if item_type not in ingredients:
+            ingredients[item_type] = quantity
+        else:
+            ingredients[item_type] = ingredients[item_type] + quantity
+
+    # Step 2: comput what we're missing
+    missing_ingredients = dict()
+    for ingredient_type, ingredient_quantity in ingredients.items():
+        count = state.count_items_of_type(ingredient_type)
+        missing = ingredient_quantity - count
+        if missing > 0:
+            missing_ingredients[ingredient_type] = missing
+    return missing_ingredients

@@ -33,6 +33,7 @@ class BlockType(enum.Enum):
     BEDROCK = "minecraft:bedrock"
     BLOCK_OF_PLATINUM = "polycraft:block_of_platinum"
     WOODER_DOOR = "minecraft:wooden_door"
+    PLASTIC_CHEST = "polycraft:plastic_chest"
 
 class ItemType(enum.Enum):
     WOODEN_POGO_STICK = "polycraft:wooden_pogo_stick"
@@ -44,6 +45,7 @@ class ItemType(enum.Enum):
     DIAMOND_BLOCK = "minecraft:diamond_block"
     DIAMOND = "minecraft:diamond"
     IRON_PICKAXE = "minecraft:iron_pickaxe"
+    TREE_TAP = "polycraft:tree_tap"
 
 class EntityType(enum.Enum):
     POGOIST = "EntityPogoist"
@@ -503,14 +505,14 @@ class PolycraftState(State):
 
         return actions
 
-    def get_recipe_indices_for(self, item_name)-> list():
-        ''' Return all the recipe indices that output an item of the given type '''
-        recipes_indices = list()
+    def get_recipes_for(self, item_name) -> list():
+        ''' Return all the recipe that output an item of the given type '''
+        recipes = list()
         for i, recipe in enumerate(self.recipes):
             for recipe_output in recipe['outputs']:
                 if recipe_output['Item'] == item_name:
-                    recipes_indices.append(i)
-        return recipes_indices
+                    recipes.append(recipe)
+        return recipes
 
     def summary(self):
         '''returns a summary of state'''

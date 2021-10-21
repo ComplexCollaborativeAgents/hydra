@@ -75,6 +75,18 @@ def generate_obs_of_mining_diamonds(env:Polycraft, agent:PolycraftHydraAgent, it
     with open(dumps_path / "data_polycraft_obs_{}.p".format(i),"wb") as out:
         pickle.dump(agent.current_observation, out)
 
+def generate_obs_of_no_op(env, agent, iterations):
+    state = env.get_current_state()
+    for i in range(iterations):
+        action = PolyNoAction()
+        next_state, state_cost = agent.do(action, env)
+        state = next_state
+
+    dumps_path = pathlib.Path(settings.ROOT_PATH) / "data" / "polycraft" / "dumps"
+    with open(dumps_path / "no_op_data_polycraft_obs.p".format(i),"wb") as out:
+        pickle.dump(agent.current_observation, out)
+
+
 if __name__ == '__main__':
     test_level = path.join(settings.ROOT_PATH, "bin", "pal", "pogo_100_PN", "POGO_L00_T01_S01_X0100_U9999_V0_G00000_I0020_N0.json")
     logger.info("starting to generate observations")

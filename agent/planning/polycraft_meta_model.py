@@ -224,7 +224,7 @@ class PolycraftMetaModel(MetaModel):
         self.object_types[BlockType.BEDROCK.value]=GameMapCellType(1)
         self.object_types[BlockType.LOG.value]=LogType(2) # Variant
         self.object_types[BlockType.DIAMOND_ORE.value]=GameMapCellType(3)
-        self.object_types["polycraft:plastic_chest"]=GameMapCellType(4) # Facing
+        self.object_types[BlockType.PLASTIC_CHEST.value]=GameMapCellType(4) # Facing
         self.object_types["minecraft:iron_pickaxe"]=InventoryItemType(5)
         self.object_types["minecraft:crafting_table"]=GameMapCellType(6)
         self.object_types["minecraft:wooden_door"] = GameMapCellType(7)
@@ -241,6 +241,8 @@ class PolycraftMetaModel(MetaModel):
         self.object_types[EntityType.POGOIST.value] = Entity(18)
         self.object_types[EntityType.ITEM.value] = EntityItemType(19)
 
+
+        self.block_to_item = dict() # Maps the expected outcome of mining a given block type
 
     def create_pddl_domain(self, world_state:PolycraftState) -> PddlPlusDomain:
         ''' Create a PDDL+ domain for the given observed state '''
