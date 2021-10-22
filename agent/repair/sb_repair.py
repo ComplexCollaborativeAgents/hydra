@@ -67,10 +67,39 @@ class BlockNotDeadConsistencyEstimator(MetaModelBasedConsistencyEstimator):
         # TODO: Consider checking also the reverse condition
         return 0
 
+
+''' Checks consistency by considering the location of the birds '''
+class ExternalAgentLocationConsistencyEstimator(MetaModelBasedConsistencyEstimator):
+    def __init__(self, unique_prefix_size = 200,discount_factor=0.1, consistency_threshold = 100):
+        self.unique_prefix_size=unique_prefix_size
+        self.discount_factor = discount_factor
+        self.consistency_threshold = consistency_threshold
+
+    ''' Estimate consitency by considering the location of the birds in the observed state seq '''
+    def estimate_consistency(self, simulation_trace: list, state_seq: list, delta_t: float = DEFAULT_DELTA_T):
+        # Get birds
+        agents = set()
+        for [state, _,_] in simulation_trace:
+            if len(agents) == 0:  # TODO: Discuss how to make this work. Currently a new bird suddenly appears
+                agents = state.get_agents()
+            else:
+                break
+
+        fluent_names = []
+        for ag in agents:
+            fluent_names.append(('x_agent', ag))
+            fluent_names.append(('y_agent', ag))
+
+        consistency_checker = NumericFluentsConsistencyEstimator(fluent_names, self.unique_prefix_size,
+                                                                 self.discount_factor,
+                                                                 consistency_threshold = self.consistency_threshold)
+        return consistency_checker.estimate_consistency(simulation_trace, state_seq, delta_t)
+
+
 ''' Checks consistency for SB '''
 class ScienceBirdsConsistencyEstimator(MetaModelBasedConsistencyEstimator):
     def __init__(self, use_simplified_problems=True,
-                 consistency_estimators = [BirdLocationConsistencyEstimator(), BlockNotDeadConsistencyEstimator()]):
+                 consistency_estimators = [BirdLocationConsistencyEstimator(), BlockNotDeadConsistencyEstimator(), ''' ExternalAgentLocationConsistencyEstimator()''' ]):
         self.consistency_estimators = list()
         self.use_simplified_problems = use_simplified_problems
         self.consistency_estimators.extend(consistency_estimators)

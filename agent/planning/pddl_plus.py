@@ -186,6 +186,14 @@ class PddlPlusState():
                 birds.add(fluent_name[1])
         return birds
 
+    def get_agents(self):
+        agents = set()
+        for fluent_name in self.numeric_fluents:
+            # We expect every agent has an x coordinate in a fluent of the form (x_agent, agentname)
+            if len(fluent_name)==2 and fluent_name[0]=="x_agent":
+                agents.add(fluent_name[1])
+        return agents
+
     ''' Returns the active bird'''
     def get_active_bird(self):
         active_bird_id = int(self['active_bird'])

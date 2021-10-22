@@ -43,7 +43,7 @@ TYPE = 2
 SAMPLES = 20
 AGENT = AgentType.Hydra
 
-EXPERIMENT_NAME = "BLACKBIRD"
+EXPERIMENT_NAME = "BENCHMARK"
 
 def extract_levels(source, destination=None):
     ''' Extract ANU levels. '''

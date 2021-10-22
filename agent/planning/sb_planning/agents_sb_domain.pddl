@@ -18,7 +18,7 @@
                 (x_max_border ?ea - external_agent) (x_min_border ?ea - external_agent) (y_max_border ?ea - external_agent) (y_min_border ?ea - external_agent)
                 ; (x_exclusion ?ea - external_agent) (y_exclusion ?ea - external_agent) (exclusion_height ?ea - external_agent) (exclusion_width ?ea - external_agent)
                 (agent_type ?ea - external_agent) ;; AGENT TYPES: MAGICIAN=0, WIZARD=1, BUTTERFLY=2, WORM=3, unknown=4,
-                ;;
+                ;; 
                 ; (x_marker ?mp - marker_point) (y_marker ?mp - marker_point) ;; POINTS WHICH THE AGENTS MOVE AROUND (made explicit to avoid chacking all blocks and platforms, CHECK WITH OTHERS?).
                 ;;
                 ;; WOOD LIFE = 0.75   WOOD MASS COEFFICIENT = 0.375 ;; ICE LIFE = 0.75   ICE MASS COEFFICIENT = 0.375 ;; STONE LIFE = 1.2   STONE MASS COEFFICIENT = 0.375
@@ -345,12 +345,12 @@
 
     (:event agent_1_timed_change_direction
         :parameters (?ea - external_agent)
-        :precondition (and
+        :precondition (and 
             (= (agent_type ?ea) 1)
             (not (agent_dead ?ea))
             (>= (timing_agent ?ea) 1000)
         )
-        :effect (and
+        :effect (and 
             (assign (vx_agent ?ea) (* (vx_agent ?ea) -1))
             (assign (vy_agent ?ea) (* (vy_agent ?ea) -1))
         )
@@ -358,28 +358,28 @@
 
     (:event agent_x_border_change_direction
         :parameters (?ea - external_agent)
-        :precondition (and
+        :precondition (and 
             (not (agent_dead ?ea))
-            (or
+            (or 
                 (and (> (vx_agent ?ea) 0) (>= (+ (x_agent ?ea) (/ (agent_width ?ea) 2)) (x_max_border ?ea)) )
                 (and (< (vx_agent ?ea) 0) (<= (- (x_agent ?ea) (/ (agent_width ?ea) 2)) (x_min_border ?ea)) )
             )
         )
-        :effect (and
+        :effect (and 
             (assign (vx_agent ?ea) (* (vx_agent ?ea) -1))
         )
     )
 
     (:event agent_y_border_change_direction
         :parameters (?ea - external_agent)
-        :precondition (and
+        :precondition (and 
             (not (agent_dead ?ea))
-            (or
+            (or 
                 (and (> (vy_agent ?ea) 0) (>= (+ (y_agent ?ea) (/ (agent_height ?ea) 2)) (y_max_border ?ea)) )
                 (and (< (vy_agent ?ea) 0) (<= (- (y_agent ?ea) (/ (agent_height ?ea) 2)) (y_min_border ?ea)) )
             )
         )
-        :effect (and
+        :effect (and 
             (assign (vy_agent ?ea) (* (vy_agent ?ea) -1))
         )
     )
