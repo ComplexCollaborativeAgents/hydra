@@ -132,7 +132,7 @@ def test_classifier(logreg,file = os.path.join(settings.ROOT_PATH,'data/science_
             pred_decision = proposal
         else:
             pred_decision = 'unknown'
-        if proposal=='unknown' or 'novel' in type or proposal != type:
+        if pred_decision=='unknown' or 'novel' in type or proposal != type:
             performance.append({'env_type':type,
                                 'proposal': proposal,
                                 'probability': probability,
@@ -142,6 +142,11 @@ def test_classifier(logreg,file = os.path.join(settings.ROOT_PATH,'data/science_
 
 
 
+def test_object_type_prediction(logreg, input_vector):
+    prediction = logreg.predict_proba(input_vector)
+    proposal = logreg.classes_[prediction[0].argmax()]
+    probability = max(prediction[0])
+    print(proposal, probability)
 
 
 if __name__ == '__main__':
@@ -149,13 +154,14 @@ if __name__ == '__main__':
 
     #### train/load
     logreg = train_classifier(on_full_data=True)
-    pickle.dump(logreg, open('{}/data/science_birds/perception/logreg_pII.p'.format(settings.ROOT_PATH), 'wb'))
+    #pickle.dump(logreg, open('{}/data/science_birds/perception/logreg_pII.p'.format(settings.ROOT_PATH), 'wb'))
 
 
     ### test
     #logreg = pickle.load(open('{}/data/science_birds/perception/logreg_pII.p'.format(settings.ROOT_PATH), 'rb'))
     performance = test_classifier(logreg, file=os.path.join(settings.ROOT_PATH,'data/science_birds/perception/pII/novel_objects_level1_type_9_10.csv'))
     #performance= test_classifier(logreg, file=os.path.join(settings.ROOT_PATH,'data/science_birds/perception/pII/object_class.csv'))
+    #performance = test_classifier(logreg, file=os.path.join(settings.ROOT_PATH,'data/science_birds/perception/pII/non_novel_objects.csv'))
 
     for item in performance:
         print(item)
