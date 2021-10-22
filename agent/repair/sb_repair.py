@@ -99,7 +99,7 @@ class ExternalAgentLocationConsistencyEstimator(MetaModelBasedConsistencyEstimat
 ''' Checks consistency for SB '''
 class ScienceBirdsConsistencyEstimator(MetaModelBasedConsistencyEstimator):
     def __init__(self, use_simplified_problems=True,
-                 consistency_estimators = [BirdLocationConsistencyEstimator(), BlockNotDeadConsistencyEstimator(), ''' ExternalAgentLocationConsistencyEstimator()''' ]):
+                 consistency_estimators = [BirdLocationConsistencyEstimator(), BlockNotDeadConsistencyEstimator()]): # ExternalAgentLocationConsistencyEstimator()
         self.consistency_estimators = list()
         self.use_simplified_problems = use_simplified_problems
         self.consistency_estimators.extend(consistency_estimators)
