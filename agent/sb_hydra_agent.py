@@ -5,11 +5,11 @@ import settings
 from agent.hydra_agent import logger, NN_PROB, PDDL_PROB, NOVELTY_EXISTANCE_NOT_GIVEN, NOVELTY_LIKELIHOOD
 from agent.planning.sb_planner import SBPlanner
 from agent.repair.meta_model_repair import *
+#from state_prediction.anomaly_detector_fc_multichannel import FocusedSBAnomalyDetector
 
 # TODO: Maybe push this to the settings file? then every module just adds a logger
 from agent.repair.sb_repair import ScienceBirdsConsistencyEstimator, ScienceBirdsMetaModelRepair
 from agent.gym_hydra_agent import REPAIR_CALLS, REPAIR_TIME, logger
-from state_prediction.anomaly_detector_fc_multichannel import FocusedSBAnomalyDetector
 from utils.point2D import Point2D
 from worlds.science_birds_interface.client.agent_client import GameState
 from agent.hydra_agent import HydraAgent
@@ -20,9 +20,12 @@ logger = logging.getLogger("hydra_agent")
 NOVELTY_EXISTANCE_NOT_GIVEN = -1 # The self.novelty_existance value indicating that novelty detection is not given by the environment
 
 # stats_per_level dictionary keys
-NN_PROB = "nn_novelty_likelihood"
+## NN_PROB = "nn_novelty_likelihood" this originally was the state-based detector written by UPenn
+REWARD_PROB = "reward_estimator_likelihood"
 PDDL_PROB = "pddl_novelty_likelihood"
 NOVELTY_LIKELIHOOD = "novelty_likelihood"
+UNKNOWN_OBJ = "unknown_object"
+UNDEFINED = None
 
 
 class SBHydraAgent(HydraAgent):
@@ -39,44 +42,44 @@ class SBHydraAgent(HydraAgent):
         self.env = env # agent always has a pointer to its environment
         if env is not None:
             env.sb_client.set_game_simulation_speed(settings.SB_SIM_SPEED)
-        self.perception = Perception()
-        self.completed_levels = []
-        self.observations = []
-        self.cumulative_plan_time = 0.0
-        self.overall_plan_time = 0.0
-        self.novelty_likelihood = 0.0
-        self.novelty_existence = -1
-        self.novel_objects = []
         self.agent_stats = agent_stats
-        self.shot_num = 0
+        self.consistency_estimator = ScienceBirdsConsistencyEstimator()
+        self.current_level = 0
+        self.novelty_detections = list()
+        self.initialize_processing_state_variables()
+        self._new_novelty_likelihood = False
+
+
+    def initialize_processing_state_variables(self):
+        self.perception = Perception()
+        self.completed_levels=[]
+        self.observations=[]
+
+        self.novel_objects = []
+
+        self.cumulative_plan_time=0.0
+        self.overall_plan_time=0.0
+        self.shot_num=0
         self.trial_timestamp = datetime.datetime.now().strftime("%y%m%d%H%M%S")
+
         self.stats_for_level = dict()
+        self.level_novelty_indicators = {
+            REWARD_PROB: list(),
+            PDDL_PROB: list(),
+            UNKNOWN_OBJ: list()
+        }
+
         self.nn_prob_per_level = []
         self.pddl_prob_per_level = []
-        self.consistency_estimator = ScienceBirdsConsistencyEstimator()
-        self.detector = FocusedSBAnomalyDetector()
-        self.current_level = 0
+
 
 
     def reinit(self):
         logging.info('Reinit...')
         self.env.history = []
-        self.perception = Perception()
         self.meta_model = ScienceBirdsMetaModel()
         self.planner = SBPlanner(self.meta_model) # TODO: Discuss this w. Wiktor & Matt
-        self.completed_levels = []
-        self.observations = []
-        self.novelty_likelihood = 0.0
-        self.novel_objects = []
-        self.cumulative_plan_time = 0.0
-        self.overall_plan_time = 0.0
-        self.novelty_existence = -1
-        # self.agent_stats = list() # TODO: Discuss this
-        self.shot_num = 0
-        self.trial_timestamp = datetime.datetime.now().strftime("%y%m%d%H%M%S")
-        self.stats_for_level = dict()
-        self.nn_prob_per_level = []
-        self.pddl_prob_per_level = []
+        self.initialize_processing_state_variables()
 
     def main_loop(self,max_actions=1000):
         ''' Runs the agent. Returns False if the evaluation has not ended, and True if it has ended.'''
@@ -104,7 +107,7 @@ class SBHydraAgent(HydraAgent):
                 raw_state = self.env.get_current_state()
                 self.handle_game_playing(observation, raw_state)
                 if (settings.NOVELTY_POSSIBLE):
-                    self._compute_novelty_likelihood(observation)
+                    self._record_novelty_indicators(observation)
             elif raw_state.game_state.value == GameState.WON.value:
                 self.handle_game_won()
             elif raw_state.game_state.value == GameState.LOST.value:
@@ -123,7 +126,7 @@ class SBHydraAgent(HydraAgent):
             else:
                 logger.info("[hydra_agent_server] :: Unexpected state.game_state.value {}".format(raw_state.game_state.value))
                 assert False
-            t+=1
+            t += 1
 
             self.observations.append(observation)
         return False
@@ -150,10 +153,15 @@ class SBHydraAgent(HydraAgent):
     def handle_request_novelty_likelihood(self):
         ''' Handle what happens when the agent receives a REQUESTNOVELTYLIKELIHOOD request'''
 
-        logger.info("[hydra_agent_server] :: Requesting Novelty Likelihood. Novelyy likelihood is {}".format(
-            self.novelty_likelihood))
-        novelty_likelihood = self.novelty_likelihood
+        logger.info("[hydra_agent_server] :: Requesting Novelty Likelihood. Novelty likelihood is {}".format(
+            self._new_novelty_likelihood))
+        if self._new_novelty_likelihood:
+            novelty_likelihood = 1
+        else:
+            novelty_likelihood = 0
+
         non_novelty_likelihood = 1 - novelty_likelihood
+
         #placeholders for novelty information
         if len(self.novel_objects)>0:
             ids = set([int(object_id_str) for object_id_str in self.novel_objects])
@@ -163,6 +171,7 @@ class SBHydraAgent(HydraAgent):
             novelty_description = "Uncharacterized novelty"
         novelty_level = 0
 
+        print("Reporting novelty_likelihood: {}".format(novelty_likelihood))
         self.env.sb_client.report_novelty_likelihood(novelty_likelihood, non_novelty_likelihood,ids,novelty_level,novelty_description)
 
     def handle_evaluation_terminated(self):
@@ -194,83 +203,69 @@ class SBHydraAgent(HydraAgent):
         self._handle_end_of_level(True)
         return self.cumulative_plan_time, self.overall_plan_time
 
-    def _compute_novelty_likelihood(self, observation: ScienceBirdsObservation):
-        ''' Computes the novelty likelihood for the given observation
-        Also updates the stats_for_level object with the computed novelty probability by the two models.  '''
+    def _record_novelty_indicators(self, observation: ScienceBirdsObservation):
+        logging.info("Computing novelty likelihood...")
 
-        logging.info('Computing novelty likelihood...')
+        if self.novelty_existence in [0,1]:
+            self.level_novelty_indicators[PDDL_PROB].append(UNDEFINED)
+            self.level_novelty_indicators[UNKNOWN_OBJ].append(UNDEFINED)
+            return
 
-        if NN_PROB not in self.stats_for_level:
-            self.stats_for_level[NN_PROB]=[]
-        if PDDL_PROB not in self.stats_for_level:
-            self.stats_for_level[PDDL_PROB]=[]
+        if observation.hasUnknownObj():
+            self.level_novelty_indicators[PDDL_PROB].append(UNDEFINED)
+            self.level_novelty_indicators[UNKNOWN_OBJ].append(True)
+            self.novel_objects = observation.get_novel_object_ids()
+            return
 
-        # if novelty existences is given by the experiment framework - no need to run the fancy models
-        if self.novelty_existence in  [0,1]:
-            self.stats_for_level[NN_PROB].append(self.novelty_existence)
-            self.stats_for_level[PDDL_PROB].append(self.novelty_existence)
-            self.novelty_likelihood = self.novelty_existence
+        self.level_novelty_indicators[UNKNOWN_OBJ].append(False)
+        if settings.NO_PDDL_CONSISTENCY:
+            pddl_prob = UNDEFINED
         else:
-            assert self.novelty_existence==NOVELTY_EXISTANCE_NOT_GIVEN # The flag denoting that we do not get novelty info from the environment
+            pddl_prob = check_obs_consistency(observation, self.meta_model, self.consistency_estimator)
+        self.level_novelty_indicators[PDDL_PROB].append(pddl_prob)
 
-            if observation.hasUnknownObj():
-                self.stats_for_level[NN_PROB].append(1.0)
-                self.stats_for_level[PDDL_PROB].append(1.0)
-                self.novelty_likelihood = 1.0
-                self.novel_objects = observation.get_novel_object_ids()
-            else:
-                try:
-                    cnn_novelty, cnn_prob = self.detector.detect(observation)
-                except:
-                    logging.info('CNN Index out of Bounds in game playing')
-                    cnn_prob=1.0 # TODO: Think about this design choice
+    def _detect_level_novelty(self):
+        is_novel = False
+        has_new_object = False
 
-                self.stats_for_level[NN_PROB].append(cnn_prob)
+        if True in self.level_novelty_indicators[UNKNOWN_OBJ]:
+            has_new_object = True
 
-                if settings.NO_PDDL_CONSISTENCY:
-                    pddl_prob = 1.0
-                else:
-                    pddl_prob = check_obs_consistency(observation, self.meta_model, self.consistency_estimator)
-                self.stats_for_level[PDDL_PROB].append(pddl_prob)
+        pddl_consistency_list = [x for x in self.level_novelty_indicators[PDDL_PROB] if x is not None]
+        if len(pddl_consistency_list) > 0:
+            mean_pddl_inconsistency = sum(pddl_consistency_list)/len(pddl_consistency_list)
+        else:
+            mean_pddl_inconsistency = None
 
-                # If we already played at least two levels and novelty keeps being detected, mark this as a very high novelty likelihood
-                cnn_prediction = cnn_prob > self.detector.threshold
-                pddl_prediction = pddl_prob > settings.SB_CONSISTENCY_THRESHOLD
-                #enough_levels_completed = len(self.completed_levels)>1
-                enough_levels_completed = len(self.nn_prob_per_level) > 1
-                if enough_levels_completed:
-                    level_lost = not self.completed_levels[-1]
-                    last_level_prediction = self.nn_prob_per_level[0] > self.detector.threshold or \
-                                            self.pddl_prob_per_level[0] > self.meta_model_repair.consistency_threshold
+        if mean_pddl_inconsistency:
+            are_level_observations_divergent = (mean_pddl_inconsistency > settings.SB_CONSISTENCY_THRESHOLD)
+        else:
+            are_level_observations_divergent = False
 
-                    last_last_level_prediction = self.nn_prob_per_level[1] > self.detector.threshold or \
-                                            self.pddl_prob_per_level[1] > self.meta_model_repair.consistency_threshold
-                else:
-                    level_lost = False
-                    last_level_prediction = False
-                    last_last_level_prediction = False
+        is_novel = has_new_object or are_level_observations_divergent
+        return is_novel
 
-                detected = cnn_prediction \
-                           and pddl_prediction \
-                           and enough_levels_completed \
-                           and level_lost \
-                           and last_level_prediction \
-                           and last_last_level_prediction
-                if detected:
-                    self.novelty_likelihood = 1.0
-                # else:
-                # TODO: Think about how to set a non-binary value for novelty_likelihood
-                #     Ideal: compute novelty prob from (cnn_prob, pddl_prob)
 
-                logger.info("ShotNum={}, Level={}, Novelty detected={}, NN prediction={}, PDDL prediction={}, enough_levels={}, last_level_lost={}, last_pred={}, last_last_pred={}".
-                    format(self.shot_num, len(self.completed_levels), detected, cnn_prediction, pddl_prediction, enough_levels_completed, level_lost, last_level_prediction, last_last_level_prediction))
+    def _infer_novelty_existence(self):
 
-        # Record current novelty likelihood estimate
-        self.stats_for_level[NOVELTY_LIKELIHOOD]=self.novelty_likelihood
+        print("Novelty existence is {}".format(self.novelty_existence))
+        if (self.novelty_existence == 0) or (self.novelty_existence == 1):
+            self._new_novelty_likelihood = self.novelty_existence
+            return
+
+        '''looks at the history of detections in previous levels and returns true when novelty has been detected for 3 contiguous episodes'''
+        self.novelty_detections.append(self._detect_level_novelty())
+        #self.novelty_likelihood = self.novelty_detections[-1] and self.novelty_detections[-2] and self.novelty_detections [-3]
+        if len(self.novelty_detections) > 2:
+            self._new_novelty_likelihood = self.novelty_detections[-1] and self.novelty_detections[-2] and self.novelty_detections [-3]
 
     def _handle_end_of_level(self, success):
         ''' This is called when a level has ended, either in a win or a lose our come '''
         self.completed_levels.append(success)
+        self._infer_novelty_existence()
+        print("Level novelty indicators {}".format(self.level_novelty_indicators))
+        print("Novelty detections from new code {}".format(self.novelty_detections))
+        print("Novelty likelihood the new code {}".format(self._new_novelty_likelihood))
         logger.info("[hydra_agent_server] :: Level {} Complete - WIN={}".format(self.current_level, success))
         logger.info("[hydra_agent_server] :: Cumulative planning time only = {}".format(str(self.cumulative_plan_time)))
         logger.info("[hydra_agent_server] :: Planning effort percentage = {}\n".format(
@@ -287,6 +282,10 @@ class SBHydraAgent(HydraAgent):
         self.shot_num = 0
 
         self.stats_for_level = dict()
+        self.level_novelty_indicators = {
+            PDDL_PROB: list(),
+            UNKNOWN_OBJ: list()
+        }
         # time.sleep(1)
         self.novelty_existence = self.env.sb_client.get_novelty_info()
         time.sleep(2 / settings.SB_SIM_SPEED)
@@ -429,13 +428,11 @@ class RepairingSBHydraAgent(SBHydraAgent):
 
     def process_final_observation(self):
         ''' This is called after winning or losing a level. '''
-        self.stats_for_level[NOVELTY_LIKELIHOOD]=self.novelty_likelihood
+        #self.stats_for_level[NOVELTY_LIKELIHOOD]=self.novelty_likelihood
         # The consistency score per level for this level is the mean over the consistency scored of this level's observations
-        self.nn_prob_per_level.insert(0,
-                                      sum(self.stats_for_level[NN_PROB]) / len(self.stats_for_level[NN_PROB]))
-        self.pddl_prob_per_level.insert(0,
-                                      sum(self.stats_for_level[PDDL_PROB]) / len(self.stats_for_level[PDDL_PROB]))
-
+        #self.pddl_prob_per_level.insert(0,
+                                      #sum(self.stats_for_level[PDDL_PROB]) / len(self.stats_for_level[PDDL_PROB]))
+        pass
 
 
     def handle_evaluation_terminated(self):
@@ -463,13 +460,12 @@ class RepairingSBHydraAgent(SBHydraAgent):
 
             # Check if we should repair
             logger.info("checking for repair...")
-            if self.should_repair(last_obs) and settings.NO_REPAIR==False:
-
+            should_repair = self.should_repair(last_obs)
+            print("Should repair is {}".format(should_repair))
+            if should_repair and (settings.NO_REPAIR == False):
                 self.repair_meta_model(last_obs)
 
-        # In should_repair, self.novelty_likelihood is turned into a 1 if past 3 consistency scores are high enough (and is otherwise < 1).
-        # 1 should be considered True, anything else should be considered False
-        logger.info("Novelty likelihood is {}".format(self.novelty_likelihood))
+        logger.info("Novelty likelihood is {}".format(self._new_novelty_likelihood))
 
         super().handle_game_playing(observation, raw_state)
 
@@ -503,27 +499,5 @@ class RepairingSBHydraAgent(SBHydraAgent):
         if self.novelty_existence != NOVELTY_EXISTANCE_NOT_GIVEN:
             return self.novelty_existence==1
 
-        if observation.hasUnknownObj():
+        if self._new_novelty_likelihood:
             return True
-
-        if NN_PROB not in self.stats_for_level:
-            return False #TODO: Design choice: wait for the second shot to repair
-
-        cnn_prob = self.stats_for_level[NN_PROB][-1]
-        pddl_prob = self.stats_for_level[PDDL_PROB][-1]
-
-        # Try to repair only after 2 levels have passed & only after the first shot of the level # TODO: Rethink this design choice
-        if len(self.completed_levels) < 2 or len(self.stats_for_level[NN_PROB]) != 1:
-            return False
-
-        logger.info("CNN novelty likelihoods last shot: %.3f, previous problem: %.3f, two problems ago: %.3f, last problem solved? %s" % (cnn_prob,
-                                                                                                                                          self.nn_prob_per_level[0],
-                                                                                                                                          self.nn_prob_per_level[1],
-                                                                                                                                          self.completed_levels[-1]))
-
-        if self.novelty_likelihood==1.0 and \
-                pddl_prob > self.meta_model_repair.consistency_threshold and \
-                cnn_prob > self.detector.threshold:
-            return True
-
-        return False
