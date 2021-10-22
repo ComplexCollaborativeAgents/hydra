@@ -326,14 +326,19 @@ class SBHydraAgent(HydraAgent):
             simplifications = settings.SB_PLANNER_SIMPLIFICATION_SEQUENCE.copy()
             simplifications.reverse()
             plan = []
-            while len(simplifications) > 0 and (len(plan) == 0 or plan[0].action_name == "out of memory"):
-                simplification = simplifications.pop()
-                start_time = time.perf_counter()
-                plan = self.planner.make_plan(processed_state, simplification)
-                plan_time = (time.perf_counter() - start_time)
-                self.cumulative_plan_time += plan_time
-                logger.info("[hydra_agent_server] :: Problem simplification {} planning time: {}".format(simplification,
-                                                                                                         str(plan_time)))
+            try:
+                while len(simplifications) > 0 and (len(plan) == 0 or plan[0].action_name == "out of memory"):
+                    simplification = simplifications.pop()
+                    start_time = time.perf_counter()
+                    plan = self.planner.make_plan(processed_state, simplification)
+                    plan_time = (time.perf_counter() - start_time)
+                    self.cumulative_plan_time += plan_time
+                    logger.info("[hydra_agent_server] :: Problem simplification {} planning time: {}".format(simplification,
+                                                                                                             str(plan_time)))
+            except Exception as e:
+                logger.error("Planner threw an exception. Exception details:\n {}".format(e))
+
+
             if len(plan) == 0 or plan[0].action_name == "out of memory":  # TODO FIX THIS
                 plan = []
                 plan.append(self.__get_default_action(processed_state))
