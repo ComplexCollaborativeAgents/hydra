@@ -406,7 +406,10 @@ class PolycraftState(State):
         pos = sensed['player']
         entities = sensed['entities']
         game_map = sensed['map']
-        terminal = sensed['gameOver'] or sensed['goal']['goalAchieved']
+        terminal = sensed['gameOver']
+        
+        if 'goal' in sensed:
+            terminal = sensed['gameOver'] or sensed['goal']['goalAchieved']
         return PolycraftState(step_num, facing_block, pos, game_map, entities,
                               inventory, currently_selected, None, None, terminal, -1)
 

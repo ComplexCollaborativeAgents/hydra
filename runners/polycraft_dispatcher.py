@@ -14,11 +14,15 @@ class PolycraftDispatcher():
 
         self.results = {}
 
-    def experiment_start(self, trials: list = []):
-        ''' Start the experiment.  server_config is a dict that contains configuration options for the Polycraft Server, and trials is a list that contains string paths towards each trial directory'''
+    def experiment_start(self, trials: list = [], standalone=False):
+        ''' 
+        Start the experiment.  
+        standalone: boolean flag that signals to run without launching Polycraft.  Requires a running Polycraft instance before startup
+        trials: a list that contains string paths towards each trial directory
+        '''
 
         # Load polycarft world
-        self.env = Polycraft(launch=True)
+        self.env = Polycraft(launch=not standalone)
         self.trials = {}
 
         if len(trials) > 0:
