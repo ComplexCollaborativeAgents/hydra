@@ -5,4 +5,6 @@
 **/*.py[cod]
 **/bin/
 **/.git/
+state_prediction/
+label_data/
 runners/log/*.txt
