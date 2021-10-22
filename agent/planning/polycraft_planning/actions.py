@@ -232,13 +232,16 @@ class CollectAndMineItem(PolycraftAction):
         for i in range(self.max_tries):
             # Choose action
             action = self._choose_action(current_state)
-            result = action.do(poly_client)
-            current_state = PolycraftState.create_current_state(poly_client)
-            new_quantity = current_state.count_items_of_type(self.desired_item_type)
-            if new_quantity-initial_quantity>=self.desired_quantity:
-                self.success=True
-                return result
-
+            if action is not None:
+                result = action.do(poly_client)
+                current_state = PolycraftState.create_current_state(poly_client)
+                new_quantity = current_state.count_items_of_type(self.desired_item_type)
+                if new_quantity-initial_quantity>=self.desired_quantity:
+                    self.success=True
+                    return result
+            else: # No action relevant - do nothing and report failure
+                result = PolyNoAction().do(poly_client)
+                break
         self.success = False
         return result
 
@@ -261,15 +264,6 @@ class CollectAndMineItem(PolycraftAction):
             relevant_cells = []
             for relevant_block_type in self.relevant_block_types:
                 relevant_cells.extend(current_state.get_cells_of_type(relevant_block_type, only_accessible=True))
-            # If non exists, just search for accessible blocks we can mine
-            if len(relevant_cells) == 0:
-                type_to_cells = current_state.get_type_to_cells()
-                for type in type_to_cells:
-                    if type in [BlockType.AIR.value, BlockType.BEDROCK.value]:
-                        continue
-                    else:
-                        relevant_cells.extend(current_state.get_cells_of_type(type, only_accessible=True))
-
             if len(relevant_cells) > 0:
                 cell = random.choice(relevant_cells)
                 if self.needs_iron_pickaxe and ItemType.IRON_PICKAXE.value != current_state.get_selected_item():
@@ -277,7 +271,9 @@ class CollectAndMineItem(PolycraftAction):
                 else:
                     action = PolyBreakAndCollect(cell)
             else:
-                action = PolyNoAction()
+                logger.info(f"Can't find any blocks of the relevant types ({self.relevant_block_types}). Action failed")
+                self.success = False
+                action = None
         return action
 
 

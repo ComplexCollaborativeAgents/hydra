@@ -4,6 +4,7 @@ import settings
 import logging
 import random
 from agent.planning.meta_model import *
+from agent.planning.polycraft_planning.actions import *
 from worlds.polycraft_world import *
 from agent.planning.pddl_plus import *
 logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
@@ -64,7 +65,7 @@ class PddlObjectType():
 
 # Inventory items
 
-class InventoryItemType(PddlObjectType):
+class PddlInventoryItemType(PddlObjectType):
     def __init__(self, block_type=-1):
         super().__init__()
         self.pddl_type = "inventory_item"
@@ -91,7 +92,7 @@ class InventoryItemType(PddlObjectType):
 
 #### Cell Types
 
-class GameMapCellType(PddlObjectType):
+class PddlGameMapCellType(PddlObjectType):
     IGNORED_CELL_ATTRIBUTES = ["facing", "half", "hinge"] # List of attributes to not include in the PDDL model TODO: Think about this
 
     def __init__(self,block_type=-1):
@@ -104,7 +105,7 @@ class GameMapCellType(PddlObjectType):
         (cell_id, cell_attr)=obj
 
         for attr_name, attr_value in cell_attr.items():
-            if attr_name != 'name' and attr_name not in GameMapCellType.IGNORED_CELL_ATTRIBUTES:
+            if attr_name != 'name' and attr_name not in PddlGameMapCellType.IGNORED_CELL_ATTRIBUTES:
                 if type(attr_value)== bool or attr_value.lower() in ["true", "false"]:
                     obj_attributes[attr_name]=bool(attr_value)
                 else:
@@ -124,7 +125,7 @@ class GameMapCellType(PddlObjectType):
         (cell_id, cell_attr) = obj
         return "cell_{}".format("_".join(cell_id.split(",")))
 
-class LogType(GameMapCellType):
+class PddlLogType(PddlGameMapCellType):
     def __init__(self, block_type):
         super().__init__(block_type)
 
@@ -146,7 +147,7 @@ class LogType(GameMapCellType):
 
         return obj_attributes
 
-class AirType(GameMapCellType):
+class PddlAirType(PddlGameMapCellType):
     def __init__(self, block_type):
         super().__init__(block_type)
 
@@ -155,7 +156,7 @@ class AirType(GameMapCellType):
 
 # Entity types
 
-class Entity(PddlObjectType):
+class PddlEntityType(PddlObjectType):
     IGNORED_ENTITY_ATTRIBUTES = ['equipment', 'pos', 'name']
     def __init__(self,entity_type=-1):
         super().__init__()
@@ -169,7 +170,7 @@ class Entity(PddlObjectType):
         (entity_id, entity_attr)=obj
 
         for attr_name, attr_value in entity_attr.items():
-            if attr_name != 'type' and attr_name not in Entity.IGNORED_ENTITY_ATTRIBUTES:
+            if attr_name != 'type' and attr_name not in PddlEntityType.IGNORED_ENTITY_ATTRIBUTES:
                 if type(attr_value)== bool or (type(attr_value)==str and attr_value.lower() in ["true", "false"]):
                     obj_attributes[attr_name]=bool(attr_value)
                 else:
@@ -187,7 +188,7 @@ class Entity(PddlObjectType):
         (entity_id, entity_attr)=obj
         return "entity_{}".format(entity_id)
 
-class EntityItemType(Entity):
+class PddlEntityItemType(PddlEntityType):
     ITEM_TO_ENUM = {"minecraft:sapling":1}
 
     def __init__(self,entity_type=-1):
@@ -195,11 +196,9 @@ class EntityItemType(Entity):
 
     def _compute_observable_obj_attributes(self, obj, problem_params:dict):
         obj_attributes = super()._compute_observable_obj_attributes(obj, problem_params)
-
         obj_attributes.pop('damage') # Not supported yet
         obj_attributes.pop('maxdamage') # Not supported yet
-
-        obj_attributes['item'] = EntityItemType.ITEM_TO_ENUM[obj_attributes['item']] # Convert item to enum
+        obj_attributes['item'] = PddlEntityItemType.ITEM_TO_ENUM[obj_attributes['item']] # Convert item to enum
 
         return obj_attributes
 
@@ -219,27 +218,40 @@ class PolycraftMetaModel(MetaModel):
         self.problem_name = "polycraft_prob"  # TODO: Move this to constructor
 
         # Mapping of type to Pddl object. All objects of this type will be clones of this pddl object
+        self.type_to_int = dict()
+        type_index = 0
+        for block_type in BlockType:
+            self.type_to_int[block_type.value]=type_index
+            type_index = type_index+1
+        for item_type in ItemType:
+            self.type_to_int[item_type.value]=type_index
+            type_index = type_index+1
+        for entity_type in EntityType:
+            self.type_to_int[entity_type.value]=type_index
+            type_index = type_index+1
+
         self.object_types = dict()
-        self.object_types[BlockType.AIR.value]=AirType(0)
-        self.object_types[BlockType.BEDROCK.value]=GameMapCellType(1)
-        self.object_types[BlockType.LOG.value]=LogType(2) # Variant
-        self.object_types[BlockType.DIAMOND_ORE.value]=GameMapCellType(3)
-        self.object_types[BlockType.PLASTIC_CHEST.value]=GameMapCellType(4) # Facing
-        self.object_types["minecraft:iron_pickaxe"]=InventoryItemType(5)
-        self.object_types["minecraft:crafting_table"]=GameMapCellType(6)
-        self.object_types["minecraft:wooden_door"] = GameMapCellType(7)
-        self.object_types[BlockType.BLOCK_OF_PLATINUM.value] = GameMapCellType(8)
-        self.object_types["polycraft:tree_tap"] = GameMapCellType(9)
-        self.object_types["minecraft:planks"] = InventoryItemType(10)
-        self.object_types["minecraft:stick"] = InventoryItemType(11)
-        self.object_types["polycraft:wooden_pogo_stick"] = InventoryItemType(12)
-        self.object_types["polycraft:block_of_titanium"] = InventoryItemType(13)
-        self.object_types[ItemType.DIAMOND_BLOCK.value] = InventoryItemType(14)
-        self.object_types[ItemType.SACK_POLYISOPRENE_PELLETS.value] = InventoryItemType(15)
-        self.object_types[ItemType.DIAMOND.value] = InventoryItemType(16)
-        self.object_types[EntityType.TRADER.value] = Entity(17)
-        self.object_types[EntityType.POGOIST.value] = Entity(18)
-        self.object_types[EntityType.ITEM.value] = EntityItemType(19)
+
+        self.object_types[BlockType.AIR.value]=PddlAirType(0)
+        self.object_types[BlockType.BEDROCK.value]=PddlGameMapCellType(1)
+        self.object_types[BlockType.LOG.value]=PddlLogType(2) # Variant
+        self.object_types[BlockType.DIAMOND_ORE.value]=PddlGameMapCellType(3)
+        self.object_types[BlockType.PLASTIC_CHEST.value]=PddlGameMapCellType(4) # Facing
+        self.object_types[ItemType.IRON_PICKAXE.value]=PddlInventoryItemType(5)
+        self.object_types[BlockType.CRAFTING_TABLE.value]=PddlGameMapCellType(6)
+        self.object_types[BlockType.WOODER_DOOR.value] = PddlGameMapCellType(7)
+        self.object_types[BlockType.BLOCK_OF_PLATINUM.value] = PddlGameMapCellType(8)
+        self.object_types[ItemType.TREE_TAP.value] = PddlGameMapCellType(9)
+        self.object_types[ItemType.PLANKS.value] = PddlInventoryItemType(10)
+        self.object_types["minecraft:stick"] = PddlInventoryItemType(11)
+        self.object_types["polycraft:wooden_pogo_stick"] = PddlInventoryItemType(12)
+        self.object_types["polycraft:block_of_titanium"] = PddlInventoryItemType(13)
+        self.object_types[ItemType.DIAMOND_BLOCK.value] = PddlInventoryItemType(14)
+        self.object_types[ItemType.SACK_POLYISOPRENE_PELLETS.value] = PddlInventoryItemType(15)
+        self.object_types[ItemType.DIAMOND.value] = PddlInventoryItemType(16)
+        self.object_types[EntityType.TRADER.value] = PddlEntityType(17)
+        self.object_types[EntityType.POGOIST.value] = PddlEntityType(18)
+        self.object_types[EntityType.ITEM.value] = PddlEntityItemType(19)
 
 
         self.block_to_item = dict() # Maps the expected outcome of mining a given block type
@@ -360,7 +372,7 @@ class PolycraftMetaModel(MetaModel):
 
             if type_str not in self.object_types:
                 logger.info("Unknown game map cell type: %s" % type_str)
-                type = GameMapCellType()
+                type = PddlGameMapCellType()
             else:
                 type = self.object_types[type_str]
 
@@ -374,7 +386,7 @@ class PolycraftMetaModel(MetaModel):
                 continue
             if type_str not in self.object_types:
                 logger.info("Unknown inventory object type: %s" % type_str)
-                type = InventoryItemType()
+                type = PddlInventoryItemType()
             else:
                 type = self.object_types[type_str]
             type.add_object_to_problem(pddl_problem, (item_id, item_attr), problem_params)
@@ -410,7 +422,7 @@ class PolycraftMetaModel(MetaModel):
 
             if type_str not in self.object_types:
                 logger.info("Unknown game map cell type: %s" % type_str)
-                type = GameMapCellType()
+                type = PddlGameMapCellType()
             else:
                 type = self.object_types[type_str]
 
@@ -423,7 +435,7 @@ class PolycraftMetaModel(MetaModel):
                 continue
             if type_str not in self.object_types:
                 logger.info("Unknown inventory object type: %s" % type_str)
-                type = InventoryItemType()
+                type = PddlInventoryItemType()
             else:
                 type = self.object_types[type_str]
             type.add_object_to_state(pddl_state, (item_id, item_attr), state_params)
@@ -478,11 +490,82 @@ class PolycraftMetaModel(MetaModel):
 #
 #
 #
-# class PddlPolycraftAction():
-#     ''' A class representing a PDDL+ action in polycraft '''
-#     def to_pddl(self)->str:
-#         ''' This method should be implemented by sublcasses and output a string representation of the corresponding PDDL+ action '''
-#         raise NotImplementedError()
+class PddlPolycraftAction():
+    ''' A class representing a PDDL+ action in polycraft '''
+    def to_pddl(self)->str:
+        ''' This method should be implemented by sublcasses and output a string representation of the corresponding PDDL+ action '''
+        raise NotImplementedError()
+
+    def to_polycraft(self)->PddlPlusWorldChange:
+        ''' This method should be implemented by sublcasses and output a string representation of the corresponding PDDL+ action '''
+        raise NotImplementedError()
+
+# class PddlTeleportToAndFace(PddlPolycraftAction):
+#     def __init__(self, poly_action:PolyMoveToAndBreak):
+#         self.poly_action = poly_action
+#
+#     def to_pddl(self)->PddlPlusWorldChange:
+#         pddl_action = PddlPlusWorldChange(WorldChangeTypes.action)
+#         pddl_action.name = "tp_to_and_fact"
+#         pddl_action.parameters =  ["?c", "-", "cell"]
+#         pddl_action.preconditions
+#         pddl_action.effects
+#         return '(tp_to_and_face ?c - cell)'
+#
+#     def to_polycarft(self, binding:dict)->PolycraftAction:
+#         return TeleportAndFaceCell(cell)
+
+
+class TeleportAndFaceCell(PolycraftAction):
+    ''' Macro for teleporting to a given cell and turning to face it '''
+    def __init__(self, cell: str):
+        super().__init__()
+        self.cell = cell
+
+    def __str__(self):
+        return "<TeleportAndFaceCell {} success={}>".format(self.cell, self.success)
+
+    def do(self, poly_client: poly.PolycraftInterface) -> dict:
+        tp_action = PolyTP(self.cell, dist=1)
+        result = tp_action.do(poly_client)
+        if tp_action.success == False:
+            logger.info(f"teleport_and_face_cell({self.cell}) failed during TP_TO_POS, Message: {result}")
+            return result
+
+        # Orient so we face the block
+        current_state = PolycraftState.create_current_state(poly_client)
+
+        cell_coords = cell_to_coordinates(self.cell)
+        steve_coords = current_state.location["pos"]
+        delta = [int(cell_coords[i]) - int(steve_coords[i]) for i in range(len(cell_coords))]
+        required_facing = None
+        if delta == [1, 0, 0]:
+            required_facing = poly.FacingDir.EAST
+        elif delta == [-1, 0, 0]:
+            required_facing = poly.FacingDir.WEST
+        elif delta == [0, 0, 1]:
+            required_facing = poly.FacingDir.SOUTH
+        elif delta == [0, 0, -1]:
+            required_facing = poly.FacingDir.NORTH
+        else:
+            raise ValueError(f'Unknown delta between cell and steve after teleport: {delta}')
+
+        current_facing = poly.FacingDir(current_state.location["facing"])
+        turn_angle = current_facing.get_angle_to(required_facing)
+        if turn_angle == 0:
+            self.success = self.is_success(result)
+            return result
+        else:
+            turn_action = PolyTurn(turn_angle)
+            result = turn_action.do(poly_client)
+            self.success = turn_action.is_success(result)
+            self.command_result = result
+            if self.success == False:
+                logger.info(f"teleport_and_face_cell({self.cell}) failed during TURN, Message: {result}")
+            else:
+                self.success = True
+            return result
+
 #
 # class PddlMoveToAndBreak(PddlPolycraftAction):
 #     def __init__(self, poly_action:PolyMoveToAndBreak):

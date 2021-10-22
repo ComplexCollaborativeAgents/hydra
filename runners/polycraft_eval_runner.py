@@ -24,7 +24,7 @@ def run():
         time.sleep(12)
 
     is_running = True
-    advancing_level = False
+    advancing_level = True
 
     # Start by sending a command over to signal agent ready (and get recipes)
     world.poly_client.CHECK_COST()
@@ -39,10 +39,9 @@ def run():
             advancing_level = False      
 
         action = agent.choose_action(state)
+        next_state, reward = agent.do(action, world)
 
-        next_state, reward = world.act(action)
-
-        world.poly_client._logger("State: {}\nReward: {}".format(next_state, reward))
+        world.poly_client._logger.info("State: {}\nReward: {}".format(next_state, reward))
 
         # LaunchTournament.py handles detecting and advancing to next level
         if next_state.is_terminal():
