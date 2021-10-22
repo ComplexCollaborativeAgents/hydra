@@ -447,7 +447,7 @@ class RepairingSBHydraAgent(SBHydraAgent):
 
     def process_final_observation(self):
         ''' This is called after winning or losing a level. '''
-        #self.stats_for_level[NOVELTY_LIKELIHOOD]=self.novelty_likelihood
+        self.stats_for_level[NOVELTY_LIKELIHOOD]=self._new_novelty_likelihood
         # The consistency score per level for this level is the mean over the consistency scored of this level's observations
         #self.pddl_prob_per_level.insert(0,
                                       #sum(self.stats_for_level[PDDL_PROB]) / len(self.stats_for_level[PDDL_PROB]))
