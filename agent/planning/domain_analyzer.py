@@ -51,7 +51,7 @@ class DomainAnalyzer:
         elif isinstance(precondition, list):
             if precondition[0] == "not":
                 self.add_fluents_in_precondition(precondition[1], fluents)
-            elif precondition[0] == "or":
+            elif precondition[0] in ["or", "and"]:
                 for clause in precondition[1:]:
                     self.add_fluents_in_precondition(clause, fluents)
             else:

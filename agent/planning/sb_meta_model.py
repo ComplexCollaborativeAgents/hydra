@@ -670,6 +670,7 @@ class ScienceBirdsMetaModel(MetaModel):
             pddl_problem.objects.append(['dummy_block','block'])
         if problem_params["has_external_agent"]==False:
             pddl_problem.objects.append(['dummy_agent','external_agent'])
+            pddl_problem.init.append(['agent_dead', 'dummy_agent'])
 
         # Add constants fluents
         for numeric_fluent in self.constant_numeric_fluents:
