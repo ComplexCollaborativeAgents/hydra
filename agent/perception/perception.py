@@ -173,7 +173,8 @@ class Perception():
 
     #Translate to features is only false in testing.
     def classify_obj(self,obj_json,translate_to_features=True):
-        prediction = self.logreg.predict_proba([self.obj_features(obj_json) if translate_to_features else obj_json])
+        feature_vector = self.obj_features(obj_json) if translate_to_features else obj_json
+        prediction = self.logreg.predict_proba([feature_vector])
         pred_type = self.logreg.classes_[prediction[0].argmax()]
         probability = max(prediction[0])
         if probability > self.threshold:
