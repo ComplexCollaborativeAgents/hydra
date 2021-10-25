@@ -320,8 +320,8 @@ class SBHydraAgent(HydraAgent):
             else:
                 sb_action = self.meta_model.create_sb_action(timed_action, processed_state)
 
-            logger.info("[hydra_agent_server] :: Taking action: {}".format(str(timed_action.action_name)))
-            sb_action = self.meta_model.create_sb_action(timed_action, processed_state)
+            # logger.info("[hydra_agent_server] :: Taking action: {}".format(str(timed_action.action_name)))
+            # sb_action = self.meta_model.create_sb_action(timed_action, processed_state)
             raw_state, reward = self.env.act(sb_action)
             observation.reward = reward
             observation.action = sb_action

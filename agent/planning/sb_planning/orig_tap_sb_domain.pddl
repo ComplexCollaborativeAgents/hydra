@@ -22,9 +22,9 @@
     (:process increasing_angle
         :parameters (?b - bird)
         :precondition (and
-            (not (angle_adjusted))
             (= (active_bird) (bird_id ?b))
             (not (bird_released ?b))
+            (not (angle_adjusted))
             (< (angle) (max_angle))
             (>= (angle) 0)
         )
@@ -36,8 +36,8 @@
     (:process flying
         :parameters (?b - bird)
         :precondition (and
-            (bird_released ?b)
             (= (active_bird) (bird_id ?b))
+            (bird_released ?b)
             (> (y_bird ?b) 0)
         )
         :effect (and
@@ -51,9 +51,8 @@
         :parameters (?b - bird)
         :precondition (and
             (= (active_bird) (bird_id ?b))
-            (not (angle_adjusted))
             (not (bird_released ?b))
-
+            (not (angle_adjusted))
         )
         :effect (and
             (assign (vy_bird ?b) (* (v_bird ?b) (/ (* (* 4 (angle)) (- 180 (angle))) (- 40500 (* (angle) (- 180 (angle)))) )  ) )
@@ -102,8 +101,8 @@
         :parameters (?b - bird ?p - pig)
         :precondition (and
             (= (active_bird) (bird_id ?b))
-            (not (pig_dead ?p))
             (> (v_bird ?b) 0)
+            (not (pig_dead ?p))
             (<= (x_bird ?b) (+ (x_pig ?p) (- (pig_radius ?p) (* (pig_radius ?p) 0.2)) ) )
             (>= (x_bird ?b) (- (x_pig ?p) (- (pig_radius ?p) (* (pig_radius ?p) 0.2)) ) )
             (>= (y_bird ?b) (- (y_pig ?p) (- (pig_radius ?p) (* (pig_radius ?p) 0.2)) ) )
@@ -136,8 +135,8 @@
         :parameters (?b - bird ?bl - block)
         :precondition (and
             (= (active_bird) (bird_id ?b))
-            (> (block_life ?bl) 0)
             (> (v_bird ?b) 0)
+            (> (block_life ?bl) 0)
             (<= (x_bird ?b) (+ (x_block ?bl) (/ (block_width ?bl) 2) ) )
             (>= (x_bird ?b) (- (x_block ?bl) (/ (block_width ?bl) 2) ) )
             (>= (y_bird ?b) (- (y_block ?bl) (/ (block_height ?bl) 2) ) )
@@ -157,8 +156,10 @@
     (:event remove_unsupported_block
         :parameters (?bl_bottom - block ?bl_top - block)
         :precondition (and
-            (or  (<= (block_life ?bl_bottom) 0)
-            (<= (block_stability ?bl_bottom) 0))
+            (or
+                (<= (block_life ?bl_bottom) 0)
+                (<= (block_stability ?bl_bottom) 0)
+            )
             (<= (x_block ?bl_bottom) (+ (x_block ?bl_top) (/ (block_width ?bl_top) 2) ) )
             (>= (x_block ?bl_bottom) (- (x_block ?bl_top) (/ (block_width ?bl_top) 2) ) )
             (<= (y_block ?bl_bottom) (- (y_block ?bl_top) (/ (block_height ?bl_top) 2) ) )
@@ -189,11 +190,11 @@
     (:event explode_block
         :parameters (?bl_tnt - block ?bl_near - block)
         :precondition (and
-            (block_explosive ?bl_tnt)
             (or
-            	(<= (block_stability ?bl_tnt) 0)
             	(<= (block_life ?bl_tnt) 0)
+            	(<= (block_stability ?bl_tnt) 0)
             )
+            (block_explosive ?bl_tnt)
             (> (block_stability ?bl_near) 0)
             (> (block_life ?bl_near) 0)
             (<= (- (x_block ?bl_tnt) (x_block ?bl_near)) 70 )
@@ -210,11 +211,12 @@
     (:event explode_pig
         :parameters (?bl_tnt - block ?p - pig)
         :precondition (and
-            (block_explosive ?bl_tnt)
+
             (or
-            	(<= (block_stability ?bl_tnt) 0)
             	(<= (block_life ?bl_tnt) 0)
+            	(<= (block_stability ?bl_tnt) 0)
             )
+            (block_explosive ?bl_tnt)
             (not (pig_dead ?p))
             (<= (- (x_block ?bl_tnt) (x_pig ?p)) 50 )
             (>= (- (x_block ?bl_tnt) (x_pig ?p)) -50 )
@@ -230,8 +232,10 @@
     (:event remove_unsupported_pig
         :parameters (?bl_bottom - block ?p - pig)
         :precondition (and
-            (or (< (block_life ?bl_bottom) 0)
-            (<= (block_stability ?bl_bottom) 0))
+            (or
+                (< (block_life ?bl_bottom) 0)
+                (<= (block_stability ?bl_bottom) 0)
+            )
             (<= (x_pig ?p) (+ (x_block ?bl_bottom) (/ (block_width ?bl_bottom) 2) ) )
             (>= (x_pig ?p) (- (x_block ?bl_bottom) (/ (block_width ?bl_bottom) 2) ) )
             (>= (y_pig ?p) (+ (y_block ?bl_bottom) (/ (block_height ?bl_bottom) 2) ) )
@@ -265,11 +269,11 @@
       :parameters (?b - bird)
       :precondition (and
       	(= (active_bird) (bird_id ?b))
-      	(= (bird_type ?b) 1)
       	(bird_released ?b)
         (= (bounce_count ?b) 0)
         (< (x_bird ?b) 800)
         (not (bird_tapped ?b))
+        (= (bird_type ?b) 1)
       )
       :effect (and
       	(assign (vx_bird ?b) (* (vx_bird ?b) 2))
@@ -299,11 +303,11 @@
       :parameters (?b - bird)
       :precondition (and
       	(= (active_bird) (bird_id ?b))
-      	(= (bird_type ?b) 3)
       	(bird_released ?b)
-        (= (bounce_count ?b) 0)
+      	(= (bounce_count ?b) 0)
         (< (x_bird ?b) 800)
         (not (bird_tapped ?b))
+        (= (bird_type ?b) 3)
       )
       :effect (and
       	(assign (vx_bird ?b) 0)
@@ -315,12 +319,12 @@
         :parameters (?b - bird ?bl_near - block)
         :precondition (and
         	(= (active_bird) (bird_id ?b))
-        	(or
+        	(> (block_stability ?bl_near) 0)
+            (> (block_life ?bl_near) 0)
+            (or
       			(and (= (bird_type ?b) 2) (= (bounce_count ?b) 1) )
       			(and (= (bird_type ?b) 3) (= (bounce_count ?b) 1) (bird_tapped ?b) )
   			)
-            (> (block_stability ?bl_near) 0)
-            (> (block_life ?bl_near) 0)
             (<= (- (x_bird ?b) (x_block ?bl_near)) 70 )
             (>= (- (x_bird ?b) (x_block ?bl_near)) -70 )
             (<= (- (y_bird ?b) (y_block ?bl_near)) 70 )
