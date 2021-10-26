@@ -67,6 +67,7 @@ class DQNLearner():
         if is_training:
             action = self._dqn_handler.act_discrete_with_noise({"state": state})
             if self._previous_state is not None:
+                #print("Storing transition {}, {}, {}, {}, {}".format(self._previous_state, self._previous_action, state, reward, done))
                 self._dqn_handler.store_transition({"state": {"state": self._previous_state},
                                                     "action": {"action": self._previous_action},
                                                     "next_state": {"state": state},
@@ -103,8 +104,8 @@ class DQNAgentRunner():
             score = 0
             steps = 0
             while True:
-                #action = self._agent.get_next_action(observation, reward, done, is_training=is_training)
-                action = self._agent.get_next_action(observation, 0, False, is_training=False)
+                action = self._agent.get_next_action(observation, reward, done, is_training=is_training)
+                #action = self._agent.get_next_action(observation, 0, False, is_training=True)
                 if done or steps >= steps_per_episode:
                     break
                 observation, reward, done, filler = self._environment.step(action)
@@ -125,7 +126,13 @@ class DQNLearnerObserver(WSUObserver):
     def trial_start(self, trial_number: int, novelty_description: dict):
         super().trial_start(trial_number, novelty_description)
         self.agent = self.agent_type(load_from_path=True)
+        #self.agent = self.agent_type(load_from_path=False)
         self.agent.reset()
+
+    def testing_episode_start(self, episode_number: int):
+        self.agent.reset()
+        print("reset agent")
+        pass
 
     def testing_instance(self, feature_vector: dict, novelty_indicator: bool = None, reward=None, done=None) -> \
             dict:
@@ -158,15 +165,26 @@ class DQNLearnerObserver(WSUObserver):
         return np.array([feature_vector[f] for f in features])
 
 
+def make_environment(config):
+    environment = gym.make('CartPole-v1')
+    print(environment.env)
+    for param in config:
+        setattr(environment.env, param, config[param])
+        assert getattr(environment.env, param) is config[param]
+        print(param, getattr(environment.env, param))
+    return environment
+
+
 
 if __name__ == '__main__':
     import gym
-    env = gym.make('CartPole-v1')
+    from runners import constants
+    env = make_environment({constants.LENGTH: 1.1, constants.MASSCART: 0.9})
     #agent = DQNLearner(action_space = env.action_space, observation_space=env.observation_space)
     agent = DQNLearner(action_space=env.action_space.n, observation_space=env.observation_space.shape[0], load_from_path=True)
     runner = DQNAgentRunner(environment=env, agent=agent)
     #runner.run(is_training=True)
-    runner.run(is_training=False, steps_per_episode=200)
+    runner.run(is_training=True, steps_per_episode=200)
     #agent.save_model()
 
 

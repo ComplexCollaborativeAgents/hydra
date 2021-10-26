@@ -14,7 +14,7 @@ from runners.run_sb_stats import *
 
 logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("novelty_experiment_runner")
-logger.setLevel(logging.INFOG)
+logger.setLevel(logging.INFO)
 
 # Paths
 SB_BIN_PATH = pathlib.Path(settings.SCIENCE_BIRDS_BIN_DIR) / 'linux'
@@ -31,11 +31,10 @@ NON_NOVEL_LEVELS = ["0"]
 RESULTS_PATH = pathlib.Path(settings.ROOT_PATH) / "runners" / "experiments" / "ScienceBirds" / "SB_experiment"
 EXPORT_TRIALS = False   # Export trials xml file
 NUM_TRIALS = 1      # Number of trials to run per known/unknown, novelty level and type
-PER_TRIAL = 5      # Levels per trial
-BEFORE_NOVELTY = 1 # Levels in a trial before novelty is introduced
-NOVELTIES = {"22": ["1"]}  # Novelties to use in the experiment (IE, trials to run)
+PER_TRIAL = 1     # Levels per trial
+BEFORE_NOVELTY = 0 # Levels in a trial before novelty is introduced
+NOVELTIES = {"1": ["10"]}  # Novelties to use in the experiment (IE, trials to run)>>>>>>> sm/experiments_sb:runners/novelty_experiment_runner_sb.py
 #NOVELTIES = {"1": ["6", "7", "8", "9", "10"], "2": ["6", "7", "8", "9", "10"], "3": ["6", "7"]}
-
 
 
 
@@ -212,6 +211,7 @@ class NoveltyExperimentRunnerSB:
                     num_repairs = 0
                     repair_time = 0
                     if len(agent_stats) > 0:
+                        print(agent_stats)
                         if 'novelty_likelihood' in agent_stats[episode_num]:
                             novelty_probability = agent_stats[episode_num]["novelty_likelihood"]
                         if 'repair_calls' in agent_stats[episode_num]:
@@ -465,7 +465,6 @@ class NoveltyExperimentRunnerSB:
 
 
 if __name__ == '__main__':
-    experiment_runner = NoveltyExperimentRunnerSB(AgentType.RepairingHydra, export_trials=False)
-
+    experiment_runner = NoveltyExperimentRunnerSB(AgentType.RepairingHydra, export_trials=True)
     experiment_runner.run_experiment()
     # experiment_runner.run_experiment(configs=[SB_CONFIG_PATH / "trial_config_1_6.xml"])

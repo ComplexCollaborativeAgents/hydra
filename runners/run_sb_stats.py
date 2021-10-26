@@ -12,7 +12,7 @@ import xml.etree.ElementTree as ET
 from typing import Optional
 
 import numpy
-# from worlds.science_birds_interface.demo.naive_agent_groundtruth import ClientNaiveAgent
+from worlds.science_birds_interface.demo.naive_agent_groundtruth import ClientNaiveAgent
 
 import worlds.science_birds as sb
 from agent.sb_hydra_agent import SBHydraAgent, RepairingSBHydraAgent
@@ -29,6 +29,8 @@ SB_CONFIG_PATH = SB_DATA_PATH / 'config'
 ANU_LEVELS_PATH = SB_DATA_PATH / 'ANU_Levels.tar.gz'
 STATS_BASE_PATH = pathlib.Path(__file__).parent.absolute()
 
+
+
 class AgentType(enum.Enum):
     RepairingHydra = 0
     Hydra = 1
@@ -38,8 +40,10 @@ class AgentType(enum.Enum):
 
 NOVELTY = 0
 TYPE = 2
-SAMPLES = 10
+SAMPLES = 50
 AGENT = AgentType.Hydra
+
+EXPERIMENT_NAME = "BENCHMARK"
 
 def extract_levels(source, destination=None):
     """ Extract ANU levels. """
@@ -355,7 +359,7 @@ def run_performance_stats(novelties: dict,
 
             if results_directory is not None:
                 stats = compute_stats(results_directory, agent_type, agent_stats)
-                filename = "stats_novelty{}_type{}_agent{}".format(novelty, novelty_type, agent_type.name)
+                filename = "stats_{}_novelty{}_type{}_agent{}".format(EXPERIMENT_NAME, novelty, novelty_type, agent_type.name)
                 if suffix is None or len(suffix) == 0:
                     current_suffix = ''
                 else:

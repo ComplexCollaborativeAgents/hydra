@@ -79,11 +79,11 @@ class NoveltyExperimentGymCartpoleDispatcher(GymCartpoleDispatcher):
     def __run_trial(self, episodes: range = (0, 1), steps: int = 200):
         env = self._make_environment()
         for episode in episodes:
+            observation = env.reset()
             self.delegate.testing_episode_start(episode)
             rewards = []
-            observation = env.reset()
             features = self.observation_to_feature_vector(observation)
-            reward = 0
+            reward = None
             done = False
             for step in range(1, steps + 1):
                 if self.render:
@@ -95,15 +95,16 @@ class NoveltyExperimentGymCartpoleDispatcher(GymCartpoleDispatcher):
                     label = self.delegate.testing_instance(feature_vector=features, novelty_indicator=self._is_known)
                 self.log.debug("Received label={}".format(label))
                 action = self.label_to_action(label)
+                if done:
+                    break
                 observation, reward, done, _ = env.step(action)
                 rewards.append(reward)
 
                 features = self.observation_to_feature_vector(observation, 0.02 * step)
-                if done:
-                    break
+
             performance = sum(rewards) / float(steps)
-            if self._log_details:
-                self.log_details(episode)
+            # if self._log_details:
+            #     self.log_details(episode)
             novelty_probability, novelty_threshold, novelty, novelty_characterization = self.delegate.testing_episode_end(performance)
 
 
@@ -330,11 +331,11 @@ if __name__ == '__main__':
     parser.add_option("--name",
                       dest="name",
                       help="name of the directory in which all the results will be stored at ../data/cartpole/",
-                      default="jun10")
+                      default="aaai_aug")
     parser.add_option("--num_trials",
                       dest='num_trials',
                       help="Number of full trials to be run. Each trial is several subtrials",
-                      default=1)
+                      default=5)
     parser.add_option("--learning_subtrial",
                       dest='l_learning',
                       help='number of episodes in the learning subtrial',
@@ -342,11 +343,11 @@ if __name__ == '__main__':
     parser.add_option("--performance-subtrial",
                       dest='l_performance',
                       help='number of episodes in the non-novelty performance subtrial',
-                      default=3)
+                      default=7)
     parser.add_option("--novelty-subtrial",
                       dest='l_novelty',
                       help='number of episodes in the novelty subtrial',
-                      default=3)
+                      default=200)
     parser.add_option("--log-episode-details",
                       dest='log_episode_details',
                       help='if we want to record states, action, cnn_likelihood, consistency_scores',
@@ -354,7 +355,7 @@ if __name__ == '__main__':
     parser.add_option("--novelty_config",
                       dest='novelty_config',
                       help='a dict of novelty configurations',
-                      default={'uid': 'length_1point1_masscart_point9', 'level': 1, 'config': {constants.LENGTH: 1.1, constants.MASSCART: 0.9}})
+                      default={'uid': 'length_1point1_gravity_12', 'level': 1, 'config': {constants.LENGTH: 1.1, constants.GRAVITY: 12}})
 
 
     (options, args) = parser.parse_args()
@@ -366,3 +367,5 @@ if __name__ == '__main__':
         experiment_runner.run_experiment(options.novelty_config)
     else:
         experiment_runner.run_experiment()
+
+
