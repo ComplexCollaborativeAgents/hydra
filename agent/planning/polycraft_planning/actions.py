@@ -399,7 +399,12 @@ class CreateByTrade(MacroAction):
 
         # We have all ingredients, time to craft
         if len(missing_ingredients) == 0:
-            trader_cell = coordinates_to_cell(state.entities[trader_id]["pos"])
+            try:
+                trader_pos = state.entities[trader_id]["pos"]
+            except KeyError as err:
+                raise KeyError("Trader {} not in entities? {}".format(trader_id, self._current_state.entities))
+
+            trader_cell = coordinates_to_cell(trader_pos)
             if is_adjacent_to_steve(trader_cell, state)==False:
                 return TeleportAndFaceCell(trader_cell)
 
