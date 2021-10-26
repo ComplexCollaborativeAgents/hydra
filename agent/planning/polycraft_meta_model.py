@@ -193,7 +193,8 @@ class PddlCraftAction(PddlPolycraftAction):
 
         if self.needs_crafting_table: # TODO: Not robust to problems with multiple crafting tables
             pddl_action.parameters.append(["?from", "-", "cell"])
-            pddl_action.preconditions.append(["=", ["cell_type", "?from",], f"{BlockType.CRAFTING_TABLE.value}"])
+            crafting_table_idx = meta_model.block_type_to_idx[BlockType.CRAFTING_TABLE.value]
+            pddl_action.preconditions.append(["=", ["cell_type", "?from",], f"{crafting_table_idx}"])
             pddl_action.preconditions.append(["isAccessible", "?from"])
 
         for item_type, quantity in get_ingredients_for_recipe(self.recipe).items():
