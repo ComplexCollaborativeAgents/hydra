@@ -26,28 +26,31 @@ logger.setLevel(logging.INFO)
 
 # Useful constants
 class BlockType(enum.Enum):
-    DIAMOND_ORE = "minecraft:diamond_ore"
-    LOG = "minecraft:log"
-    CRAFTING_TABLE = "minecraft:crafting_table"
     AIR = "minecraft:air"
     BEDROCK = "minecraft:bedrock"
     BLOCK_OF_PLATINUM = "polycraft:block_of_platinum"
-    WOODER_DOOR = "minecraft:wooden_door"
+    CRAFTING_TABLE = "minecraft:crafting_table"
+    DIAMOND_ORE = "minecraft:diamond_ore"
+    LOG = "minecraft:log"
     PLASTIC_CHEST = "polycraft:plastic_chest"
+    SAPLING = "minecraft:sapling"
+    TREE_TAP = "polycraft:tree_tap"
+    WOODER_DOOR = "minecraft:wooden_door"
 
 class ItemType(enum.Enum):
-    WOODEN_POGO_STICK = "polycraft:wooden_pogo_stick"
-    PLANKS = "minecraft:planks"
-    STICK = "minecraft:stick"
-    LOG = "minecraft:log"
+    BLOCK_OF_PLATINUM = "polycraft:block_of_platinum"
     BLOCK_OF_TITANIUM = "polycraft:block_of_titanium"
-    SACK_POLYISOPRENE_PELLETS = "polycraft:sack_polyisoprene_pellets"
-    DIAMOND_BLOCK = "minecraft:diamond_block"
     DIAMOND = "minecraft:diamond"
+    DIAMOND_BLOCK = "minecraft:diamond_block"
     IRON_PICKAXE = "minecraft:iron_pickaxe"
-    TREE_TAP = "polycraft:tree_tap"
-    SAPLING = "minecraft:sapling"
     KEY = "polycraft:key"
+    LOG = "minecraft:log"
+    PLANKS = "minecraft:planks"
+    SAPLING = "minecraft:sapling"
+    STICK = "minecraft:stick"
+    SACK_POLYISOPRENE_PELLETS = "polycraft:sack_polyisoprene_pellets"
+    TREE_TAP = "polycraft:tree_tap"
+    WOODEN_POGO_STICK = "polycraft:wooden_pogo_stick"
 
 class EntityType(enum.Enum):
     POGOIST = "EntityPogoist"
@@ -462,7 +465,6 @@ class PolycraftState(State):
                 entities_to_return.append(entity)
         return entities_to_return
 
-
     def count_items_of_type(self, item_type:str):
         ''' Counts the number of items of a given type '''
         count = 0
@@ -666,20 +668,13 @@ class Polycraft(World):
     def __init__(self, launch: bool = False, client_config: str = None):
         self.id = 2229
         self.detached_server_mode = True # This means we do not listen to the server's output. This mode is used when launch parameter is False
-        self.history = []
-
-        # self.trajectory_planner = SimpleTrajectoryPlanner() # This is static to allow others to reason about it
-
         self.poly_server_process = None     # Subprocess running the polycraft instance
         self.poly_client = None     # polycraft client interface (see polycraft_interface.py)
         self.poly_listener = None   # Listener thread to the polycraft application
         self.poly_output_queue = queue.Queue()   # Queue that collects output from polycraft application subprocess
 
         # State information
-        self.current_recipes = []
-        self.current_trades = dict() # Maps entity id to its trades
-        self.last_cmd_success = True
-        self.ready_for_cmds = False
+        self.init_state_information()
 
         if launch:
             logger.info("Launching Polycraft instance")
@@ -694,6 +689,13 @@ class Polycraft(World):
             client_config = str(path.join(settings.ROOT_PATH, 'worlds', 'polycraft_interface', 'client', 'server_client_config.json'))
 
         self.create_interface(client_config)
+
+    def init_state_information(self):
+        ''' Initialize information about the current state in the current episode (level) '''
+        self.current_recipes = []
+        self.current_trades = dict()  # Maps entity id to its trades
+        self.last_cmd_success = True
+        self.ready_for_cmds = False
 
     def _read_polycraft_output(self, pipe, queue):
         """ Worker function for a separate daemon thread to listen to polycraft output.  Can be used for debugging. """
@@ -883,6 +885,8 @@ class Polycraft(World):
         
         self.current_level = s_level
         self.ready_for_cmds = False
+        self.current_trades.clear()
+        self.current_recipes.clear()
         try:
             self.poly_client.RESET(self.current_level)
             

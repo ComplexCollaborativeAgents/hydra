@@ -2,7 +2,7 @@
 import math
 
 from worlds.polycraft_world import PolycraftState, ItemType, EntityType
-
+from worlds.polycraft_interface.client.polycraft_interface import *
 
 def has_new_item(state_diff: dict):
     ''' Check if the state diff dictionary reports on a new item in the inventory '''
@@ -44,6 +44,18 @@ def get_ingredients_for_recipe(recipe_obj):
     for input in recipe_obj['inputs']:
         item_type = input['Item']
         quantity = input['stackSize']
+        if item_type not in ingredients:
+            ingredients[item_type] = quantity
+        else:
+            ingredients[item_type] = ingredients[item_type] + quantity
+    return ingredients
+
+def get_outputs_of_recipe(recipe_obj):
+    ''' Get the output of a given recipe as a dictionary of {item_type : quantity_needed} '''
+    ingredients = dict()
+    for output in recipe_obj['outputs']:
+        item_type = output['Item']
+        quantity = output['stackSize']
         if item_type not in ingredients:
             ingredients[item_type] = quantity
         else:
@@ -203,7 +215,6 @@ def distance_to_nearest_pogoist(after_state, cell):
                 min_distance_to_pogoist = dist
     return min_distance_to_pogoist
 
-
 def compute_missing_ingridients(recipe, state: PolycraftState):
     ''' Returns a dictionary of the missing ingredients needed to complete a recipe '''
     ingredients = dict()
@@ -239,3 +250,30 @@ def is_adjacent_to_steve(cell:str, state:PolycraftState):
         if adjacent_cell==steve_cell:
             return True
     return False
+
+def get_angle_to_adjacent_cell(cell:str, state:PolycraftState):
+    ''' Computes the angle between the direction Steve is facing and the given adjacent cell. '''
+    cell_coords = cell_to_coordinates(cell)
+    steve_coords = state.location["pos"]
+    delta = [int(cell_coords[i]) - int(steve_coords[i]) for i in range(len(cell_coords))]
+    required_facing = None
+    if delta == [1, 0, 0]:
+        required_facing = FacingDir.EAST
+    elif delta == [-1, 0, 0]:
+        required_facing = FacingDir.WEST
+    elif delta == [0, 0, 1]:
+        required_facing = FacingDir.SOUTH
+    elif delta == [0, 0, -1]:
+        required_facing = FacingDir.NORTH
+    else:
+        raise ValueError(f'Unknown delta between cell and steve after teleport: {delta}')
+
+    current_facing = FacingDir(state.location["facing"])
+    return current_facing.get_angle_to(required_facing)
+
+
+def recipe_needs_crafting_table(recipe)->bool:
+    ''' Returns true iff the given recipe requires a crafting table.
+    This is determined by watching the slots needed to make it.
+    Assumption: a crafting table is only needed to craft recipes that put items in slots beyond the 2x2 area '''
+

@@ -12,5 +12,3 @@ def test_science_birds_agent():
     env.kill()
     assert(hydra.meta_model is not metamodel)
     assert(hydra.planner.meta_model is not metamodel)
-    assert(len(hydra.env.history) == 1) # 1 shot not 2
-

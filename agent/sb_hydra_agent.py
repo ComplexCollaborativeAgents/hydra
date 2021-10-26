@@ -5,7 +5,6 @@ import settings
 from agent.hydra_agent import logger, NN_PROB, PDDL_PROB, NOVELTY_EXISTANCE_NOT_GIVEN, NOVELTY_LIKELIHOOD
 from agent.planning.sb_planner import SBPlanner
 from agent.repair.meta_model_repair import *
-#from state_prediction.anomaly_detector_fc_multichannel import FocusedSBAnomalyDetector
 
 # TODO: Maybe push this to the settings file? then every module just adds a logger
 from agent.repair.sb_repair import ScienceBirdsConsistencyEstimator, ScienceBirdsMetaModelRepair
@@ -171,7 +170,7 @@ class SBHydraAgent(HydraAgent):
             novelty_description = "Uncharacterized novelty"
         novelty_level = 0
 
-        print("Reporting novelty_likelihood: {}".format(novelty_likelihood))
+        logger.info("Reporting novelty_likelihood: {}".format(novelty_likelihood))
         self.env.sb_client.report_novelty_likelihood(novelty_likelihood, non_novelty_likelihood,ids,novelty_level,novelty_description)
 
     def handle_evaluation_terminated(self):
@@ -263,9 +262,9 @@ class SBHydraAgent(HydraAgent):
         ''' This is called when a level has ended, either in a win or a lose our come '''
         self.completed_levels.append(success)
         self._infer_novelty_existence()
-        print("Level novelty indicators {}".format(self.level_novelty_indicators))
-        print("Novelty detections from new code {}".format(self.novelty_detections))
-        print("Novelty likelihood the new code {}".format(self._new_novelty_likelihood))
+        logger.info("Level novelty indicators {}".format(self.level_novelty_indicators))
+        logger.info("Novelty detections from new code {}".format(self.novelty_detections))
+        logger.info("Novelty likelihood the new code {}".format(self._new_novelty_likelihood))
         logger.info("[hydra_agent_server] :: Level {} Complete - WIN={}".format(self.current_level, success))
         logger.info("[hydra_agent_server] :: Cumulative planning time only = {}".format(str(self.cumulative_plan_time)))
         logger.info("[hydra_agent_server] :: Planning effort percentage = {}\n".format(

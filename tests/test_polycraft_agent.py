@@ -25,7 +25,8 @@ def launch_polycraft():
     levels = []
     levels_dir_path = pathlib.Path(settings.POLYCRAFT_NON_NOVELTY_LEVEL_DIR)
     for level_file in os.listdir(levels_dir_path):
-        levels.append(levels_dir_path / level_file)
+        if level_file.endswith(".json2")==False:
+            levels.append(levels_dir_path / level_file)
 
     logger.info("starting")
     env = Polycraft(launch=True)
@@ -36,15 +37,11 @@ def launch_polycraft():
     logger.info("teardown tests")
     env.kill()
 
-@pytest.mark.parametrize('execution_number', range(1))
+@pytest.mark.parametrize('execution_number', range(100))
 def test_fixed_planner(launch_polycraft, execution_number):
     ''' Run the fixed planner and observe results '''
     env, agent, levels = launch_polycraft
-    # test_level = levels[execution_number % len(levels)] # Choose the level to try now
-    # test_level = random.choice(levels)  # Choose the level to try now
-    # test_level = pathlib.Path(settings.POLYCRAFT_NON_NOVELTY_LEVEL_DIR) / "POGO_L00_T01_S01_X0100_U9999_V0_G00053_I0144_N0.json"
-    test_level = pathlib.Path(settings.POLYCRAFT_NON_NOVELTY_LEVEL_DIR) / "POGO_L00_T01_S01_X0100_U9999_V0_G00000_I0020_N0.json"
-
+    test_level = random.choice(levels)  # Choose the level to try now
 
     logger.info(f"Loading level {test_level}...")
     env.init_selected_level(test_level)
@@ -53,7 +50,7 @@ def test_fixed_planner(launch_polycraft, execution_number):
 
     assert(state.terminal==False)
     agent.planner = FixedPlanPlanner()
-    max_iterations = 75
+    max_iterations = 30
     iteration = 0
     while state.terminal==False and \
             state.count_items_of_type(ItemType.WOODEN_POGO_STICK.value)==0 and \

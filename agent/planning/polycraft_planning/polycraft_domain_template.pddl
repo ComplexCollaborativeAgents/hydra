@@ -12,7 +12,7 @@
             (adjacent ?at ?near_to)
             (cell_type ?at {BlockType.AIR.value})
             (cell_type ?near_to {BlockType.LOG.value})
-            (>= (count_{ItemType.TREE_TAP}) 1)
+            (>= (count_{ItemType.TREE_TAP.name}) 1)
         )
         :effect (and
             (decrease (count_{ItemType.TREE_TAP}) 1)
