@@ -29,7 +29,7 @@ class Perception():
         '''Taken from naive_agent_groundtruth'''
         self.model = np.loadtxt("{}/data/science_birds/perception/model".format(settings.ROOT_PATH), delimiter=",")
         self.target_class = list(map(lambda x: x.replace("\n", ""), open('{}/data/science_birds/perception/target_class'.format(settings.ROOT_PATH)).readlines()))
-        self.logreg = pickle.load(open('{}/data/science_birds/perception/logreg.p'.format(settings.ROOT_PATH),'rb'))
+        self.logreg = pickle.load(open('{}/data/science_birds/perception/logreg_pII.p'.format(settings.ROOT_PATH),'rb'))
         self.threshold = settings.SB_CLASSIFICATION_THRESHOLD
         self.new_level = True
         self.writer = csv.DictWriter(open('object_class.csv','w'), fieldnames=classification_cols())
@@ -173,7 +173,8 @@ class Perception():
 
     #Translate to features is only false in testing.
     def classify_obj(self,obj_json,translate_to_features=True):
-        prediction = self.logreg.predict_proba([self.obj_features(obj_json) if translate_to_features else obj_json])
+        feature_vector = self.obj_features(obj_json) if translate_to_features else obj_json
+        prediction = self.logreg.predict_proba([feature_vector])
         pred_type = self.logreg.classes_[prediction[0].argmax()]
         probability = max(prediction[0])
         if probability > self.threshold:

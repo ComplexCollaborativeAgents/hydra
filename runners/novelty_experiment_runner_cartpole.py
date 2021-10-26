@@ -335,7 +335,7 @@ if __name__ == '__main__':
     parser.add_option("--num_trials",
                       dest='num_trials',
                       help="Number of full trials to be run. Each trial is several subtrials",
-                      default=1)
+                      default=5)
     parser.add_option("--learning_subtrial",
                       dest='l_learning',
                       help='number of episodes in the learning subtrial',
@@ -355,7 +355,7 @@ if __name__ == '__main__':
     parser.add_option("--novelty_config",
                       dest='novelty_config',
                       help='a dict of novelty configurations',
-                      default={'uid': 'length_1point1_masscart_point9', 'level': 1, 'config': {constants.LENGTH: 1.1, constants.MASSCART: 0.9}})
+                      default={'uid': 'length_1point1_gravity_12', 'level': 1, 'config': {constants.LENGTH: 1.1, constants.GRAVITY: 12}})
 
 
     (options, args) = parser.parse_args()

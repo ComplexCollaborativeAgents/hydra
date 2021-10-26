@@ -5,6 +5,7 @@ from typing import Type, List, Optional
 
 from worlds.wsu.generator.cartpoleplusplus import CartPoleBulletEnv
 from worlds.wsu.generator.n_0 import CartPole
+from worlds.wsu.generator.n import CartPoleNoBlocks
 from worlds.wsu.wsu_dispatcher import WSUObserver
 
 
@@ -34,15 +35,19 @@ class CartPolePlusPlusDispatcher:
         self.delegate.set_possible_answers(self.possible_answers)
 
     def run(self,
+            is_training = False,
             trials: int = 1,
             generators: Optional[List[CartPoleEnv]] = None,
             difficulties: Optional[List[str]] = None,
             informed_trials: bool = True,
             uninformed_trials: bool = True):
         self.delegate.experiment_start()
-        self.delegate.training_start()
-        # generate training data here in the future, if needed
-        self.delegate.training_end()
+
+        if is_training:
+            self.delegate.training_start()
+            self.__run_training()
+            self.delegate.training_end()
+            return
 
         if generators is None:
             generators = [self.nominal_env]
@@ -69,6 +74,41 @@ class CartPolePlusPlusDispatcher:
                 self.delegate.trial_end()
 
         self.delegate.experiment_end()
+
+
+    def __run_training(self, generator: CartPoleEnv = CartPoleNoBlocks, episodes: int = 2000, steps: int = 200):
+        self.log.debug("Running training with generator: {}".format(generator.__name__))
+        env = generator('easy', renders=False)
+        for episode in range(episodes):
+            self.delegate.training_episode_start(episode)
+            reward = 0
+            sum_reward = 0
+            done = False
+            observation = env.reset()
+            time_stamp = time.time()
+            features = self.observation_to_feature_vector(observation, env, time_stamp)
+            for _ in range(steps):
+                if self.render:
+                    time.sleep(1/50)
+
+                label = self.delegate.training_instance(feature_vector=features, feature_label=None, reward=reward, done=done)
+                #self.log.debug("Received label = {}".format(label))
+                action = self.actions[label['action']]
+
+                observation, reward, done, _ = env.step(action)
+                reward = 1
+                #self.log.debug("Observation: {}, reward: {}, done {}".format(observation, reward, done))
+                sum_reward += reward
+                time_stamp += 1.0 / 30.0
+                features = self.observation_to_feature_vector(observation, env, time_stamp)
+                if done:
+                    self.delegate.training_instance(feature_vector=features, feature_label=None, reward=reward, done=done)
+                    break
+
+            self.delegate.training_episode_end(performance=sum_reward)
+            self.log.debug("Episode: {}, total reward {}".format(episode, sum_reward))
+        env.close()
+
 
     def __run_trial(self,
                     generator: CartPoleEnv,

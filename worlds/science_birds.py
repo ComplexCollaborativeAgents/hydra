@@ -222,11 +222,19 @@ class ScienceBirds(World):
                 a_img, a_gt = self.sb_client.get_ground_truth_with_screenshot()
                 self.intermediate_states.append(SBState(a_gt, a_img, None))
             else:
-                self.intermediate_states = self.sb_client.shoot_and_record_ground_truth(action.ref_x+action.dx, action.ref_y+action.dy, 0, action.tap, settings.SB_GT_FREQ)
-                self.intermediate_states = [SBState(intermediate_state, None, None) for intermediate_state in self.intermediate_states]
+                self.intermediate_states = self.sb_client.shoot_and_record_ground_truth(action.ref_x + action.dx,
+                                                                                        action.ref_y + action.dy, 0,
+                                                                                        action.tap, settings.SB_GT_FREQ)
+                self.intermediate_states = [SBState(intermediate_state, None, None) for intermediate_state in
+                                            self.intermediate_states]
                 time.sleep(2 / settings.SB_SIM_SPEED)
-    #            if len(self.intermediate_states) < 3: # we should get some intermediate states
-    #                assert False
+
+                # On demand pause, allows the previous bird to disappear and the level to fully settle before taking the next shot.
+                self.sb_client.batch_ground_truth(20000, 1)
+                time.sleep(2 / settings.SB_SIM_SPEED)
+
+               # if len(self.intermediate_states) < 3: # we should get some intermediate states
+               #     assert False
             reward =  self.sb_client.get_current_score() - prev_score
             self.get_current_state()
             logger.info("Action executed ref_pt ({},{}) action ({},{}) reward {} len(intermediate_states) {}".format(action.ref_x, action.ref_y, action.dx, action.dy,reward,len(self.intermediate_states)))

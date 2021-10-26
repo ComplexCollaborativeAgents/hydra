@@ -1,8 +1,9 @@
 (define (domain angry_birds_scaled)
     (:requirements :typing :disjunctive-preconditions :fluents :time :negative-preconditions)
-    (:types bird pig block platform)
-    (:predicates (bird_released ?b - bird) (pig_dead ?p - pig) (angle_adjusted) (block_explosive ?bl - block) (pig_killed))
+    (:types bird pig block platform external_agent)
+    (:predicates (bird_released ?b - bird) (pig_dead ?p - pig) (angle_adjusted) (block_explosive ?bl - block) (pig_killed) (agent_dead ?ea - external_agent))
     (:functions (x_bird ?b - bird) (y_bird ?b - bird) (v_bird ?b - bird) (vx_bird ?b - bird) (vy_bird ?b - bird) (m_bird ?b - bird) (bird_id ?b - bird) (bounce_count ?b - bird)
+                (bird_type ?b - bird) ;; BIRD TYPES: RED=0, YELLOW=1, BLACK=2, WHITE=3, BLUE=4 ;;
                 (gravity) (angle_rate) (angle) (active_bird) (ground_damper) (max_angle) (gravity_factor)
                 (base_life_wood_multiplier) (base_life_ice_multiplier) (base_life_stone_multiplier) (base_life_tnt_multiplier)
                 (base_mass_wood_multiplier) (base_mass_ice_multiplier) (base_mass_stone_multiplier) (base_mass_tnt_multiplier)
@@ -12,6 +13,14 @@
                 (x_platform ?pl - platform) (y_platform ?pl - platform) (platform_width ?pl - platform) (platform_height ?pl - platform)
                 (x_block ?bl - block) (y_block ?bl - block) (block_width ?bl - block) (block_height ?bl - block) (block_life ?bl - block) (block_mass ?bl - block) (block_stability ?bl - block)
                 (points_score)
+                (x_agent ?ea - external_agent) (y_agent ?ea - external_agent) (agent_height ?ea - external_agent) (agent_width ?ea - external_agent)
+                (vx_agent ?ea - external_agent) (vy_agent ?ea - external_agent) (timing_agent ?ea - external_agent)
+                (x_max_border ?ea - external_agent) (x_min_border ?ea - external_agent) (y_max_border ?ea - external_agent) (y_min_border ?ea - external_agent)
+                ; (x_exclusion ?ea - external_agent) (y_exclusion ?ea - external_agent) (exclusion_height ?ea - external_agent) (exclusion_width ?ea - external_agent)
+                (agent_type ?ea - external_agent) ;; AGENT TYPES: MAGICIAN=0, WIZARD=1, BUTTERFLY=2, WORM=3, unknown=4,
+                ;;
+                ; (x_marker ?mp - marker_point) (y_marker ?mp - marker_point) ;; POINTS WHICH THE AGENTS MOVE AROUND (made explicit to avoid chacking all blocks and platforms, CHECK WITH OTHERS?).
+                ;;
                 ;; WOOD LIFE = 0.75   WOOD MASS COEFFICIENT = 0.375 ;; ICE LIFE = 0.75   ICE MASS COEFFICIENT = 0.375 ;; STONE LIFE = 1.2   STONE MASS COEFFICIENT = 0.375
                 ;; WOOD LIFE MULTIPLIER = 1.0 ;; ICE LIFE MULTIPLIER = 0.5 ;; STONE LIFE MULTIPLIER = 2.0
                 ;; THESE VALUES NEED TO BE VERIFIED
@@ -206,22 +215,6 @@
         )
     )
 
-
-    ; (:event remove_unsupported_block_destroyed
-    ;     :parameters (?bl_bottom - block ?bl_top - block)
-    ;     :precondition (and
-    ;         (or (<= (block_life ?bl_bottom) 0) (<= (block_stability ?bl_bottom) 0))
-    ;         (<= (x_block ?bl_bottom) (+ (x_block ?bl_top) (/ (block_width ?bl_top) 2) ) )
-    ;         (>= (x_block ?bl_bottom) (- (x_block ?bl_top) (/ (block_width ?bl_top) 2) ) )
-    ;         (<= (y_block ?bl_bottom) (- (y_block ?bl_top) (/ (block_height ?bl_top) 2) ) )
-    ;     )
-    ;     :effect (and
-    ;         (assign (block_life ?bl_top) (- (block_life ?bl_top) 100) )
-    ;         (assign (y_block ?bl_top) (/ (block_height ?bl_top) 2) )
-    ;         (assign (block_stability ?bl_top) 0)
-    ;     )
-    ; )
-
     (:event explode_block
         :parameters (?bl_tnt - block ?bl_near - block)
         :precondition (and
@@ -295,5 +288,117 @@
         )
     )
 
+    (:event explode_block_from_bird
+        :parameters (?b - bird ?bl_near - block)
+        :precondition (and
+        	(= (active_bird) (bird_id ?b))
+        	; (or
+      			(= (bird_type ?b) 2) (> (bounce_count ?b) 0)
+      			; (and (= (bird_type ?b) 3) (= (bounce_count ?b) 1) (bird_tapped ?b) )
+  			; )
+            (> (block_stability ?bl_near) 0)
+            (> (block_life ?bl_near) 0)
+            (<= (- (x_bird ?b) (x_block ?bl_near)) 50 )
+            (>= (- (x_bird ?b) (x_block ?bl_near)) -50 )
+            (<= (- (y_bird ?b) (y_block ?bl_near)) 50 )
+            (>= (- (y_bird ?b) (y_block ?bl_near)) -50 )
+        )
+        :effect (and
+            (assign (block_life ?bl_near) 0)
+            (assign (block_stability ?bl_near) 0)
+        )
+    )
+
+    (:event explode_pig_from_bird
+        :parameters (?b - bird ?p - pig)
+        :precondition (and
+        	(= (active_bird) (bird_id ?b))
+        	; (or
+      			(= (bird_type ?b) 2) (> (bounce_count ?b) 0)
+      			; (and (= (bird_type ?b) 3) (= (bounce_count ?b) 1) (bird_tapped ?b) )
+  			; )
+            (not (pig_dead ?p))
+            (<= (- (x_bird ?b) (x_pig ?p)) 50 )
+            (>= (- (x_bird ?b) (x_pig ?p)) -50 )
+            (<= (- (y_bird ?b) (y_pig ?p)) 50 )
+            (>= (- (y_bird ?b) (y_pig ?p)) -50 )
+        )
+        :effect (and
+            (pig_dead ?p)
+            (pig_killed)
+            (increase (points_score) 5000)
+        )
+    )
+
+    ;; EXTERNAL AGENT EVENTS
+    ;; AGENT TYPES: MAGICIAN=0, WIZARD=1, BUTTERFLY=2, WORM=3
+
+    (:process agent_movement
+        :parameters (?ea - external_agent)
+        :precondition (and (not (agent_dead ?ea)) )
+        :effect (and
+            (increase (x_agent ?ea) (* #t (* 1.0 (vx_agent ?ea))))
+            (increase (y_agent ?ea) (* #t (* 1.0 (vy_agent ?ea))))
+            (increase (timing_agent ?ea) (* #t 200))
+        )
+    )
+
+    (:event agent_1_timed_change_direction
+        :parameters (?ea - external_agent)
+        :precondition (and
+            (= (agent_type ?ea) 1)
+            (not (agent_dead ?ea))
+            (>= (timing_agent ?ea) 1000)
+        )
+        :effect (and
+            (assign (vx_agent ?ea) (* (vx_agent ?ea) -1))
+            (assign (vy_agent ?ea) (* (vy_agent ?ea) -1))
+        )
+    )
+
+    (:event agent_x_border_change_direction
+        :parameters (?ea - external_agent)
+        :precondition (and
+            (not (agent_dead ?ea))
+            (or
+                (and (> (vx_agent ?ea) 0) (>= (+ (x_agent ?ea) (/ (agent_width ?ea) 2)) (x_max_border ?ea)) )
+                (and (< (vx_agent ?ea) 0) (<= (- (x_agent ?ea) (/ (agent_width ?ea) 2)) (x_min_border ?ea)) )
+            )
+        )
+        :effect (and
+            (assign (vx_agent ?ea) (* (vx_agent ?ea) -1))
+        )
+    )
+
+    (:event agent_y_border_change_direction
+        :parameters (?ea - external_agent)
+        :precondition (and
+            (not (agent_dead ?ea))
+            (or
+                (and (> (vy_agent ?ea) 0) (>= (+ (y_agent ?ea) (/ (agent_height ?ea) 2)) (y_max_border ?ea)) )
+                (and (< (vy_agent ?ea) 0) (<= (- (y_agent ?ea) (/ (agent_height ?ea) 2)) (y_min_border ?ea)) )
+            )
+        )
+        :effect (and
+            (assign (vy_agent ?ea) (* (vy_agent ?ea) -1))
+        )
+    )
+
+    (:event collision_agent
+        :parameters (?b - bird ?ea - external_agent)
+        :precondition (and
+            (= (active_bird) (bird_id ?b))
+            (> (v_bird ?b) 0)
+            (<= (x_bird ?b) (+ (x_agent ?ea) (/ (agent_width ?ea) 1.75) ) )
+            (>= (x_bird ?b) (- (x_agent ?ea) (/ (agent_width ?ea) 1.75) ) )
+            (>= (y_bird ?b) (- (y_agent ?ea) (/ (agent_height ?ea) 1.75) ) )
+            (<= (y_bird ?b) (+ (y_agent ?ea) (/ (agent_height ?ea) 1.75) ) )
+        )
+        :effect (and
+            (assign (v_bird ?b) 0)
+            (assign (vx_bird ?b) 0)
+            (assign (bounce_count ?b) 3)
+        )
+    )
 
 )

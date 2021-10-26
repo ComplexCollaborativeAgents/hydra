@@ -32,7 +32,7 @@ class Planner:
         self.reached_goal_states = list()
         self.explored_states = 0
         # self.total_visited = 0
-        self.queue = []
+        self.queue = collections.deque()
         self.visited_hashmap = {}
 
 
@@ -143,7 +143,7 @@ class Planner:
         elif constants.SEARCH_ASTAR:
             n_state.set_h_heuristic(heuristic_functions.heuristic_function(n_state))
             self.queue.appendleft(n_state)
-            self.queue = sorted(self.queue, key=lambda elem: (elem.h + elem.g))
+            self.queue = collections.deque(sorted(self.queue, key=lambda elem: (elem.h + elem.g)))
 
         if constants.PRINT_ALL_STATES:
             print(n_state)
