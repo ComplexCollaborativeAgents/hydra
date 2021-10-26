@@ -7,7 +7,7 @@ from enum import Enum
 from agent.planning.pddl_plus import *
 
 '''
-A class with utility function to help parse PDDL files. 
+A class with utility function to help parse PDDL files.
 '''
 class PddlParserUtils:
     ''' Converts the file in a list of tokens, considering space and newline as a delimiter,
@@ -18,6 +18,8 @@ class PddlParserUtils:
         for line in in_file.readlines():
             if line.strip().startswith(";"): # A comment line
                 continue
+            if ';' in line:
+                line = line[:line.find(';')] # strip away inline comment
             line_tokens = line.lower().replace("(", " ( ").replace(")"," ) ").split()
             for token in line_tokens:
                 if len(token.strip())==0:
@@ -193,7 +195,7 @@ class PddlDomainParser():
     def parse_functions(self, functions_element: list) -> list:
         return functions_element[1:]
 
-    ''' Parses the parameters of the process. The parameters start in index i. 
+    ''' Parses the parameters of the process. The parameters start in index i.
     Returns the list of parameters and the index to the next element to parse in the process element'''
     def parse_world_change_parameters(self, i, world_change_element):
         i = i+1 # To go after the :parameters string
@@ -203,7 +205,7 @@ class PddlDomainParser():
             i=i+1
         return (i, parameters)
 
-    ''' Parses the preconditions of the process. The preconditions start in index i. 
+    ''' Parses the preconditions of the process. The preconditions start in index i.
         Returns the list of preconditions and the index to the next element to parse in the process element'''
     def parse_world_change_preconditions(self, i, world_change_element):
         i = i + 1  # To go after the :parameters string
@@ -212,7 +214,7 @@ class PddlDomainParser():
             raise SyntaxError("Only supporting an (and) clause for preconditions")
         return (i+1, preconditions_element[1:])
 
-    ''' Parses the effects of the process. The effects start in index i. 
+    ''' Parses the effects of the process. The effects start in index i.
         Returns the list of effects and the index to the next element to parse in the process element'''
     def parse_world_change_effects(self, i, world_change_element):
         i = i + 1  # To go after the :parameters string
@@ -349,5 +351,3 @@ class PddlProblemParser():
                 elif element[0] == ":metric":
                     problem.metric = self.parse_metric(element)
         return problem
-
-

@@ -680,6 +680,9 @@ class Polycraft(World):
             logger.info("Launching Polycraft instance")
             self.launch_polycraft()
             self.detached_server_mode = False
+        else:
+            self.detached_server_mode = True
+            logger.info("Starting agent without launching Polycraft")
 
         # Path to polycraft client interface config file (host name/port, buffer size, etc.)
         if client_config is None:
@@ -859,6 +862,13 @@ class Polycraft(World):
         
         try:
             self.poly_client = poly.PolycraftInterface(settings_path, logger=logger)
+
+            # LaunchTournament.py automatically calls START, do not do so if running without it!
+            if not self.detached_server_mode:
+                self.poly_client.START() # Send START command - will not perform any further actions unless done so
+            
+            self.poly_client.CHECK_COST()   # Give time for the polycraft instance to clear its buffer?
+
         except (ConnectionRefusedError, BrokenPipeError) as err:
             logger.error("Failed to connect to Polycraft server - shutting down.")
             self.kill(exit_program=True)
@@ -869,6 +879,10 @@ class Polycraft(World):
         Initialize a specific level (accepts a string path)
         NOTE: at every end level, the gameOver boolean in the returned dictionary turns to True - we need to handle advancing to next level on our side
         """
+        # Reset values from past level
+        self.reset_current_recipes()
+        self.reset_current_trades()
+        
         self.current_level = s_level
         self.ready_for_cmds = False
         self.current_trades.clear()
@@ -878,11 +892,13 @@ class Polycraft(World):
             
             # Wait for level to load fully (if not loaded fully, SENSE_ALL will return nothing and other undefined behavior) TODO: make consistent with RunTournament.py
             if self.detached_server_mode==False:
+                logger.info("Telling Polycraft to load a new level: {}".format(self.current_level))
                 while True:
                     if "[EXP] game initialization completed" in self._get_polycraft_output():
                         self.ready_for_cmds = True
                         break
             else: # Detached server, using a heuristic of waiting a bit for it to load TODO: Is this bad?
+                logger.info("Waiting for level to initialize...")
                 time.sleep(5) # Assumes 5 sec. is enough to load a level.
 
         except (BrokenPipeError, KeyboardInterrupt) as err:
@@ -924,14 +940,20 @@ class Polycraft(World):
             raise err
 
         # Populate current recipes and trades
-        current_state.trades = copy.copy(self.current_trades)
-        current_state.recipes = copy.copy(self.current_recipes)
+        current_state.trades = copy.deepcopy(self.current_trades)
+        current_state.recipes = copy.deepcopy(self.current_recipes)
 
         # Obtain current cost
         step_cost = self.get_level_total_step_cost()
         current_state.step_cost = step_cost
 
         return current_state
+
+    def reset_current_trades(self):
+        self.current_trades = {}
+
+    def reset_current_recipes(self):
+        self.current_recipes = []
 
     def populate_current_recipes(self):
         """

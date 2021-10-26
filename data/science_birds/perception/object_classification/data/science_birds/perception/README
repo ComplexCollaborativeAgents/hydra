@@ -1,0 +1,2 @@
+These csv files are used to train and test classifiers. They are created in perception.py when settings.debug is true.
+The features are created in perception.obj_dictionary().

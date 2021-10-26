@@ -129,4 +129,9 @@ class CachingPddlPlusSimulator(PddlPlusSimulator):
                 if self.__precondition_hold(state, precondition)==True:
                     return True
             return False
+        if single_precondition[0]=="and":
+            for precondition in single_precondition[:0:-1]:
+                if self.__precondition_hold(state, precondition)==False:
+                    return False
+            return True
         return self._eval(single_precondition, state)

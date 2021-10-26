@@ -91,10 +91,6 @@ class PolycraftInterface:
 
         self.connect_to_polycraft(self.settings['host'], self.settings['port'])
 
-        self.START() # Send START command - will not perform any further actions unless done so
-
-        self.CHECK_COST()   # Give time for the polycraft instance to clear its buffer?
-
     def connect_to_polycraft(self, host, port):
         """ Setup socket and connect to polycraft world """
         try:
@@ -141,18 +137,19 @@ class PolycraftInterface:
                 data += part
                 if len(part) < self.settings['requestbufbytes']:
                     # either got nothing or reached end of data
-                    if cmd is not None and data is not None and data != b'':
-                        data_dict = json.loads(data)
-                        recv_cmd = data_dict['command_result']['command']
-                        if data_dict and recv_cmd == cmd:
-                            self._logger.debug("Recieved full message for {}".format(recv_cmd))
-                            break
-                        else:   # Did not recieve the command we wanted, try again
-                            self._logger.debug("Recieved dirty response from buffer: {}".format(recv_cmd))
-                            data = b''
-                            self._send_cmd("CHECK_COST")    # Use no-op to pull data from server buffer
-                    else:
-                        break
+                    # if cmd is not None and data is not None and data != b'':
+                    #     data_dict = json.loads(data)
+                    #     recv_cmd = data_dict['command_result']['command']
+                    #     if data_dict and recv_cmd == cmd:
+                    #         self._logger.debug("Recieved full message for {}".format(recv_cmd))
+                    #         break
+                    #     else:   # Did not recieve the command we wanted, try again
+                    #         self._logger.debug("Recieved dirty response from buffer: {}".format(recv_cmd))
+                    #         data = b''
+                    #         self._send_cmd("CHECK_COST")    # Use no-op to pull data from server buffer
+                    # else:
+                    #     break
+                    break
             except KeyboardInterrupt as err:
                 self.disconnect_from_polycraft()
                 raise err
