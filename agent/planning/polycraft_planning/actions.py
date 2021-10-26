@@ -67,24 +67,7 @@ class TeleportAndFaceCell(PolycraftAction):
 
         # Orient so we face the block
         current_state = PolycraftState.create_current_state(poly_client)
-
-        cell_coords = cell_to_coordinates(self.cell)
-        steve_coords = current_state.location["pos"]
-        delta = [int(cell_coords[i]) - int(steve_coords[i]) for i in range(len(cell_coords))]
-        required_facing = None
-        if delta == [1, 0, 0]:
-            required_facing = poly.FacingDir.EAST
-        elif delta == [-1, 0, 0]:
-            required_facing = poly.FacingDir.WEST
-        elif delta == [0, 0, 1]:
-            required_facing = poly.FacingDir.SOUTH
-        elif delta == [0, 0, -1]:
-            required_facing = poly.FacingDir.NORTH
-        else:
-            raise ValueError(f'Unknown delta between cell and steve after teleport: {delta}')
-
-        current_facing = poly.FacingDir(current_state.location["facing"])
-        turn_angle = current_facing.get_angle_to(required_facing)
+        turn_angle = get_angle_to_adjacent_cell(self.cell, current_state)
         if turn_angle == 0:
             self.success = self.is_success(result)
             return result
@@ -300,42 +283,111 @@ class MoveToCraftingTable(PolycraftAction):
         return result
 
 class PlaceTreeTap(PolycraftAction):
-    def __init__(self):
+    def __init__(self, cell:str):
         super().__init__()
+        self.cell = cell
 
     def __str__(self):
-        return f"<PlaceTreeTap success={self.success}>"
+        return f"<PlaceTreeTap cell={self.cell} success={self.success}>"
 
     def do(self, poly_client: poly.PolycraftInterface) -> dict:
-        state = PolycraftState.create_current_state(poly_client)
-        log_cells = state.get_cells_of_type(BlockType.LOG.value, only_accessible=True)
-        assert (len(log_cells) > 0)
-        cells_to_place_tree_tap = []
-        for cell in log_cells:
-            for adjacent_cell in get_adjacent_cells(cell):
-                if adjacent_cell in state.game_map and \
-                        state.game_map[adjacent_cell]["name"] == BlockType.AIR.value and \
-                        state.game_map[adjacent_cell]["isAccessible"]:
-                    cells_to_place_tree_tap.append(adjacent_cell)
-        assert (len(cells_to_place_tree_tap) > 0)
-        cell = cells_to_place_tree_tap[0]
-        action = TeleportAndFaceCell(cell)
-        result = action.do(poly_client)
-        if action.is_success(result)==False:
-            self.success=False
-            return result
-
         # Place the tree tap
         action = PolyPlaceTreeTap()
         result = action.do(poly_client)
         if action.is_success(result) == False:
             self.success = False
             return result
-
         self.success = True
         return result
 
 #### MACRO ACTIONS
+
+class TeleportToAndDo(MacroAction):
+    ''' Macro action that teleports to a cell if needed, turns to face it if needed, and performs an action '''
+    def __init__(self, cell: str):
+        super().__init__()
+        self.cell = cell
+
+    def _action_at_cell(self):
+        raise NotImplementedError("Subclasses should implement this. Returns the next action to do after facing a cell. Do not forget to mark _is_done when done.")
+
+    def _get_next_action(self)->PolycraftAction:
+        state = self._current_state
+
+        # If not near the cell, teleport to it
+        if is_adjacent_to_steve(self.cell, state)==False:
+            return TeleportAndFaceCell(self.cell)
+        turn_angle = get_angle_to_adjacent_cell(self.cell, state)
+
+        # If not facing the cell, turn to it
+        if turn_angle != 0:
+            return PolyTurn(turn_angle)
+
+        return self._action_at_cell()
+
+class TeleportToAndCollect(TeleportToAndDo):
+    ''' Macro for teleporting to a given cell, turning to face it, and collecting an item from it.
+    The macro only teleports to the cell if Steve isn't already adjacent to it, and only turns to face the cell if needed. '''
+    def __init__(self, cell: str):
+        super().__init__(cell)
+
+    def __str__(self):
+        return "<TeleportToAndCollect {} success={}>".format(self.cell, self.success)
+
+    def _action_at_cell(self):
+        self._is_done = True
+        return PolyCollect()
+
+class TeleportToBreakAndCollect(TeleportToAndDo):
+    ''' Macro for teleporting to a given cell, turning to face it, breaking it, and collecting the resulting item.
+    The macro only teleports to the cell if Steve isn't already adjacent to it, and only turns to face the cell if needed. '''
+    def __init__(self, cell: str):
+        super().__init__(cell)
+
+    def __str__(self):
+        return "<TeleportToBreakAndCollect {} success={}>".format(self.cell, self.success)
+
+    def _action_at_cell(self):
+        self._is_done = True
+        return PolyBreakAndCollect(self.cell)
+
+class TeleportToTableAndCraft(TeleportToAndDo):
+    ''' Move to the crafting table (if not already there) and crafts according to a recipe '''
+    def __init__(self, table_cell, recipe):
+        super().__init__(table_cell)
+        self.recipe = recipe
+
+    def __str__(self):
+        output_items = "_".join([f"{output['Item']}_{output['stackSize']}" for output in self.recipe["outputs"]])
+        input_items = "_".join([f"{input['Item']}_{input['stackSize']}" for input in self.recipe["inputs"]])
+        return f"<TeleportToTableAndCraft_{output_items}_from_{input_items}_at_{self.cell} success={self.success}>"
+
+    def _action_at_cell(self):
+        self._is_done = True
+        return PolyCraftItem.create_action(self.recipe)
+
+class TeleportToTraderAndTrade(TeleportToAndDo):
+    ''' Move to a selected trader (if needed) and performs a trade '''
+    def __init__(self, trader_id, trade):
+        super().__init__(cell=None) # Cell is determined in runtime, according to the location of the trader
+        self.trader_id = trader_id
+        self.trade = trade
+
+    def __str__(self):
+        output_items = "_".join([f"{output['Item']}_{output['stackSize']}" for output in self.trade["outputs"]])
+        input_items = "_".join([f"{input['Item']}_{input['stackSize']}" for input in self.trade["inputs"]])
+        return f"<TeleportToTraderAndTrade_{self.trader_id}_{output_items}_from_{input_items} success={self.success}>"
+
+    def _action_at_cell(self):
+        self._is_done = True
+        return PolyCraftItem.create_action(self.recipe)
+
+    def _get_next_action(self)->PolycraftAction:
+        state = self._current_state
+        trader_obj = state.entities[self.trader_id]
+        self.cell = coordinates_to_cell(trader_obj["pos"])
+        return super()._get_next_action()
+
 
 class CreateByRecipe(MacroAction):
     ''' An action that crafts an item by following a recipe. If ingredients are missing it goes to search and collect them '''
@@ -501,7 +553,30 @@ class CreateSackPolyisoprenePellets(MacroAction):
             if state.count_items_of_type(ItemType.TREE_TAP.value)==0: # Need to create the tree tap
                 return CreateTreeTap()
             else:
-                return PlaceTreeTap()
+                # Find place for a tree tap
+                log_cells = state.get_cells_of_type(BlockType.LOG.value, only_accessible=True)
+                assert (len(log_cells) > 0)
+                cells_to_place_tree_tap = []
+                for cell in log_cells:
+                    for adjacent_cell in get_adjacent_cells(cell):
+                        if adjacent_cell in state.game_map and \
+                                state.game_map[adjacent_cell]["name"] == BlockType.AIR.value and \
+                                state.game_map[adjacent_cell]["isAccessible"]:
+                            cells_to_place_tree_tap.append(adjacent_cell)
+                assert (len(cells_to_place_tree_tap) > 0)
+
+                # Check if there's a relevant cell we're looking at
+                cell_to_place = None
+                for cell in cells_to_place_tree_tap:
+                    if is_adjacent_to_steve(cell, state) and get_angle_to_adjacent_cell(cell, state)==0:
+                        cell_to_place = cell
+                        break
+                # If Steve isn't facing a relevant cell, teleport to one
+                if cell_to_place is None:
+                    cell = cells_to_place_tree_tap[0]
+                    return TeleportAndFaceCell(cell)
+                else: # Steve is facing a relevant cell! just place the tree tap
+                    return PlaceTreeTap(cell)
 
         # Tree tap exists, go and collect!
         if state.is_facing_type(ItemType.TREE_TAP.value):

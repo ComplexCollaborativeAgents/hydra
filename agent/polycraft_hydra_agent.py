@@ -168,6 +168,7 @@ class PolycraftHydraAgent(HydraAgent):
         These actions are needed before calling the planner  '''
 
         # Explore the level
+        env.init_state_information()
         env.populate_current_recipes()
         current_state = env.get_current_state()
         # Try to interact with all other agents

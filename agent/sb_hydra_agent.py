@@ -59,7 +59,6 @@ class SBHydraAgent(HydraAgent):
 
     def reinit(self):
         logging.info('Reinit...')
-        self.env.history = []
         self.perception = Perception()
         self.meta_model = ScienceBirdsMetaModel()
         self.planner = SBPlanner(self.meta_model) # TODO: Discuss this w. Wiktor & Matt

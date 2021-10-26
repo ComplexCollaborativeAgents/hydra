@@ -11,54 +11,6 @@ logger = logging.getLogger("cartpole_meta_model")
 logger.setLevel(logging.INFO)
 logger.addHandler(fh)
 
-
-''' A generator for Pddl Objects '''
-class PddlObjectType():
-    ''' Accepts an object from SBState.objects '''
-    def __init__(self):
-        self.hyper_parameters = dict()
-        self.pddl_type="object" # This the PDDL+ type of this object.
-
-    ''' Subclasses should override this setting all attributes of that object '''
-    def _compute_obj_attributes(self, obj, problem_params:dict):
-        return dict()
-
-    ''' Subclasses should override this settign all attributes of that object that can be observed'''
-    def _compute_observable_obj_attributes(self, obj, problem_params:dict):
-        return dict()
-
-    ''' Populate a PDDL+ problem with details about this object '''
-    def add_object_to_problem(self, prob: PddlPlusProblem, obj, problem_params:dict):
-        name = self._get_name(obj)
-        prob.objects.append([name, self.pddl_type])
-        attributes = self._compute_obj_attributes(obj, problem_params)
-        for attribute in attributes:
-            value = attributes[attribute]
-            # If attribute is Boolean no need for an "=" sign
-            if isinstance(value,  bool):
-                if value==True:
-                    prob.init.append([attribute, name])
-                else: # value == False
-                    prob.init.append(['not', [attribute, name]])
-            else: # Attribute is a number
-                prob.init.append(['=', [attribute, name], value])
-
-    ''' Populate a PDDL+ state with details about this object '''
-    def add_object_to_state(self, pddl_state: PddlPlusState, obj, state_params:dict):
-        name = self._get_name(obj)
-        attributes = self._compute_observable_obj_attributes(obj, state_params)
-        for attribute in attributes:
-            value = attributes[attribute]
-            fluent_name = (attribute, name)
-            # If attribute is Boolean no need for an "=" sign
-            if isinstance(value,  bool):
-                if value==True:
-                    pddl_state.boolean_fluents.add(fluent_name)
-                # TODO: Think how to handle booean fluents with False value. Not as trivial as it sounds
-            else: # Attribute is a number
-                pddl_state.numeric_fluents[fluent_name]=value
-
-
 class CartPoleMetaModel(MetaModel):
     PLANNER_PRECISION = 5 # how many decimal points the planner can handle correctly
 
