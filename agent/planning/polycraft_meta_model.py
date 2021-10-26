@@ -476,7 +476,7 @@ class PolycraftMetaModel(MetaModel):
         for pddl_action in pddl_actions:
             pddl_domain.actions.append(pddl_action.to_pddl(self))
 
-        # pddl_domain.events.append(CellAccessibleEvent().to_pddl(self))
+        pddl_domain.events.append(CellAccessibleEvent().to_pddl(self))
 
         return pddl_domain
 
