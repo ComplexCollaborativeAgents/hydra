@@ -9,6 +9,45 @@ from sklearn import preprocessing
 import csv
 import pandas as pd
 
+OBJECT_CLASSES = {'bird_black_1': 'blackBird',
+               'bird_black_2': 'blackBird',
+               'bird_white_1': 'birdWhite',
+               'bird_white_2': 'birdWhite',
+               'bird_yellow_1': 'yellowBird',
+               'bird_yellow_2': 'yellowBird',
+               'bird_blue_1': 'blueBird',
+               'bird_blue_2': 'blueBird',
+               'bird_red_1': 'redBird',
+               'bird_red_2': 'redBird',
+               'platform': 'hill',
+               'ice_triang_1': 'ice', 'ice_square_hole_1': 'ice', 'ice_triang_hole_1': 'ice',
+               'ice_rect_small_1': 'ice',
+               'ice_square_small_1': 'ice', 'ice_rect_tiny_1': 'ice', 'ice_rect_big_1': 'ice',
+               'ice_rect_fat_1': 'ice',
+               'ice_rect_medium_1': 'ice', 'ice_circle_1': 'ice', 'ice_square_tiny_1': 'ice',
+               'ice_circle_small_1': 'ice',
+               'wood_rect_big_1': 'wood', 'wood_rect_tiny_1': 'wood', 'wood_rect_tiny_2': 'wood',
+               'wood_circle_small_1': 'wood',
+               'wood_square_hole_1': 'wood', 'wood_rect_small_1': 'wood', 'wood_square_small_1': 'wood',
+               'wood_triang_hole_1': 'wood', 'wood_circle_1': 'wood', 'wood_rect_medium_1': 'wood',
+               'wood_square_tiny_1': 'wood', 'wood_square_small_2': 'wood', 'wood_rect_fat_1': 'wood',
+               'wood_triang_1': 'wood',
+               'stone_rect_fat_1': 'stone', 'stone_rect_medium_1': 'stone', 'stone_circle_1': 'stone',
+               'stone_square_small_1': 'stone', 'stone_rect_small_1': 'stone', 'stone_rect_big_1': 'stone',
+               'stone_square_tiny_2': 'stone',
+               'stone_square_hole_1': 'stone', 'stone_rect_tiny_1': 'stone', 'stone_triang_1': 'stone', 'stone_rect_fat_2': 'stone', 'stone_rect_big_2': 'stone',
+               'stone_triang_2': 'stone', 'stone_square_small_2': 'stone',
+               'stone_circle_small_1': 'stone', 'stone_square_tiny_1': 'stone', 'stone_triang_hole_1': 'stone',
+               'stone_triang_hole_2': 'stone',
+               'stone_rect_tiny_2': 'stone',
+               'stone_circle_small_2': 'stone',
+               'pig_basic_medium_3': 'pig', 'pig_basic_medium_1': 'pig', 'pig_basic_small_1': 'pig', 'pig_basic_small_3': 'pig', 'pig_basic_small_6': 'pig',
+               'Slingshot': 'slingshot', 'TNT': 'TNT','Platform':'platform',
+               'worm': 'worm',
+               'magician': 'magician',
+               'wizard': 'wizard',
+               'butterfly': 'butterfly'}
+
 
 header = \
 '''<evaluation>
@@ -56,44 +95,7 @@ count = 0
 
 
 def type_to_class(type):
-    classes = {'bird_black_1': 'blackBird',
-               'bird_black_2': 'blackBird',
-               'bird_white_1': 'birdWhite',
-               'bird_white_2': 'birdWhite',
-               'bird_yellow_1': 'yellowBird',
-               'bird_yellow_2': 'yellowBird',
-               'bird_blue_1': 'blueBird',
-               'bird_blue_2': 'blueBird',
-               'bird_red_1': 'redBird',
-               'bird_red_2': 'redBird',
-               'platform': 'hill',
-               'ice_triang_1': 'ice', 'ice_square_hole_1': 'ice', 'ice_triang_hole_1': 'ice',
-               'ice_rect_small_1': 'ice',
-               'ice_square_small_1': 'ice', 'ice_rect_tiny_1': 'ice', 'ice_rect_big_1': 'ice',
-               'ice_rect_fat_1': 'ice',
-               'ice_rect_medium_1': 'ice', 'ice_circle_1': 'ice', 'ice_square_tiny_1': 'ice',
-               'ice_circle_small_1': 'ice',
-               'wood_rect_big_1': 'wood', 'wood_rect_tiny_1': 'wood', 'wood_rect_tiny_2': 'wood',
-               'wood_circle_small_1': 'wood',
-               'wood_square_hole_1': 'wood', 'wood_rect_small_1': 'wood', 'wood_square_small_1': 'wood',
-               'wood_triang_hole_1': 'wood', 'wood_circle_1': 'wood', 'wood_rect_medium_1': 'wood',
-               'wood_square_tiny_1': 'wood', 'wood_square_small_2': 'wood', 'wood_rect_fat_1': 'wood',
-               'wood_triang_1': 'wood',
-               'stone_rect_fat_1': 'stone', 'stone_rect_medium_1': 'stone', 'stone_circle_1': 'stone',
-               'stone_square_small_1': 'stone', 'stone_rect_small_1': 'stone', 'stone_rect_big_1': 'stone',
-               'stone_square_tiny_2': 'stone',
-               'stone_square_hole_1': 'stone', 'stone_rect_tiny_1': 'stone', 'stone_triang_1': 'stone', 'stone_rect_fat_2': 'stone', 'stone_rect_big_2': 'stone',
-               'stone_triang_2': 'stone', 'stone_square_small_2': 'stone',
-               'stone_circle_small_1': 'stone', 'stone_square_tiny_1': 'stone', 'stone_triang_hole_1': 'stone',
-               'stone_triang_hole_2': 'stone',
-               'stone_rect_tiny_2': 'stone',
-               'stone_circle_small_2': 'stone',
-               'pig_basic_medium_3': 'pig', 'pig_basic_medium_1': 'pig', 'pig_basic_small_1': 'pig', 'pig_basic_small_3': 'pig', 'pig_basic_small_6': 'pig',
-               'Slingshot': 'slingshot', 'TNT': 'TNT','Platform':'platform',
-               'worm': 'worm',
-               'magician': 'magician',
-               'wizard': 'wizard',
-               'butterfly': 'butterfly'}
+    classes = OBJECT_CLASSES
     if type in classes:
         return classes[type]
     else:

@@ -24,6 +24,9 @@ from worlds.science_birds import SBState
 import csv
 logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
 
+if settings.COLLECT_PERCEPTION_DATA:
+    from utils.assess_classification import OBJECT_CLASSES
+
 class Perception():
     def __init__(self):
         '''Taken from naive_agent_groundtruth'''
@@ -85,7 +88,10 @@ class Perception():
                           'polygon':Polygon(obj['geometry']['coordinates'][0])}
                 new_objs[obj['properties']['id']] = new_obj
             elif obj['geometry'] and obj['geometry']['type'] != 'MultiPoint': #if it is not the ground or a trajectory
-                type = self.classify_obj(obj)
+                if settings.COLLECT_PERCEPTION_DATA:
+                    type = self.classify_object_for_data_collection(obj)
+                else:
+                    type = self.classify_obj(obj)
                 new_obj = {'type':type,
                             'polygon':Polygon(obj['geometry']['coordinates'][0])}
                 if type == 'unknown':
@@ -169,6 +175,11 @@ class Perception():
         except TopologicalError:
             logging.info("Ill-formed platform. Returning an empty list for the platforms")
         return ret
+
+    def classify_object_for_data_collection(self, obj_json, translate_to_features=True):
+        object_label = obj_json['properties']['label']
+        object_class = OBJECT_CLASSES[object_label]
+        return object_class
 
 
     #Translate to features is only false in testing.

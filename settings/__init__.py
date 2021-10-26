@@ -19,7 +19,7 @@ SB_DELTA_T = 0.05 # time discretisation for UPMurphi
 SB_TIMEOUT = 30 # timeout for the planning phase (in seconds)
 SB_DEFAULT_SHOT = 'RANDOM_PIG'
 SB_PLANNER_SIMPLIFICATION_SEQUENCE = [1,2] # the order of problem simplications attempted to generate a plan
-
+SB_COLLECT_PERCEPTION_DATA = False
 
 CP_PLANNER_MEMORY_LIMIT = 50 # memory limit for UPMurphi (in MB)
 CP_DELTA_T = 0.02 # time discretisation for UPMurphi
