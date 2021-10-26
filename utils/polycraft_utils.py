@@ -270,10 +270,3 @@ def get_angle_to_adjacent_cell(cell:str, state:PolycraftState):
 
     current_facing = FacingDir(state.location["facing"])
     return current_facing.get_angle_to(required_facing)
-
-
-def recipe_needs_crafting_table(recipe)->bool:
-    ''' Returns true iff the given recipe requires a crafting table.
-    This is determined by watching the slots needed to make it.
-    Assumption: a crafting table is only needed to craft recipes that put items in slots beyond the 2x2 area '''
-

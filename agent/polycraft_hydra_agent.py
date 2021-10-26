@@ -259,6 +259,19 @@ class PolycraftHydraAgent(HydraAgent):
         self.current_observation.rewards.append(step_cost)
         return next_state, step_cost
 
+    def do_batch(self, batch_size:int, state:PolycraftState, env:Polycraft):
+        ''' Runs a batch of actions from the given state using the given environment.
+        Halt after batch_size actions or if the level has been finished. '''
+        iteration = 0
+        while state.terminal == False and \
+                state.count_items_of_type(ItemType.WOODEN_POGO_STICK.value) == 0 and \
+                iteration < batch_size:
+            action = self.choose_action(state)
+            after_state, step_cost = self.do(action, env)
+            state = after_state
+            iteration = iteration + 1
+        return state, step_cost
+
     def should_repair(self, observation):
         ''' Choose if the agent should repair its meta model based on the given observation '''
         raise NotImplementedError()

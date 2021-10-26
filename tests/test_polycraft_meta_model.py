@@ -1,3 +1,4 @@
+import pytest
 import matplotlib
 import numpy
 import matplotlib.animation as animation
@@ -15,12 +16,46 @@ import matplotlib.pyplot as plt
 import numpy as np
 from agent.planning.pddlplus_parser import *
 from agent.planning.nyx import nyx
+from agent.polycraft_hydra_agent import *
 
-def test_to_pddl_problem():
-    test_path = pathlib.Path(settings.ROOT_PATH) / "tests"
+TEST_PATH = pathlib.Path(settings.ROOT_PATH) / "tests"
 
+def test_generate_data_for_tests():
+    ''' Run this to generate the data used by the tests in this test module '''
+    # Load levels
+    levels = []
+    levels_dir_path = pathlib.Path(settings.POLYCRAFT_NON_NOVELTY_LEVEL_DIR)
+    for level_file in os.listdir(levels_dir_path):
+        if level_file.endswith(".json2") == False:
+            levels.append(levels_dir_path / level_file)
+
+    logger.info("starting")
+    env = None
+    max_iterations = 3
+    try:
+        env = Polycraft(launch=True)
+        for i in range(len(levels)):
+            test_level = levels[i]
+            agent = PolycraftHydraAgent()
+            agent.planner = FixedPlanPlanner()
+
+            logger.info(f"Loading level {test_level}...")
+            env.init_selected_level(test_level)
+            agent.start_level(env)  # Collect trades and recipes
+            state = env.get_current_state()
+            state, step_cost = agent.do_batch(max_iterations, state, env)
+                # Store state file
+            with open(TEST_PATH / f"polycraft_state_{i}.p", "wb") as out_file:
+                pickle.dump(state, out_file)
+    finally:
+        logger.info("teardown tests")
+        if env is not None:
+            env.kill()
+
+@pytest.mark.parametrize('execution_number', range(1))
+def test_to_pddl_problem(execution_number):
     state = None
-    with open(test_path / "polycraft_state.p" ,"rb") as in_file:
+    with open(TEST_PATH / f"polycraft_state_{execution_number}.p" ,"rb") as in_file:
         state = pickle.load(in_file)
 
     meta_model = PolycraftMetaModel()
@@ -28,13 +63,14 @@ def test_to_pddl_problem():
 
     assert pddl_problem is not None
 
-    PddlProblemExporter().to_file(pddl_problem, test_path / "poly_prob.pddl")
+    PddlProblemExporter().to_file(pddl_problem, TEST_PATH / "poly_prob.pddl")
 
-def test_to_pddl_domain():
+@pytest.mark.parametrize('execution_number', range(1))
+def test_to_pddl_domain(execution_number):
     test_path = pathlib.Path(settings.ROOT_PATH) / "tests"
 
     state = None
-    with open(test_path / "polycraft_state.p" ,"rb") as in_file:
+    with open(test_path / f"polycraft_state_{execution_number}.p" ,"rb") as in_file:
         state = pickle.load(in_file)
 
     meta_model = PolycraftMetaModel()
@@ -44,11 +80,12 @@ def test_to_pddl_domain():
 
     PddlDomainExporter().to_file(pddl_domain, test_path / "poly_domain.pddl")
 
-def test_run_planner():
+@pytest.mark.parametrize('execution_number', range(1))
+def test_run_planner(execution_number):
     test_path = pathlib.Path(settings.ROOT_PATH) / "tests"
 
     state = None
-    with open(test_path / "polycraft_state.p" ,"rb") as in_file:
+    with open(test_path / f"polycraft_state_{execution_number}.p" ,"rb") as in_file:
         state = pickle.load(in_file)
 
     meta_model = PolycraftMetaModel()

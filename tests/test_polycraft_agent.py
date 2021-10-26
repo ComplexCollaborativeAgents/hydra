@@ -51,15 +51,7 @@ def test_fixed_planner(launch_polycraft, execution_number):
     assert(state.terminal==False)
     agent.planner = FixedPlanPlanner()
     max_iterations = 30
-    iteration = 0
-    while state.terminal==False and \
-            state.count_items_of_type(ItemType.WOODEN_POGO_STICK.value)==0 and \
-            iteration < max_iterations:
-
-        action = agent.choose_action(state)
-        after_state, step_cost = agent.do(action, env)
-        state = after_state
-        iteration = iteration+1
+    state, step_cost = agent.do_batch(max_iterations, state, env)
 
     assert(state.count_items_of_type(ItemType.WOODEN_POGO_STICK.value)>0)
     logger.info("Pogo stick created !!!!")

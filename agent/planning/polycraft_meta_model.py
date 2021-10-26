@@ -355,8 +355,9 @@ class PddlGameMapCellType(PolycraftObjectType):
                 fluent_to_value[(attribute, cell_name)]=attribute_value
 
         world_state = params["world_state"]
+        active_cells = params["active_cells"]
         for adjacent_cell in get_adjacent_cells(cell_id):
-            if adjacent_cell in world_state.game_map:
+            if adjacent_cell in active_cells:
                 fluent_to_value[("adjacent", cell_name, PddlGameMapCellType.get_cell_object_name(adjacent_cell))]=True
 
         return fluent_to_value
@@ -403,13 +404,15 @@ class PolycraftMetaModel(MetaModel):
         self.block_type_to_idx = dict()
         type_idx = 0
         for block_type in BlockType:
-            self.block_type_to_idx[block_type.value]=type_idx
+            name = block_type.value
+            self.block_type_to_idx[name]=type_idx
             type_idx = type_idx + 1
 
         self.item_type_to_idx = dict()
         type_idx = 0
         for item_type in ItemType:
-            self.item_type_to_idx[item_type.value]=type_idx
+            name = item_type.value
+            self.item_type_to_idx[name]=type_idx
             type_idx = type_idx + 1
 
     def create_pddl_domain(self, world_state:PolycraftState) -> PddlPlusDomain:
@@ -477,8 +480,47 @@ class PolycraftMetaModel(MetaModel):
             pddl_domain.actions.append(pddl_action.to_pddl(self))
 
         pddl_domain.events.append(CellAccessibleEvent().to_pddl(self))
-
+        self._convert_polycraft_naming_in_domain(pddl_domain)
         return pddl_domain
+
+    def _convert_polycraft_naming_in_domain(self, pddl_domain:PddlPlusDomain):
+        ''' Change the elements in the domain so that they fit the pddl convention of not using ":" '''
+        for i, pddl_element in enumerate(pddl_domain.functions):
+            pddl_domain.functions[i] = self._convert_element_naming(pddl_element)
+        for i, pddl_element in enumerate(pddl_domain.predicates):
+            pddl_domain.predicates[i] = self._convert_element_naming(pddl_element)
+        for i, pddl_element in enumerate(pddl_domain.constants):
+            pddl_domain.constants[i] = self._convert_element_naming(pddl_element)
+        for pddl_element in pddl_domain.actions:
+            self._convert_world_change_naming(pddl_element)
+        for pddl_element in pddl_domain.processes:
+            self._convert_world_change_naming(pddl_element)
+        for pddl_element in pddl_domain.events:
+            self._convert_world_change_naming(pddl_element)
+
+    def _convert_polycraft_naming_in_problem(self, pddl_problem: PddlPlusProblem):
+        ''' Change the elements in the problem so that they fit the pddl convention of not using ":" '''
+        for i, init_elment in enumerate(pddl_problem.init):
+            pddl_problem.init[i] = self._convert_element_naming(init_elment)
+        for i, goal_elment in enumerate(pddl_problem.goal):
+            pddl_problem.goal[i] = self._convert_element_naming(goal_elment)
+
+    def _convert_world_change_naming(self, world_change:PddlPlusWorldChange):
+        ''' Change the elements in this world change so that they fit the pddl convention of not using ":" '''
+        world_change.name = self._convert_element_naming(world_change.name)
+        self._convert_element_naming(world_change.effects)
+        self._convert_element_naming(world_change.preconditions)
+        self._convert_element_naming(world_change.parameters)
+
+    def _convert_element_naming(self, element):
+        ''' Recursive replace of : to _ to change polycraft naming to pddl '''
+        if type(element)==str:
+            return element.replace(":","_")
+        if type(element)!=list:
+            return element
+        for i, element_part in enumerate(element):
+            element[i] = self._convert_element_naming(element_part)
+        return element
 
     def _should_ignore_cell(self, cell:str, world_state:PolycraftState):
         ''' An optimization step: identify cells that are not needed for the problem solving '''
@@ -503,7 +545,6 @@ class PolycraftMetaModel(MetaModel):
 
     def create_pddl_problem(self, world_state : PolycraftState):
         ''' Creates a PDDL problem file in which the given world state is the initial state '''
-
         pddl_problem = PddlPlusProblem()
         pddl_problem.domain = self.domain_name
         pddl_problem.name = self.problem_name
@@ -516,14 +557,17 @@ class PolycraftMetaModel(MetaModel):
         problem_params = dict()
         problem_params["world_state"]= world_state
 
-        # Add game map cells
-        cell_types_to_ignore = [BlockType.BEDROCK.value]
+        # For efficiency reasons, we consider only a subset of the cells in the map
+        active_cells = list()
         for cell, cell_attr in world_state.game_map.items():
             # Pruning cells to gain efficiency
-            if self._should_ignore_cell(cell, world_state):
-                continue
+            if self._should_ignore_cell(cell, world_state)==False:
+                active_cells.append(cell)
+        problem_params["active_cells"] = active_cells
 
-            # Add cell to problem
+        # Add fluents for the active game map cells to the problem
+        for cell in active_cells:
+            cell_attr = world_state.game_map[cell]
             type_str = cell_attr['name']
             if type_str not in self.block_type_to_idx:
                 logger.info("Unknown game map cell type: %s" % type_str)
@@ -558,7 +602,7 @@ class PolycraftMetaModel(MetaModel):
         # Add goal and metric
         pddl_problem.goal.append(['>', [f"count_{ItemType.WOODEN_POGO_STICK.value}",], "0"])
         pddl_problem.metric = "minimize(total-time)"
-
+        self._convert_polycraft_naming_in_problem(pddl_problem)
         return pddl_problem
 
     def create_pddl_state(self, world_state: PolycraftState) -> PddlPlusState:
