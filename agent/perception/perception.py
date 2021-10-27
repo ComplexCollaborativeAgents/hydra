@@ -24,8 +24,9 @@ from worlds.science_birds import SBState
 import csv
 logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
 
-if settings.COLLECT_PERCEPTION_DATA:
-    from utils.assess_classification import OBJECT_CLASSES
+if settings.SB_COLLECT_PERCEPTION_DATA:
+    # from utils.assess_classification import OBJECT_CLASSES
+    from utils.assess_classification import object_class_convert
 
 class Perception():
     def __init__(self):
@@ -88,7 +89,7 @@ class Perception():
                           'polygon':Polygon(obj['geometry']['coordinates'][0])}
                 new_objs[obj['properties']['id']] = new_obj
             elif obj['geometry'] and obj['geometry']['type'] != 'MultiPoint': #if it is not the ground or a trajectory
-                if settings.COLLECT_PERCEPTION_DATA:
+                if settings.SB_COLLECT_PERCEPTION_DATA:
                     type = self.classify_object_for_data_collection(obj)
                 else:
                     type = self.classify_obj(obj)
@@ -178,7 +179,8 @@ class Perception():
 
     def classify_object_for_data_collection(self, obj_json, translate_to_features=True):
         object_label = obj_json['properties']['label']
-        object_class = OBJECT_CLASSES[object_label]
+        # object_class = OBJECT_CLASSES[object_label]
+        object_class = object_class_convert(object_label)
         return object_class
 
 

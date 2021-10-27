@@ -10,9 +10,10 @@ from zipfile import ZipFile
 
 def main(config='all_level_0_novelties.xml'):
     settings.DEBUG=True
-    settings.SB_DEV_MODE=False
+    # settings.SB_DEV_MODE=False
     settings.NO_PLANNING=True
     settings.NO_REPAIR=True
+    settings.SB_COLLECT_PERCEPTION_DATA=True
 
     env = sb.ScienceBirds(None,launch=True,config=config)
     hydra = SBHydraAgent(env)
@@ -41,7 +42,7 @@ def eval_m18_data():
 
 if __name__ == '__main__':
     path_prefix = "Phase2"
-    config_files = ["100_level_3_type_7_novelties.xml"]
+    config_files = ["5_level_1_type_9_novelties.xml"]
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-p', type=str, help='path prefix after hydra/data/science_birds/config', default=None, dest='path_prefix')

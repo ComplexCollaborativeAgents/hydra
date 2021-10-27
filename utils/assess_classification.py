@@ -1,7 +1,7 @@
 import random
 import os
 import settings
-from agent.perception.perception import classification_cols
+from agent.perception import perception
 from sklearn.metrics import classification_report, confusion_matrix
 from sklearn.model_selection import train_test_split
 import sklearn.linear_model as lm
@@ -48,6 +48,40 @@ OBJECT_CLASSES = {'bird_black_1': 'blackBird',
                'wizard': 'wizard',
                'butterfly': 'butterfly'}
 
+OBJECT_CLASSES_EDITED = {
+    'bird_black': 'blackBird',
+    'bird_white': 'birdWhite',
+    'bird_yellow': 'yellowBird',
+    'bird_blue': 'blueBird',
+    'bird_red': 'redBird',
+    'platform': 'hill',
+    'ice_triang': 'ice', 'ice_square_hole': 'ice', 'ice_triang_hole': 'ice',
+    'ice_rect_small': 'ice',
+    'ice_square_small': 'ice', 'ice_rect_tiny': 'ice', 'ice_rect_big': 'ice',
+    'ice_rect_fat': 'ice',
+    'ice_rect_medium': 'ice', 'ice_circle': 'ice', 'ice_square_tiny': 'ice',
+    'ice_circle_small': 'ice',
+    'wood_rect_big': 'wood', 'wood_rect_tiny': 'wood',
+    'wood_circle_small': 'wood',
+    'wood_square_hole': 'wood', 'wood_rect_small': 'wood', 'wood_square_small': 'wood',
+    'wood_triang_hole': 'wood', 'wood_circle': 'wood', 'wood_rect_medium': 'wood',
+    'wood_square_tiny': 'wood', 'wood_square_small': 'wood', 'wood_rect_fat': 'wood',
+    'wood_triang': 'wood',
+    'stone_rect_fat': 'stone', 'stone_rect_medium': 'stone', 'stone_circle': 'stone',
+    'stone_square_small': 'stone', 'stone_rect_small': 'stone', 'stone_rect_big': 'stone',
+    'stone_square_tiny': 'stone',
+    'stone_square_hole': 'stone', 'stone_rect_tiny': 'stone', 'stone_triang': 'stone', 'stone_rect_fat': 'stone', 'stone_rect_big': 'stone',
+    'stone_circle_small': 'stone', 'stone_square_tiny': 'stone', 'stone_triang_hole': 'stone',
+    'stone_triang_hole': 'stone',
+    'stone_rect_tiny': 'stone',
+    'stone_circle_small': 'stone',
+    'pig_basic_medium': 'pig', 'pig_basic_small': 'pig', 'pig_basic_big': 'pig',
+    'Slingshot': 'slingshot', 'TNT': 'TNT','Platform':'platform',
+    'worm': 'worm',
+    'magician': 'magician',
+    'wizard': 'wizard',
+    'butterfly': 'butterfly'
+}
 
 header = \
 '''<evaluation>
@@ -103,9 +137,22 @@ def type_to_class(type):
         assert 'novel' in type
         return type
 
+def object_class_convert(obj_label: str):
+    """
+    Converts raw data object classes into general object classes (ie black_bird_7 -> blackBird)
+    """
+    if obj_label in OBJECT_CLASSES_EDITED:
+        return OBJECT_CLASSES_EDITED[obj_label]
+    else:
+        trunc_label = obj_label[:-2] # Truncate the _<number> end part of the object class
+        if trunc_label not in OBJECT_CLASSES_EDITED:
+            # raise KeyError("Encountered unexpected object label: {} (truncated to {})".format(obj_label, trunc_label))
+            return "unknown"
+        return OBJECT_CLASSES_EDITED[trunc_label]
+
 
 def train_classifier(file=os.path.join(settings.ROOT_PATH,'data/science_birds/perception/pII/non_novel_objects.csv'), on_full_data=False):
-    reader = csv.DictReader(open(file, 'r'), classification_cols())
+    reader = csv.DictReader(open(file, 'r'), perception.classification_cols())
     df = pd.read_csv(file)
     print(len(df.iloc[:, 0]))
     y = [type_to_class(x) for x in df.iloc[:, 0]]
@@ -122,7 +169,7 @@ def train_classifier(file=os.path.join(settings.ROOT_PATH,'data/science_birds/pe
 # probably need some preprocessing
 
 def test_classifier(logreg,file = os.path.join(settings.ROOT_PATH,'data/science_birds/perception/object_class_level_1.csv')):
-    reader = csv.DictReader(open(file, 'r'), classification_cols())
+    reader = csv.DictReader(open(file, 'r'), perception.classification_cols())
     df = pd.read_csv(file)
     performance=[]
     for row in df.to_numpy():
