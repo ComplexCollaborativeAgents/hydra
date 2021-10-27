@@ -4,10 +4,12 @@ import bisect
 import collections
 from hmac import new
 
-import agent.planning.nyx.heuristic_functions as heuristic_functions
+from agent.planning.nyx.heuristic_functions import get_heuristic_function
 from agent.planning.nyx.PDDL import PDDL_Parser
 import agent.planning.nyx.syntax.constants as constants
 import time, copy
+
+from agent.planning.nyx.openlist import BFSList, DFSList, PriorityList
 from agent.planning.nyx.syntax.visited_state import VisitedState
 from agent.planning.nyx.syntax.state import State
 
@@ -20,21 +22,14 @@ class Planner:
     # Solve
     #-----------------------------------------------
 
-    # initial_state = None
-    # reached_goal_state = None
-    # explored_states = 0
-    # # total_visited = 0
-    # queue = []
-    # visited_hashmap = {}
-
     def __init__(self):
         self.initial_state = None
         self.reached_goal_states = list()
         self.explored_states = 0
         # self.total_visited = 0
-        self.queue = collections.deque()
         self.visited_hashmap = {}
-
+        self.heuristic = get_heuristic_function(constants.CUSTOM_HEURISTIC_ID) # TODO get this parameter in some normal way
+        self.queue = self._get_open_list() # TODO get this parameter in some normal way
 
     def solve(self, domain, problem):
 
@@ -54,9 +49,9 @@ class Planner:
 
         # Search
         self.visited_hashmap[hash(VisitedState(state))] = VisitedState(state)
-        self.queue = collections.deque([state])
+        self.queue.push(state)
         while self.queue:
-            state = self.queue.popleft()
+            state = self.queue.pop()
             from_state = VisitedState(state)
             time_passed = round(state.time + constants.DELTA_T, constants.NUMBER_PRECISION)
             for aa in grounded_instance.actions.get_applicable(state):
@@ -90,7 +85,7 @@ class Planner:
                         new_state = copy.deepcopy(state)
                         new_state.predecessor_hashed = hash(from_state)
 
-                    new_state.set_time(time_passed)
+                    new_state.time = time_passed
                     new_state.predecessor_action = aa
                 else:
                     new_state = state.apply_happening(aa, from_state=from_state)
@@ -126,33 +121,30 @@ class Planner:
         return None
 
     def enqueue_state(self, n_state):
-        if constants.SEARCH_BFS:
-            self.queue.append(n_state)
-        elif constants.SEARCH_DFS:
-            self.queue.appendleft(n_state)
-        elif constants.SEARCH_GBFS:
-            n_state.set_h_heuristic(heuristic_functions.heuristic_function(n_state))
-            ''' changing enqueue to bisect.insort ==> needs performance comparison '''
-            # self.queue.insert(0, n_state)
-            # self.queue = sorted(self.queue, key=lambda elem: (elem.h))
-
-            bisect.insort(self.queue, n_state)
-
-            # self.queue.insert(bisect.bisect_left(self.queue, n_state), n_state)
-
-        elif constants.SEARCH_ASTAR:
-            n_state.set_h_heuristic(heuristic_functions.heuristic_function(n_state))
-            self.queue.appendleft(n_state)
-            self.queue = collections.deque(sorted(self.queue, key=lambda elem: (elem.h + elem.g)))
+        self.heuristic.evaluate(n_state)
+        self.queue.push(n_state)
 
         if constants.PRINT_ALL_STATES:
             print(n_state)
+
+    def _get_open_list(self):
+        if constants.SEARCH_ASTAR:
+            return PriorityList()
+        elif constants.SEARCH_DFS:
+            return DFSList()
+        elif constants.SEARCH_GBFS:
+            return PriorityList(astar=False)
+        else:
+            # defalut to BFS
+            return BFSList()
+
 
     def get_trajectory(self, sstate: State):
         plan = []
         curr_v_state = VisitedState(sstate)
 
         while curr_v_state.state.predecessor_action is not None:
-            plan.insert(0, (curr_v_state.state.predecessor_action, copy.deepcopy(curr_v_state.state)))
+            plan.append((curr_v_state.state.predecessor_action, copy.deepcopy(curr_v_state.state)))
             curr_v_state = self.visited_hashmap[curr_v_state.state.predecessor_hashed]
+        plan.reverse()
         return plan

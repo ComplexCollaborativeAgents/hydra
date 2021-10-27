@@ -27,7 +27,7 @@ logger = logging.getLogger("ground_truth")
 
 
 class GroundTruthReader:
-    def __init__(self,json, model, target_class,new_level=True):
+    def __init__(self, json, model, target_class, new_level=True):
 
         '''
         json : a list of json objects. the first element is int id, 2nd is png sreenshot

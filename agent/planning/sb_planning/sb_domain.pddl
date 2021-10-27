@@ -1,10 +1,10 @@
 (define (domain angry_birds_scaled)
     (:requirements :typing :disjunctive-preconditions :fluents :time :negative-preconditions)
     (:types bird pig block platform external_agent)
-    (:predicates (bird_released ?b - bird) (pig_dead ?p - pig) (angle_adjusted) (block_explosive ?bl - block) (pig_killed) (agent_dead ?ea - external_agent))
+    (:predicates (bird_released ?b - bird) (pig_dead ?p - pig) (angle_adjusted) (block_explosive ?bl - block) (pig_killed) (agent_dead ?ea - external_agent) (bird_tapped ?b - bird))
     (:functions (x_bird ?b - bird) (y_bird ?b - bird) (v_bird ?b - bird) (vx_bird ?b - bird) (vy_bird ?b - bird) (m_bird ?b - bird) (bird_id ?b - bird) (bounce_count ?b - bird)
                 (bird_type ?b - bird) ;; BIRD TYPES: RED=0, YELLOW=1, BLACK=2, WHITE=3, BLUE=4 ;;
-                (gravity) (angle_rate) (angle) (active_bird) (ground_damper) (max_angle) (gravity_factor)
+                (gravity) (angle_rate) (angle) (active_bird) (ground_damper) (max_angle) (gravity_factor)  (min_angle)
                 (base_life_wood_multiplier) (base_life_ice_multiplier) (base_life_stone_multiplier) (base_life_tnt_multiplier)
                 (base_mass_wood_multiplier) (base_mass_ice_multiplier) (base_mass_stone_multiplier) (base_mass_tnt_multiplier)
                 (meta_wood_multiplier) (meta_stone_multiplier) (meta_ice_multiplier)
@@ -31,9 +31,9 @@
     (:process increasing_angle
         :parameters (?b - bird)
         :precondition (and
-            (not (angle_adjusted))
             (= (active_bird) (bird_id ?b))
             (not (bird_released ?b))
+            (not (angle_adjusted))
             (< (angle) (max_angle))
             (>= (angle) 0)
         )
@@ -45,13 +45,14 @@
     (:process flying
         :parameters (?b - bird)
         :precondition (and
-            (bird_released ?b)
             (= (active_bird) (bird_id ?b))
+            (bird_released ?b)
             (> (y_bird ?b) 0)
         )
         :effect (and
             (decrease (vy_bird ?b) (* #t (* 1.0 (gravity)) ))
             (increase (y_bird ?b) (* #t (* 1.0 (vy_bird ?b))))
+            ;(increase (y_bird ?b) (- (* #t (* 1.0 (vy_bird ?b))) (* (* 0.5 (* #t #t)) (* 1.0 (gravity))))) ; analytical solution. Appears to have detrimental effect on winning.
             (increase (x_bird ?b) (* #t (* 1.0 (vx_bird ?b))))
         )
     )
@@ -60,6 +61,7 @@
         :parameters (?b - bird)
         :precondition (and
             (= (active_bird) (bird_id ?b))
+            (not (bird_released ?b))
             (not (angle_adjusted))
             (not (bird_released ?b))
 
@@ -102,7 +104,7 @@
             ; (<= (v_bird) 20)
         )
         :effect (and
-            (assign (angle) 0)
+            (assign (angle) (min_angle))
             (assign (active_bird) (+ (active_bird) 1) )
             (not (angle_adjusted))
         )
@@ -112,8 +114,8 @@
         :parameters (?b - bird ?p - pig)
         :precondition (and
             (= (active_bird) (bird_id ?b))
-            (not (pig_dead ?p))
             (> (v_bird ?b) 0)
+            (not (pig_dead ?p))
             (<= (x_bird ?b) (+ (x_pig ?p) (- (pig_radius ?p) (* (pig_radius ?p) 0.2)) ) )
             (>= (x_bird ?b) (- (x_pig ?p) (- (pig_radius ?p) (* (pig_radius ?p) 0.2)) ) )
             (>= (y_bird ?b) (- (y_pig ?p) (- (pig_radius ?p) (* (pig_radius ?p) 0.2)) ) )
@@ -173,8 +175,8 @@
         :parameters (?b - bird ?bl - block)
         :precondition (and
             (= (active_bird) (bird_id ?b))
-            (> (block_life ?bl) 0)
             (> (v_bird ?b) 0)
+            (> (block_life ?bl) 0)
             (or
             	(<= (block_stability ?bl) (v_bird ?b))
             	(<= (block_life ?bl) (v_bird ?b))
@@ -286,6 +288,58 @@
             (assign (vx_bird ?b) 0)
             (assign (bounce_count ?b) 3)
         )
+    )
+
+    ;; BIRD TYPES: RED=0, YELLOW=1, BLACK=2, WHITE=3, BLUE=4 ;;
+
+    (:action yellow_bird_action
+      :parameters (?b - bird)
+      :precondition (and
+      	(= (active_bird) (bird_id ?b))
+      	(bird_released ?b)
+        (= (bounce_count ?b) 0)
+        (< (x_bird ?b) 800)
+        (not (bird_tapped ?b))
+        (= (bird_type ?b) 1)
+      )
+      :effect (and
+      	(assign (vx_bird ?b) (* (vx_bird ?b) 2))
+      	(assign (v_bird ?b) (* (v_bird ?b) 2))
+      	(bird_tapped ?b)
+  	  )
+    )
+
+    ; (:action black_bird_action
+    ;   :parameters (?b - bird)
+    ;   :precondition (and
+    ;   	(= (active_bird) (bird_id ?b))
+    ;   	(= (bird_type ?b) 2)
+    ;   	(bird_released ?b)
+    ;     (= (bounce_count ?b) 0)
+    ;     (< (x_bird ?b) 800)
+    ;     (not (bird_tapped ?b))
+    ;   )
+    ;   :effect (and
+    ;   	(assign (vx_bird ?b) 0)
+    ;   	(assign (vy_bird ?b) 0)
+    ;   	(bird_tapped ?b)
+  	 ;  )
+    ; )
+
+    (:action white_bird_action
+      :parameters (?b - bird)
+      :precondition (and
+      	(= (active_bird) (bird_id ?b))
+      	(bird_released ?b)
+      	(= (bounce_count ?b) 0)
+        (< (x_bird ?b) 800)
+        (not (bird_tapped ?b))
+        (= (bird_type ?b) 3)
+      )
+      :effect (and
+      	(assign (vx_bird ?b) 0)
+      	(bird_tapped ?b)
+  	  )
     )
 
     (:event explode_block_from_bird

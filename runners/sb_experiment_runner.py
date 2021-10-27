@@ -8,7 +8,7 @@ from runners.run_sb_stats import *
 
 logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("sb_experiment_runner")
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 
 LOOKUP_PATH = pathlib.Path(__file__).parent.absolute() / "novelty_trials_levels.json"
 

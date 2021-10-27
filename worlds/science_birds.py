@@ -47,22 +47,24 @@ class SBState(State):
     def serialize_current_state(self, level_filename):
         pickle.dump(self, open(level_filename, 'wb'))
 
-    def load_from_serialized_state(level_filename):
+    def load_from_serialized_state(self, level_filename):
         return pickle.load(open(level_filename, 'rb'))
 
 
 class SBAction(Action):
-    '''Science Birds Action'''
+    """Science Birds Action"""
 
 class SBLoadLevel(SBAction):
-    '''Loads the specific level'''
-    def __init__(self,level):
+    """Loads the specific level"""
+    def __init__(self, level):
+        super().__init__()
         self.level = level
 
 
 class SBShoot(SBAction):
-    """first a bird, x,y position of first tap,and then the time of the second tap"""
-    def __init__(self,x,y,tap,ref_x,ref_y):
+    """fires a bird, x,y position of first tap,and then the time of the second tap"""
+    def __init__(self, x, y, tap, ref_x, ref_y):
+        super().__init__()
         self.dx =  int(x - ref_x)
         self.dy =  int(y - ref_y)
         self.tap = tap
@@ -87,7 +89,8 @@ class ScienceBirds(World):
 
     trajectory_planner = SimpleTrajectoryPlanner() # This is static to allow others to reason about it
 
-    def __init__(self,sel_level=0,launch=False,config='test_config.xml', host=None):
+    def __init__(self, sel_level=0, launch=False, config='test_config.xml', host=None):
+        super().__init__()
         self.id = 2228
         self.SB_process = None
         self.SB_server_process = None
@@ -152,8 +155,6 @@ class ScienceBirds(World):
         print('launching java birds : {}'.format(str(self.SB_server_process.pid)))
         print('done')
 
-
-
     def load_hosts(self, server_host: Host, observer_host: Host):
         with open(str(path.join(settings.ROOT_PATH, 'worlds', 'science_birds_interface', 'client', 'server_client_config.json')), 'r') as config:
             sc_json_config = json.load(config)
@@ -202,9 +203,9 @@ class ScienceBirds(World):
         """
         assert None
 
-    def act(self,action):
-        '''returns the new current state and reward'''
-        if isinstance(action,SBShoot):
+    def act(self, action):
+        """returns the new current state and reward"""
+        if isinstance(action, SBShoot):
             logger.info("Executing action")
             self.history.append(action)
             prev_score = self.sb_client.get_current_score()

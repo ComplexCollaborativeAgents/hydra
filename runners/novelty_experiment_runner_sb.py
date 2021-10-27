@@ -113,7 +113,7 @@ class NoveltyExperimentRunnerSB:
         """
         random.seed() # Randomize seed
         
-        trial = list()
+        levels = list()
 
         for index in range(self.levels_per_trial):
             next_level = ""
@@ -123,13 +123,13 @@ class NoveltyExperimentRunnerSB:
             else:   # Collect from novel levels
                 next_level = self.levels[novelty_level][novelty_type].pop()
 
-            trial.append(next_level)
+            levels.append(next_level)
 
-        logger.debug("Created trial: {}".format(["{}\n".format(level) for level in trial]))
+        logger.debug("Created trial: {}".format(["{}\n".format(level) for level in levels]))
 
-        return trial
+        return levels
 
-    def run_trial(self, trial: list, notify: str, trial_num: int, trial_type: str,  novelty_level: str, config_file: pathlib.Path = None) -> pandas.DataFrame:
+    def run_trial(self, levels: list, notify: str, trial_num: int, trial_type: str, novelty_level: str, config_file: pathlib.Path = None) -> pandas.DataFrame:
         """ Run a trial """
 
         notify_novelty = notify == constants.KNOWN
@@ -143,7 +143,7 @@ class NoveltyExperimentRunnerSB:
                 config = SB_CONFIG_PATH / "trial_config_{}_{}.xml".format(trial_num, date_time_str)
                 logger.debug("Exporting trial to {}".format(config))
 
-            prepare_config(TEMPLATE_PATH, config, trial, notify_novelty)
+            prepare_config(TEMPLATE_PATH, config, levels, notify_novelty)
         else:
             config = config_file
 
@@ -293,10 +293,10 @@ class NoveltyExperimentRunnerSB:
                             if novelty_level in NON_NOVEL_LEVELS:
                                 was_notified = constants.NON_NOVELTY_PERFORMANCE
 
-                            trial = self.construct_trial(novelty_level, novelty_type, self.levels_before_novelty)
+                            levels = self.construct_trial(novelty_level, novelty_type, self.levels_before_novelty)
 
                             # Run the trial
-                            trial_results = self.run_trial(trial, was_notified, trial_num, trial_type, novelty_level)
+                            trial_results = self.run_trial(levels, was_notified, trial_num, trial_type, novelty_level)
                             experiment_results = experiment_results.append(trial_results)
 
                             # Export results to file
