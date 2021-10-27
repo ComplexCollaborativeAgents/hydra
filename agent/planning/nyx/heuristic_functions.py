@@ -48,7 +48,7 @@ class BadSBHeuristic(AbstractHeuristic):
     Score heuristic for science birds - only useful for GBFS, and not very good even then.
     """
     def evaluate(self, node):
-        node.h =  1 / (1 + node.state_vars["['points_score']"])
+        node.h = 50000 - node.state_vars["['points_score']"]
         return node.h
 
         # return 0
@@ -91,13 +91,23 @@ class SBHeuristic(AbstractHeuristic):
         bird_released = node.state_vars.get("['bird_released'" + active_bird_string)
 
         # near end of bounding box:
-        targets_x = {obj[9:]: node.state_vars[obj] for obj in node.state_vars.keys() if obj.startswith("['x_block")}
-        targets_x.update(
-            {obj[7:]: node.state_vars[obj] for obj in node.state_vars.keys() if obj.startswith("['x_pig")})
-        targets_w = {obj[13:]: node.state_vars[obj] for obj in node.state_vars.keys() if
-                     obj.startswith("['block_width")}
-        pig_radii = {obj[12:]: node.state_vars[obj] for obj in node.state_vars.keys() if
-                     obj.startswith("['pig_radius")}
+        targets_x = {}
+        targets_w = {}
+        pig_x = {}
+        pig_y = {}
+        pig_radii = {}
+        for key, item in node.state_vars.items():
+            if key.startswith("['x_block"):
+                targets_x[key[9:]] = item
+            if key.startswith("['x_pig"):
+                pig_x[key[7:]] = item
+            if key.startswith("['block_width"):
+                targets_w[key[13:]] = item
+            if key.startswith("['pig_radius"):
+                pig_radii[key[12:]] = item
+            if key.startswith("['y_pig"):
+                pig_y[key[7:]] = item
+        targets_x.update(pig_x)
         targets_w.update(pig_radii)
         targets_min_x = [targets_x[o_id] - targets_w[o_id] for o_id in targets_x.keys()]
         bbox_minx = min(targets_min_x)
@@ -119,7 +129,7 @@ class SBHeuristic(AbstractHeuristic):
                         node.h = 0
                         return node.h
             # else: heuristic value = distance to nearest pig in planning steps.
-            node.h = self.time_to_pig(node, (x_0, y_0, v_x, v_y))
+            node.h = self.time_to_pig(node, (x_0, y_0, v_x, v_y), pig_x, pig_y)
             return node.h
         else:
             # Find type of bird
@@ -149,9 +159,14 @@ class SBHeuristic(AbstractHeuristic):
                 # far end of bounding box
                 targets_max_x = [targets_x[o_id] + targets_w[o_id] for o_id in targets_x.keys()]
                 bbox_maxx = max(targets_max_x)
-                targets_y = {obj[9:]:node.state_vars[obj] for obj in node.state_vars.keys() if obj.startswith("['y_block")}
-                targets_y.update({obj[7:]:node.state_vars[obj] for obj in node.state_vars.keys() if obj.startswith("['y_pig")})
-                targets_h = {obj[14:]:node.state_vars[obj] for obj in node.state_vars.keys() if obj.startswith("['block_height")}
+                targets_y = {}
+                targets_h = {}
+                for key, item in node.state_vars.items():
+                    if key.startswith("['y_block"):
+                        targets_y[key[9:]] = item
+                    if key.startswith("['block_height"):
+                        targets_h[key[14:]] = item
+                targets_y.update(pig_y)
                 targets_h.update(pig_radii)
                 targets_max_y = [targets_x[o_id] + targets_w[o_id] for o_id in targets_x.keys()]
                 targets_min_y = [targets_x[o_id] - targets_w[o_id] for o_id in targets_x.keys()]
@@ -203,7 +218,7 @@ class SBHeuristic(AbstractHeuristic):
         return 0 # 1 / (1 + node.state_vars["['points_score']"])
 
     @staticmethod
-    def time_to_pig(node, bird_coords):
+    def time_to_pig(node, bird_coords, pigs_x, pigs_y):
         """
         Returns the distance (in planning time steps) to the closest pig.
         """
@@ -215,9 +230,7 @@ class SBHeuristic(AbstractHeuristic):
         # BIRD_Y = 1
         # BIRD_VX = 2
         # BIRD_VY = 3
-        targets_x = {obj[7:]: node.state_vars[obj] for obj in node.state_vars.keys() if obj.startswith("['x_pig")}
-        targets_y = {obj[7:]: node.state_vars[obj] for obj in node.state_vars.keys() if obj.startswith("['y_pig")}
-        targets_xy = [(targets_x[o_id], targets_y[o_id]) for o_id in targets_x.keys()]
+        targets_xy = [(pigs_x[o_id], pigs_y[o_id]) for o_id in pigs_x.keys()]
         dists = [(pig[0] - bird_coords[0]) ** 2 + (pig[1] - bird_coords[1]) ** 2 for pig in targets_xy]
         closest_ind = np.argmin(dists)
         vec_in_direction = (targets_xy[closest_ind][0] - bird_coords[0]) ** 2 / dists[closest_ind], \

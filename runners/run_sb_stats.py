@@ -40,7 +40,7 @@ class AgentType(enum.Enum):
 
 NOVELTY = 0
 TYPE = 2
-SAMPLES = 50
+SAMPLES = 10
 AGENT = AgentType.Hydra
 
 EXPERIMENT_NAME = "BENCHMARK"
@@ -307,10 +307,10 @@ def compute_eval_stats(results_path, agent, agent_stats=None):
     return stats
 
 
-def run_sb_stats(extract=False, seed=None):
+def run_sb_stats(extract=False, seed=None, test_name=None):
     """ Run science birds agent stats. """
     novelties = {NOVELTY: [TYPE]}
-    run_performance_stats(novelties, agent_type=AGENT, seed=seed, samples=SAMPLES)
+    run_performance_stats(novelties, agent_type=AGENT, seed=seed, samples=SAMPLES, suffix=test_name)
 
 
 def run_performance_stats(novelties: dict,
@@ -491,5 +491,5 @@ def _compute_stats(results, file_suffix):
 
 
 if __name__ == '__main__':
-    run_sb_stats(seed=0)
+    run_sb_stats(seed=0)  # , test_name='Heuristic_3_A_star')
 

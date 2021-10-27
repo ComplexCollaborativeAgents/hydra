@@ -4,6 +4,7 @@ import bisect
 import collections
 from hmac import new
 
+from agent.planning.nyx.heap_open_lists import HeapPriorityList
 from agent.planning.nyx.heuristic_functions import get_heuristic_function
 from agent.planning.nyx.PDDL import PDDL_Parser
 import agent.planning.nyx.syntax.constants as constants
@@ -28,8 +29,8 @@ class Planner:
         self.explored_states = 0
         # self.total_visited = 0
         self.visited_hashmap = {}
-        self.heuristic = get_heuristic_function(constants.CUSTOM_HEURISTIC_ID) # TODO get this parameter in some normal way
-        self.queue = self._get_open_list() # TODO get this parameter in some normal way
+        self.heuristic = get_heuristic_function(constants.CUSTOM_HEURISTIC_ID)  # TODO get this parameter in some normal way
+        self.queue = self._get_open_list()  # TODO get this parameter in some normal way
 
     def solve(self, domain, problem):
 
@@ -129,11 +130,11 @@ class Planner:
 
     def _get_open_list(self):
         if constants.SEARCH_ASTAR:
-            return PriorityList()
+            return HeapPriorityList()
         elif constants.SEARCH_DFS:
             return DFSList()
         elif constants.SEARCH_GBFS:
-            return PriorityList(astar=False)
+            return HeapPriorityList(Astar=False)
         else:
             # defalut to BFS
             return BFSList()

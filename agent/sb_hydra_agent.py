@@ -218,13 +218,13 @@ class SBHydraAgent(HydraAgent):
             self.stats_for_level[PDDL_PROB]=[]
 
         # if novelty existences is given by the experiment framework - no need to run the fancy models
-        if self.novelty_existence in  [0,1]:
+        if self.novelty_existence in [0, 1]:
             self.stats_for_level[NN_PROB].append(self.novelty_existence)
             self.stats_for_level[PDDL_PROB].append(self.novelty_existence)
             self.novelty_likelihood = self.novelty_existence
         else:
             assert self.novelty_existence == NOVELTY_EXISTENCE_NOT_GIVEN # The flag denoting that we do not get novelty info from the environment
-        if self.novelty_existence in [0,1]:
+        if self.novelty_existence in [0, 1]:
             self.level_novelty_indicators[PDDL_PROB].append(UNDEFINED)
             self.level_novelty_indicators[UNKNOWN_OBJ].append(UNDEFINED)
             return
@@ -361,6 +361,7 @@ class SBHydraAgent(HydraAgent):
                     start_time = time.perf_counter()
                     plan = self.planner.make_plan(processed_state, simplification)
                     plan_time = (time.perf_counter() - start_time)
+                    self.stats_for_level[f'simplification level time {simplification}'] = plan_time
                     self.cumulative_plan_time += plan_time
                     logger.info("[hydra_agent_server] :: Problem simplification {} planning time: {}".format(simplification,
                                                                                                              str(plan_time)))
