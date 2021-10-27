@@ -33,7 +33,22 @@ def heuristic_function(state):
 
         # POLYCRAFT HEURISTIC
 
-        return 0
+        # Check if have ingredients of pogo stick
+        pogo_count = state.state_vars["['count_polycraft_wooden_pogo_stick']"]
+        if pogo_count>0:
+            return 0
+
+        INGREDIENTS = [('count_minecraft_diamond_block',2),
+                       ('count_polycraft_block_of_titanium',2),
+                       ('count_minecraft_stick',2),
+                       ('count_polycraft_sack_polyisoprene_pellets', 1)]
+
+        h_value = 1
+        for fluent, quantity in INGREDIENTS:
+            delta = quantity - state.state_vars[f"['{fluent}']"]
+            if delta>0:
+                h_value = h_value+delta
+        return h_value
 
     elif constants.CUSTOM_HEURISTIC_ID == 4:
 

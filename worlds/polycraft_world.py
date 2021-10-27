@@ -40,6 +40,7 @@ class BlockType(enum.Enum):
 class ItemType(enum.Enum):
     BLOCK_OF_PLATINUM = "polycraft:block_of_platinum"
     BLOCK_OF_TITANIUM = "polycraft:block_of_titanium"
+    CRAFTING_TABLE = "minecraft:crafting_table"
     DIAMOND = "minecraft:diamond"
     DIAMOND_BLOCK = "minecraft:diamond_block"
     IRON_PICKAXE = "minecraft:iron_pickaxe"

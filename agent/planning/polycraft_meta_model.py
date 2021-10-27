@@ -57,7 +57,7 @@ class PddlPlaceTreeTapAction(PddlPolycraftAction):
 
         pddl_action.effects.append(["decrease", [f"count_{ItemType.TREE_TAP.value}",], "1"])
         tree_tap_idx = meta_model.block_type_to_idx[BlockType.TREE_TAP.value]
-        pddl_action.effects.append(["assign", ["cell_type", "?to"], f"{tree_tap_idx}"])
+        pddl_action.effects.append(["assign", ["cell_type", "?at"], f"{tree_tap_idx}"])
         return pddl_action
 
     def to_polycraft(self, parameter_binding:dict)->PolycraftAction:
@@ -130,6 +130,8 @@ class PddlBreakAction(PddlPolycraftAction):
             iron_pickaxe_idx = meta_model.item_type_to_idx[ItemType.IRON_PICKAXE.value]
             pddl_action.preconditions.append(["=", ["selectedItem",], f"{iron_pickaxe_idx}"])
         pddl_action.effects.append(["increase", [f"count_{self.item_type_to_collect}", ], str(self.items_per_block)])
+        air_cell_idx = meta_model.block_type_to_idx[BlockType.AIR.value]
+        pddl_action.effects.append(["assign", ["cell_type", "?c"], f"{air_cell_idx}"])
         return pddl_action
 
     def to_polycraft(self, parameter_binding: dict) -> PolycraftAction:
@@ -154,8 +156,8 @@ class PddlSelectAction(PddlPolycraftAction):
         pddl_action = PddlPlusWorldChange(WorldChangeTypes.action)
         pddl_action.name = f"select_{self.item_type_name}"
         pddl_action.preconditions.append([">=", [f"count_{self.item_type_name}",], "1"])
-
         item_type_idx = meta_model.item_type_to_idx[self.item_type_name]
+        pddl_action.preconditions.append(["not", ["=", ["selectedItem", ], f"{item_type_idx}"]])
         pddl_action.effects.append(
             ["assign", ["selectedItem", ], f"{item_type_idx}"])
         return pddl_action
@@ -203,6 +205,15 @@ class PddlCraftAction(PddlPolycraftAction):
 
         for item_type, quantity in get_outputs_of_recipe(self.recipe).items():
             pddl_action.effects.append(["increase", [f"count_{item_type}"], str(quantity)])
+
+        # To make the domain file more human readable
+        action_name_suffix_elements = []
+        for item_type, quantity in get_outputs_of_recipe(self.recipe).items():
+            if quantity==1:
+                action_name_suffix_elements.append(item_type)
+            else:
+                action_name_suffix_elements.append(f"{quantity}_{item_type}")
+        pddl_action.name = f"{pddl_action.name}_for_{'_and_'.join(action_name_suffix_elements)}"
 
         return pddl_action
 
@@ -385,7 +396,7 @@ class PolycraftMetaModel(MetaModel):
         self.break_block_to_outcome = dict()
         self.break_block_to_outcome[BlockType.LOG.value] = (ItemType.LOG.value, 1)
         self.break_block_to_outcome[BlockType.BLOCK_OF_PLATINUM.value] = (ItemType.BLOCK_OF_PLATINUM.value, 1)
-        self.break_block_to_outcome[BlockType.DIAMOND_ORE.value] = (ItemType.DIAMOND.value, 1)
+        self.break_block_to_outcome[BlockType.DIAMOND_ORE.value] = (ItemType.DIAMOND.value, 9)
 
         # Maps a cell type to what we get if we collect from it. The latter is in the form of a pair (item type, quantity).
         self.collect_block_to_outcome = dict()
@@ -529,19 +540,27 @@ class PolycraftMetaModel(MetaModel):
         if type_str in cell_types_to_ignore:
             return True
 
-        # Check if all neighbors are air
+        # Keep all non-air blocks
+        if type_str != BlockType.AIR.value:
+            return False
+
+        # Keep all cells that occupy an entity (E.g., trader)
+        for entity_id, entity_attr in world_state.entities.items():
+            if cell == coordinates_to_cell(entity_attr["pos"]):
+                return False
+
+        # Ignore air cell that all its neighbors are also air cells
         all_neighbors_air = True
-        if type_str == BlockType.AIR.value:
-            for neighbor_cell in get_adjacent_cells(cell):
-                if neighbor_cell in world_state.game_map:
-                    neighbor_type = world_state.game_map[neighbor_cell]['name']
-                    if neighbor_type!=BlockType.AIR.value:
-                        all_neighbors_air=False
-                        break
+        for neighbor_cell in get_adjacent_cells(cell):
+            if neighbor_cell in world_state.game_map:
+                neighbor_type = world_state.game_map[neighbor_cell]['name']
+                if neighbor_type!=BlockType.AIR.value:
+                    all_neighbors_air=False
+                    break
         if all_neighbors_air:
             return True
-
-        return False
+        else:
+            return False
 
     def create_pddl_problem(self, world_state : PolycraftState):
         ''' Creates a PDDL problem file in which the given world state is the initial state '''
