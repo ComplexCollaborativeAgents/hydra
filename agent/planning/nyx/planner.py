@@ -55,9 +55,11 @@ class Planner:
         self.visited_hashmap[hash(VisitedState(state))] = VisitedState(state)
         self.queue = self._get_open_list() # TODO get this parameter in some normal way
         self.enqueue_state(state)
+
+        expanded_states = 0
         while self.queue:
-            if self.explored_states % constants.LOG_EXPLORED_STATES_FREQUENCY ==0:
-                logger.info(f"Explored {self.explored_states} nodes.")
+            if expanded_states % constants.EXPANDED_STATES_LOGGING_FREQUENCY ==0:
+                logger.info(f"Expanded {expanded_states} nodes, generated {self.explored_states}.")
             state = self.queue.pop()
             from_state = VisitedState(state)
             time_passed = round(state.time + constants.DELTA_T, constants.NUMBER_PRECISION)
@@ -120,11 +122,16 @@ class Planner:
                 # if constants.PRINT_ALL_STATES:
                 #     print(new_state)
 
+            expanded_states = expanded_states+1
+
             if constants.NO_TIMEOUT==False and (time.time() - start_solve_time) >= constants.TIMEOUT:
+                logger.info(f"Timeout reached, found {len(self.reached_goal_states)} plans")
+
                 if (constants.ANYTIME):
                     return self.reached_goal_states
                 return None
 
+        logger.info(f"Open list exhausted. Found {len(self.reached_goal_states)} plans")
         return None
 
     def enqueue_state(self, n_state):

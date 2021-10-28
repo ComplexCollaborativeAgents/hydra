@@ -10,7 +10,7 @@ from agent.planning.pddl_plus import *
 logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("polycraft_meta_model")
 logger.setLevel(logging.INFO)
-
+from agent.planning.nyx.abstract_heuristic import AbstractHeuristic
 
 ###### PDDL ACTIONS, PROCESSES, AND EVENTS
 class PddlPolycraftAction():
@@ -646,3 +646,44 @@ class PolycraftMetaModel(MetaModel):
     def create_pddl_state(self, world_state: PolycraftState) -> PddlPlusState:
         ''' Translate the given observed world state to a PddlPlusState object '''
         raise NotImplementedError("todo")
+
+    def get_nyx_heuristic(self, world_state):
+        return PolyCraftHeuristic(world_state)
+
+
+class PolyCraftHeuristic(AbstractHeuristic):
+    ''' Heuristic for polycraft to be used by the Nyx planner '''
+    def __init__(self, world_state: PolycraftState):
+        # Get pogo recipe
+        pogo_recipe = world_state.get_recipe_for(ItemType.WOODEN_POGO_STICK.value)
+        pogo_ingredients = get_ingredients_for_recipe(pogo_recipe)
+        self.ingredients = list()
+        for item_type, quantity in pogo_ingredients.items():
+            pddl_item_type = f"count_{item_type.replace(':','_')}"
+            self.ingredients.append((pddl_item_type, quantity))
+
+    def evaluate(self, node):
+        # Check if have ingredients of pogo stick
+        pogo_count = node.state_vars["['count_polycraft_wooden_pogo_stick']"]
+        if pogo_count>0:
+            return 0
+
+        h_value = 1
+        for fluent, quantity in self.ingredients:
+            delta = quantity - node.state_vars[f"['{fluent}']"]
+            if delta>0:
+                h_value = h_value+delta
+        node.h = h_value
+        return h_value
+
+    #
+    # def _extract_landmarks(self,world_state: PolycraftState, pddl_problem:PddlPlusProblem, pddl_domain: PddlPlusDomain):
+    #     goal = (ItemType.WOODEN_POGO_STICK.value,1)
+    #     landmarks = set()
+    #     active_landmarks = [goal]
+    #     while len(landmarks)>0:
+    #         landmark = landmarks.pop()
+    #         landmarks.add(landmark)
+    #
+    #
+    #

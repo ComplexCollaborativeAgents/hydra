@@ -10,6 +10,7 @@ from agent.planning.pddlplus_parser import *
 from agent.hydra_agent import HydraAgent, HydraPlanner, MetaModelRepair
 from worlds.polycraft_world import *
 from agent.planning.nyx import nyx
+import agent.planning.nyx.heuristic_functions as nyx_heuristics
 
 logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("Polycraft")
@@ -68,6 +69,7 @@ class PolycraftPlanner(HydraPlanner):
         self.pddl_problem = self.meta_model.create_pddl_problem(state)
         self.pddl_domain = self.meta_model.create_pddl_domain(state)
         self.write_pddl_file(self.pddl_problem, self.pddl_domain)
+        nyx_heuristics.active_heuristic = self.meta_model.get_nyx_heuristic(state)
 
         try:
             nyx.runner(self.pddl_domain_file,
@@ -132,10 +134,18 @@ class PolycraftPlanner(HydraPlanner):
             assert(len(params_parts)*3 == len(pddl_parameters_list))
             for i, param in enumerate(params_parts):
                 param_value = param.strip()
-                param_name = pddl_parameters_list[i*3]
-                binding[param_name]=param_value
+                param_name = pddl_parameters_list[i*3].strip()
+                param_type = pddl_parameters_list[i * 3+2].strip()
+                binding[param_name]=self._translate_pddl_object_to_poly(param_value, param_type)
 
         return selected_action_gen.to_polycraft(binding)
+
+    def _translate_pddl_object_to_poly(self, pddl_obj_name, pddl_obj_type):
+        ''' Translate the name of a pddl object to its corresponding name in polycraft, based on its type
+            For cell type objects, this means convert from cell_x_y_z to x,y,z
+        '''
+        assert(pddl_obj_type=="cell") # Currently we only have objects of type cell
+        return ",".join(pddl_obj_name.split("_")[1:])
 
     def extract_actions_from_plan_trace(self, plane_trace_file: str):
         ''' Parses the given plan trace file and outputs the plan '''

@@ -89,9 +89,9 @@ def test_run_planner(execution_number):
         state = pickle.load(in_file)
 
     # Uncomment to make the planner go faster by making the problem easier
-    state.inventory['4'] = {'item': ItemType.TREE_TAP.value, 'count': 1}
-    state.inventory['5'] = {'item': ItemType.BLOCK_OF_TITANIUM.value, 'count': 2}
-    state.inventory['6'] = {'item': ItemType.DIAMOND_BLOCK.value, 'count': 2}
+    # state.inventory['4'] = {'item': ItemType.TREE_TAP.value, 'count': 1}
+    # state.inventory['5'] = {'item': ItemType.BLOCK_OF_TITANIUM.value, 'count': 2}
+    # state.inventory['6'] = {'item': ItemType.DIAMOND_BLOCK.value, 'count': 2}
 
     planner = PolycraftPlanner()
     plan = planner.make_plan(state)

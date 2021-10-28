@@ -380,7 +380,7 @@ class TeleportToTraderAndTrade(TeleportToAndDo):
 
     def _action_at_cell(self):
         self._is_done = True
-        return PolyCraftItem.create_action(self.recipe)
+        return PolyTradeItems.create_action(self.trader_id, self.trade)
 
     def _get_next_action(self)->PolycraftAction:
         state = self._current_state
