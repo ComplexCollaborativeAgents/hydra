@@ -14,6 +14,9 @@ logger.setLevel(logging.INFO)
 
 ###### PDDL ACTIONS, PROCESSES, AND EVENTS
 class PddlPolycraftAction():
+    def __init__(self, pddl_name):
+        self.pddl_name = pddl_name # The name of this PDDL action
+
     ''' A class representing a PDDL+ action in polycraft '''
     def to_pddl(self, meta_model: MetaModel)->PddlPlusWorldChange:
         ''' This method should be implemented by sublcasses and output a string representation of the corresponding PDDL+ action '''
@@ -41,9 +44,12 @@ class PddlPlaceTreeTapAction(PddlPolycraftAction):
             )
         )
     '''
+    def __init__(self):
+        super().__init__("place_tree_tap")
+
     def to_pddl(self, meta_model: MetaModel)->PddlPlusWorldChange:
         pddl_action = PddlPlusWorldChange(WorldChangeTypes.action)
-        pddl_action.name = "place_tree_tap"
+        pddl_action.name = self.pddl_name
         pddl_action.parameters.append(["?at", "-", "cell", "?near_to", "-", "cell"])
         pddl_action.preconditions.append(["isAccessible", "?at"])
         pddl_action.preconditions.append(["isAccessible", "?near_to"])
@@ -61,7 +67,7 @@ class PddlPlaceTreeTapAction(PddlPolycraftAction):
         return pddl_action
 
     def to_polycraft(self, parameter_binding:dict)->PolycraftAction:
-        return PlaceTreeTap(parameter_binding["at"])
+        return PlaceTreeTap(parameter_binding["?at"])
 
 class PddlCollectAction(PddlPolycraftAction):
     ''' An action corresponding to collecting an item from a cell (COLLECT in the Polycraft API)
@@ -76,14 +82,15 @@ class PddlCollectAction(PddlPolycraftAction):
         )
     )
     '''
-    def __init__(self, collect_from_block_of_type: str, item_type_to_collect : str, quantity):
+    def __init__(self, collect_from_block_type: str, item_type_to_collect : str, quantity):
+        super().__init__(f"collect_{item_type_to_collect}_from_{collect_from_block_type}")
         self.item_type_to_collect = item_type_to_collect
-        self.collect_from_block_type = collect_from_block_of_type
+        self.collect_from_block_type = collect_from_block_type
         self.quantity = quantity
 
     def to_pddl(self, meta_model: MetaModel)->PddlPlusWorldChange:
         pddl_action = PddlPlusWorldChange(WorldChangeTypes.action)
-        pddl_action.name = f"collect_{self.item_type_to_collect}_from_{self.collect_from_block_type}"
+        pddl_action.name = self.pddl_name
         pddl_action.parameters.append(["?c", "-", "cell"])
         pddl_action.preconditions.append(["isAccessible", "?c"])
 
@@ -113,6 +120,7 @@ class PddlBreakAction(PddlPolycraftAction):
     )
     '''
     def __init__(self, block_type_to_break : str, item_type_to_collect: str, items_per_block: int, needs_iron_pickaxe=False):
+        super().__init__(f"break_{block_type_to_break}")
         self.block_type_to_break = block_type_to_break
         self.item_type_to_collect = item_type_to_collect
         self.items_per_block = items_per_block
@@ -120,7 +128,7 @@ class PddlBreakAction(PddlPolycraftAction):
 
     def to_pddl(self, meta_model: MetaModel)->PddlPlusWorldChange:
         pddl_action = PddlPlusWorldChange(WorldChangeTypes.action)
-        pddl_action.name = f"break_{self.block_type_to_break}"
+        pddl_action.name = self.pddl_name
         pddl_action.parameters.append(["?c", "-", "cell"])
         pddl_action.preconditions.append(["isAccessible", "?c"])
 
@@ -150,11 +158,12 @@ class PddlSelectAction(PddlPolycraftAction):
         )
     '''
     def __init__(self, item_type: str):
+        super().__init__(f"select_{item_type}")
         self.item_type_name = item_type
 
     def to_pddl(self, meta_model: MetaModel)->PddlPlusWorldChange:
         pddl_action = PddlPlusWorldChange(WorldChangeTypes.action)
-        pddl_action.name = f"select_{self.item_type_name}"
+        pddl_action.name = self.pddl_name
         pddl_action.preconditions.append([">=", [f"count_{self.item_type_name}",], "1"])
         item_type_idx = meta_model.item_type_to_idx[self.item_type_name]
         pddl_action.preconditions.append(["not", ["=", ["selectedItem", ], f"{item_type_idx}"]])
@@ -185,13 +194,24 @@ class PddlCraftAction(PddlPolycraftAction):
         )
     '''
     def __init__(self, recipe_idx: int, recipe, needs_crafting_table:bool = False):
+        super().__init__(f"craft_recipe_{recipe_idx}")
         self.recipe_idx = recipe_idx
         self.recipe = recipe
         self.needs_crafting_table = needs_crafting_table
 
+        # To make the domain file more human readable, compute a clearer pddl_action name
+        action_name_suffix_elements = []
+        for item_type, quantity in get_outputs_of_recipe(self.recipe).items():
+            if quantity==1:
+                action_name_suffix_elements.append(item_type)
+            else:
+                action_name_suffix_elements.append(f"{quantity}_{item_type}")
+        super().__init__(f"craft_recipe_{recipe_idx}_for_{'_and_'.join(action_name_suffix_elements)}")
+
+
     def to_pddl(self, meta_model: MetaModel)->PddlPlusWorldChange:
         pddl_action = PddlPlusWorldChange(WorldChangeTypes.action)
-        pddl_action.name = f"craft_recipe_{self.recipe_idx}"
+        pddl_action.name = self.pddl_name
 
         if self.needs_crafting_table: # TODO: Not robust to problems with multiple crafting tables
             pddl_action.parameters.append(["?from", "-", "cell"])
@@ -205,16 +225,6 @@ class PddlCraftAction(PddlPolycraftAction):
 
         for item_type, quantity in get_outputs_of_recipe(self.recipe).items():
             pddl_action.effects.append(["increase", [f"count_{item_type}"], str(quantity)])
-
-        # To make the domain file more human readable
-        action_name_suffix_elements = []
-        for item_type, quantity in get_outputs_of_recipe(self.recipe).items():
-            if quantity==1:
-                action_name_suffix_elements.append(item_type)
-            else:
-                action_name_suffix_elements.append(f"{quantity}_{item_type}")
-        pddl_action.name = f"{pddl_action.name}_for_{'_and_'.join(action_name_suffix_elements)}"
-
         return pddl_action
 
     def to_polycraft(self, parameter_binding: dict) -> PolycraftAction:
@@ -241,13 +251,14 @@ class PddlTradeAction(PddlPolycraftAction):
     '''
 
     def __init__(self, trader_id:str, trade_idx: int, trade):
+        super().__init__(f"trade_recipe_{trader_id}_{trade_idx}")
         self.trader_id = trader_id
         self.trade_idx = trade_idx
         self.trade = trade
 
     def to_pddl(self, meta_model: MetaModel)->PddlPlusWorldChange:
         pddl_action = PddlPlusWorldChange(WorldChangeTypes.action)
-        pddl_action.name = f"trade_recipe_{self.trader_id}_{self.trade_idx}"
+        pddl_action.name = self.pddl_name
         pddl_action.parameters.append(["?trader_loc","-", "cell"])
         pddl_action.preconditions.append(["isAccessible", "?trader_loc"])
         pddl_action.preconditions.append([f"trader_{self.trader_id}_at", "?trader_loc"])
@@ -426,30 +437,10 @@ class PolycraftMetaModel(MetaModel):
             self.item_type_to_idx[name]=type_idx
             type_idx = type_idx + 1
 
-    def create_pddl_domain(self, world_state:PolycraftState) -> PddlPlusDomain:
-        ''' Create a PDDL+ domain for the given observed state '''
-        # domain_file = "{}/{}".format(str(self.docker_path), "polycraft_domain_template.pddl")
-        # domain_parser = PddlDomainParser()
-        # pddl_domain = PddlPlusDomain()
+        # Mapping an action name to the PddlAction object that created it
 
-        pddl_domain = PddlPlusDomain()
-        pddl_domain.name = "polycraft"
-        pddl_domain.requirements = [":typing", ":disjunctive-preconditions", ":fluents", ":time", ":negative-preconditions"]
-        pddl_domain.types.append("cell")
-
-        # Add predicates
-        pddl_domain.predicates.append(["isAccessible", "?c", "-", "cell"])
-        pddl_domain.predicates.append(["adjacent", "?c1", "-", "cell", "?c2", "-", "cell"])
-        for trader_id in set(world_state.trades.keys()):
-            pddl_domain.predicates.append([f"trader_{trader_id}_at", "?c", "-", "cell"])
-
-        # Add functions
-        pddl_domain.functions.append(["cell_type", "?c","-","cell"])
-        pddl_domain.functions.append(["selectedItem",])
-        for item in self.item_type_to_idx:
-            pddl_domain.functions.append([f"count_{item}",])
-
-        # Add actions
+    def create_pddl_actions_in_domain(self, world_state:PolycraftState)->list:
+        ''' Returns a list of PddlAction for the domain created for the given world state '''
         pddl_actions = []
         pddl_actions.append(PddlPlaceTreeTapAction())
 
@@ -485,6 +476,34 @@ class PolycraftMetaModel(MetaModel):
         for trader_id, trades in world_state.trades.items():
             for trade_idx, trade in enumerate(trades):
                 pddl_actions.append(PddlTradeAction(trader_id, trade_idx, trade))
+
+        return pddl_actions
+
+    def create_pddl_domain(self, world_state:PolycraftState) -> PddlPlusDomain:
+        ''' Create a PDDL+ domain for the given observed state '''
+        # domain_file = "{}/{}".format(str(self.docker_path), "polycraft_domain_template.pddl")
+        # domain_parser = PddlDomainParser()
+        # pddl_domain = PddlPlusDomain()
+
+        pddl_domain = PddlPlusDomain()
+        pddl_domain.name = "polycraft"
+        pddl_domain.requirements = [":typing", ":disjunctive-preconditions", ":fluents", ":time", ":negative-preconditions"]
+        pddl_domain.types.append("cell")
+
+        # Add predicates
+        pddl_domain.predicates.append(["isAccessible", "?c", "-", "cell"])
+        pddl_domain.predicates.append(["adjacent", "?c1", "-", "cell", "?c2", "-", "cell"])
+        for trader_id in set(world_state.trades.keys()):
+            pddl_domain.predicates.append([f"trader_{trader_id}_at", "?c", "-", "cell"])
+
+        # Add functions
+        pddl_domain.functions.append(["cell_type", "?c","-","cell"])
+        pddl_domain.functions.append(["selectedItem",])
+        for item in self.item_type_to_idx:
+            pddl_domain.functions.append([f"count_{item}",])
+
+        # Add actions
+        pddl_actions = self.create_pddl_actions_in_domain(world_state)
 
         # Add all actions to the domain
         for pddl_action in pddl_actions:

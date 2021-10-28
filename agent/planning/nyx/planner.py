@@ -16,6 +16,11 @@ from agent.planning.nyx.syntax.state import State
 # (NOT AVAILABLE YET ON MASTER BRANCH)
 import agent.planning.nyx.semantic_attachments as semantic_attachments
 
+import logging
+logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger("Polycraft")
+logger.setLevel(logging.INFO)
+
 class Planner:
 
     #-----------------------------------------------
@@ -29,7 +34,6 @@ class Planner:
         # self.total_visited = 0
         self.visited_hashmap = {}
         self.heuristic = get_heuristic_function(constants.CUSTOM_HEURISTIC_ID) # TODO get this parameter in some normal way
-        self.queue = self._get_open_list() # TODO get this parameter in some normal way
 
     def solve(self, domain, problem):
 
@@ -49,8 +53,11 @@ class Planner:
 
         # Search
         self.visited_hashmap[hash(VisitedState(state))] = VisitedState(state)
-        self.queue.push(state)
+        self.queue = self._get_open_list() # TODO get this parameter in some normal way
+        self.enqueue_state(state)
         while self.queue:
+            if self.explored_states % constants.LOG_EXPLORED_STATES_FREQUENCY ==0:
+                logger.info(f"Explored {self.explored_states} nodes.")
             state = self.queue.pop()
             from_state = VisitedState(state)
             time_passed = round(state.time + constants.DELTA_T, constants.NUMBER_PRECISION)
@@ -113,7 +120,7 @@ class Planner:
                 # if constants.PRINT_ALL_STATES:
                 #     print(new_state)
 
-            if (time.time() - start_solve_time) >= constants.TIMEOUT:
+            if constants.NO_TIMEOUT==False and (time.time() - start_solve_time) >= constants.TIMEOUT:
                 if (constants.ANYTIME):
                     return self.reached_goal_states
                 return None

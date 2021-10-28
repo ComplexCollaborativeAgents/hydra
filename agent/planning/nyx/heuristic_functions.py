@@ -52,8 +52,27 @@ class BadSBHeuristic(AbstractHeuristic):
         return node.h
 
         # return 0
-PolyCraftHeuristic = AbstractHeuristic
 
+class PolyCraftHeuristic(AbstractHeuristic):
+    # POLYCRAFT HEURISTIC
+    def evaluate(self, node):
+        # Check if have ingredients of pogo stick
+        pogo_count = node.state_vars["['count_polycraft_wooden_pogo_stick']"]
+        if pogo_count>0:
+            return 0
+
+        INGREDIENTS = [('count_minecraft_diamond_block',2),
+                       ('count_polycraft_block_of_titanium',2),
+                       ('count_minecraft_stick',2),
+                       ('count_polycraft_sack_polyisoprene_pellets', 1)]
+
+        h_value = 1
+        for fluent, quantity in INGREDIENTS:
+            delta = quantity - node.state_vars[f"['{fluent}']"]
+            if delta>0:
+                h_value = h_value+delta
+        node.h = h_value
+        return h_value
 
 class CartpoltHeuristic(AbstractHeuristic):
         # CARTPOLE HEURISTIC

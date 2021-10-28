@@ -88,35 +88,18 @@ def test_run_planner(execution_number):
     with open(test_path / f"polycraft_state_{execution_number}.p" ,"rb") as in_file:
         state = pickle.load(in_file)
 
+    # Uncomment to make the planner go faster by making the problem easier
     state.inventory['4'] = {'item': ItemType.TREE_TAP.value, 'count': 1}
     state.inventory['5'] = {'item': ItemType.BLOCK_OF_TITANIUM.value, 'count': 2}
     state.inventory['6'] = {'item': ItemType.DIAMOND_BLOCK.value, 'count': 2}
 
-    meta_model = PolycraftMetaModel()
-    pddl_domain = meta_model.create_pddl_domain(state)
-    assert pddl_domain is not None
-    PddlDomainExporter().to_file(pddl_domain, test_path / "poly_domain.pddl")
+    planner = PolycraftPlanner()
+    plan = planner.make_plan(state)
 
-    pddl_problem = meta_model.create_pddl_problem(state)
-    assert pddl_problem is not None
-    PddlProblemExporter().to_file(pddl_problem, test_path / "poly_prob.pddl")
+    assert(len(plan)>0)
 
-    # block_to_count = dict()
-    # for block_type in meta_model.break_block_to_outcome:
-    #     count = len(state.get_cells_of_type(block_type))
-    #     print(f"{count} cells of types {block_type}")
-    #     block_to_count[block_type]=count
 
-    nyx.runner("%s/poly_domain.pddl" % test_path,
-               "%s/poly_prob.pddl" % test_path,
-               ['-vv', '-to:%s' % str(settings.SB_TIMEOUT), '-noplan', '-search:gbfs', '-custom_heuristic:3', '-th:10',
-                # '-th:%s' % str(self.meta_model.constant_numeric_fluents['time_limit']),
-                '-t:%s' % str(settings.SB_DELTA_T)])
 
-    # plan_actions = self.extract_actions_from_plan_trace(
-    #     "%s/plan_sb_prob.pddl" % str(settings.SB_PLANNING_DOCKER_PATH))
-
-#
 # def test_observation():
 #     test_path = pathlib.Path(settings.ROOT_PATH) / "tests"
 #

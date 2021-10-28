@@ -3,7 +3,7 @@ import datetime
 
 from agent.consistency.observation import HydraObservation
 from utils.polycraft_utils import *
-from agent.planning.polycraft_meta_model import PolycraftMetaModel
+from agent.planning.polycraft_meta_model import PolycraftMetaModel, PddlPolycraftAction
 from agent.planning.polycraft_planning.actions import *
 from worlds.polycraft_interface.client.polycraft_interface import TiltDir
 from agent.planning.pddlplus_parser import *
@@ -14,8 +14,9 @@ from agent.planning.nyx import nyx
 logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("Polycraft")
 
-import json
+import re
 
+RE_EXTRACT_ACTION_PATTERN = re.compile(r" *(\d*\.\d*):\t*(.*)\t\[0\.0\]")  # Pattern used to extract action time and name from planner output
 
 class PolycraftObservation(HydraObservation):
     ''' An object that represents an observation of the SB game '''
@@ -59,14 +60,31 @@ class PolycraftPlanner(HydraPlanner):
         self.delta_t = settings.POLYCRAFT_DELTA_T
         self.timeout = settings.POLYCRAFT_TIMEOUT
 
-    def make_plan(self,state):
+    def make_plan(self, state:PolycraftState):
         if settings.NO_PLANNING:
             self.current_problem_prefix = datetime.datetime.now().strftime("%y%m%d_%H%M%S") # need a prefix for observations
             return []
-        pddl_problem = self.meta_model.create_pddl_problem(state)
-        pddl_domain = self.meta_model.create_pddl_domain(state)
-        self.write_pddl_file(pddl_problem, pddl_domain)
-        return self.get_plan_actions()
+        self.initial_state = state
+        self.pddl_problem = self.meta_model.create_pddl_problem(state)
+        self.pddl_domain = self.meta_model.create_pddl_domain(state)
+        self.write_pddl_file(self.pddl_problem, self.pddl_domain)
+
+        try:
+            nyx.runner(self.pddl_domain_file,
+                       self.pddl_problem_file,
+                       ['-vv', '-to:%s' % str(self.timeout), '-noplan', '-search:gbfs', '-custom_heuristic:3', '-th:10',
+                        # '-th:%s' % str(self.meta_model.constant_numeric_fluents['time_limit']),
+                        '-t:%s' % str(self.delta_t)])
+            plan_actions = self.extract_actions_from_plan_trace(self.pddl_plan_file)
+            if len(plan_actions) > 0:
+                return plan_actions
+            else:
+                return []
+        except Exception as e_inst:
+            logger.error(f"Exception while running planner. {e_inst}", stack_info=True)
+            logger.exception(e_inst)
+            print(e_inst)
+        return []
 
 
     def write_pddl_file(self, pddl_problem : PddlPlusProblem, pddl_domain: PddlPlusDomain):
@@ -83,60 +101,62 @@ class PolycraftPlanner(HydraPlanner):
             domain_exporter.to_file(pddl_domain, "{}/trace/problems/{}_domain.pddl".format(self.planning_path,
                                                                                       self.current_problem_prefix))
 
-    def get_plan_actions(self,count=0):
+    def _get_poly_action_from_pddl_action(self, pddl_action_line:str, action_generators:list)->PolycraftAction:
+        ''' Generates a PolycraftAction using the given list of action generators based on the given
+        pddl action line. '''
 
-        plan_actions = []
+        # Extract action name and parameters
+        matches = list(RE_EXTRACT_ACTION_PATTERN.finditer(pddl_action_line))
+        assert (len(matches) == 1)
+        assert (len(matches[0].groups()) == 2)
+        action_time = matches[0].groups()[0].strip()
+        action_name_and_params = matches[0].groups()[1].strip()
+        action_parts = action_name_and_params.split(" ")
+        action_name = action_parts[0].strip()
 
-        try:
-            nyx.runner(self.pddl_domain_file,
-                       self.pddl_problem_file,
-                       ['-vv', '-to:%s' % str(self.timeout), '-noplan', '-search:bfs', '-custom_heuristic:2', '-th:10',
-                        # '-th:%s' % str(self.meta_model.constant_numeric_fluents['time_limit']),
-                        '-t:%s' % str(self.delta_t)])
+        # Find appropriate action generator
+        logger.info(f"Parsing line {pddl_action_line} for action {action_name}")
+        selected_action_gen = None
+        for action_gen in action_generators:
+            if action_gen.pddl_name.replace(":","_")==action_name:
+                selected_action_gen = action_gen
+                break
+        assert(selected_action_gen is not None)
+        pddl_action = selected_action_gen.to_pddl(self.meta_model)
 
-            plan_actions = self.extract_actions_from_plan_trace(self.pddl_plan_file)
+        # Handle parameters if needed
+        binding = dict()
+        if len(action_parts)>1:
+            params_parts = action_parts[1:]
+            pddl_parameters_list = pddl_action.parameters[0]
+            assert(len(params_parts)*3 == len(pddl_parameters_list))
+            for i, param in enumerate(params_parts):
+                param_value = param.strip()
+                param_name = pddl_parameters_list[i*3]
+                binding[param_name]=param_value
 
-        except Exception as e_inst:
-            print(e_inst)
+        return selected_action_gen.to_polycraft(binding)
 
-        # print(plan_actions)
-
-        if len(plan_actions) > 0:
-            if (plan_actions[0].action_name == "syntax error") and (count < 1):
-                return self.get_plan_actions(count + 1)
-            else:
-                return plan_actions
-        else:
-            return []
-
-    ''' Parses the given plan trace file and outputs the plan '''
     def extract_actions_from_plan_trace(self, plane_trace_file: str):
-        plan_actions = PddlPlusPlan()
-        lines_list = open(plane_trace_file).readlines()
+        ''' Parses the given plan trace file and outputs the plan '''
+        pddl_action_names = [action.name for action in self.pddl_domain.actions]
+        pddl_actions = self.meta_model.create_pddl_actions_in_domain(self.initial_state)
+        plan_actions = []
         with open(plane_trace_file) as plan_trace_file:
             for i, line in enumerate(plan_trace_file):
                 # print(str(i) + " =====> " + str(line))
                 if "No Plan Found!" in line:
-                    plan_actions.append(TimedAction("out of memory", 1.0))
-                    # if the planner ran out of memory:
-                    # change the goal to killing a single pig to make the problem easier and try again with one fewer pig
-                    return plan_actions
-                if "pa-twang" in line:
-                    action_angle_time = (line.split('\t')[1].strip(),
-                                         # float(str(lines_list[i + 1].split('angle:')[1].split(',')[0])),
-                                         float(line.split(':')[0]))
-                    plan_actions.append(TimedAction(action_angle_time[0], action_angle_time[1]))
+                    logger.info("No plan found")
+                    return None
 
-                ## TAP UPDATE
-                # if "bird_action" in line:
-                #     action_angle_time = (line.split(':')[1].split('[')[0].replace('(', '').replace(')', '').strip(),
-                #                          float(str(lines_list[i + 1].split('angle:')[1].split(',')[0])),
-                #                          float(line.split(':')[0]))
-                #     plan_actions.append(TimedAction(action_angle_time[0], action_angle_time[2]))
+                action_in_plan = None
+                for action_name in pddl_action_names:
+                    if action_name in line:
+                        action_in_plan = action_name
+                        break
 
-                if "syntax error" in line:
-                    plan_actions.append(TimedAction("syntax error", 0.0))
-                    break
+                if action_in_plan:
+                    plan_actions.append(self._get_poly_action_from_pddl_action(line, pddl_actions))
         return  plan_actions
 
 
