@@ -4,41 +4,33 @@ import settings
 import logging
 import pathlib
 
+from tests.test_polycraft import launch_polycraft
 from utils.polycraft_utils import *
 from agent.planning.polycraft_planning.actions import *
 import worlds.polycraft_world as poly
 from agent.polycraft_hydra_agent import PolycraftObservation, PolycraftManualAgent
-
+from tests.test_polycraft import launch_polycraft
 logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("TestPolycraftWorld")
 
 TEST_LEVEL = pathlib.Path(
     settings.POLYCRAFT_NON_NOVELTY_LEVEL_DIR) / "POGO_L00_T01_S01_X0100_U9999_V0_G00000_I0020_N0.json"
 
-@pytest.fixture(scope="module")
-def launch_polycraft():
-    logger.info("starting")
-
-    env = poly.Polycraft(launch=True)
-    yield env
-    logger.info("teardown tests")
-    env.kill()
-
-def _setup_env(env):
+def _setup_env(env, test_level):
     ''' Sets up the environment and agent, and return the current state '''
     agent = PolycraftManualAgent()
     agent.commands.clear()
-    env.init_selected_level(TEST_LEVEL)
+    env.init_selected_level(test_level)
     agent.start_level(env)  # Collect trades and recipes
     state = env.get_current_state()
     return agent, state
 
 
 @pytest.mark.parametrize('execution_number', range(5))
-def test_agent_break_and_collect(launch_polycraft: poly.Polycraft, execution_number):
+def test_agent_break_and_collect(launch_polycraft, execution_number):
     ''' Test going to an log block and mining it '''
     env = launch_polycraft
-    agent, state = _setup_env(env)
+    agent, state = _setup_env(env, TEST_LEVEL)
 
     log_cells = state.get_cells_of_type(poly.ItemType.LOG.value, only_accessible=True)
     assert (len(log_cells) > 0)
@@ -60,7 +52,7 @@ def test_agent_break_and_collect(launch_polycraft: poly.Polycraft, execution_num
 def test_mining_two_logs(launch_polycraft: poly.Polycraft, execution_number):
     ''' Test mining two oak blocks and collecting the resulting logs '''
     env = launch_polycraft
-    agent, state = _setup_env(env)
+    agent, state = _setup_env(env, TEST_LEVEL)
 
     log_cells = state.get_cells_of_type(poly.ItemType.LOG.value, only_accessible=True)
     assert(len(log_cells)>1)
@@ -92,7 +84,7 @@ def test_mining_two_logs(launch_polycraft: poly.Polycraft, execution_number):
 def test_select_iron_pickaxe(launch_polycraft, execution_number):
     ''' Test selecting an iron pickaxe from the inventory '''
     env = launch_polycraft
-    agent, state = _setup_env(env)
+    agent, state = _setup_env(env, TEST_LEVEL)
 
     # Assert no item has been selected
     selected_item = state.get_selected_item()
@@ -113,7 +105,7 @@ def test_select_iron_pickaxe(launch_polycraft, execution_number):
 def test_agent_mine_with_pickaxe(launch_polycraft: poly.Polycraft, execution_number:int):
     ''' Select a pickaxe and use it'''
     env = launch_polycraft
-    agent, state = _setup_env(env)
+    agent, state = _setup_env(env, TEST_LEVEL)
 
     # Select pickaxe
     iron_pickaxe_entries = state.get_inventory_entries_of_type(poly.ItemType.IRON_PICKAXE.value)
@@ -149,7 +141,7 @@ def test_agent_mine_with_pickaxe(launch_polycraft: poly.Polycraft, execution_num
 def test_craft_items(launch_polycraft: poly.Polycraft, execution_number):
     ''' Test mining logs, crafting planks from the logs, and crafting sticks from planks '''
     env = launch_polycraft
-    agent, state = _setup_env(env)
+    agent, state = _setup_env(env, TEST_LEVEL)
 
     # Mine 2 logs
     state = _mine_logs(agent, env, state)
@@ -184,7 +176,11 @@ def test_craft_items(launch_polycraft: poly.Polycraft, execution_number):
                 cells_to_place_tree_tap.append(adjacent_cell)
     assert(len(cells_to_place_tree_tap)>0)
     cell = cells_to_place_tree_tap[0]
-    after_state, step_cost = agent.do(TeleportAndFaceCell(cell), env)
+
+    move_action = TeleportAndFaceCell(cell)
+    while move_action.is_done() == False:
+        after_state, step_cost = agent.do(move_action, env)
+
     assert(agent.current_observation.actions[-1].success)
     state = after_state
 
@@ -253,7 +249,7 @@ def _mine_logs(agent, env, state):
 def test_mine_diamonds(launch_polycraft: poly.Polycraft, execution_number):
     ''' Test mining logs, crafting planks from the logs, and crafting sticks from planks '''
     env = launch_polycraft
-    agent, state = _setup_env(env)
+    agent, state = _setup_env(env, TEST_LEVEL)
 
     # Select iron pickaxe
     action = poly.PolySelectItem(poly.ItemType.IRON_PICKAXE.value)
@@ -321,7 +317,7 @@ def _go_to_crafting_table(agent, env, state):
 def test_trade_logs(launch_polycraft: poly.Polycraft):
     ''' Test getting logs and trading them for titanium '''
     env = launch_polycraft
-    agent, state = _setup_env(env)
+    agent, state = _setup_env(env, TEST_LEVEL)
 
     # Select iron pickaxe
     action = poly.PolySelectItem(poly.ItemType.IRON_PICKAXE.value)
@@ -358,7 +354,7 @@ def test_trade_logs(launch_polycraft: poly.Polycraft):
 def test_trade_two_titanium_blocks(launch_polycraft: poly.Polycraft):
     ''' Mine 2 platinum blocks and then trade them for two titanium blocks '''
     env = launch_polycraft
-    agent, state = _setup_env(env)
+    agent, state = _setup_env(env, TEST_LEVEL)
 
     # Select iron pickaxe
     action = poly.PolySelectItem(poly.ItemType.IRON_PICKAXE.value)
@@ -400,13 +396,16 @@ def test_trade_two_titanium_blocks(launch_polycraft: poly.Polycraft):
 @pytest.mark.parametrize('execution_number', range(3))
 def test_open_chest(launch_polycraft: poly.Polycraft, execution_number):
     env = launch_polycraft
-    agent, state = _setup_env(env)
+    agent, state = _setup_env(env, TEST_LEVEL)
 
     # Find door
     chests = state.get_cells_of_type(BlockType.PLASTIC_CHEST.value)
     for chest in chests:
         logger.info(f"Open chest at {chest}")
-        agent.do(TeleportAndFaceCell(chest), env)
+        move_action =TeleportAndFaceCell(chest)
+        while move_action.is_done() == False:
+            _, _ = agent.do(move_action, env)
+
         assert (agent.current_observation.actions[-1].success == True)
 
         logger.info("Collect from the chest")
@@ -418,7 +417,11 @@ def test_open_chest(launch_polycraft: poly.Polycraft, execution_number):
         door_cells = state.get_cells_of_type(BlockType.WOODER_DOOR.value, only_accessible=True)
         assert(len(door_cells)>0)
         door = door_cells[execution_number % len(door_cells)]
-        after_state, step_cost = agent.do(TeleportAndFaceCell(door), env)
+
+        move_action =TeleportAndFaceCell(door)
+        while move_action.is_done() == False:
+            after_state, step_cost = agent.do(move_action, env)
+
         assert (agent.current_observation.actions[-1].success == True)
         state = after_state
 
@@ -428,6 +431,30 @@ def test_open_chest(launch_polycraft: poly.Polycraft, execution_number):
         state = env.get_current_state()
         assert(state.game_map[door]["open"]=='true')
 
+
+@pytest.mark.parametrize('execution_number', range(3))
+def test_open_door(launch_polycraft: poly.Polycraft, execution_number):
+    ''' Tests the action of open a door and exploring it '''
+    env = launch_polycraft
+    agent, state = _setup_env(env, TEST_LEVEL)
+
+    door_cells = state.get_cells_of_type(BlockType.WOODER_DOOR.value, only_accessible=True)
+    assert(len(door_cells)>0)
+    door = door_cells[execution_number % len(door_cells)]
+
+    move_to_door = TeleportAndFaceCell(door)
+    while move_to_door.is_done()==False:
+        after_state, step_cost = agent.do(TeleportAndFaceCell(door), env)
+    assert (agent.current_observation.actions[-1].success == True)
+    state = after_state
+
+    assert(state.game_map[door]["open"] == 'false')
+    state, step_cost = agent.do(PolyUseItem(""), env)
+    assert(agent.current_observation.actions[-1].success==True)
+    assert(state.game_map[door]["open"]=='true')
+
+    state, step_cost = agent.do(PolyMoveThroughDoor(door),env)
+    assert(agent.current_observation.actions[-1].success == True)
 
 def test_helper_functions():
     ''' Test some of the helper functions '''
@@ -459,15 +486,3 @@ def test_helper_functions():
         cell_type = state.game_map[cell]["name"]
         assert(cell_type==poly.ItemType.LOG.value)
         print(f'cell {cell} is of type {cell_type}')
-
-
-
-
-# def test_other():
-#     # TODO: DELETE ME
-#     env = launch_polycraft
-#     agent, state = _setup_env(env)
-#     titanium_cells = state.get_cells_of_type(poly.ItemType.BLOCK_OF_TITANIUM.value)
-#     sack_polyisoprene_pellets_cells = state.get_cells_of_type(poly.ItemType.SACK_POLYISOPRENE_PELLETS.value)
-#     diamond_cells = state.get_cells_of_type(poly.ItemType.DIAMOND.value)
-#     diamond_block_cells = state.get_cells_of_type(poly.ItemType.DIAMOND_BLOCK.value)

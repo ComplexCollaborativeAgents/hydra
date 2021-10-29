@@ -10,70 +10,6 @@ import settings
 logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("Polycraft")
 
-def obs_generator(env:Polycraft, agent: PolycraftHydraAgent = PolycraftHydraAgent()):
-    ''' Generate observations for learning polycraft world '''
-    dumps_path = pathlib.Path(settings.ROOT_PATH) / "data" / "polycraft" / "dumps"
-
-    state = env.get_current_state()
-
-    # Perform a set of actions
-    observation = PolycraftObservation()
-    max_iterations = 1000
-    for i in range(max_iterations):
-        with open(dumps_path / "test_polycraft_state_{}.p".format(i),"wb") as out:
-            pickle.dump(state, out)
-        action = agent.choose_action(state)
-        with open(dumps_path / "test_polycraft_action_{}.p".format(i),"wb") as out:
-            pickle.dump(action, out)
-
-        logger.info("State[{}]: {}".format(i, str(state)))
-        logger.info("Chosen action: {}".format(action))
-
-        observation.states.append(state)
-        observation.actions.append(action)
-
-        after_state, step_cost = env.act(action)
-
-        observation.rewards.append(-step_cost)
-
-        with open(dumps_path / "test_polycraft_obs_{}.p".format(i),"wb") as out:
-            pickle.dump(observation, out)
-
-        logger.info("Post action state: {}".format(str(after_state)))
-        logger.info("Step cost: {}".format(step_cost))
-
-        state = after_state
-
-        if state.terminal==True:
-            break
-
-def generate_obs_of_mining_diamonds(env:Polycraft, agent:PolycraftHydraAgent, iteration=0):
-    ''' Generate a set of states we obtain after mining a diamond ore block'''
-    dumps_path = pathlib.Path(settings.ROOT_PATH) / "data" / "polycraft" / "dumps"
-
-    state = env.get_current_state()
-
-    # Select iron pickaxe
-    action = PolySelectItem(ItemType.IRON_PICKAXE.value)
-    after_state, step_cost = agent.do(action, env)
-    assert(action.success)
-    assert(after_state.get_selected_item()==ItemType.IRON_PICKAXE.value)
-    state = after_state
-
-    # Mine
-    diamond_cells = state.get_cells_of_type(BlockType.DIAMOND_ORE.value, only_accessible=True)
-    cell = diamond_cells[0]
-    action = PolyBreakAndCollect(cell)
-    with open(dumps_path / "data_polycraft_action_{}.p".format(iteration),"wb") as out:
-        pickle.dump(action, out)
-
-    logger.info("State[{}]: {}".format(iteration, str(state)))
-    logger.info("Chosen action: {}".format(action))
-
-    agent.do(action, env)
-
-    with open(dumps_path / "data_polycraft_obs_{}.p".format(i),"wb") as out:
-        pickle.dump(agent.current_observation, out)
 
 def generate_obs_of_no_op(env, agent, iterations):
     state = env.get_current_state()
@@ -87,16 +23,44 @@ def generate_obs_of_no_op(env, agent, iterations):
         pickle.dump(agent.current_observation, out)
 
 
+def trajectories_to_pddl_files(dump_path = pathlib.Path(settings.ROOT_PATH) / "data" / "polycraft" / "dumps", num_of_obs = 3):
+    ''' Analizes an obseration and outputs PDDL state and action files corresponding to the observed trajectories '''
+    dumps_path = pathlib.Path(settings.ROOT_PATH) / "data" / "polycraft" / "dumps"
+    meta_model = PolycraftMetaModel()
+    for i in range(num_of_obs):
+        with open(dumps_path / f"polycraft_obs_actions_{i}.pddl", "w") as actions_file:
+            with open(dumps_path / f"polycraft_obs_{i}.p", "rb") as in_file:
+                obs = pickle.load(in_file)
+                for j in range(len(obs.actions)):
+                    state = obs.states[j]
+                    PddlProblemExporter().to_file(meta_model.create_pddl_problem(state),
+                                                  output_file_name=dumps_path / f"polycraft_state_{i}_{j}.pddl")
+                    action = obs.actions[j]
+                    actions_file.write(f"{action}\n")
+                state = obs.states[-1]
+                PddlProblemExporter().to_file(meta_model.create_pddl_problem(state), output_file_name=dumps_path / f"polycraft_state_{i}_{len(obs.states)-1}.pddl")
+
+
 if __name__ == '__main__':
-    test_level = path.join(settings.ROOT_PATH, "bin", "pal", "pogo_100_PN", "POGO_L00_T01_S01_X0100_U9999_V0_G00000_I0020_N0.json")
-    logger.info("starting to generate observations")
-    try:
-        env = Polycraft(launch=True)
-        test_level = path.join(test_level)
-        for i in range(3):
-            env.init_selected_level(test_level)
-            agent = PolycraftManualAgent()
-            agent.start_level(env) # Collect recipes and trades
-            generate_obs_of_mining_diamonds(env, agent=agent, iteration=i)
-    finally:
-        env.kill()
+    dumps_path = pathlib.Path(settings.ROOT_PATH) / "data" / "polycraft" / "dumps"
+    iterations_per_level = 3
+    num_of_levels = 3
+    levels = get_non_novelty_levels_files()
+    if len(levels)<num_of_levels:
+        num_of_levels = len(levels)
+
+    for i in range(num_of_levels):
+        test_level = levels[i]
+        logger.info(f"starting to generate observations for level {test_level.name}")
+        try:
+            env = Polycraft(polycraft_mode=ServerMode.SERVER)
+            for j in range(iterations_per_level):
+                env.init_selected_level(test_level)
+                agent = PolycraftHydraAgent()
+                agent.start_level(env) # Collect recipes and trades
+                state = env.get_current_state()
+                agent.do_batch(10, state, env)
+                with open(dumps_path / f"polycraft_obs_{test_level.name}_{j}.p", "wb") as out:
+                    pickle.dump(agent.current_observation, out)
+        finally:
+            env.kill()

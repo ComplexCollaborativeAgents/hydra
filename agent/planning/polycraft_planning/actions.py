@@ -4,83 +4,27 @@ from utils.polycraft_utils import *
 from worlds.polycraft_world import *
 import worlds.polycraft_interface.client.polycraft_interface as poly
 
+# Helper actions
 
-class MacroAction(PolycraftAction):
-    ''' A macro action is a generator of basic PolycraftActions based on the current state '''
-    def __init__(self):
+class PolyMoveThroughDoor(PolycraftAction):
+    MAX_STEPS = 3 # Maximum forward steps until explored room
+    ''' Action that moves through a door '''
+    def __init__(self, door_cell: str):
         super().__init__()
-        self.active_action = None # If we're in the middle of doing some action
-        self._is_done = False
-        self._current_state = None
-
-    def _get_next_action(self)->PolycraftAction:
-        raise NotImplementedError("Subclasses of MacroAction should implement this and set self.next_action in it")
-
-    def is_done(self):
-        return self._is_done
-
-    def set_current_state(self, state: PolycraftState):
-        self._current_state = state
-        if self.active_action is not None:
-            self.active_action.set_current_state(state)
-
-    def do(self, env: poly.PolycraftInterface) -> dict:
-        ''' Key: macro action accept the environment, not the polycraft_interface'''
-        logger.info(f"Doings macro action {self}")
-        if self.active_action is None:
-            next_action = self._get_next_action()
-        else:
-            next_action = self.active_action
-
-        if isinstance(next_action, MacroAction):
-            next_action.set_current_state(self._current_state)
-
-        result = next_action.do(env)
-        self.success = next_action.is_success(result)
-
-        # If next action not done yet, do it
-        if isinstance(next_action, MacroAction):
-            if next_action.is_done()==False:
-                self.active_action = next_action
-            else:
-                logger.info(f"Macro action {self.active_action} is done")
-                self.active_action = None
-        else:
-            self.active_action = None
-        return result
-
-class TeleportAndFaceCell(PolycraftAction):
-    ''' Macro for teleporting to a given cell and turning to face it '''
-    def __init__(self, cell: str):
-        super().__init__()
-        self.cell = cell
+        self.door_cell = door_cell
 
     def __str__(self):
-        return "<TeleportAndFaceCell {} success={}>".format(self.cell, self.success)
+        return f"<PolyMoveThroughDoor {self.door_cell} success={self.success}>"
 
     def do(self, poly_client: poly.PolycraftInterface) -> dict:
-        tp_action = PolyTP(self.cell, dist=1)
-        result = tp_action.do(poly_client)
-        if tp_action.success == False:
-            logger.info(f"teleport_and_face_cell({self.cell}) failed during TP_TO_POS, Message: {result}")
-            return result
+        for i in range(PolyMoveThroughDoor.MAX_STEPS):
+            response = poly_client.MOVE(MoveDir.FORWARD)
+            if self.is_success(response)==False:
+                self.success=False
+                return response
+        self.success = True
+        return response
 
-        # Orient so we face the block
-        current_state = PolycraftState.create_current_state(poly_client)
-        turn_angle = get_angle_to_adjacent_cell(self.cell, current_state)
-        if turn_angle == 0:
-            self.success = self.is_success(result)
-            return result
-        else:
-            turn_action = PolyTurn(turn_angle)
-            result = turn_action.do(poly_client)
-            self.success = turn_action.is_success(result)
-            self.command_result = result
-            if self.success == False:
-                logger.info(f"teleport_and_face_cell({self.cell}) failed during TURN, Message: {result}")
-            else:
-                self.success = True
-            return result
 
 class PolyBreakAndCollect(PolycraftAction):
     """ Teleport near a brick, break it, and collect the resulting item """
@@ -92,12 +36,6 @@ class PolyBreakAndCollect(PolycraftAction):
         return "<PolyBreakAndCollect {} success={}>".format(self.cell, self.success)
 
     def do(self, poly_client: poly.PolycraftInterface) -> dict:
-        # Move
-        action = TeleportAndFaceCell(self.cell)
-        result = action.do(poly_client)
-        if action.is_success(result)==False:
-            return result
-
         # Store the state before breaking, to identify the new item
         current_state = PolycraftState.create_current_state(poly_client)
 
@@ -146,8 +84,10 @@ class PolyBreakAndCollect(PolycraftAction):
         item_pos_cell = ",".join([str(coord) for coord in new_item_pos])
         logger.info(f"Item not in inventory, teleport to its cell: {item_pos_cell}")
         result = poly_client.TP_TO_ENTITY(new_item)
+
+        # Sometimes the item gets collected even if the TP fails. Maybe some timing issue where it gets collected before we move there
+        # TODO: Investigate this
         if self.is_success(result) == False:
-            self.success = False
             logger.info(f"Action {str(self)} failed during TP_TO_ENTITY(new_item), Message: {result}")
             return result
 
@@ -157,9 +97,12 @@ class PolyBreakAndCollect(PolycraftAction):
         self._wait_to_collect_adjacent_items(current_state, poly_client)
         current_state = PolycraftState.create_current_state(poly_client)
         state_diff = current_state.diff(previous_state)
-        assert(has_new_item(state_diff))
 
-        self.success = True
+        # If item was collected - hurray!
+        if has_new_item(state_diff):
+            self.success = True
+        else:
+            self.success = False
         return result
 
     def _wait_to_collect_adjacent_items(self,current_state:PolycraftState, poly_client: poly.PolycraftInterface):
@@ -184,6 +127,81 @@ class PolyBreakAndCollect(PolycraftAction):
             else:
                 poly_client.CHECK_COST() # Do a no-op
 
+######## Macro actions
+class MacroAction(PolycraftAction):
+    ''' A macro action is a generator of basic PolycraftActions based on the current state '''
+    def __init__(self):
+        super().__init__()
+        self.active_action = None # If we're in the middle of doing some action
+        self._is_done = False
+        self._current_state = None
+
+    def _get_next_action(self)->PolycraftAction:
+        raise NotImplementedError("Subclasses of MacroAction should implement this and set self.next_action in it")
+
+    def is_done(self):
+        return self._is_done
+
+    def set_current_state(self, state: PolycraftState):
+        self._current_state = state
+        if self.active_action is not None:
+            self.active_action.set_current_state(state)
+
+    def do(self, env: poly.PolycraftInterface) -> dict:
+        ''' Key: macro action accept the environment, not the polycraft_interface'''
+        logger.info(f"Do step in macro action {self}")
+        if self.active_action is None:
+            next_action = self._get_next_action()
+        else:
+            next_action = self.active_action
+
+        if isinstance(next_action, MacroAction):
+            next_action.set_current_state(self._current_state)
+
+        result = next_action.do(env)
+        self.success = next_action.is_success(result)
+
+        # If next action not done yet, do it
+        if isinstance(next_action, MacroAction):
+            if next_action.is_done()==False:
+                self.active_action = next_action
+            else:
+                logger.info(f"Macro action {self.active_action} is done")
+                self.active_action = None
+        else:
+            self.active_action = None
+        return result
+
+    def do_until_done(self, env:poly.PolycraftInterface)->dict:
+        ''' Perform the macro action until either success if false or it is done '''
+        logger.info(f"Doing macro action {self} until done")
+        while self.is_done()==False:
+            result = self.do(env)
+        return result
+
+class TeleportAndFaceCell(MacroAction):
+    ''' Macro for teleporting to a given cell and turning to face it '''
+    def __init__(self, cell: str):
+        super().__init__()
+        self.cell = cell
+
+    def __str__(self):
+        return "<TeleportAndFaceCell {} success={}>".format(self.cell, self.success)
+
+    def _get_next_action(self)->PolycraftAction:
+        state = self._current_state
+        # If not near the cell - teleport to it
+        if is_adjacent_to_steve(self.cell, state)==False:
+            return PolyTP(self.cell, dist=1)
+
+        # If not facing the cell, turn to face it
+        self._is_done = True
+        turn_angle = get_angle_to_adjacent_cell(self.cell, state)
+        if turn_angle == 0:
+            return PolyNoAction() # TODO: Add a mechanism that says no action needed. Not critical to do this
+        else:
+            return PolyTurn(turn_angle)
+
 
 class CollectAndMineItem(PolycraftAction):
     ''' A high-level macro action that accepts the desired number of items to collect and which blocks to mine to get it.
@@ -195,6 +213,8 @@ class CollectAndMineItem(PolycraftAction):
         If there are accessible cells of the relevant block to mine
             Teleport to these cells and mine the desired item
         Otherwise, choose an accessible block and mine it
+
+        TODO: Deprecated
     '''
     def __init__(self, desired_item_type: str, desired_quantity:int, relevant_block_types:list, max_tries = 5, needs_iron_pickaxe=False):
         super().__init__()
@@ -209,14 +229,18 @@ class CollectAndMineItem(PolycraftAction):
                f"{self.relevant_block_types} {self.max_tries} success={self.success}>"
 
     def do(self, poly_client: poly.PolycraftInterface) -> dict:
-        ''' Runs this macro action '''
+        ''' Try to collect '''
         current_state = PolycraftState.create_current_state(poly_client)
         initial_quantity = current_state.count_items_of_type(self.desired_item_type)
         for i in range(self.max_tries):
             # Choose action
             action = self._choose_action(current_state)
             if action is not None:
-                result = action.do(poly_client)
+                if isinstance(action, MacroAction):
+                    result = action.do_until_done(poly_client)
+                else:
+                    result = action.do(poly_client)
+
                 current_state = PolycraftState.create_current_state(poly_client)
                 new_quantity = current_state.count_items_of_type(self.desired_item_type)
                 if new_quantity-initial_quantity>=self.desired_quantity:
@@ -230,6 +254,8 @@ class CollectAndMineItem(PolycraftAction):
 
     def _choose_action(self, current_state):
         ''' Choose which action to try next in this macro action '''
+
+        # First, if there's an item to collect - go to collect it
         entity_items = current_state.get_entities_of_type(EntityType.ITEM.value)
         relevant_cells = []
         for entity_item in entity_items:
@@ -259,46 +285,6 @@ class CollectAndMineItem(PolycraftAction):
                 action = None
         return action
 
-
-class MoveToCraftingTable(PolycraftAction):
-    ''' Macro action to go near a crafting table '''
-    def __init__(self):
-        super().__init__()
-
-    def __str__(self):
-        return f"<MoveToCraftingTable success={self.success}>"
-
-    def do(self, poly_client: poly.PolycraftInterface) -> dict:
-        state = PolycraftState.create_current_state(poly_client)
-        crafting_table_cells = state.get_cells_of_type(BlockType.CRAFTING_TABLE.value, only_accessible=True)
-        assert (len(crafting_table_cells)>0)
-        target_cell = crafting_table_cells[0]
-        action = TeleportAndFaceCell(target_cell)
-        result = action.do(poly_client)
-        if action.is_success(result) == False:
-            self.success = False
-            return result
-
-        self.success = True
-        return result
-
-class PlaceTreeTap(PolycraftAction):
-    def __init__(self, cell:str):
-        super().__init__()
-        self.cell = cell
-
-    def __str__(self):
-        return f"<PlaceTreeTap cell={self.cell} success={self.success}>"
-
-    def do(self, poly_client: poly.PolycraftInterface) -> dict:
-        # Place the tree tap
-        action = PolyPlaceTreeTap()
-        result = action.do(poly_client)
-        if action.is_success(result) == False:
-            self.success = False
-            return result
-        self.success = True
-        return result
 
 #### MACRO ACTIONS
 
@@ -416,7 +402,8 @@ class CreateByRecipe(MacroAction):
         if len(missing_ingredients) == 0:
             if self.needs_crafting_table:
                 if state.is_facing_type(BlockType.CRAFTING_TABLE.value)==False:
-                    return MoveToCraftingTable()
+                    crafting_table_cell = self._find_crafting_table(state)
+                    return TeleportAndFaceCell(crafting_table_cell)
             # Craft the item!
             self._is_done = True
             return PolyCraftItem.create_action(recipe)
@@ -431,6 +418,14 @@ class CreateByRecipe(MacroAction):
         # Compute missing ingredients
         for item_needed, needed_quantity in missing_ingredients.items():
             return self._get_action_to_collect_ingredient(item_needed, needed_quantity)
+
+    def _find_crafting_table(self, state:PolycraftState):
+        ''' Finds a crafting table cell that is accessible. Returns None if none exists '''
+        crafting_table_cells = state.get_cells_of_type(BlockType.CRAFTING_TABLE.value, only_accessible=True)
+        if len(crafting_table_cells)==0:
+            return None
+        else:
+            return random.choice(crafting_table_cells)
 
 class CreateByTrade(MacroAction):
     ''' An action that obtains an item by trading. If ingredients are missing it goes to search and collect it '''
@@ -468,42 +463,6 @@ class CreateByTrade(MacroAction):
         for item_needed, needed_quantity in missing_ingredients.items():
             return self._get_action_to_collect_ingredient(item_needed, needed_quantity)
 
-class CreateDiamondBlock(CreateByRecipe):
-    ''' Do whatever is needed to craft a diamond block.
-    This may include selecting an iron pickaxe and mining diamond ore '''
-    def __init__(self):
-        super().__init__(item_to_craft = ItemType.DIAMOND_BLOCK.value,
-                         needs_crafting_table=True,
-                         needs_iron_pickaxe=True)
-
-    def _get_action_to_collect_ingredient(self, ingredient:str, quantity:int):
-        ''' An action that is used to collect the given quantity of the given ingredient '''
-        assert(ingredient==ItemType.DIAMOND.value)
-        return CollectAndMineItem(ingredient, quantity, [BlockType.DIAMOND_ORE.value])
-
-class CreatePlanks(CreateByRecipe):
-    ''' Do whatever is needed to craft a stick '''
-    def __init__(self):
-        super().__init__(item_to_craft = ItemType.PLANKS.value,
-            needs_crafting_table=False,
-            needs_iron_pickaxe=False)
-
-    def _get_action_to_collect_ingredient(self, ingredient:str, quantity:int):
-        ''' An action that is used to collect the given quantity of the given ingredient '''
-        assert(ingredient==ItemType.LOG.value)
-        return CollectAndMineItem(ingredient, quantity, [BlockType.LOG.value])
-
-class CreateStick(CreateByRecipe):
-    ''' Do whatever is needed to craft a stick '''
-    def __init__(self):
-        super().__init__(item_to_craft=ItemType.STICK.value,
-                         needs_crafting_table=False,
-                         needs_iron_pickaxe=False)
-
-    def _get_action_to_collect_ingredient(self, ingredient:str, quantity:int):
-        ''' An action that is used to collect the given quantity of the given ingredient '''
-        assert(ingredient==ItemType.PLANKS.value)
-        return CreatePlanks()
 
 class CreateBlockOfPlatinum(CreateByRecipe):
     ''' Create a block of titanium by following these steps:
@@ -521,119 +480,28 @@ class CreateBlockOfPlatinum(CreateByRecipe):
             raise ValueError(f"Unknown ingredient for {self.item_type_to_get}: {ingredient}")
 
 
-class CreateBlockOfTitanium(CreateByTrade):
-    ''' Create a block of titanium by following these steps:
-        1. Collect platinum
-        2. Tradefor titanium
-    '''
-    def __init__(self):
-        super().__init__(item_type_to_get=ItemType.BLOCK_OF_TITANIUM.value, item_types_to_give = [BlockType.BLOCK_OF_PLATINUM.value])
+################# Exploratory Actions ####################
 
-    def _get_action_to_collect_ingredient(self, ingredient:str, quantity:int):
-        ''' An action that is used to collect the given quantity of the given ingredient '''
-        if ingredient == BlockType.BLOCK_OF_PLATINUM.value:
-            return CollectAndMineItem(desired_item_type=BlockType.BLOCK_OF_PLATINUM.value,
-                                      desired_quantity=quantity,
-                                      relevant_block_types=[BlockType.BLOCK_OF_PLATINUM.value],
-                                      needs_iron_pickaxe=True)
-        else:
-            raise ValueError(f"Unknown ingredient for {self.item_type_to_get}: {ingredient}")
-
-class CreateSackPolyisoprenePellets(MacroAction):
-    ''' Create a sack of polyisoprene pellets by following these steps:
-        1. Craft tree tap
-        2. Place tree tap
-        3. Collect sack of polyisoprene pellets from tree tap
-    '''
-    ''' An action that crafts an item by following a recipe. If ingredients are missing it goes to search and collect them '''
-    def __init__(self):
-        super().__init__()
-
-    def _get_next_action(self)->PolycraftAction:
-        ''' Return an action to perform '''
-        state = self._current_state
-
-        tree_tap_cells = state.get_cells_of_type(ItemType.TREE_TAP.value)
-        if len(tree_tap_cells)==0: # Need to place the tree tap
-            if state.count_items_of_type(ItemType.TREE_TAP.value)==0: # Need to create the tree tap
-                return CreateTreeTap()
-            else:
-                # Find place for a tree tap
-                log_cells = state.get_cells_of_type(BlockType.LOG.value, only_accessible=True)
-                assert (len(log_cells) > 0)
-                cells_to_place_tree_tap = []
-                for cell in log_cells:
-                    for adjacent_cell in get_adjacent_cells(cell):
-                        if adjacent_cell in state.game_map and \
-                                state.game_map[adjacent_cell]["name"] == BlockType.AIR.value and \
-                                state.game_map[adjacent_cell]["isAccessible"]:
-                            cells_to_place_tree_tap.append(adjacent_cell)
-                assert (len(cells_to_place_tree_tap) > 0)
-
-                # Check if there's a relevant cell we're looking at
-                cell_to_place = None
-                for cell in cells_to_place_tree_tap:
-                    if is_adjacent_to_steve(cell, state) and get_angle_to_adjacent_cell(cell, state)==0:
-                        cell_to_place = cell
-                        break
-                # If Steve isn't facing a relevant cell, teleport to one
-                if cell_to_place is None:
-                    cell = cells_to_place_tree_tap[0]
-                    return TeleportAndFaceCell(cell)
-                else: # Steve is facing a relevant cell! just place the tree tap
-                    return PlaceTreeTap(cell)
-
-        # Tree tap exists, go and collect!
-        if state.is_facing_type(ItemType.TREE_TAP.value):
-            self._is_done = True
-            return PolyCollect()
-        else: # Move to a tree tap cell and collect
-            cell = random.choice(tree_tap_cells)
-            return TeleportAndFaceCell(cell)
-
-class CreateTreeTap(CreateByRecipe):
-    ''' Do whatever is needed to create a tree tap '''
-    def __init__(self):
-        super().__init__(item_to_craft = ItemType.TREE_TAP.value,
-            needs_crafting_table=True,
-            needs_iron_pickaxe=False)
-
-    def _get_action_to_collect_ingredient(self, ingredient:str, quantity:int):
-        ''' An action that is used to collect the given quantity of the given ingredient '''
-        if ingredient == ItemType.STICK.value:
-            return CreateStick()
-        elif ingredient == ItemType.PLANKS.value:
-            return CreatePlanks()
-        else:
-            raise ValueError(f"Unknown ingredient for {self.item_to_craft}: {ingredient}")
-
-class CreateWoodenPogoStick(CreateByRecipe):
-    ''' Do whatever is needed to create a wooden pogo stick
-    Designed mostly for the following recipe:
-        1) Mine diamonds and craft 2 diamons blocks
-        2) Mine logs and make 2 sticks.
-        3) Mine platinum and trade to titanium blocks
-        4) Obtain the pallets somehow
-    '''
-    def __init__(self):
-        super().__init__(item_to_craft = ItemType.WOODEN_POGO_STICK.value,
-            needs_crafting_table=True,
-            needs_iron_pickaxe=False)
-
-    def _get_action_to_collect_ingredient(self, ingredient:str, quantity:int):
-        ''' An action that is used to collect the given quantity of the given ingredient '''
-        if ingredient == ItemType.DIAMOND_BLOCK.value:
-            return CreateDiamondBlock()
-        elif ingredient == ItemType.STICK.value:
-            return CreateStick()
-        elif ingredient == ItemType.BLOCK_OF_TITANIUM.value:
-            return CreateBlockOfTitanium()
-        elif ingredient == ItemType.PLANKS.value:
-            return CreatePlanks()
-        elif ingredient == ItemType.SACK_POLYISOPRENE_PELLETS.value:
-            return CreateSackPolyisoprenePellets()
-        else:
-            raise ValueError(f"Unknown ingredient for {self.item_to_craft}: {ingredient}")
+# Break an unknown block type
+# Interact with an unknown entity type
+# Reach an inaccessible entity
+# Open chest
 
 
 
+class OpenDoor(TeleportToAndDo):
+    ''' Move to a door, open it, and explore the room '''
+    def __init__(self, door_cell:str):
+        super().__init__(door_cell)
+
+    def __str__(self):
+        return f"<OpenDoor_{self.cell} success={self.success}>"
+
+    def _action_at_cell(self):
+        door_attr = self._current_state.game_map[self.cell]
+        if door_attr["open"]==False:
+            return PolyUseItem()
+
+        # Door open -- explore it
+        self._is_done = True
+        return PolyMoveThroughDoor(self.cell)

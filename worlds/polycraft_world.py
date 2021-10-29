@@ -21,10 +21,16 @@ import enum
 
 logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("Polycraft")
-logger.setLevel(logging.INFO)
-
+logger.setLevel(logging.DEBUG)
 
 # Useful constants
+
+class ServerMode(enum.Enum):
+    CLIENT = "Only control the client. Assumes server is up by a different process"
+    SERVER = "Control the polycraft server and the agent client"
+    TOURNAMENT = "Configured for the TA1 evaluation."
+
+
 class BlockType(enum.Enum):
     AIR = "minecraft:air"
     BEDROCK = "minecraft:bedrock"
@@ -64,7 +70,7 @@ class PolycraftAction(Action):
     def __init__(self):
         self.name = type(self).__name__
         self.success = None
-        self.command_result = None # The result returned by the server for doing this command. Initialized as None.
+        self.response = None # The result returned by the server for doing this command. Initialized as None.
 
     def is_success(self, result: dict):
         try:
@@ -666,9 +672,9 @@ class Polycraft(World):
     We will make calls through the Polycraft runtime
     """
 
-    def __init__(self, launch: bool = False, client_config: str = None):
+    def __init__(self, client_config: str = None, polycraft_mode:ServerMode = ServerMode.CLIENT):
         self.id = 2229
-        self.detached_server_mode = True # This means we do not listen to the server's output. This mode is used when launch parameter is False
+        self.world_mode = polycraft_mode
         self.poly_server_process = None     # Subprocess running the polycraft instance
         self.poly_client = None     # polycraft client interface (see polycraft_interface.py)
         self.poly_listener = None   # Listener thread to the polycraft application
@@ -677,12 +683,10 @@ class Polycraft(World):
         # State information
         self.init_state_information()
 
-        if launch:
+        if self.world_mode==ServerMode.SERVER:
             logger.info("Launching Polycraft instance")
             self.launch_polycraft()
-            self.detached_server_mode = False
         else:
-            self.detached_server_mode = True
             logger.info("Starting agent without launching Polycraft")
 
         # Path to polycraft client interface config file (host name/port, buffer size, etc.)
@@ -865,9 +869,9 @@ class Polycraft(World):
             self.poly_client = poly.PolycraftInterface(settings_path, logger=logger)
 
             # LaunchTournament.py automatically calls START, do not do so if running without it!
-            if not self.detached_server_mode:
+            if self.world_mode!=ServerMode.TOURNAMENT:
                 self.poly_client.START() # Send START command - will not perform any further actions unless done so
-            
+
             self.poly_client.CHECK_COST()   # Give time for the polycraft instance to clear its buffer?
 
         except (ConnectionRefusedError, BrokenPipeError) as err:
@@ -892,7 +896,7 @@ class Polycraft(World):
             self.poly_client.RESET(self.current_level)
             
             # Wait for level to load fully (if not loaded fully, SENSE_ALL will return nothing and other undefined behavior) TODO: make consistent with RunTournament.py
-            if self.detached_server_mode==False:
+            if self.world_mode==ServerMode.SERVER:
                 logger.info("Telling Polycraft to load a new level: {}".format(self.current_level))
                 while True:
                     if "[EXP] game initialization completed" in self._get_polycraft_output():
@@ -915,7 +919,7 @@ class Polycraft(World):
             try:
                 results = action.do(self.poly_client)   # Perform each polycraft action's unique do command which uses the Polycraft API
                 self.last_cmd_success = results['command_result']['result'] == "SUCCESS"    # Update if last command was successful or not
-                action.command_result = results['command_result']
+                action.response = results
                 logger.debug(str(action))
             except (BrokenPipeError, KeyboardInterrupt) as err:
                 logger.error("Polycraft server connection interrupted ({})".format(err))
@@ -963,19 +967,6 @@ class Polycraft(World):
         response = self.poly_client.SENSE_RECIPES()
         assert(response['command_result']['result']=='SUCCESS')
         self.current_recipes = response['recipes']
-
-    def interact(self, entity_id):
-        """
-        Query polycraft instance to interact with another agent
-        """
-        response = self.poly_client.INTERACT(entity_id)
-        self.current_trades[entity_id] = response['trades']['trades']
-        assert(response['command_result']['result']=='SUCCESS')
-
-    def move_to_entity(self, entity_id):
-        ''' Move adjacent to a given entity '''
-        PolyEntityTP(entity_id, dist=1).do(self.poly_client)
-
 
     def get_level_total_step_cost(self) -> float:
         try:

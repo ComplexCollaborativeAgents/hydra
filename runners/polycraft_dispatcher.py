@@ -22,7 +22,10 @@ class PolycraftDispatcher():
         '''
 
         # Load polycarft world
-        self.env = Polycraft(launch=not standalone)
+        mode = ServerMode.CLIENT
+        if standalone:
+            mode = ServerMode.SERVER
+        self.env = Polycraft(polycraft_mode=mode)
         self.trials = {}
 
         if len(trials) > 0:

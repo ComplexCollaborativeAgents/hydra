@@ -1,13 +1,8 @@
 
-import pickle
+# from tests.test_polycraft import launch_polycraft
 import pytest
-import settings
-import logging
-import pathlib
 
-from utils.polycraft_utils import *
-from agent.planning.polycraft_planning.actions import *
-from worlds.polycraft_world import *
+from agent.planning.polycraft_planning.fixed_planner import FixedPlanPlanner
 from agent.polycraft_hydra_agent import *
 
 logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
@@ -22,20 +17,28 @@ TESTS_LEVELS_DIR = pathlib.Path(settings.POLYCRAFT_NON_NOVELTY_LEVEL_DIR)
 @pytest.fixture(scope="module")
 def launch_polycraft():
     # Load levels
-    levels = []
-    levels_dir_path = pathlib.Path(settings.POLYCRAFT_NON_NOVELTY_LEVEL_DIR)
-    for level_file in os.listdir(levels_dir_path):
-        if level_file.endswith(".json2")==False:
-            levels.append(levels_dir_path / level_file)
-
+    levels = get_non_novelty_levels_files()
     logger.info("starting")
-    env = Polycraft(launch=True)
+    env = Polycraft(polycraft_mode= ServerMode.SERVER)
     agent = PolycraftHydraAgent()
 
     yield env, agent, levels
 
     logger.info("teardown tests")
     env.kill()
+
+@pytest.mark.parametrize('execution_number', range(3))
+def test_debug(launch_polycraft, execution_number):
+    ''' A bug in which an accessible trader is not accessible'''
+    bug_level = "POGO_L00_T01_S01_X0100_U9999_V0_G00066_I0066_N0"
+    levels = get_non_novelty_levels_files()
+    test_level = [level for level in levels if bug_level in level.name][0]
+
+    env, agent, levels = launch_polycraft
+    logger.info(f"Loading level {test_level}...")
+    env.init_selected_level(test_level)
+    agent.start_level(env)  # Collect trades and recipes
+    assert(True)
 
 @pytest.mark.parametrize('execution_number', range(100))
 def test_fixed_planner(launch_polycraft, execution_number):
@@ -56,7 +59,7 @@ def test_fixed_planner(launch_polycraft, execution_number):
     assert(state.count_items_of_type(ItemType.WOODEN_POGO_STICK.value)>0)
     logger.info("Pogo stick created !!!!")
 
-@pytest.mark.parametrize('execution_number', range(100))
+@pytest.mark.parametrize('execution_number', range(3))
 def test_pddl_planner(launch_polycraft, execution_number):
     ''' Run the fixed planner and observe results '''
     env, agent, levels = launch_polycraft

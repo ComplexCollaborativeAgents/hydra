@@ -1,5 +1,6 @@
 from runners.polycraft_dispatcher import PolycraftDispatcher
-from agent.polycraft_hydra_agent import PolycraftHydraAgent, FixedPlanPlanner
+from agent.polycraft_hydra_agent import PolycraftHydraAgent
+from agent.planning.polycraft_planning.fixed_planner import FixedPlanPlanner
 import argparse
 from utils.host import Host
 from worlds.polycraft_world import *

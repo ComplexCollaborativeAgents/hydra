@@ -6,25 +6,26 @@ import sys
 # Add HYDRA repo directory to PYTHONPATH
 sys.path.insert(0, settings.ROOT_PATH)
 
-from worlds.polycraft_world import Polycraft
-from agent.polycraft_hydra_agent import PolycraftHydraAgent, FixedPlanPlanner
+from worlds.polycraft_world import Polycraft, ServerMode
+from agent.polycraft_hydra_agent import PolycraftHydraAgent
+from agent.planning.polycraft_planning.fixed_planner import FixedPlanPlanner
 
 """
 Runner intended to interface with UTD's LaunchTournament.py (can be found in pal/PolycraftAIGym)
 LaunchTournament.py handles trial sets and most of simulation management, such as loading next levels
 """
 
-USE_STANDALONE = False   # For testing purposes, load levels (Not using LaunchTournament.py.  Only start when polycraft server is ready!)
-# STANDALONE_LEVEL = pathlib.Path(settings.POLYCRAFT_DIR) / "available_tests" / "easy_pogo_lesson_1.json"
-STANDALONE_LEVEL = pathlib.Path(settings.POLYCRAFT_NON_NOVELTY_LEVEL_DIR) / "POGO_L00_T01_S01_X0100_U9999_V0_G00000_I0020_N0.json"
+RUNNER_MODE = ServerMode.CLIENT
+
+SINGLE_LEVEL_MODE = True   # For testing purposes, load a single level and finish when it's done
+SINGLE_LEVEL_TO_RUN = pathlib.Path(settings.POLYCRAFT_NON_NOVELTY_LEVEL_DIR) / "POGO_L00_T01_S01_X0100_U9999_V0_G00066_I0066_N0.json"
 
 def run():
-    world = Polycraft(launch=False)
+    world = Polycraft(polycraft_mode=RUNNER_MODE)
+    agent = PolycraftHydraAgent()
 
-    agent = PolycraftHydraAgent(planner=FixedPlanPlanner())
-
-    if USE_STANDALONE:
-        world.init_selected_level(STANDALONE_LEVEL)
+    if SINGLE_LEVEL_MODE:
+        world.init_selected_level(SINGLE_LEVEL_TO_RUN)
         time.sleep(12)
 
     is_running = True
@@ -54,11 +55,16 @@ def run():
 
         # LaunchTournament.py handles detecting and advancing to next level
         if state.is_terminal():
-            # Clean up old recipes and trades
-            world.poly_client._logger.info("Finished prior level, preparing for new one")
-            world.reset_current_trades()
-            world.reset_current_recipes()
-            advancing_level = True
+            if SINGLE_LEVEL_MODE:
+                world.poly_client._logger.info("Finished the level!")
+                return
+            else:
+                # Clean up old recipes and trades
+                world.poly_client._logger.info("Finished prior level, preparing for new one")
+                world.reset_current_trades()
+                world.reset_current_recipes()
+                advancing_level = True
+
 
 if __name__ == "__main__":
     run()

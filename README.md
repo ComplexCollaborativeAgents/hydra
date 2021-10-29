@@ -50,8 +50,12 @@ pytest
       | VX | Variant of the same trial (different levels, same trial structure) |  
       
    2. The level directories for pre-novelty (PN) and novelty levels exist within `pogo_100_PN` and `shared_novelty/POGO` respectively.  For the levels within `shared_novelty/POGO`, inside the overall folder, there exists subsets of novelty levels and types. The lowest level of the directory contain more zipped files, which must be unzipped before being used.
-   3. Additional note: The Polycraft application is unable to run non-headless when used in the `polycraft_dispatcher.py` or in `bin/pal/PolycraftAIGym/LaunchTournament.py` or any other python script that runs it via subprocess on its own.  A workaround would be to run the application in a separate command line window using `./gradlew --no-daemon --stacktrace runclient` (also can be found in settings.POLYCRAFT_SERVER_CMD) from within the `bin/pal` directory, then setting up another Python script with a `Polycraft` world object with the optional `launch` boolean set to False. The caveat with this is that you will need to time the agent start when the Polycraft application is fully initialized, or the process will crash.  
-
+   3. To run Polycraft with GUI (i.e., not headless) you need to do the following steps
+      - open an external terminal and run the server by calling the command `./gradlew --no-daemon --stacktrace runclient` in the `bin/pal` folder:
+      - Wait until the main menu of the game is up. 
+      - Run (in a different terminal) `python polycraft_eval_runner.py`
+   
+      Additional note: The reason for this messed up way is that the Polycraft application is unable to run non-headless when used in the `polycraft_dispatcher.py` or in `bin/pal/PolycraftAIGym/LaunchTournament.py` or any other python script that runs it via subprocess on its own.  The workaround described above runs the polycraft server in a separate command line window (using `./gradlew --no-daemon --stacktrace runclient`), and then sets up another Python script with a `Polycraft` world object with the optional `launch` boolean set to False. The caveat with this is that you will need to time the agent start when the Polycraft application is fully initialized, or the process will crash.
 
 ## Building Docker
 

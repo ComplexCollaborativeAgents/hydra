@@ -1,6 +1,7 @@
 ''' Module containing helper functions for the polycaft domain '''
 import math
-
+import pathlib
+import settings
 from worlds.polycraft_world import PolycraftState, ItemType, EntityType
 from worlds.polycraft_interface.client.polycraft_interface import *
 
@@ -202,7 +203,6 @@ def compute_cell_distance(pos1:list, pos2:list):
     ''' Computes Euclidean distance between two vectors. TODO: Understand why math.dist() is not working in our conda environment '''
     return math.sqrt(sum([(pos1[i] - pos2[i]) ** 2 for i in range(len(pos1))]))
 
-
 def distance_to_nearest_pogoist(after_state, cell):
     ''' Compute the distance between the given cell and the nearest entity of type POGOIST'''
     min_distance_to_pogoist = 100000 # Infinity TODO: Make nicer
@@ -270,3 +270,19 @@ def get_angle_to_adjacent_cell(cell:str, state:PolycraftState):
 
     current_facing = FacingDir(state.location["facing"])
     return current_facing.get_angle_to(required_facing)
+
+def is_steve_facing_cell(cell:str, state:PolycraftState):
+    ''' Checks if Steve is facing a cell '''
+    if get_angle_to_adjacent_cell(cell, state)==0:
+        return True
+    else:
+        return False
+
+def get_non_novelty_levels_files():
+    ''' Return a list of config files for the non-novelty levels we have for training. '''
+    levels = []
+    levels_dir_path = pathlib.Path(settings.POLYCRAFT_NON_NOVELTY_LEVEL_DIR)
+    for level_file in os.listdir(levels_dir_path):
+        if level_file.endswith(".json2") == False:
+            levels.append(levels_dir_path / level_file)
+    return levels

@@ -1,9 +1,7 @@
-import random
 import datetime
 
 from agent.consistency.observation import HydraObservation
-from utils.polycraft_utils import *
-from agent.planning.polycraft_meta_model import PolycraftMetaModel, PddlPolycraftAction
+from agent.planning.polycraft_planning.tasks import *
 from agent.planning.polycraft_planning.actions import *
 from worlds.polycraft_interface.client.polycraft_interface import TiltDir
 from agent.planning.pddlplus_parser import *
@@ -50,7 +48,7 @@ class PolycraftObservation(HydraObservation):
 class PolycraftPlanner(HydraPlanner):
     ''' Planner for the polycraft domain'''
 
-    def __init__(self, meta_model = PolycraftMetaModel(), planning_path = settings.POLYCRAFT_PLANNING_DOCKER_PATH):
+    def __init__(self, meta_model = PolycraftMetaModel(active_task=PolycraftTask.CRAFT_POGO.create_instance()), planning_path = settings.POLYCRAFT_PLANNING_DOCKER_PATH):
         super().__init__(meta_model)
         self.current_problem_prefix = None
         self.planning_path = planning_path
@@ -150,7 +148,7 @@ class PolycraftPlanner(HydraPlanner):
     def extract_actions_from_plan_trace(self, plane_trace_file: str):
         ''' Parses the given plan trace file and outputs the plan '''
         pddl_action_names = [action.name for action in self.pddl_domain.actions]
-        pddl_actions = self.meta_model.create_pddl_actions_in_domain(self.initial_state)
+        action_generators = self.meta_model.create_action_generators(self.initial_state)
         plan_actions = []
         with open(plane_trace_file) as plan_trace_file:
             for i, line in enumerate(plan_trace_file):
@@ -166,23 +164,9 @@ class PolycraftPlanner(HydraPlanner):
                         break
 
                 if action_in_plan:
-                    plan_actions.append(self._get_poly_action_from_pddl_action(line, pddl_actions))
+                    plan_actions.append(self._get_poly_action_from_pddl_action(line, action_generators))
         return  plan_actions
 
-
-
-class FixedPlanPlanner(HydraPlanner):
-    ''' Planner for the polycraft domain that follows the following fixed plan, specified in the CreateWoodenPogoStick macro action '''
-    def __init__(self, meta_model = PolycraftMetaModel(), planning_path = settings.POLYCRAFT_PLANNING_DOCKER_PATH):
-        super().__init__(meta_model)
-
-    def make_plan(self,state: PolycraftState):
-        # Stopping condition
-        if state.count_items_of_type(ItemType.WOODEN_POGO_STICK.value)>0:
-            logger.info("Already have the pogo stick! why plan?")
-            return [PolyNoAction()]
-
-        return [CreateWoodenPogoStick()]
 
 class PolycraftHydraAgent(HydraAgent):
     ''' A Hydra agent for Polycraft of all the Hydra agents '''
@@ -192,6 +176,9 @@ class PolycraftHydraAgent(HydraAgent):
         self.active_plan = None
         self.active_action = None
         self.current_observation = None
+        self.exploration_tasks = list()
+        self.exploration_rate = 1 # Number of failed actions to endure before trying one exploration task
+        self.failed_actions_in_level = 0 # Count how many actions have failed in a given level
 
     def start_level(self, env: Polycraft):
         ''' Initialize datastructures for a new level and perform exploratory actions to get familiar with the current level.
@@ -204,11 +191,56 @@ class PolycraftHydraAgent(HydraAgent):
         # Try to interact with all other agents
         for entity_id, entity_attr in current_state.entities.items():
             if entity_attr['type']=='EntityTrader':
+                # If trader not accessible, mark getting to it as a possilbe exploration task
+                trader_cell = coordinates_to_cell(entity_attr['pos'])
+                if current_state.game_map[trader_cell]['isAccessible']==False:
+                    reach_cell_task = PolycraftTask.MAKE_CELL_ACCESSIBLE.create_instance()
+                    reach_cell_task.cell = trader_cell
+                    self.exploration_tasks.append(reach_cell_task)
+                    continue
+
                 # Move to trader
-                env.move_to_entity(entity_id)
+                tp_action = PolyEntityTP(entity_id,dist=1)
+                current_state, step_cost = env.act(tp_action)
+
+                if tp_action.success==False:
+                    trader_cell = coordinates_to_cell(entity_attr['pos'])
+                    cell_accessible = current_state.game_map[trader_cell]['isAccessible']
+                    logger.info(f"Entity {entity_id} is at cell {trader_cell} whose accessibility is {cell_accessible}, but TP_TO failed.")
+
+                    attempts = 0
+                    max_attempts = 4
+                    while cell_accessible and attempts < max_attempts:
+                        tp_action = PolyEntityTP(entity_id, dist=1)
+                        current_state, step_cost = env.act(tp_action)
+                        if tp_action.success:
+                            break # Managed to reach the trader
+                        attempts = attempts+1
+                        trader_cell = coordinates_to_cell(entity_attr['pos'])
+                        cell_accessible = current_state.game_map[trader_cell]['isAccessible']
+
+                if tp_action.success==False:
+                    logger.info(f"Entity {entity_id} not reached. Added it as an exploration task")
+                    trader_cell = coordinates_to_cell(entity_attr['pos'])
+                    if current_state.game_map[trader_cell]['isAccessible'] == True:
+                        logger.info("Bug in polycraft: accessible trader is not acessible")
+                    task = PolycraftTask.MAKE_CELL_ACCESSIBLE.create_instance()
+                    task.cell = trader_cell
+                    self.exploration_tasks.append(task)
+                    continue
 
                 # Interact with it
-                env.interact(entity_id)
+                interact_action = PolyInteract(entity_id)
+                current_state, step_cost = env.act(interact_action)
+                assert(interact_action.success)
+                env.current_trades[entity_id] = interact_action.response['trades']['trades']
+
+
+        # Add doors to other rooms as exploration tasks
+        for door_cell in current_state.get_cells_of_type(BlockType.WOODER_DOOR.value):
+            task = PolycraftTask.OPEN_DOOR.create_instance()
+            task.door_cell = door_cell
+            self.exploration_tasks.append(task)
 
         # Initialize the current observation object
         current_state = env.get_current_state()
@@ -218,7 +250,22 @@ class PolycraftHydraAgent(HydraAgent):
         self.env = env
         self.active_action = None
         self.active_plan = None
+        self.failed_actions_in_level = 0
 
+    def _choose_exploration_task(self, world_state: PolycraftState):
+        ''' Choose an exploration task to perform '''
+        assert(len(self.exploration_tasks)>0)
+
+        # Prefer to open unopened doors
+        open_door_tasks = []
+        for exploration_task in self.exploration_tasks:
+            if isinstance(exploration_task, PolycraftTask.OPEN_DOOR.value):
+                open_door_tasks.append(exploration_task)
+        if len(open_door_tasks)>0:
+            return random.choice(open_door_tasks)
+
+        # No open door tasks? choose a random exploration task
+        return random.choice(self.exploration_tasks)
 
     def choose_action(self, world_state: PolycraftState):
         ''' Choose which action to perform in the given state '''
@@ -231,7 +278,8 @@ class PolycraftHydraAgent(HydraAgent):
             last_action = self.current_observation.actions[-1]
             if last_action.success==False:
                 logger.info("Last action failed, replanning...")
-                self.active_plan = self.planner.make_plan(world_state)
+                self.failed_actions_in_level = self.failed_actions_in_level+1
+                self.active_plan = self.replan(world_state)
                 self.active_action = None
             else:
                 logger.info("Continue to perform the current plan")
@@ -251,21 +299,48 @@ class PolycraftHydraAgent(HydraAgent):
             self.active_action = action_to_do
         return action_to_do
 
+    def _should_explore(self, world_state:PolycraftState):
+        ''' Consider choosing an exploration action'''
+        if len(self.exploration_tasks)>0 and \
+                self.failed_actions_in_level % self.exploration_rate == 1:
+            return True
+        else:
+            return False
+
+    def replan(self, world_state:PolycraftState):
+        ''' Create a new plan after the active plan failed '''
+        if self._should_explore(world_state):
+            task = self._choose_exploration_task(world_state)
+        else:
+            task = PolycraftTask.CRAFT_POGO.create_instance()
+        self.meta_model.set_active_task()
+
+        # Create new plan from the current state to achieve the current task
+        self.planner.make_plan(world_state)
+
     def _choose_default_action(self, world_state: PolycraftState):
         ''' Choose a default action. Current policy: try to mine something if available.
-         Otherwise, try to collect an item.
-         Otherwise do a no-op. '''
+         Otherwise, try to collect an item. Otherwise do a no-op. '''
 
         # Try to mine a block
         type_to_cells = world_state.get_type_to_cells()
-        non_air_types = [block_type for block_type in type_to_cells.keys() if block_type!=BlockType.AIR.value]
-        while len(non_air_types)>0:
-            type_index = random.choice(range(len(non_air_types)))
-            type_to_mine = non_air_types.pop(type_index)
+        # Note: world state may contain new types of cells we do not know. So instead of marking which cells to mine,
+        # we only mark which known types we shouldn't
+        non_minable_types = [BlockType.AIR.value,
+                             BlockType.BEDROCK.value,
+                             BlockType.CRAFTING_TABLE.value,
+                             BlockType.PLASTIC_CHEST.value,
+                             BlockType.TREE_TAP.value,
+                             BlockType.WOODER_DOOR.value]
+        minable_types = [block_type for block_type in type_to_cells.keys() if block_type not in non_minable_types]
+        # Find a minable cell type that is accessible
+        while len(minable_types)>0:
+            type_index = random.choice(range(len(minable_types)))
+            type_to_mine = minable_types.pop(type_index)
             cells = world_state.get_cells_of_type(type_to_mine, only_accessible=True)
             if len(cells)>0:
                 cell = random.choice(cells)
-                return PolyBreakAndCollect(cell)
+                return TeleportToBreakAndCollect(cell)
 
         # Try to collect an item
         entity_items = world_state.get_entities_of_type(EntityType.ITEM.value)
@@ -407,44 +482,6 @@ class PolycraftDoNothingAgent(PolycraftHydraAgent):
 
     def choose_action(self, world_state: PolycraftState):
         return PolyNoAction()
-
-
-class PolycraftTPAllAgent(PolycraftHydraAgent):
-    ''' An agent that performs a prescribed list of actions, after which it terminates '''
-    def __init__(self):
-        super().__init__()
-        self.cells_visited = set()
-
-    def choose_action(self, world_state: PolycraftState):
-        cells_to_visit = []
-        for coords, block in world_state.game_map.items():
-            if block['isAccessible'] and coords not in self.cells_visited: # TODO: Explore why everything seems inaccessible
-                cells_to_visit.append(coords)
-
-        if len(cells_to_visit)==0:
-            return PolyGiveUp()
-        else:
-            coords = cells_to_visit.pop(0)
-            self.cells_visited.add(coords)
-            return PolyTP(coords, dist=1)
-
-
-class PolycraftTPAgent(PolycraftHydraAgent):
-    ''' An agent that moves around between blocks and other entities '''
-    def __init__(self):
-        super().__init__()
-
-    def choose_action(self, world_state: PolycraftState):
-        ''' Choose which action to perform in the given state '''
-
-        logger.info("World state summary is: {}".format(str(world_state)))
-
-        actions = []
-        for coords, block in world_state.game_map.items():
-            if block['isAccessible']:
-                actions.append(PolyTP(coords))
-
-        return random.choice(actions)
 
 
 class PolycraftManualAgent(PolycraftHydraAgent):

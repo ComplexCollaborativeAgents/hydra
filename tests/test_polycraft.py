@@ -13,8 +13,7 @@ logger = logging.getLogger("TestPolycraft")
 @pytest.fixture(scope="module")
 def launch_polycraft():
     logger.info("starting")
-
-    env = poly.Polycraft(launch=True)
+    env = poly.Polycraft(polycraft_mode=poly.ServerMode.SERVER)
     yield env
     logger.info("teardown tests")
     env.kill()
