@@ -58,10 +58,14 @@ class ExploreDoorTask(CreatePogoTask):
     def __init__(self, door_cell:str=None):
         self.door_cell = door_cell
     def get_goals(self, world_state:PolycraftState, meta_model:PolycraftMetaModel):
-        return [[Predicate.open.name, PddlGameMapCellType.get_cell_object_name(self.door_cell)]]
+        return [[Predicate.passed_door.name, PddlGameMapCellType.get_cell_object_name(self.door_cell)]]
     def get_planner_heuristic(self, world_state:PolycraftState, meta_model:PolycraftMetaModel):
         ''' Returns the heuristic to be used by the planner'''
         return OpenDoorHeuristic(self.door_cell)
+    def create_relevant_actions(self, world_state:PolycraftState, meta_model:PolycraftMetaModel):
+        action_generators = super().create_relevant_actions(world_state, meta_model)
+        action_generators.append(PddlMoveThroughDoorAction())
+        return action_generators
 
 class MakeCellAccessibleTask(CreatePogoTask):
     def __init__(self, cell:str=None):
@@ -106,8 +110,9 @@ class OpenDoorHeuristic(AbstractHeuristic):
         super().__init__()
         self.door_cell = PddlGameMapCellType.get_cell_object_name(door_cell)
         pddl_cell_name = {PddlGameMapCellType.get_cell_object_name(self.door_cell)}
-        self._is_door_accessible_var = f"['door_is_accessible', '{pddl_cell_name}']"
-        self._is_open_var = f"['open', '{pddl_cell_name}']"
+        self._is_door_accessible_var = f"['{Predicate.door_is_accessible.name}', '{pddl_cell_name}']"
+        self._is_open_var = f"['{Predicate.open.name}', '{pddl_cell_name}']"
+        self._passed_door_var = f"['{Predicate.passed_door.name}', '{pddl_cell_name}']"
 
     def evaluate(self, node):
         # Check if have ingredients of pogo stick
@@ -127,11 +132,14 @@ class MakeCellAccessibleHeuristic(AbstractHeuristic):
         self._is_accessible_var = f"['{Predicate.isAccessible.name}', '{pddl_cell_name}']"
 
     def evaluate(self, node):
-        # Check if have ingredients of pogo stick
-        if node.state_vars[self._is_accessible_var]:
+        if node.state_vars[self._passed_door_var]:
             return 0
+        if node.state_vars[self._is_open_var]:
+            return 1
+        if node.state_vars[self._is_accessible_var]:
+            return 2
         else:
-            return 1 # Can improve this
+            return 3 # Can improve this
 
 ########### Actions
 
@@ -468,6 +476,33 @@ class PddlCraftAction(PddlPolycraftAction):
             return PolyCraftItem.create_action(self.recipe)
 
 
+
+
+class PddlMoveThroughDoorAction(PddlPolycraftAction):
+    ''' An action for moving through a door
+        ; MOVE w w
+        (:action move_through_door_{door_cell}
+            :parameters (?cell - door_cell)
+            :precondition( and
+                (isAccessible ?cell)
+                (open ?cell)
+            )
+        )
+    '''
+    def __init__(self, recipe_idx: int, recipe, needs_crafting_table:bool = False):
+        super().__init__("move_through_door")
+
+    def to_pddl(self, meta_model: MetaModel)->PddlPlusWorldChange:
+        pddl_action = PddlPlusWorldChange(WorldChangeTypes.action)
+        pddl_action.name = self.pddl_name
+        pddl_action.parameters.append(["?cell", "-", PddlType.door_cell.name])
+        pddl_action.preconditions.append([Predicate.door_is_accessible.name, "?cell"])
+        pddl_action.preconditions.append([Predicate.open.name, "?cell"])
+        pddl_action.effects.append([Predicate.passed_door.name, "?cell"])
+        return pddl_action
+
+    def to_polycraft(self, parameter_binding: dict) -> PolycraftAction:
+        return PolyMoveThroughDoor(parameter_binding["?cell"])
 
 class PolycraftTask(enum.Enum):
     ''' The types of tasks this meta model object supports '''

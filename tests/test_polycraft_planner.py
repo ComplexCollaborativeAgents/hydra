@@ -111,6 +111,11 @@ def test_plan_for_non_novelty_levels(launch_polycraft, execution_number):
 
     planner = PolycraftPlanner()
     plan = planner.make_plan(state)
+    # If failed, store state
+    if len(plan)==0:
+        with open(TEST_PATH / f"failed_init_state_{test_level.name}.p", "wb") as out_file:
+            pickle.dump(state, out_file)
+
     assert(len(plan)>0)
 
 

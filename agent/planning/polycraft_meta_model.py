@@ -19,6 +19,7 @@ class Predicate(enum.Enum):
     door_is_accessible = ["door_is_accessible", ("?c", PddlType.door_cell.name)]
     adjacent_to_door = ["adjacent_to_door", ("?c1", PddlType.cell.name), ("?c2", PddlType.door_cell.name)]
     open = ["open", ("?c", PddlType.door_cell.name)]
+    passed_door = ["passed_door", ("?c", PddlType.door_cell.name)]
 
 class Function(enum.Enum):
     ''' Note: the first prameter in the list is needed: otherwise python will merge enum elements. '''

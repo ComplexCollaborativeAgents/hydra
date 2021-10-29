@@ -176,6 +176,7 @@ class PolycraftHydraAgent(HydraAgent):
         self.active_plan = None
         self.active_action = None
         self.current_observation = None
+        self.current_state = None # Maintains the agent's knowledge about the current state
         self.exploration_tasks = list()
         self.exploration_rate = 1 # Number of failed actions to endure before trying one exploration task
         self.failed_actions_in_level = 0 # Count how many actions have failed in a given level
@@ -272,7 +273,8 @@ class PolycraftHydraAgent(HydraAgent):
 
         # If no active plan - need to create one (this should happen in the beginning of a level)
         if self.active_plan is None:
-            self.active_plan = self.planner.make_plan(world_state)
+            self._update_current_state(world_state) # TODO: Maybe this is redundant
+            self.active_plan = self.planner.make_plan(self.current_state)
         else: # Check if the active plan is working or if we need to replan
             assert(len(self.current_observation.actions)>0)
             last_action = self.current_observation.actions[-1]
@@ -360,9 +362,20 @@ class PolycraftHydraAgent(HydraAgent):
             action.set_current_state(env.get_current_state())
         self.current_observation.actions.append(action)
         next_state, step_cost =  env.act(action)  # Note this returns step cost for the action
-        self.current_observation.states.append(next_state)
+        self._update_current_state(next_state)
+        self.current_observation.states.append(self.current_state)
         self.current_observation.rewards.append(step_cost)
         return next_state, step_cost
+
+    def _update_current_state(self, new_state: PolycraftState):
+        ''' Updates the current state object with the information from the new state.
+        Needed because sometimes agents leave/enter rooms.'''
+        old_current_state = self.current_state
+        self.current_state = new_state
+        if old_current_state is not None:
+            for cell in old_current_state.game_map:
+                if cell not in self.current_state.game_map:
+                    self.current_state.game_map[cell] = old_current_state.game_map[cell]
 
     def do_batch(self, batch_size:int, state:PolycraftState, env:Polycraft):
         ''' Runs a batch of actions from the given state using the given environment.

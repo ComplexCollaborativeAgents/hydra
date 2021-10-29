@@ -25,27 +25,37 @@ def _setup_env(env, test_level):
     state = env.get_current_state()
     return agent, state
 
+def _move_to_cell_and_do(cell: str, action: PolycraftAction, env:poly.Polycraft):
+    ''' Move to a cell and do the chosen command '''
+    tp_action = TeleportAndFaceCell(cell)
+    tp_action.set_current_state(env.get_current_state())
+    result = tp_action.do(env.poly_client)
+    assert(action.is_success(result))
 
-@pytest.mark.parametrize('execution_number', range(5))
+    return action.do(env.poly_client)
+
+
+@pytest.mark.parametrize('execution_number', range(1))
 def test_agent_break_and_collect(launch_polycraft, execution_number):
     ''' Test going to an log block and mining it '''
     env = launch_polycraft
     agent, state = _setup_env(env, TEST_LEVEL)
 
-    log_cells = state.get_cells_of_type(poly.ItemType.LOG.value, only_accessible=True)
+    log_type = poly.ItemType.LOG.value
+    log_cells = state.get_cells_of_type(log_type, only_accessible=True)
     assert (len(log_cells) > 0)
-
     cell = log_cells[execution_number % len(log_cells)]  # Change the log cell we choose
-    agent.commands.append(PolyBreakAndCollect(cell))
-    action = agent.choose_action(state)
-    after_state, step_cost = agent.do(action, env)
+    logs_before_break = state.count_items_of_type(log_type)
 
-    if action.success:
-        diff = after_state.diff(state)
-        assert (has_new_item(diff))
-        assert (after_state.has_item(poly.ItemType.LOG.value))
+    action = PolyBreakAndCollect(cell)
+    result = _move_to_cell_and_do(cell, action, env)
+    state = env.get_current_state()
+    logs_after_break = state.count_items_of_type(log_type)
+
+    if action.is_success(result):
+        assert(logs_after_break-logs_before_break>0)
     else: # Failure may be due to other pogo-ist. Assert that this is possible
-        dist_to_pogoist = distance_to_nearest_pogoist(after_state, cell)
+        dist_to_pogoist = distance_to_nearest_pogoist(state, cell)
         assert(dist_to_pogoist<=2)
 
 @pytest.mark.parametrize('execution_number', range(5))
@@ -54,30 +64,34 @@ def test_mining_two_logs(launch_polycraft: poly.Polycraft, execution_number):
     env = launch_polycraft
     agent, state = _setup_env(env, TEST_LEVEL)
 
-    log_cells = state.get_cells_of_type(poly.ItemType.LOG.value, only_accessible=True)
+    log_type = poly.ItemType.LOG.value
+    log_cells = state.get_cells_of_type(log_type, only_accessible=True)
     assert(len(log_cells)>1)
+    logs_before_break = state.count_items_of_type(log_type)
+
     cell1 = log_cells[execution_number % len(log_cells)]
     cell2 = log_cells[(execution_number +1) % len(log_cells)]
 
     action = PolyBreakAndCollect(cell1)
-    after_state, step_cost = agent.do(action, env)
-    assert(has_new_item(after_state.diff(state)))
-    assert(after_state.has_item(poly.ItemType.LOG.value))
-    state = after_state
+    result = _move_to_cell_and_do(cell1, action, env)
 
-    if cell2 not in state.get_cells_of_type(poly.ItemType.LOG.value, only_accessible=True):
-        logger.info("Log cell disappeared, probably the other pogoist took it")
+    assert(action.is_success(result))
+    state = env.get_current_state()
+    logs_after_break = state.count_items_of_type(log_type)
+    assert(logs_after_break - logs_before_break >0)
+
+    if state.game_map[cell2]!=log_type or state.game_map["isAccessible"]:
+        logger.info("Log cell disappeared or became inaccessible. Maybe the other pogoist took it")
         return
 
     action = PolyBreakAndCollect(cell2)
-    after_state, step_cost = agent.do(action, env)
-    if action.success:
-        assert(has_new_item(after_state.diff(state)))
-        log_entries = after_state.get_inventory_entries_of_type(poly.ItemType.LOG.value)
-        assert(len(log_entries)==1)
-        assert(after_state.inventory[log_entries[0]]['count']==2)
+    result = action.do(env)
+    state = env.get_current_state()
+    if action.is_success(result):
+        logs_after_break2 = state.count_items_of_type(log_type)
+        assert(logs_after_break2 - logs_after_break >0)
     else:
-        dist_to_pogoist = distance_to_nearest_pogoist(after_state, cell2)
+        dist_to_pogoist = distance_to_nearest_pogoist(state, cell2)
         assert(dist_to_pogoist<=2)
 
 @pytest.mark.parametrize('execution_number', range(5))
@@ -125,13 +139,17 @@ def test_agent_mine_with_pickaxe(launch_polycraft: poly.Polycraft, execution_num
     for cell in log_cells:
         if state.game_map[cell]["isAccessible"]:
             accessible_log_cells.append(cell)
-
     assert(len(accessible_log_cells)>0)
+
+    log_type = BlockType.LOG.value
+    logs_before = state.count_items_of_type(log_type)
     cell = accessible_log_cells[execution_number % len(accessible_log_cells)]  # Change the log cell we choose
     action = PolyBreakAndCollect(cell)
-    after_state, step_cost = agent.do(action, env)
-    if action.success:
-        assert (after_state.has_item(poly.ItemType.LOG.value))
+    result = _move_to_cell_and_do(cell, action, env)
+    if action.is_success(result):
+        state= env.get_current_state()
+        logs_after = state.count_items_of_type(log_type)
+        assert(logs_after - logs_before >0)
     else: # Failure may be due to other pogo-ist. Assert that this is possible
         dist_to_pogoist = distance_to_nearest_pogoist(after_state, cell)
         assert(dist_to_pogoist<=2)
@@ -235,15 +253,18 @@ def _craft_planks(agent, env, state):
 
 def _mine_logs(agent, env, state):
     ''' Go to a log block cell, mine it, and collect it'''
-    log_cells = state.get_cells_of_type(poly.ItemType.LOG.value)
+    log_type = poly.ItemType.LOG.value
+    log_cells = state.get_cells_of_type(log_type)
     assert (len(log_cells) > 0)
-    action = PolyBreakAndCollect(log_cells[0])
-    after_state, step_cost = agent.do(action, env)
-    assert (after_state.has_item(poly.ItemType.LOG.value))
-    assert (has_new_item(after_state.diff(state)))
-    state = after_state
+    cell = log_cells[0]
+    action = PolyBreakAndCollect(cell)
+    result  = _move_to_cell_and_do(cell, action, env)
+    assert(action.is_success(result))
+    logs_before = state.count_items_of_type(log_type)
+    state = env.get_current_state()
+    logs_after = state.count_items_of_type(log_type)
+    assert(logs_after > logs_before)
     return state
-
 
 @pytest.mark.parametrize('execution_number', range(5))
 def test_mine_diamonds(launch_polycraft: poly.Polycraft, execution_number):
@@ -267,7 +288,8 @@ def test_mine_diamonds(launch_polycraft: poly.Polycraft, execution_number):
         # Mine the diamond
         cell = diamond_cells[0]
         action = PolyBreakAndCollect(cell)
-        after_state, step_cost = agent.do(action, env)
+        result = _move_to_cell_and_do(cell, action, env)
+        after_state = env.get_current_state()
 
         if action.success==True:
             assert(has_new_item(after_state.diff(state)))

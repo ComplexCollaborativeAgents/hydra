@@ -147,7 +147,7 @@ class MacroAction(PolycraftAction):
         if self.active_action is not None:
             self.active_action.set_current_state(state)
 
-    def do(self, env: poly.PolycraftInterface) -> dict:
+    def do(self, poly_interface: poly.PolycraftInterface) -> dict:
         ''' Key: macro action accept the environment, not the polycraft_interface'''
         logger.info(f"Do step in macro action {self}")
         if self.active_action is None:
@@ -158,7 +158,7 @@ class MacroAction(PolycraftAction):
         if isinstance(next_action, MacroAction):
             next_action.set_current_state(self._current_state)
 
-        result = next_action.do(env)
+        result = next_action.do(poly_interface)
         self.success = next_action.is_success(result)
 
         # If next action not done yet, do it
@@ -172,11 +172,12 @@ class MacroAction(PolycraftAction):
             self.active_action = None
         return result
 
-    def do_until_done(self, env:poly.PolycraftInterface)->dict:
+    def do_until_done(self, poly_interface:poly.PolycraftInterface)->dict:
         ''' Perform the macro action until either success if false or it is done '''
         logger.info(f"Doing macro action {self} until done")
         while self.is_done()==False:
-            result = self.do(env)
+            self.set_current_state(PolycraftState.create_current_state(poly_interface))
+            result = self.do(poly_interface)
         return result
 
 class TeleportAndFaceCell(MacroAction):
@@ -278,7 +279,7 @@ class CollectAndMineItem(PolycraftAction):
                 if self.needs_iron_pickaxe and ItemType.IRON_PICKAXE.value != current_state.get_selected_item():
                     action = PolySelectItem(ItemType.IRON_PICKAXE.value)
                 else:
-                    action = PolyBreakAndCollect(cell)
+                    action = TeleportToBreakAndCollect(cell)
             else:
                 logger.info(f"Can't find any blocks of the relevant types ({self.relevant_block_types}). Action failed")
                 self.success = False
