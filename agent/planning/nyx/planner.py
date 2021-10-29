@@ -41,6 +41,7 @@ class Planner:
         # Parsed data
         state = grounded_instance.init_state
         self.initial_state = grounded_instance.init_state
+        self.heuristic.notify_initial_state(state)
 
         print("\t* model parse time: " + str("{:5.4f}".format(time.time() - start_solve_time)) + "s")
 

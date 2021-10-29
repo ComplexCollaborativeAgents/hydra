@@ -352,7 +352,6 @@ class AgentClient:
                 gt_images.append(im)
             gt_jsons.append(gt)
         self._logger.info("received %d ground truth frames ", ground_truths_count)
-        print("received ground truth frames ", ground_truths_count)
         return gt_jsons
 
 
