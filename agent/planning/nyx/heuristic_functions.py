@@ -164,14 +164,13 @@ class SBHeuristic(AbstractHeuristic):
             node.h = self.time_to_pig(node, (x_0, y_0, v_x, v_y), self.pigs_x, self.pigs_y)
             return node.h
         else:
-            # Find type of bird: red\black\yellow\whith\blue TODO can't I get this directly from a domain variable?
-            bird_type = [active_bird_string[:3] == ", r" or active_bird_string[:5] == ", bla",
-                         active_bird_string[:3] == ", y", active_bird_string[:3] == ", w",
-                         active_bird_string[:5] == ", blu"]
-            BIRD_RED_BLACK = 0
+            # Find type of bird
+            bird_type = node.state_vars["['bird_type" + active_bird_string]
+            BIRD_RED = 0
             BIRD_YELLOW = 1
-            BIRD_WHITE = 2
-            BIRD_BLUE = 3
+            BIRD_BLACK = 2
+            BIRD_WHITE = 3
+            BIRD_BLUE = 4
             # Find bird trajectory:
             angle = node.state_vars["['angle']"]
             v_y_0 = node.state_vars["['v_bird'" + active_bird_string] * (
@@ -187,7 +186,7 @@ class SBHeuristic(AbstractHeuristic):
             x_0 = node.state_vars["['x_bird'" + active_bird_string]
             gravity = node.state_vars["['gravity']"]
 
-            if bird_type[BIRD_RED_BLACK] or bird_type[BIRD_YELLOW] or bird_type[BIRD_BLUE]:
+            if bird_type == BIRD_RED or bird_type == BIRD_BLACK or bird_type == BIRD_YELLOW or bird_type == BIRD_BLUE:
                 # far end of bounding box
                 targets_max_x = [self.targets_x[o_id] + self.targets_w[o_id] for o_id in self.targets_x.keys()]
                 bbox_maxx = max(targets_max_x)
@@ -213,7 +212,7 @@ class SBHeuristic(AbstractHeuristic):
                 max_y = max(y_top, y_enter, y_exit)
                 min_y = min(y_enter, y_exit)
 
-                if bird_type[BIRD_BLUE]:
+                if bird_type == BIRD_BLUE:
                     min_y -= min_y * 0.2
                     max_y += max_y * 0.2
 
@@ -222,12 +221,12 @@ class SBHeuristic(AbstractHeuristic):
                     node.h = SBHeuristic.LARGE_VALUE  # missed everything in the level entirely
                     return node.h
 
-            if bird_type[BIRD_RED_BLACK] or bird_type[BIRD_WHITE] or bird_type[BIRD_BLUE]:
+            if bird_type == BIRD_RED or bird_type == BIRD_BLACK or bird_type == BIRD_WHITE or bird_type == BIRD_BLUE:
                 # Hitting the ground spot
                 hit_ground_time = (- v_y_0 + np.sqrt(np.power(v_y_0, 2) + 2 * gravity * y_0)) / (2 * gravity)
                 hit_ground_x = x_0 + v_x * hit_ground_time
 
-                if bird_type[BIRD_BLUE]:
+                if bird_type == BIRD_BLUE:
                     hit_ground_x += hit_ground_x * 0.2
 
                 # This prevents shots that hit the ground before reaching any targets, though some levels might need it?
