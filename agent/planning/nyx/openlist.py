@@ -31,7 +31,7 @@ class OpenList:
         Return the next node in the fringe without removing it.
         """
         assert bool(self), 'Can not get top of empty list!'
-        return self.nodes[-1]
+        return self.nodes[0]
 
     def clear(self):
         """
@@ -61,7 +61,7 @@ class DFSList(OpenList):
 
     def top(self):
         assert bool(self), 'Can not get top of empty list!'
-        return self.nodes[0]
+        return self.nodes[-1]
 
     def clear(self):
         self.nodes.clear()
