@@ -71,6 +71,40 @@ class SBHeuristic(AbstractHeuristic):
 
     LARGE_VALUE = 999999
 
+    def __init__(self):
+        self.targets_x_keys = {}
+        self.targets_x = {}
+        self.pig_x_keys = {}
+        self.pigs_x = {}
+        self.targets_w_keys = {}
+        self.targets_w = {}
+        self.targets_y_keys = {}
+        self.targets_y = {}
+        self.pig_y_keys = {}
+        self.pigs_y = {}
+        self.targets_h_keys = {}
+        self.targets_h = {}
+        self.pig_radii_keys = {}
+        self.pig_radii = {}
+
+    def notify_initial_state(self, node):
+        for key in node.state_vars.keys():
+            if key[:9] == "['x_block":  # x_block
+                self.targets_x_keys[key] = key[9:]
+            if key[:7] == "['x_pig":  # x_pig
+                self.pig_x_keys[key] = key[7:]
+            if key[:13] == "['block_width":  # block_width
+                self.targets_w_keys[key] = key[13:]
+            if key[:12] == "['pig_radius":  # pig_radius
+                self.pig_radii_keys[key] = key[12:]
+            if key[:7] == "['y_pig":  # y_pig
+                self.pig_y_keys[key] = key[7:]
+            if key[:9] == "['y_block":  # y_block
+                self.targets_y_keys[key] = key[9:]
+            if key[:9] == "['block_h":  # block_height
+                self.targets_h_keys[key] = key[14:]
+        return self.evaluate(node)
+
     def evaluate(self, node):
         # Bird powers:
         # red + black: none\no need to deal with here
@@ -78,6 +112,8 @@ class SBHeuristic(AbstractHeuristic):
         # white: modeled as "shoots straight down when tapped". Remove "passes over everything" check.
         # Blue: adding a 20% margin to the bounding box is probably pretty good. Some experimentation can narrow that to a more accurate number.
 
+        # Important note: Python best practices explicitly recommend using str.startswith(x) instead of
+        #   str[:len(x)] == x for readability reasons, but it's faster so I'm using it anyway.
 
         # Find active bird ID
         active_bird_string = [key for key in node.state_vars.keys()
@@ -91,25 +127,21 @@ class SBHeuristic(AbstractHeuristic):
         bird_released = node.state_vars.get("['bird_released'" + active_bird_string)
 
         # near end of bounding box:
-        targets_x = {}
-        targets_w = {}
-        pig_x = {}
-        pig_y = {}
-        pig_radii = {}
-        for key, item in node.state_vars.items():
-            if key.startswith("['x_block"):
-                targets_x[key[9:]] = item
-            if key.startswith("['x_pig"):
-                pig_x[key[7:]] = item
-            if key.startswith("['block_width"):
-                targets_w[key[13:]] = item
-            if key.startswith("['pig_radius"):
-                pig_radii[key[12:]] = item
-            if key.startswith("['y_pig"):
-                pig_y[key[7:]] = item
-        targets_x.update(pig_x)
-        targets_w.update(pig_radii)
-        targets_min_x = [targets_x[o_id] - targets_w[o_id] for o_id in targets_x.keys()]
+
+        for var_key, obj_id in self.targets_x_keys.items():
+            self.targets_x[obj_id] = node.state_vars[var_key]
+        for var_key, obj_id in self.pig_x_keys.items():
+            self.pigs_x[obj_id] = node.state_vars[var_key]
+        for var_key, obj_id in self.targets_w_keys.items():
+            self.targets_w[obj_id] = node.state_vars[var_key]
+        for var_key, obj_id in self.pig_y_keys.items():
+            self.pigs_y[obj_id] = node.state_vars[var_key]
+        for var_key, obj_id in self.pig_radii_keys.items():
+            self.pig_radii[obj_id] = node.state_vars[var_key]
+
+        self.targets_x.update(self.pigs_x)
+        self.targets_w.update(self.pig_radii)
+        targets_min_x = [self.targets_x[o_id] - self.targets_w[o_id] for o_id in self.targets_x.keys()]
         bbox_minx = min(targets_min_x)
 
         if bird_released:
@@ -129,13 +161,13 @@ class SBHeuristic(AbstractHeuristic):
                         node.h = 0
                         return node.h
             # else: heuristic value = distance to nearest pig in planning steps.
-            node.h = self.time_to_pig(node, (x_0, y_0, v_x, v_y), pig_x, pig_y)
+            node.h = self.time_to_pig(node, (x_0, y_0, v_x, v_y), self.pigs_x, self.pigs_y)
             return node.h
         else:
-            # Find type of bird
-            bird_type = [active_bird_string.startswith(", red") or active_bird_string.startswith(", black"),
-                         active_bird_string.startswith(", yellow"), active_bird_string.startswith(", white"),
-                         active_bird_string.startswith(", blue")]
+            # Find type of bird: red\black\yellow\whith\blue TODO can't I get this directly from a domain variable?
+            bird_type = [active_bird_string[:3] == ", r" or active_bird_string[:5] == ", bla",
+                         active_bird_string[:3] == ", y", active_bird_string[:3] == ", w",
+                         active_bird_string[:5] == ", blu"]
             BIRD_RED_BLACK = 0
             BIRD_YELLOW = 1
             BIRD_WHITE = 2
@@ -157,19 +189,18 @@ class SBHeuristic(AbstractHeuristic):
 
             if bird_type[BIRD_RED_BLACK] or bird_type[BIRD_YELLOW] or bird_type[BIRD_BLUE]:
                 # far end of bounding box
-                targets_max_x = [targets_x[o_id] + targets_w[o_id] for o_id in targets_x.keys()]
+                targets_max_x = [self.targets_x[o_id] + self.targets_w[o_id] for o_id in self.targets_x.keys()]
                 bbox_maxx = max(targets_max_x)
-                targets_y = {}
-                targets_h = {}
-                for key, item in node.state_vars.items():
-                    if key.startswith("['y_block"):
-                        targets_y[key[9:]] = item
-                    if key.startswith("['block_height"):
-                        targets_h[key[14:]] = item
-                targets_y.update(pig_y)
-                targets_h.update(pig_radii)
-                targets_max_y = [targets_x[o_id] + targets_w[o_id] for o_id in targets_x.keys()]
-                targets_min_y = [targets_x[o_id] - targets_w[o_id] for o_id in targets_x.keys()]
+
+                for var_key, obj_id in self.targets_y_keys.items():
+                    self.targets_y[obj_id] = node.state_vars[var_key]
+                for var_key, obj_id in self.targets_h_keys.items():
+                    self.targets_h[obj_id] = node.state_vars[var_key]
+                self.targets_y.update(self.pigs_y)
+                self.targets_h.update(self.pig_radii)
+
+                targets_max_y = [self.targets_x[o_id] + self.targets_w[o_id] for o_id in self.targets_x.keys()]
+                targets_min_y = [self.targets_x[o_id] - self.targets_w[o_id] for o_id in self.targets_x.keys()]
                 bbox_maxy = max(targets_max_y)
                 bbox_miny = min(targets_min_y)
 
@@ -241,5 +272,5 @@ class SBHeuristic(AbstractHeuristic):
 
     @staticmethod
     def time_to_pig_x(node, bird_coords):
-        target_x = min([node.state_vars[obj] for obj in node.state_vars.keys() if obj.startswith("['x_pig")])
+        target_x = min([node.state_vars[obj] for obj in node.state_vars.keys() if obj[:7] == "['x_pig"])
         return int(max(0, (target_x - bird_coords[0]) / (bird_coords[2] * constants.DELTA_T)))

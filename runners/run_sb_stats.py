@@ -30,13 +30,13 @@ ANU_LEVELS_PATH = SB_DATA_PATH / 'ANU_Levels.tar.gz'
 STATS_BASE_PATH = pathlib.Path(__file__).parent.absolute()
 
 
-
 class AgentType(enum.Enum):
     RepairingHydra = 0
     Hydra = 1
     Baseline = 2
     Datalab = 3
     EagleWings = 4
+
 
 NOVELTY = 0
 TYPE = 2

@@ -172,7 +172,7 @@ class SBHydraAgent(HydraAgent):
             novelty_description = "Uncharacterized novelty"
         novelty_level = 0
 
-        print("Reporting novelty_likelihood: {}".format(novelty_likelihood))
+        logger.info("[hydra_agent_server] :: Reporting novelty_likelihood: {}".format(novelty_likelihood))
         self.env.sb_client.report_novelty_likelihood(novelty_likelihood, non_novelty_likelihood,ids,novelty_level,novelty_description)
 
     def handle_evaluation_terminated(self):
@@ -277,7 +277,7 @@ class SBHydraAgent(HydraAgent):
 
     def _infer_novelty_existence(self):
 
-        print("Novelty existence is {}".format(self.novelty_existence))
+        logger.info("Novelty existence is {}".format(self.novelty_existence))
         if (self.novelty_existence == 0) or (self.novelty_existence == 1):
             self._new_novelty_likelihood = self.novelty_existence
             return
@@ -292,9 +292,9 @@ class SBHydraAgent(HydraAgent):
         """ This is called when a level has ended, either in a win or a lose our come """
         self.completed_levels.append(success)
         self._infer_novelty_existence()
-        print("Level novelty indicators {}".format(self.level_novelty_indicators))
-        print("Novelty detections from new code {}".format(self.novelty_detections))
-        print("Novelty likelihood the new code {}".format(self._new_novelty_likelihood))
+        logger.info("[hydra_agent_server] :: Level novelty indicators {}".format(self.level_novelty_indicators))
+        logger.info("[hydra_agent_server] :: Novelty detections from new code {}".format(self.novelty_detections))
+        logger.info("[hydra_agent_server] :: Novelty likelihood the new code {}".format(self._new_novelty_likelihood))
         logger.info("[hydra_agent_server] :: Level {} Complete - WIN={}".format(self.current_level, success))
         logger.info("[hydra_agent_server] :: Cumulative planning time only = {}".format(str(self.cumulative_plan_time)))
         logger.info("[hydra_agent_server] :: Planning effort percentage = {}\n".format(
