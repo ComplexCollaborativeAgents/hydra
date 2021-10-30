@@ -142,7 +142,7 @@ class PolycraftPlanner(HydraPlanner):
         ''' Translate the name of a pddl object to its corresponding name in polycraft, based on its type
             For cell type objects, this means convert from cell_x_y_z to x,y,z
         '''
-        assert(pddl_obj_type=="cell") # Currently we only have objects of type cell
+        assert(pddl_obj_type in [type.name for type in PddlType]) # Currently we only have objects of type cell
         return ",".join(pddl_obj_name.split("_")[1:])
 
     def extract_actions_from_plan_trace(self, plane_trace_file: str):
@@ -315,7 +315,7 @@ class PolycraftHydraAgent(HydraAgent):
             task = self._choose_exploration_task(world_state)
         else:
             task = PolycraftTask.CRAFT_POGO.create_instance()
-        self.meta_model.set_active_task()
+        self.meta_model.set_active_task(task)
 
         # Create new plan from the current state to achieve the current task
         self.planner.make_plan(world_state)
@@ -389,6 +389,12 @@ class PolycraftHydraAgent(HydraAgent):
             state = after_state
             iteration = iteration + 1
         return state, step_cost
+
+    def set_meta_model(self, meta_model: MetaModel):
+        ''' Update the meta model of the agent '''
+        self.meta_model = meta_model
+        if isinstance(self.planner, PolycraftPlanner):
+            self.planner.meta_model = meta_model
 
     def should_repair(self, observation):
         ''' Choose if the agent should repair its meta model based on the given observation '''

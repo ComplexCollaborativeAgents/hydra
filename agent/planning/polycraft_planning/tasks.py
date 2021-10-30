@@ -64,7 +64,8 @@ class ExploreDoorTask(CreatePogoTask):
         return OpenDoorHeuristic(self.door_cell)
     def create_relevant_actions(self, world_state:PolycraftState, meta_model:PolycraftMetaModel):
         action_generators = super().create_relevant_actions(world_state, meta_model)
-        action_generators.append(PddlMoveThroughDoorAction())
+        action_generators.extend([PddlMoveThroughDoorAction(),
+                                  PddlUseDoorAction()])
         return action_generators
 
 class MakeCellAccessibleTask(CreatePogoTask):
@@ -108,20 +109,22 @@ class OpenDoorHeuristic(AbstractHeuristic):
 
     def __init__(self, door_cell:str):
         super().__init__()
-        self.door_cell = PddlGameMapCellType.get_cell_object_name(door_cell)
-        pddl_cell_name = {PddlGameMapCellType.get_cell_object_name(self.door_cell)}
-        self._is_door_accessible_var = f"['{Predicate.door_is_accessible.name}', '{pddl_cell_name}']"
-        self._is_open_var = f"['{Predicate.open.name}', '{pddl_cell_name}']"
-        self._passed_door_var = f"['{Predicate.passed_door.name}', '{pddl_cell_name}']"
+        self.door_cell = door_cell
+        pddl_door_cell_name = PddlGameMapCellType.get_cell_object_name(door_cell)
+        self._is_door_accessible_var = f"['{Predicate.door_is_accessible.name}', '{pddl_door_cell_name}']"
+        self._is_open_var = f"['{Predicate.open.name}', '{pddl_door_cell_name}']"
+        self._passed_door_var = f"['{Predicate.passed_door.name}', '{pddl_door_cell_name}']"
 
     def evaluate(self, node):
         # Check if have ingredients of pogo stick
-        if node.state_vars[self._is_open_var]:
+        if node.state_vars[self._passed_door_var]:
             return 0
-        if node.state_vars[self._is_door_accessible_var]:
+        if node.state_vars[self._is_open_var]:
             return 1
+        if node.state_vars[self._is_door_accessible_var]:
+            return 2
         else:
-            return 2 # Can improve this
+            return 3 # Can improve this
 
 class MakeCellAccessibleHeuristic(AbstractHeuristic):
     ''' Heuristic for polycraft to be used by the Nyx planner when solving an open door task'''
@@ -317,9 +320,8 @@ class PddlUseDoorAction(PddlPolycraftAction):
             )
         )
     '''
-    def __init__(self, door_cell: str):
+    def __init__(self):
         super().__init__(f"use_door")
-        self.door_cell = door_cell
 
     def to_pddl(self, meta_model: MetaModel)->PddlPlusWorldChange:
         pddl_action = PddlPlusWorldChange(WorldChangeTypes.action)
@@ -489,7 +491,7 @@ class PddlMoveThroughDoorAction(PddlPolycraftAction):
             )
         )
     '''
-    def __init__(self, recipe_idx: int, recipe, needs_crafting_table:bool = False):
+    def __init__(self):
         super().__init__("move_through_door")
 
     def to_pddl(self, meta_model: MetaModel)->PddlPlusWorldChange:
