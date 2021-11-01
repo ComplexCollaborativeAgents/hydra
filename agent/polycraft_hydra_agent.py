@@ -1,4 +1,5 @@
 import datetime
+import pickle
 
 from agent.consistency.observation import HydraObservation
 from agent.planning.polycraft_planning.tasks import *
@@ -9,6 +10,7 @@ from agent.hydra_agent import HydraAgent, HydraPlanner, MetaModelRepair
 from worlds.polycraft_world import *
 from agent.planning.nyx import nyx
 import agent.planning.nyx.heuristic_functions as nyx_heuristics
+import shutil
 
 logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("Polycraft")
@@ -16,6 +18,7 @@ logger = logging.getLogger("Polycraft")
 import re
 
 RE_EXTRACT_ACTION_PATTERN = re.compile(r" *(\d*\.\d*):\t*(.*)\t\[0\.0\]")  # Pattern used to extract action time and name from planner output
+SAVE_FAILED_PLANS_STATES  = True # If true then whenever a plan fails, we store its domain and problem files
 
 class PolycraftObservation(HydraObservation):
     ''' An object that represents an observation of the SB game '''
@@ -68,7 +71,7 @@ class PolycraftPlanner(HydraPlanner):
         self.pddl_domain = self.meta_model.create_pddl_domain(state)
         self.write_pddl_file(self.pddl_problem, self.pddl_domain)
         nyx_heuristics.active_heuristic = self.meta_model.get_nyx_heuristic(state)
-
+        logger.info(f"Planning to achieve task {self.meta_model.active_task}")
         try:
             nyx.runner(self.pddl_domain_file,
                        self.pddl_problem_file,
@@ -79,6 +82,10 @@ class PolycraftPlanner(HydraPlanner):
             if len(plan_actions) > 0:
                 return plan_actions
             else:
+                if SAVE_FAILED_PLANS_STATES:
+                    logger.info("Saving the state we failed to plan for")
+                    with open(os.path.join(settings.ROOT_PATH, "polycraft_failed_state.p"), "wb") as out_file:
+                        pickle.dump(self.initial_state, out_file)
                 return []
         except Exception as e_inst:
             logger.error(f"Exception while running planner. {e_inst}", stack_info=True)
@@ -189,6 +196,7 @@ class PolycraftHydraAgent(HydraAgent):
         env.init_state_information()
         env.populate_current_recipes()
         current_state = env.get_current_state()
+
         # Try to interact with all other agents
         for entity_id, entity_attr in current_state.entities.items():
             if entity_attr['type']=='EntityTrader':
@@ -236,6 +244,15 @@ class PolycraftHydraAgent(HydraAgent):
                 assert(interact_action.success)
                 env.current_trades[entity_id] = interact_action.response['trades']['trades']
 
+
+
+        # Initialize door to cells dictionary, mapping door cell to a gamemap-like dictionary of the room that door is pointing to
+        env.door_to_rooms[Polycraft.DUMMY_DOOR] = dict(())
+        for cell_id, cell_attr in current_state.game_map.items():
+            if cell_attr["name"]==BlockType.WOODER_DOOR.value:
+                env.door_to_rooms[cell_id]=dict()
+                env.door_to_rooms[cell_id][cell_id]=cell_attr
+            env.door_to_rooms[Polycraft.DUMMY_DOOR][cell_id] = cell_attr
 
         # Add doors to other rooms as exploration tasks
         for door_cell in current_state.get_cells_of_type(BlockType.WOODER_DOOR.value):
@@ -304,7 +321,8 @@ class PolycraftHydraAgent(HydraAgent):
     def _should_explore(self, world_state:PolycraftState):
         ''' Consider choosing an exploration action'''
         if len(self.exploration_tasks)>0 and \
-                self.failed_actions_in_level % self.exploration_rate == 1:
+            self.failed_actions_in_level > 0 and \
+                self.failed_actions_in_level % self.exploration_rate == 0:
             return True
         else:
             return False
@@ -318,7 +336,7 @@ class PolycraftHydraAgent(HydraAgent):
         self.meta_model.set_active_task(task)
 
         # Create new plan from the current state to achieve the current task
-        self.planner.make_plan(world_state)
+        return self.planner.make_plan(world_state)
 
     def _choose_default_action(self, world_state: PolycraftState):
         ''' Choose a default action. Current policy: try to mine something if available.
@@ -362,6 +380,8 @@ class PolycraftHydraAgent(HydraAgent):
             action.set_current_state(env.get_current_state())
         self.current_observation.actions.append(action)
         next_state, step_cost =  env.act(action)  # Note this returns step cost for the action
+        if action.success ==False:
+            logger.info(f"Action{action} failed: {action.response}")
         self._update_current_state(next_state)
         self.current_observation.states.append(self.current_state)
         self.current_observation.rewards.append(step_cost)
@@ -370,12 +390,13 @@ class PolycraftHydraAgent(HydraAgent):
     def _update_current_state(self, new_state: PolycraftState):
         ''' Updates the current state object with the information from the new state.
         Needed because sometimes agents leave/enter rooms.'''
-        old_current_state = self.current_state
+        for cell_id, cell_attr in new_state.game_map.items():
+            for door_cell_id, room_game_map in self.current_state.door_to_cells.items():
+                if cell_id in room_game_map:
+                    room_game_map[cell_id] = cell_attr
+
+
         self.current_state = new_state
-        if old_current_state is not None:
-            for cell in old_current_state.game_map:
-                if cell not in self.current_state.game_map:
-                    self.current_state.game_map[cell] = old_current_state.game_map[cell]
 
     def do_batch(self, batch_size:int, state:PolycraftState, env:Polycraft):
         ''' Runs a batch of actions from the given state using the given environment.

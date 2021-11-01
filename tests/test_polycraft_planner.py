@@ -1,5 +1,6 @@
 import pytest
 
+import settings
 from agent.planning.polycraft_planning.fixed_planner import FixedPlanPlanner
 from agent.polycraft_hydra_agent import *
 from agent.planning.polycraft_planning.tasks import *
@@ -121,8 +122,14 @@ def test_plan_for_non_novelty_levels(launch_polycraft, execution_number):
 @pytest.mark.parametrize('execution_number', range(100))
 def test_plan_for_published_novelty_levels(launch_polycraft, execution_number):
     ''' Run the fixed planner and observe results '''
-    env, agent, levels = launch_polycraft
+    env, agent, _ = launch_polycraft
+    levels_dir_path = pathlib.Path(settings.POLYCRAFT_NOVELTY_LEVEL_DIR)
+    levels = []
+    for level_file in os.listdir(levels_dir_path):
+        if level_file.endswith(".json2") == False:
+            levels.append(levels_dir_path / level_file)
     test_level = levels[execution_number % len(levels)]  # Choose the level to try now
+
 
     logger.info(f"Loading level {test_level}...")
     env.init_selected_level(test_level)

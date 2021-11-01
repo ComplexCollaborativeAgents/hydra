@@ -11,6 +11,7 @@ logger.setLevel(logging.INFO)
 class PddlType(enum.Enum):
     cell = "cell"
     door_cell = "door_cell"
+    safe_cell = "safe_cell"
 
 class Predicate(enum.Enum):
     ''' Note: the first prameter in the list is needed: otherwise python will merge enum elements. '''
@@ -20,6 +21,10 @@ class Predicate(enum.Enum):
     adjacent_to_door = ["adjacent_to_door", ("?c1", PddlType.cell.name), ("?c2", PddlType.door_cell.name)]
     open = ["open", ("?c", PddlType.door_cell.name)]
     passed_door = ["passed_door", ("?c", PddlType.door_cell.name)]
+
+    safe_is_accessible = ["safe_is_accessible", ("?c", PddlType.safe_cell.name)]
+    adjacent_to_safe = ["adjacent_to_safe", ("?c1", PddlType.cell.name), ("?c2", PddlType.safe_cell.name)]
+    safe_collected = ["safe_collected", ("?c", PddlType.safe_cell.name)]
 
 class Function(enum.Enum):
     ''' Note: the first prameter in the list is needed: otherwise python will merge enum elements. '''
@@ -152,6 +157,9 @@ class PddlDoorCellType(PddlGameMapCellType):
 
 class Task:
     ''' A task that the polycraft agent can aim to do '''
+    def __str__(self):
+        return self.__class__.__name__
+
     def create_relevant_actions(self, world_state:PolycraftState, meta_model):
         ''' Returns a list of actions for the agent to use when planning '''
         raise NotImplementedError()

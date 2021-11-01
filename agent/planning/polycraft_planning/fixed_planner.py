@@ -3,12 +3,14 @@ import random
 import settings
 from agent.hydra_agent import HydraPlanner
 from agent.planning.polycraft_meta_model import PolycraftMetaModel
-from agent.planning.polycraft_planning.actions import CreateByRecipe, CollectAndMineItem, CreateByTrade, MacroAction, \
-    TeleportAndFaceCell
+from agent.planning.polycraft_planning.actions import CreateByRecipe, CreateByTrade, MacroAction, \
+    TeleportAndFaceCell, TeleportToBreakAndCollect
 from agent.polycraft_hydra_agent import logger
-from utils.polycraft_utils import get_adjacent_cells, is_adjacent_to_steve, get_angle_to_adjacent_cell
+from utils.polycraft_utils import get_adjacent_cells, is_adjacent_to_steve, get_angle_to_adjacent_cell, \
+    coordinates_to_cell
+from worlds.polycraft_interface.client import polycraft_interface as poly
 from worlds.polycraft_world import PolycraftState, ItemType, PolyNoAction, BlockType, PolycraftAction, PolyPlaceTreeTap, \
-    PolyCollect
+    PolyCollect, EntityType, PolySelectItem, logger
 
 
 class FixedPlanPlanner(HydraPlanner):
@@ -181,3 +183,83 @@ class CreateTreeTap(CreateByRecipe):
             return CreatePlanks()
         else:
             raise ValueError(f"Unknown ingredient for {self.item_to_craft}: {ingredient}")
+
+
+class CollectAndMineItem(PolycraftAction):
+    ''' A high-level macro action that accepts the desired number of items to collect and which blocks to mine to get it.
+    Pseudo code:
+    Input: desired_item, desired_count, relevant_block_types_to_mine
+    While inventory does not contain the desired item in the desired amount
+        If EntityItems already exists in reachable cells
+            Teleport to these cells to collect them
+        If there are accessible cells of the relevant block to mine
+            Teleport to these cells and mine the desired item
+        Otherwise, choose an accessible block and mine it
+
+        TODO: Deprecated
+    '''
+    def __init__(self, desired_item_type: str, desired_quantity:int, relevant_block_types:list, max_tries = 5, needs_iron_pickaxe=False):
+        super().__init__()
+        self.desired_item_type = desired_item_type
+        self.desired_quantity = desired_quantity
+        self.relevant_block_types = relevant_block_types
+        self.max_tries = max_tries # Declare failure if after max_tries iterations of collecting and mining blocks the desired quantity hasn't been reached.
+        self.needs_iron_pickaxe=needs_iron_pickaxe
+
+    def __str__(self):
+        return f"<CollectAndMineItem {self.desired_item_type} {self.desired_quantity} " \
+               f"{self.relevant_block_types} {self.max_tries} success={self.success}>"
+
+    def do(self, poly_client: poly.PolycraftInterface) -> dict:
+        ''' Try to collect '''
+        current_state = PolycraftState.sense(poly_client)
+        initial_quantity = current_state.count_items_of_type(self.desired_item_type)
+        for i in range(self.max_tries):
+            # Choose action
+            action = self._choose_action(current_state)
+            if action is not None:
+                result = action.do(poly_client)
+
+                current_state = PolycraftState.sense(poly_client)
+                new_quantity = current_state.count_items_of_type(self.desired_item_type)
+                if new_quantity-initial_quantity>=self.desired_quantity:
+                    self.success=True
+                    return result
+            else: # No action relevant - do nothing and report failure
+                result = PolyNoAction().do(poly_client)
+                break
+        self.success = False
+        return result
+
+    def _choose_action(self, current_state):
+        ''' Choose which action to try next in this macro action '''
+
+        # First, if there's an item to collect - go to collect it
+        entity_items = current_state.get_entities_of_type(EntityType.ITEM.value)
+        relevant_cells = []
+        for entity_item in entity_items:
+            entity_attr = current_state.entities[entity_item]
+            if entity_attr["type"] == self.desired_item_type:
+                cell = coordinates_to_cell(entity_attr["pos"])
+                if current_state.game_map[cell]["isAccessible"]:
+                    relevant_cells.append(cell)
+                    break
+        if len(relevant_cells) > 0:
+            cell = random.choice(relevant_cells)
+            action = TeleportAndFaceCell(cell)
+        else:
+            # Search for relevant blocks to mine
+            relevant_cells = []
+            for relevant_block_type in self.relevant_block_types:
+                relevant_cells.extend(current_state.get_cells_of_type(relevant_block_type, only_accessible=True))
+            if len(relevant_cells) > 0:
+                cell = random.choice(relevant_cells)
+                if self.needs_iron_pickaxe and ItemType.IRON_PICKAXE.value != current_state.get_selected_item():
+                    action = PolySelectItem(ItemType.IRON_PICKAXE.value)
+                else:
+                    action = TeleportToBreakAndCollect(cell)
+            else:
+                logger.info(f"Can't find any blocks of the relevant types ({self.relevant_block_types}). Action failed")
+                self.success = False
+                action = None
+        return action

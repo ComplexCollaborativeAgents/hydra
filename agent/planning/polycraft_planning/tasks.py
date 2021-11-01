@@ -68,6 +68,22 @@ class ExploreDoorTask(CreatePogoTask):
                                   PddlUseDoorAction()])
         return action_generators
 
+class CollectFromSafeTask(CreatePogoTask):
+    ''' Task includes obtaining a key if none exists, going to the safe, opening it with the key and collecting what's in'''
+    def __init__(self, safe_cell:str):
+        self.safe_cell = safe_cell
+    def get_goals(self, world_state:PolycraftState, meta_model:PolycraftMetaModel):
+        return [[Predicate.passed_door.name, PddlGameMapCellType.get_cell_object_name(self.door_cell)]]
+    def get_planner_heuristic(self, world_state:PolycraftState, meta_model:PolycraftMetaModel):
+        ''' Returns the heuristic to be used by the planner'''
+        return OpenDoorHeuristic(self.door_cell)
+    def create_relevant_actions(self, world_state:PolycraftState, meta_model:PolycraftMetaModel):
+        action_generators = super().create_relevant_actions(world_state, meta_model)
+        action_generators.extend([PddlMoveThroughDoorAction(),
+                                  PddlUseDoorAction()])
+        return action_generators
+
+
 class MakeCellAccessibleTask(CreatePogoTask):
     def __init__(self, cell:str=None):
         self.cell = cell
@@ -511,7 +527,7 @@ class PolycraftTask(enum.Enum):
     CRAFT_POGO = CreatePogoTask
     OPEN_DOOR = ExploreDoorTask
     MAKE_CELL_ACCESSIBLE = MakeCellAccessibleTask
-
+    COLLECT_FROM_SAFE = CollectFromSafeTask
     def create_instance(self):
         ''' Create an instance of this task'''
         return self.value.__new__(self.value)

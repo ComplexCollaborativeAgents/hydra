@@ -27,7 +27,7 @@ CP_TIMEOUT = 60 # timeout for the planning phase (in seconds)
 CP_CONSISTENCY_THRESHOLD = 0.01
 
 POLYCRAFT_DELTA_T = 1 # Time discretization
-POLYCRAFT_TIMEOUT = 180 # timeout for the planning phase (in seconds)
+POLYCRAFT_TIMEOUT = 300 # timeout for the planning phase (in seconds)
 
 OS_ROOT_PATH = path.abspath(os.sep)
 ROOT_PATH = path.join(path.dirname(path.dirname(path.abspath(__file__))))

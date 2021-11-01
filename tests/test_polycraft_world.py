@@ -1,11 +1,6 @@
-import pickle
 import pytest
-import settings
-import logging
-import pathlib
 
-from tests.test_polycraft import launch_polycraft
-from utils.polycraft_utils import *
+from agent.planning.polycraft_planning.fixed_planner import CollectAndMineItem
 from agent.planning.polycraft_planning.actions import *
 import worlds.polycraft_world as poly
 from agent.polycraft_hydra_agent import PolycraftObservation, PolycraftManualAgent
@@ -58,7 +53,7 @@ def test_agent_break_and_collect(launch_polycraft, execution_number):
         dist_to_pogoist = distance_to_nearest_pogoist(state, cell)
         assert(dist_to_pogoist<=2)
 
-@pytest.mark.parametrize('execution_number', range(5))
+@pytest.mark.parametrize('execution_number', range(1))
 def test_mining_two_logs(launch_polycraft: poly.Polycraft, execution_number):
     ''' Test mining two oak blocks and collecting the resulting logs '''
     env = launch_polycraft
@@ -94,7 +89,7 @@ def test_mining_two_logs(launch_polycraft: poly.Polycraft, execution_number):
         dist_to_pogoist = distance_to_nearest_pogoist(state, cell2)
         assert(dist_to_pogoist<=2)
 
-@pytest.mark.parametrize('execution_number', range(5))
+@pytest.mark.parametrize('execution_number', range(1))
 def test_select_iron_pickaxe(launch_polycraft, execution_number):
     ''' Test selecting an iron pickaxe from the inventory '''
     env = launch_polycraft
@@ -115,7 +110,7 @@ def test_select_iron_pickaxe(launch_polycraft, execution_number):
     assert(after_state.get_selected_item()==poly.ItemType.IRON_PICKAXE.value)
 
 
-@pytest.mark.parametrize('execution_number', range(5))
+@pytest.mark.parametrize('execution_number', range(1))
 def test_agent_mine_with_pickaxe(launch_polycraft: poly.Polycraft, execution_number:int):
     ''' Select a pickaxe and use it'''
     env = launch_polycraft
@@ -466,7 +461,7 @@ def test_open_door(launch_polycraft: poly.Polycraft, execution_number):
 
     move_to_door = TeleportAndFaceCell(door)
     while move_to_door.is_done()==False:
-        after_state, step_cost = agent.do(TeleportAndFaceCell(door), env)
+        after_state, step_cost = agent.do(move_to_door, env)
     assert (agent.current_observation.actions[-1].success == True)
     state = after_state
 
@@ -477,6 +472,86 @@ def test_open_door(launch_polycraft: poly.Polycraft, execution_number):
 
     state, step_cost = agent.do(PolyMoveThroughDoor(door),env)
     assert(agent.current_observation.actions[-1].success == True)
+
+def test_open_safe(launch_polycraft: poly.Polycraft):
+    ''' test getting the key from the plastic chest and opening the bigger chest '''
+    env = launch_polycraft
+    agent, state = _setup_env(env, TEST_LEVEL)
+
+    # Get key from chest
+    chest_cells = state.get_cells_of_type(BlockType.PLASTIC_CHEST.value, only_accessible=True)
+    assert (len(chest_cells) > 0)
+    chest_cell = chest_cells[0]
+
+    action = TeleportToAndCollect(chest_cell)
+    state, step_cost = agent.do(action, env)
+    assert(action.success)
+    assert(state.count_items_of_type(ItemType.KEY.value)>0)
+
+    # Open door and move through it
+    door_cells = state.get_cells_of_type(BlockType.WOODER_DOOR.value, only_accessible=True)
+    door = door_cells[0]
+    action = OpenDoor(door)
+    state, step_cost = agent.do(action, env)
+    assert(action.success)
+    action = PolyMoveThroughDoor(door)
+    state, step_cost = agent.do(action, env)
+    assert(action.success)
+
+    # Open open safe
+    safe_cells = state.get_cells_of_type(BlockType.SAFE.value, only_accessible=True)
+    assert(len(safe_cells)>0)
+    cell = safe_cells[0]
+    action = TeleportToAndUse(cell, ItemType.KEY.value)
+    state, step_cost = agent.do(action, env)
+    # assert(action.success)
+    assert(state.game_map[cell]["open"].upper()=="TRUE")
+
+    # Collect what's in the safe
+    action = TeleportToAndCollect(cell)
+    state, step_cost = agent.do(action, env)
+    assert(action.success)
+
+
+
+def test_move_between_rooms(launch_polycraft: poly.Polycraft):
+    ''' test getting the key from the plastic chest and opening the bigger chest '''
+    env = launch_polycraft
+    agent, state = _setup_env(env, TEST_LEVEL)
+
+    # Open door and move through it
+    door_cells = state.get_cells_of_type(BlockType.WOODER_DOOR.value, only_accessible=True)
+    door = door_cells[0]
+    action = OpenDoor(door)
+    state, step_cost = agent.do(action, env)
+    assert(action.success)
+    action = PolyMoveThroughDoor(door)
+    state, step_cost = agent.do(action, env)
+    assert(action.success)
+
+    # Get key from chest
+    chest_cells = state.get_cells_of_type(BlockType.PLASTIC_CHEST.value, only_accessible=True)
+    assert (len(chest_cells) > 0)
+    chest_cell = chest_cells[0]
+
+    action = TeleportToAndCollect(chest_cell)
+    state, step_cost = agent.do(action, env)
+    assert(action.success)
+    assert(state.count_items_of_type(ItemType.KEY.value)>0)
+
+    # Open open safe
+    safe_cells = state.get_cells_of_type(BlockType.SAFE.value, only_accessible=True)
+    assert(len(safe_cells)>0)
+    cell = safe_cells[0]
+    action = TeleportToAndUse(cell, ItemType.KEY.value)
+    state, step_cost = agent.do(action, env)
+    # assert(action.success)
+    assert(state.game_map[cell]["open"].upper()=="TRUE")
+
+    # Collect what's in the safe
+    action = TeleportToAndCollect(cell)
+    state, step_cost = agent.do(action, env)
+    assert(action.success)
 
 def test_helper_functions():
     ''' Test some of the helper functions '''

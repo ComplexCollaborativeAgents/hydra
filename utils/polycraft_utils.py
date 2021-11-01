@@ -2,7 +2,7 @@
 import math
 import pathlib
 import settings
-from worlds.polycraft_world import PolycraftState, ItemType, EntityType
+from worlds.polycraft_world import PolycraftState, ItemType, EntityType, Polycraft
 from worlds.polycraft_interface.client.polycraft_interface import *
 
 def has_new_item(state_diff: dict):
@@ -250,6 +250,36 @@ def is_adjacent_to_steve(cell:str, state:PolycraftState):
         if adjacent_cell==steve_cell:
             return True
     return False
+
+def is_in_room_with_steve(cell:str, state:PolycraftState):
+    ''' Checks if the given cell is in the same room as Steve '''
+    steve_cell = coordinates_to_cell(state.location["pos"])
+    for door_cell, door_game_map in state.door_to_cells.items():
+        if cell in door_game_map and steve_cell in door_game_map:
+            return True
+    return False
+
+def get_exit_door(cell:str, state:PolycraftState):
+    ''' Returns the door through which to exit back to the main room.
+     Returns Polycraft.DUMMY_DOOR if in the main room '''
+    if cell in state.door_to_cells[Polycraft.DUMMY_DOOR]:
+        return Polycraft.DUMMY_DOOR
+    else:
+        for door_cell, door_game_map in state.door_to_cells.items():
+            if cell in door_game_map:
+                return door_cell
+
+def get_door_path_to_cell(cell:str, state:PolycraftState)->list:
+    ''' Returns a list of door cells we need to cross to get steve in the same room as the given cell '''
+    cell_exit_door = get_exit_door(cell, state)
+    steve_exit_door = get_exit_door(coordinates_to_cell(state.location["pos"]))
+    if cell_exit_door==steve_exit_door:
+        return []
+    if cell_exit_door==Polycraft.DUMMY_DOOR:
+        return [steve_exit_door]
+    if steve_exit_door==Polycraft.DUMMY_DOOR:
+        return [cell_exit_door]
+    return [steve_exit_door, cell_exit_door]
 
 def get_angle_to_adjacent_cell(cell:str, state:PolycraftState):
     ''' Computes the angle between the direction Steve is facing and the given adjacent cell. '''

@@ -42,6 +42,7 @@ class BlockType(enum.Enum):
     SAPLING = "minecraft:sapling"
     TREE_TAP = "polycraft:tree_tap"
     WOODER_DOOR = "minecraft:wooden_door"
+    SAFE = "polycraft:safe"
 
 class ItemType(enum.Enum):
     BLOCK_OF_PLATINUM = "polycraft:block_of_platinum"
@@ -397,14 +398,17 @@ class PolycraftState(State):
         self.entities = entities
         self.inventory = inventory  # Formatted as {SLOT_NUM:{ATTRIBUTES}, "selectedItem":{ATTRIBUTES}}
         self.current_item = current_item
-        self.recipes = recipes
-        self.trades = trades
         self.terminal = terminal
         self.step_cost = step_cost
 
+        self.door_to_cells = dict() # Maps a room id to the door through which to enter to it
+        self.recipes = recipes
+        self.trades = trades
+
     @staticmethod
-    def create_current_state(poly_client : poly.PolycraftInterface):
-        ''' Create the current state by calling a SENSE_ALL command '''
+    def sense(poly_client : poly.PolycraftInterface):
+        ''' Calls the SENSE_ALL command, returns a PolycraftState object only with the observed information.
+         NOTE: When in a room you only sense the room cells. '''
         # Call API
         sensed = poly_client.SENSE_ALL()
 
@@ -666,6 +670,8 @@ class PolycraftState(State):
 
 
 class Polycraft(World):
+    DUMMY_DOOR = "-1,-1,-1" # This marks the "door cell" for the main room, for the self.door_to_cells dict.
+
     """
     Polycraft interface supplied by UTD
     There is one Polycraft world per session
@@ -699,6 +705,7 @@ class Polycraft(World):
         ''' Initialize information about the current state in the current episode (level) '''
         self.current_recipes = []
         self.current_trades = dict()  # Maps entity id to its trades
+        self.door_to_rooms = dict() # Maps door cell to dict of gamemap cell in the room of that door
         self.last_cmd_success = True
         self.ready_for_cmds = False
 
@@ -938,21 +945,22 @@ class Polycraft(World):
         """
         # Call SENSE ALL API
         try:
-            current_state = PolycraftState.create_current_state(self.poly_client)
+            state = PolycraftState.sense(self.poly_client)
         except (BrokenPipeError, KeyboardInterrupt) as err:
             self.kill()
             logger.error("Polycraft server connection interrupted (broken pipe or keyboard interrupt")
             raise err
 
         # Populate current recipes and trades
-        current_state.trades = copy.deepcopy(self.current_trades)
-        current_state.recipes = copy.deepcopy(self.current_recipes)
+        state.trades = copy.deepcopy(self.current_trades)
+        state.recipes = copy.deepcopy(self.current_recipes)
+        state.door_to_cells = copy.deepcopy(self.door_to_rooms)
 
         # Obtain current cost
         step_cost = self.get_level_total_step_cost()
-        current_state.step_cost = step_cost
+        state.step_cost = step_cost
 
-        return current_state
+        return state
 
     def reset_current_trades(self):
         self.current_trades = {}
