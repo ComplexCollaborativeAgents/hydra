@@ -265,6 +265,7 @@
             (<= (x_pig ?p) (+ (x_block ?bl_bottom) (/ (block_width ?bl_bottom) 2) ) )
             (>= (x_pig ?p) (- (x_block ?bl_bottom) (/ (block_width ?bl_bottom) 2) ) )
             (>= (y_pig ?p) (+ (y_block ?bl_bottom) (/ (block_height ?bl_bottom) 2) ) )
+            (<= (y_pig ?p) (+ (y_block ?bl_bottom) (+ (block_height ?bl_bottom) (pig_radius ?p))) )
         )
         :effect (and
             (pig_dead ?p)

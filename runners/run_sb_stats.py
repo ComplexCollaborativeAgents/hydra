@@ -491,5 +491,6 @@ def _compute_stats(results, file_suffix):
 
 
 if __name__ == '__main__':
+    logging.getLogger().setLevel(logging.WARNING)
     run_sb_stats(seed=0)  # , test_name='Heuristic_3_A_star')
 

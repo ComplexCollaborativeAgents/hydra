@@ -18,11 +18,11 @@ SB_PLANNER_MEMORY_LIMIT = 50  # memory limit for UPMurphi (in MB)
 SB_DELTA_T = 0.05  # time discretisation for UPMurphi
 SB_TIMEOUT = 30  # timeout for the planning phase (in seconds)
 SB_DEFAULT_SHOT = 'RANDOM_PIG'
-SB_PLANNER_SIMPLIFICATION_SEQUENCE = [1, 2]  # the order of problem simplications attempted to generate a plan
+SB_PLANNER_SIMPLIFICATION_SEQUENCE = [0, 1, 2]  # the order of problem simplications attempted to generate a plan
 SB_COLLECT_PERCEPTION_DATA = False
 
 
-CP_PLANNER_MEMORY_LIMIT = 50 # memory limit for UPMurphi (in MB)
+CP_PLANNER_MEMORY_LIMIT = 50  # memory limit for UPMurphi (in MB)
 CP_DELTA_T = 0.02 # time discretisation for UPMurphi
 CP_TIMEOUT = 60 # timeout for the planning phase (in seconds)
 CP_CONSISTENCY_THRESHOLD = 0.01
@@ -30,9 +30,9 @@ CP_CONSISTENCY_THRESHOLD = 0.01
 OS_ROOT_PATH = path.abspath(os.sep)
 ROOT_PATH = path.join(path.dirname(path.dirname(path.abspath(__file__))))
 SCIENCE_BIRDS_BIN_DIR = path.join(ROOT_PATH,'bin')
-SCIENCE_BIRDS_LEVELS_DIR = path.join(SCIENCE_BIRDS_BIN_DIR,'linux','Levels','novelty_level_0','type2','Levels')
+SCIENCE_BIRDS_LEVELS_DIR = path.join(SCIENCE_BIRDS_BIN_DIR, 'linux', 'Levels', 'novelty_level_0', 'type2', 'Levels')
 POLYCRAFT_DIR = path.join(ROOT_PATH, 'bin', 'pal', 'PolycraftAIGym')
-SB_INIT_COLOR_MAP = path.join(ROOT_PATH,'worlds','science_birds_interface','demo','ColorMap.json')
+SB_INIT_COLOR_MAP = path.join(ROOT_PATH, 'worlds', 'science_birds_interface', 'demo', 'ColorMap.json')
 SB_SIM_SPEED = 30 # run at real time
 SB_GT_FREQ = int(30/SB_SIM_SPEED)
 # SB_GT_FREQ = 1
