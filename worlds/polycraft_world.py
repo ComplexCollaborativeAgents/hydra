@@ -65,6 +65,259 @@ class EntityType(enum.Enum):
     TRADER = "EntityTrader"
     ITEM = "EntityItem"
 
+
+class PolycraftState(State):
+    """ Current State of Polycraft """
+
+    def __init__(self, step_num: int, facing_block: str, location: dict, game_map: dict,
+                 entities: dict, inventory: dict, current_item: str,
+                 recipes: list, trades: list, terminal: bool, step_cost: float):
+        super().__init__()
+
+        self.id = step_num
+        self.facing_block = facing_block  # the block the actor is currently facing
+        self.location = location  # Formatted as {"pos": [x,y,z], "facing": DIR, yaw: ANGLE, pitch: ANGLE }
+        self.game_map = game_map  # Formatted as {"xyz_string": {"name": "block_name", isAccessible: bool}, ...}
+        self.entities = entities
+        self.inventory = inventory  # Formatted as {SLOT_NUM:{ATTRIBUTES}, "selectedItem":{ATTRIBUTES}}
+        self.current_item = current_item
+        self.terminal = terminal
+        self.step_cost = step_cost
+
+        self.door_to_cells = dict()  # Maps a room id to the door through which to enter to it
+        self.recipes = recipes
+        self.trades = trades
+
+    def update(self, poly_client: poly.PolycraftInterface):
+        ''' Updates the current state with the sensed information '''
+        sensed = poly_client.SENSE_ALL()
+        self.id = sensed['step']
+        self.facing_block = sensed['blockInFront']
+        self.inventory = sensed['inventory']
+        self.currently_selected = sensed['inventory']['selectedItem']
+        self.pos = sensed['player']
+
+        self.terminal = sensed['gameOver']
+        if 'goal' in sensed:
+            self.terminal = sensed['gameOver'] or sensed['goal']['goalAchieved']
+
+        self.entities = sensed['entities']
+        sensed_game_map = sensed['map']
+        for cell_id, cell_attr in sensed_game_map.game_map.items():
+            for door_cell_id, room_game_map in self.door_to_cells.items():
+                if cell_id in room_game_map:
+                    room_game_map[cell_id] = cell_attr
+
+    @staticmethod
+    def sense(poly_client: poly.PolycraftInterface):
+        ''' Calls the SENSE_ALL command, returns a PolycraftState object only with the observed information.
+         NOTE: When in a room you only sense the room cells. '''
+        # Call API
+        sensed = poly_client.SENSE_ALL()
+
+        # Extract values from SENSE_ALL
+        step_num = sensed['step']
+        facing_block = sensed['blockInFront']
+        inventory = sensed['inventory']
+        currently_selected = sensed['inventory']['selectedItem']
+        pos = sensed['player']
+        entities = sensed['entities']
+        game_map = sensed['map']
+        terminal = sensed['gameOver']
+
+        if 'goal' in sensed:
+            terminal = sensed['gameOver'] or sensed['goal']['goalAchieved']
+        return PolycraftState(step_num, facing_block, pos, game_map, entities,
+                              inventory, currently_selected, None, None, terminal, -1)
+
+    def __str__(self):
+        return "< Step: {} | Action Cost: {} | Location: {} | Inventory: {} >".format(self.id, self.step_cost,
+                                                                                      self.location, self.inventory)
+
+    def get_block_at(self, x: int, y: int, z: int) -> tuple:
+        """ Helper function to get info of a block at coordinates xyz from the game map (type, accessibility) """
+        coord_str = "{},{},{}".format(x, y, z)
+        if coord_str not in self.game_map:
+            return None, None
+
+        return self.game_map[coord_str]["name"], self.game_map["isAccesible"]
+
+    def get_cells_of_type(self, item_type: str, only_accessible=False):
+        ''' returns a list of cells that are of the given type '''
+        cells = []
+        for cell, cell_attr in self.game_map.items():
+            if cell_attr["name"] == item_type:
+                if only_accessible and cell_attr['isAccessible'] == False:
+                    continue
+                cells.append(cell)
+        return cells
+
+    def get_type_to_cells(self):
+        ''' Returns a dictionary of cell type to the list of cells of that type '''
+        type_to_cells = dict()
+        for cell, cell_attr in self.game_map.items():
+            cell_type = cell_attr["name"]
+            if cell_type not in type_to_cells:
+                type_to_cells[cell_type] = list()
+            type_to_cells[cell_type].append(cell)
+        return type_to_cells
+
+    def get_inventory_entries_of_type(self, item_type: str):
+        ''' Returns the inventory entries that contain an item of the given type '''
+        entries = []
+        for entry, entry_attr in self.inventory.items():
+            if entry == "selectedItem":  # Do not consider the selected item
+                continue
+            if entry_attr["item"] == item_type:
+                entries.append(entry)
+        return entries
+
+    def get_entities_of_type(self, entity_type: str):
+        ''' Return all the entities of a given type '''
+        entities_to_return = []
+        for entity, entity_attr in self.entities.items():
+            if entity_attr["type"] == entity_type:
+                entities_to_return.append(entity)
+        return entities_to_return
+
+    def count_items_of_type(self, item_type: str):
+        ''' Counts the number of items of a given type '''
+        count = 0
+        inventory_entries = self.get_inventory_entries_of_type(item_type)
+        for entry in inventory_entries:
+            entry_attr = self.inventory[entry]
+            count = count + entry_attr["count"]
+        return count
+
+    def is_facing_type(self, item_type: str):
+        ''' checks if Steve is facing a cell of the given type '''
+        return self.facing_block["name"] == item_type
+
+    def has_item(self, item_type: str, count: int = 1):
+        ''' Checks if we have enough items of the given type '''
+        return len(self.get_inventory_entries_of_type(item_type)) > count - 1
+
+    def get_selected_item(self):
+        ''' Returns the type of item currently selected '''
+        if "selectedItem" not in self.inventory:
+            return None
+        return self.inventory["selectedItem"]["item"]
+
+    def get_all_recipes_for(self, item_name) -> list():
+        ''' Return all the recipe that output an item of the given type '''
+        recipes = list()
+        for i, recipe in enumerate(self.recipes):
+            for recipe_output in recipe['outputs']:
+                if recipe_output['Item'] == item_name:
+                    recipes.append(recipe)
+        return recipes
+
+    def get_recipe_for(self, item_name) -> list():
+        ''' Return a single recipe that output an item of the given type '''
+        recipes = list()
+        for i, recipe in enumerate(self.recipes):
+            for recipe_output in recipe['outputs']:
+                if recipe_output['Item'] == item_name:
+                    return recipe
+
+    def get_all_trades_for(self, input_items, output_item):
+        ''' Return a list of (trader_id, trade) tuples for trades
+        in which we obtain the output item using only items from the input items '''
+        results = []
+        for trader_entity_id, trades in self.trades.items():
+            for trade in trades:
+                outputs = trade['outputs']
+                for output in outputs:
+                    if output['Item'] == output_item:
+                        has_inputs = True
+                        for input in trade['inputs']:
+                            if input['Item'] not in input_items:
+                                has_inputs = False
+                        if has_inputs:
+                            results.append((trader_entity_id, trade))
+                        break
+        return results
+
+    def get_trade_for(self, item_to_get, items_to_give):
+        ''' Return a singe tuple (trader_id, trade) tuples for trades
+        in which we obtain the output item using only items from the input items '''
+        for trader_entity_id, trades in self.trades.items():
+            for trade in trades:
+                outputs = trade['outputs']
+                for output in outputs:
+                    if output['Item'] == item_to_get:
+                        has_inputs = True
+                        for input in trade['inputs']:
+                            if input['Item'] not in items_to_give:
+                                has_inputs = False
+                        if has_inputs:
+                            return (trader_entity_id, trade)
+                        break
+        logger.info(f"No trades found where input={items_to_give} and output={output}")
+        return None
+
+    def summary(self):
+        '''returns a summary of state'''
+        return str(self)
+
+    def serialize_current_state(self, level_filename: str):
+        pickle.dump(self, open(level_filename, 'wb'))
+
+    def load_from_serialized_state(level_filename: str):
+        return pickle.load(open(level_filename, 'rb'))
+
+    def is_terminal(self) -> bool:
+        return self.terminal
+
+    def diff(self, other_state):
+        ''' Return the differences between the states '''
+        diff_dict = {}
+        if self.facing_block != other_state.facing_block:
+            diff_dict['facing_block'] = {'self': self.facing_block, 'other': other_state.facing_block}
+
+        if self.location != other_state.location:
+            location_diff_dict = dict()
+            for loc_attr in self.location:
+                if self.location[loc_attr] != other_state.location[loc_attr]:
+                    location_diff_dict[loc_attr] = {'self': self.location[loc_attr],
+                                                    'other': other_state.location[loc_attr]}
+            diff_dict['location'] = location_diff_dict
+
+        if self.game_map != other_state.game_map:
+            game_map_diff_dict = dict()
+            for cell in self.game_map:
+                if self.game_map[cell] != other_state.game_map[cell]:
+                    game_map_diff_dict[cell] = {'self': self.game_map[cell], 'other': other_state.game_map[cell]}
+            diff_dict['game_map'] = game_map_diff_dict
+
+        if self.inventory != other_state.inventory:
+            inventory_diff_dict = dict()
+            for item, item_attr in self.inventory.items():
+                if item not in other_state.inventory:
+                    inventory_diff_dict[item] = {'self': item_attr, 'other': None}
+                else:
+                    if item_attr != other_state.inventory[item]:
+                        inventory_diff_dict[item] = {'self': item_attr, 'other': other_state.inventory[item]}
+            diff_dict['inventory'] = inventory_diff_dict
+
+        if self.entities != other_state.entities:
+            entities_diff_dict = dict()
+            for entity_id, entity_attr in self.entities.items():
+                if entity_id not in other_state.entities:
+                    entities_diff_dict[entity_id] = {'self': entity_attr, 'other': None}
+                else:
+                    if entity_attr != other_state.entities[entity_id]:
+                        entities_diff_dict[entity_id] = {'self': entity_attr, 'other': other_state.entities[entity_id]}
+            diff_dict['entities'] = entities_diff_dict
+
+        if self.current_item != other_state.current_item:
+            diff_dict['current_item'] = {'self': self.current_item, 'other': other_state.current_item}
+
+        if self.step_cost != other_state.step_cost:
+            diff_dict['step_cost'] = {'self': self.step_cost, 'other': other_state.step_cost}
+
+        return diff_dict
+
 class PolycraftAction(Action):
     ''' Polycraft World Action '''
 
@@ -82,7 +335,7 @@ class PolycraftAction(Action):
     def __str__(self):
         return f"<{self.name} success={self.success}>"
 
-    def do(self, poly_client: poly.PolycraftInterface) -> dict:
+    def do(self, state:PolycraftState, poly_client: poly.PolycraftInterface) -> dict:
         raise NotImplementedError("Subclasses of PolycraftAction should implement this")
 
 class PolyNoAction(PolycraftAction):
@@ -91,7 +344,7 @@ class PolyNoAction(PolycraftAction):
     def __str__(self):
         return "<PolyNoAction>"
     
-    def do(self, poly_client: poly.PolycraftInterface) -> dict:
+    def do(self, state:PolycraftState, poly_client: poly.PolycraftInterface) -> dict:
         return poly_client.CHECK_COST()
 
 
@@ -105,7 +358,7 @@ class PolyTP(PolycraftAction):
     def __str__(self):
         return "<PolyTP pos=({}) dist={} success={}>".format(self.cell, self.dist, self.success)
 
-    def do(self, poly_client: poly.PolycraftInterface) -> dict:
+    def do(self, state:PolycraftState, poly_client: poly.PolycraftInterface) -> dict:
         result = poly_client.TP_TO_POS(self.cell, distance=self.dist)
         self.success = self.is_success(result)
         return result
@@ -121,7 +374,7 @@ class PolyEntityTP(PolycraftAction):
     def __str__(self):
         return "<PolyEntityTP entity={} dist={} success={}>".format(self.entity_id, self.dist, self.success)
 
-    def do(self, poly_client: poly.PolycraftInterface) -> dict:
+    def do(self, state:PolycraftState, poly_client: poly.PolycraftInterface) -> dict:
         result =  poly_client.TP_TO_ENTITY(self.entity_id)
         self.success = self.is_success(result)
         return result
@@ -136,7 +389,7 @@ class PolyTurn(PolycraftAction):
     def __str__(self):
         return "<PolyTurn dir={} success={}>".format(self.direction, self.success)
 
-    def do(self, poly_client: poly.PolycraftInterface) -> dict:
+    def do(self, state:PolycraftState, poly_client: poly.PolycraftInterface) -> dict:
         result = poly_client.TURN(self.direction)
         self.success = self.is_success(result)
         return result
@@ -151,7 +404,7 @@ class PolyTilt(PolycraftAction):
     def __str__(self):
         return "<PolyTilt pitch={} success={}>".format(self.pitch, self.success)
 
-    def do(self, poly_client: poly.PolycraftInterface) -> dict:
+    def do(self, state:PolycraftState, poly_client: poly.PolycraftInterface) -> dict:
         result = poly_client.SMOOTH_TILT(self.pitch)
         self.success = self.is_success(result)
         return result
@@ -163,7 +416,7 @@ class PolyBreak(PolycraftAction):
     def __str__(self):
         return "<PolyBreak success={}>".format(self.success)
 
-    def do(self, poly_client: poly.PolycraftInterface) -> dict:
+    def do(self, state:PolycraftState, poly_client: poly.PolycraftInterface) -> dict:
         result = poly_client.BREAK_BLOCK()
         self.success = self.is_success(result)
         return result
@@ -178,7 +431,7 @@ class PolyInteract(PolycraftAction):
     def __str__(self):
         return "<PolyInteract entity={} success={}>".format(self.entity_id, self.success)
 
-    def do(self, poly_client: poly.PolycraftInterface) -> dict:
+    def do(self, state:PolycraftState, poly_client: poly.PolycraftInterface) -> dict:
         result = poly_client.INTERACT(self.entity_id)
         self.success = self.is_success(result)
         return result
@@ -190,7 +443,7 @@ class PolySense(PolycraftAction):
     def __str__(self):
         return "<PolySense success={}>".format(self.success)
 
-    def do(self, poly_client: poly.PolycraftInterface) -> dict:
+    def do(self, state:PolycraftState, poly_client: poly.PolycraftInterface) -> dict:
         result = poly_client.SENSE_ALL()
         self.success = self.is_success(result)
         return result
@@ -205,7 +458,7 @@ class PolySelectItem(PolycraftAction):
     def __str__(self):
         return "<PolySelectItem item={} success={}>".format(self.item_name, self.success)
 
-    def do(self, poly_client: poly.PolycraftInterface) -> dict:
+    def do(self, state:PolycraftState, poly_client: poly.PolycraftInterface) -> dict:
         result = poly_client.SELECT_ITEM(item_name=self.item_name)
         self.success = self.is_success(result)
         return result
@@ -220,7 +473,7 @@ class PolyUseItem(PolycraftAction):
     def __str__(self):
         return "<PolyUseItem item={} success={}>".format(self.item_name, self.success)
 
-    def do(self, poly_client: poly.PolycraftInterface) -> dict:
+    def do(self, state:PolycraftState, poly_client: poly.PolycraftInterface) -> dict:
         result = poly_client.USE_ITEM(item_name=self.item_name)
         self.success = self.is_success(result)
         return result
@@ -235,7 +488,7 @@ class PolyPlaceItem(PolycraftAction):
     def __str__(self):
         return "<PolyPlaceItem item={} success={}>".format(self.item_name, self.success)
 
-    def do(self, poly_client: poly.PolycraftInterface) -> dict:
+    def do(self, state:PolycraftState, poly_client: poly.PolycraftInterface) -> dict:
         result = poly_client.PLACE(self.item_name)
         self.success = self.is_success(result)
         return result
@@ -245,7 +498,7 @@ class PolyPlaceTreeTap(PolycraftAction):
     def __init__(self):
         super().__init__()
 
-    def do(self, poly_client: poly.PolycraftInterface) -> dict:
+    def do(self, state:PolycraftState, poly_client: poly.PolycraftInterface) -> dict:
         result = poly_client.PLACE_TREE_TAP()
         self.success = self.is_success(result)
         return result
@@ -257,7 +510,7 @@ class PolyCollect(PolycraftAction):
     def __str__(self):
         return "<PolyCollect success={}>".format(self.success)
 
-    def do(self, poly_client: poly.PolycraftInterface) -> dict:
+    def do(self, state:PolycraftState, poly_client: poly.PolycraftInterface) -> dict:
         result = poly_client.COLLECT()
         self.success = self.is_success(result)
         return result
@@ -267,7 +520,7 @@ class PolyGiveUp(PolycraftAction):
     def __str__(self):
         return "<PolyGiveUp success={}>".format(self.success)
 
-    def do(self, poly_client: poly.PolycraftInterface) -> dict:
+    def do(self, state:PolycraftState, poly_client: poly.PolycraftInterface) -> dict:
         result = poly_client.GIVE_UP()
         self.success = self.is_success(result)
         return result
@@ -281,7 +534,7 @@ class PolyDeleteItem(PolycraftAction):
     def __str__(self):
         return "<PolyDeleteItem item={} success={}>".format(self.item_name, self.success)
 
-    def do(self, poly_client: poly.PolycraftInterface) -> dict:
+    def do(self, state:PolycraftState, poly_client: poly.PolycraftInterface) -> dict:
         result = poly_client.DELETE(self.item_name)
         self.success = self.is_success(result)
         return result
@@ -300,7 +553,7 @@ class PolyTradeItems(PolycraftAction):
     def __str__(self):
         return "<PolyTradeItems entity={} items={} success={}>".format(self.entity_id, self.items, self.success)
 
-    def do(self, poly_client: poly.PolycraftInterface) -> dict:
+    def do(self, state:PolycraftState, poly_client: poly.PolycraftInterface) -> dict:
         result = poly_client.TRADE(self.entity_id, self.items)
         self.success = self.is_success(result)
         return result
@@ -378,296 +631,10 @@ class PolyCraftItem(PolycraftAction):
     def __str__(self):
         return "<PolyCraftItem recipe={} success={}>".format(self.recipe, self.success)
 
-    def do(self, poly_client: poly.PolycraftInterface) -> dict:
+    def do(self, state:PolycraftState, poly_client: poly.PolycraftInterface) -> dict:
         result = poly_client.CRAFT(self.recipe)
         self.success = self.is_success(result)
         return result
-
-
-class PolycraftState(State):
-    """ Current State of Polycraft """
-    def __init__(self, step_num: int, facing_block: str,  location: dict, game_map: dict,
-                 entities: dict, inventory: dict, current_item: str,
-                 recipes: list, trades: list, terminal: bool, step_cost: float):
-        super().__init__()
-
-        self.id = step_num
-        self.facing_block = facing_block    # the block the actor is currently facing
-        self.location = location    # Formatted as {"pos": [x,y,z], "facing": DIR, yaw: ANGLE, pitch: ANGLE }
-        self.game_map = game_map    # Formatted as {"xyz_string": {"name": "block_name", isAccessible: bool}, ...}
-        self.entities = entities
-        self.inventory = inventory  # Formatted as {SLOT_NUM:{ATTRIBUTES}, "selectedItem":{ATTRIBUTES}}
-        self.current_item = current_item
-        self.terminal = terminal
-        self.step_cost = step_cost
-
-        self.door_to_cells = dict() # Maps a room id to the door through which to enter to it
-        self.recipes = recipes
-        self.trades = trades
-
-    @staticmethod
-    def sense(poly_client : poly.PolycraftInterface):
-        ''' Calls the SENSE_ALL command, returns a PolycraftState object only with the observed information.
-         NOTE: When in a room you only sense the room cells. '''
-        # Call API
-        sensed = poly_client.SENSE_ALL()
-
-        # Extract values from SENSE_ALL
-        step_num = sensed['step']
-        facing_block = sensed['blockInFront']
-        inventory = sensed['inventory']
-        currently_selected = sensed['inventory']['selectedItem']
-        pos = sensed['player']
-        entities = sensed['entities']
-        game_map = sensed['map']
-        terminal = sensed['gameOver']
-        
-        if 'goal' in sensed:
-            terminal = sensed['gameOver'] or sensed['goal']['goalAchieved']
-        return PolycraftState(step_num, facing_block, pos, game_map, entities,
-                              inventory, currently_selected, None, None, terminal, -1)
-
-    def __str__(self):
-        return "< Step: {} | Action Cost: {} | Location: {} | Inventory: {} >".format(self.id, self.step_cost, self.location, self.inventory)
-
-    def get_block_at(self, x: int, y: int, z: int) -> tuple:
-        """ Helper function to get info of a block at coordinates xyz from the game map (type, accessibility) """
-        coord_str = "{},{},{}".format(x, y, z)
-        if coord_str not in self.game_map:
-            return None, None
-        
-        return self.game_map[coord_str]["name"], self.game_map["isAccesible"]
-
-    def get_cells_of_type(self, item_type : str, only_accessible=False):
-        ''' returns a list of cells that are of the given type '''
-        cells = []
-        for cell, cell_attr in self.game_map.items():
-            if cell_attr["name"]==item_type:
-                if only_accessible and cell_attr['isAccessible']==False:
-                    continue
-                cells.append(cell)
-        return cells
-
-    def get_type_to_cells(self):
-        ''' Returns a dictionary of cell type to the list of cells of that type '''
-        type_to_cells = dict()
-        for cell, cell_attr in self.game_map.items():
-            cell_type = cell_attr["name"]
-            if cell_type not in type_to_cells:
-                type_to_cells[cell_type]=list()
-            type_to_cells[cell_type].append(cell)
-        return type_to_cells
-
-    def get_inventory_entries_of_type(self, item_type:str):
-        ''' Returns the inventory entries that contain an item of the given type '''
-        entries = []
-        for entry, entry_attr in self.inventory.items():
-            if entry=="selectedItem": # Do not consider the selected item
-                continue
-            if entry_attr["item"]==item_type:
-                entries.append(entry)
-        return entries
-
-    def get_entities_of_type(self, entity_type:str):
-        ''' Return all the entities of a given type '''
-        entities_to_return = []
-        for entity, entity_attr in self.entities.items():
-            if entity_attr["type"]==entity_type:
-                entities_to_return.append(entity)
-        return entities_to_return
-
-    def count_items_of_type(self, item_type:str):
-        ''' Counts the number of items of a given type '''
-        count = 0
-        inventory_entries = self.get_inventory_entries_of_type(item_type)
-        for entry in inventory_entries:
-            entry_attr = self.inventory[entry]
-            count = count+entry_attr["count"]
-        return count
-
-    def is_facing_type(self, item_type:str):
-        ''' checks if Steve is facing a cell of the given type '''
-        return self.facing_block["name"] == item_type
-
-    def has_item(self, item_type:str, count:int = 1):
-        ''' Checks if we have enough items of the given type '''
-        return len(self.get_inventory_entries_of_type(item_type))>count-1
-
-    def get_selected_item(self):
-        ''' Returns the type of item currently selected '''
-        if "selectedItem" not in self.inventory:
-            return None
-        return self.inventory["selectedItem"]["item"]
-
-    def get_available_actions(self):
-        actions = []
-
-        # TP to position
-        for coords, block in self.game_map.items():
-            if block['isAccessible']:
-                x, y, z = coords.split(',')
-                actions.append(PolyTP(coords))
-
-        # TP to entity
-        for entity in self.entities:
-            actions.append(PolyEntityTP(entity))
-
-        # Turn in a direction
-        for direction in range(15, 360, 15):
-            actions.append(PolyTurn(direction))
-
-        # Tilt up/down
-        for tilt_dir in poly.TiltDir:
-            actions.append(PolyTilt(tilt_dir))
-
-        # Break a block
-        actions.append(PolyBreak())
-
-        # Select an item from inventory
-        for item_name in self.inventory.keys():
-            actions.append(PolySelectItem(item_name))
-
-        # Use an item (use an item from inventory as well)
-        actions.append(PolyUseItem())
-        for item_name in self.inventory.keys():
-            actions.append(PolyUseItem(item_name=item_name))
-
-        # Place an item from inventory
-        for item_name in self.inventory.keys():
-            actions.append(PolyPlaceItem(item_name))
-            
-        # Collect an item
-        actions.append(PolyCollect())
-
-        # Delete an item from inventory
-        for item_name in self.inventory.keys():
-            actions.append(PolyDeleteItem(item_name))
-
-        # Make a trade for an item with an entity NOTE: May need to be adjacent TODO: decide whether or not to enforce adjacency in valid action?
-        for trader, trades in self.trades.items():
-            for trade in trades:
-                actions.append(PolyTradeItems(trader, trade['inputs']))
-
-        # Craft an item NOTE: will need to be adjacent to crafting bench for 3x3 crafts TODO: decide whether or not to enforce adjaceny in valid action?
-        for i in range(len(self.recipes)):
-            actions.append(PolyCraftItem.create_action(self.recipes[i]))
-
-        return actions
-
-    def get_all_recipes_for(self, item_name) -> list():
-        ''' Return all the recipe that output an item of the given type '''
-        recipes = list()
-        for i, recipe in enumerate(self.recipes):
-            for recipe_output in recipe['outputs']:
-                if recipe_output['Item'] == item_name:
-                    recipes.append(recipe)
-        return recipes
-
-    def get_recipe_for(self, item_name) -> list():
-        ''' Return a single recipe that output an item of the given type '''
-        recipes = list()
-        for i, recipe in enumerate(self.recipes):
-            for recipe_output in recipe['outputs']:
-                if recipe_output['Item'] == item_name:
-                    return recipe
-
-    def get_all_trades_for(self, input_items, output_item):
-        ''' Return a list of (trader_id, trade) tuples for trades
-        in which we obtain the output item using only items from the input items '''
-        results = []
-        for trader_entity_id, trades in self.trades.items():
-            for trade in trades:
-                outputs = trade['outputs']
-                for output in outputs:
-                    if output['Item']==output_item:
-                        has_inputs = True
-                        for input in trade['inputs']:
-                            if input['Item'] not in input_items:
-                                has_inputs=False
-                        if has_inputs:
-                            results.append((trader_entity_id, trade))
-                        break
-        return results
-
-    def get_trade_for(self, item_to_get, items_to_give):
-        ''' Return a singe tuple (trader_id, trade) tuples for trades
-        in which we obtain the output item using only items from the input items '''
-        for trader_entity_id, trades in self.trades.items():
-            for trade in trades:
-                outputs = trade['outputs']
-                for output in outputs:
-                    if output['Item']==item_to_get:
-                        has_inputs = True
-                        for input in trade['inputs']:
-                            if input['Item'] not in items_to_give:
-                                has_inputs=False
-                        if has_inputs:
-                            return (trader_entity_id, trade)
-                        break
-        logger.info(f"No trades found where input={items_to_give} and output={output}")
-        return None
-
-    def summary(self):
-        '''returns a summary of state'''
-        return str(self)
-
-    def serialize_current_state(self, level_filename: str):
-        pickle.dump(self, open(level_filename, 'wb'))
-
-    def load_from_serialized_state(level_filename: str):
-        return pickle.load(open(level_filename, 'rb'))
-
-    def is_terminal(self) -> bool:
-        return self.terminal
-
-    def diff(self, other_state):
-        ''' Return the differences between the states '''
-        diff_dict = {}
-        if self.facing_block!=other_state.facing_block:
-            diff_dict['facing_block'] = {'self':self.facing_block, 'other':other_state.facing_block}
-
-        if self.location!=other_state.location:
-            location_diff_dict = dict()
-            for loc_attr in self.location:
-                if self.location[loc_attr]!=other_state.location[loc_attr]:
-                    location_diff_dict[loc_attr] = {'self':self.location[loc_attr], 'other':other_state.location[loc_attr]}
-            diff_dict['location']=location_diff_dict
-
-        if self.game_map!=other_state.game_map:
-            game_map_diff_dict = dict()
-            for cell in self.game_map:
-                if self.game_map[cell]!=other_state.game_map[cell]:
-                    game_map_diff_dict[cell] = {'self': self.game_map[cell], 'other':other_state.game_map[cell]}
-            diff_dict['game_map']=game_map_diff_dict
-
-        if self.inventory!=other_state.inventory:
-            inventory_diff_dict = dict()
-            for item, item_attr in self.inventory.items():
-                if item not in other_state.inventory:
-                    inventory_diff_dict[item]={'self': item_attr, 'other':None}
-                else:
-                    if item_attr!=other_state.inventory[item]:
-                        inventory_diff_dict[item] = {'self': item_attr, 'other': other_state.inventory[item]}
-            diff_dict['inventory']=inventory_diff_dict
-
-        if self.entities!=other_state.entities:
-            entities_diff_dict = dict()
-            for entity_id, entity_attr in self.entities.items():
-                if entity_id not in other_state.entities:
-                    entities_diff_dict[entity_id]={'self': entity_attr, 'other':None}
-                else:
-                    if entity_attr!=other_state.entities[entity_id]:
-                        entities_diff_dict[entity_id] = {'self':entity_attr, 'other':other_state.entities[entity_id]}
-            diff_dict['entities'] = entities_diff_dict
-
-        if self.current_item!=other_state.current_item:
-            diff_dict['current_item'] = {'self':self.current_item, 'other':other_state.current_item}
-
-        if self.step_cost!=other_state.step_cost:
-            diff_dict['step_cost'] = {'self': self.step_cost, 'other': other_state.step_cost}
-
-        return diff_dict
-
 
 class Polycraft(World):
     DUMMY_DOOR = "-1,-1,-1" # This marks the "door cell" for the main room, for the self.door_to_cells dict.

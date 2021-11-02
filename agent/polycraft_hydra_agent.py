@@ -197,6 +197,14 @@ class PolycraftHydraAgent(HydraAgent):
         env.populate_current_recipes()
         current_state = env.get_current_state()
 
+        # Initialize door to cells dictionary, mapping door cell to a gamemap-like dictionary of the room that door is pointing to
+        env.door_to_rooms[Polycraft.DUMMY_DOOR] = dict(())
+        for cell_id, cell_attr in current_state.game_map.items():
+            if cell_attr["name"]==BlockType.WOODER_DOOR.value:
+                env.door_to_rooms[cell_id]=dict()
+                env.door_to_rooms[cell_id][cell_id]=cell_attr
+            env.door_to_rooms[Polycraft.DUMMY_DOOR][cell_id] = cell_attr
+
         # Try to interact with all other agents
         for entity_id, entity_attr in current_state.entities.items():
             if entity_attr['type']=='EntityTrader':
@@ -244,16 +252,6 @@ class PolycraftHydraAgent(HydraAgent):
                 assert(interact_action.success)
                 env.current_trades[entity_id] = interact_action.response['trades']['trades']
 
-
-
-        # Initialize door to cells dictionary, mapping door cell to a gamemap-like dictionary of the room that door is pointing to
-        env.door_to_rooms[Polycraft.DUMMY_DOOR] = dict(())
-        for cell_id, cell_attr in current_state.game_map.items():
-            if cell_attr["name"]==BlockType.WOODER_DOOR.value:
-                env.door_to_rooms[cell_id]=dict()
-                env.door_to_rooms[cell_id][cell_id]=cell_attr
-            env.door_to_rooms[Polycraft.DUMMY_DOOR][cell_id] = cell_attr
-
         # Add doors to other rooms as exploration tasks
         for door_cell in current_state.get_cells_of_type(BlockType.WOODER_DOOR.value):
             task = PolycraftTask.OPEN_DOOR.create_instance()
@@ -290,7 +288,6 @@ class PolycraftHydraAgent(HydraAgent):
 
         # If no active plan - need to create one (this should happen in the beginning of a level)
         if self.active_plan is None:
-            self._update_current_state(world_state) # TODO: Maybe this is redundant
             self.active_plan = self.planner.make_plan(self.current_state)
         else: # Check if the active plan is working or if we need to replan
             assert(len(self.current_observation.actions)>0)
@@ -382,7 +379,7 @@ class PolycraftHydraAgent(HydraAgent):
         next_state, step_cost =  env.act(action)  # Note this returns step cost for the action
         if action.success ==False:
             logger.info(f"Action{action} failed: {action.response}")
-        self._update_current_state(next_state)
+        self.current_state = next_state
         self.current_observation.states.append(self.current_state)
         self.current_observation.rewards.append(step_cost)
         return next_state, step_cost
@@ -394,8 +391,6 @@ class PolycraftHydraAgent(HydraAgent):
             for door_cell_id, room_game_map in self.current_state.door_to_cells.items():
                 if cell_id in room_game_map:
                     room_game_map[cell_id] = cell_attr
-
-
         self.current_state = new_state
 
     def do_batch(self, batch_size:int, state:PolycraftState, env:Polycraft):
@@ -424,96 +419,6 @@ class PolycraftHydraAgent(HydraAgent):
     def repair_meta_model(self, observation):
         ''' Call the repair object to repair the current meta model '''
         raise NotImplementedError()
-
-
-class PolycraftRandomAgent(PolycraftHydraAgent):
-    ''' A Hydra agent for Polycraft of all the Hydra agents '''
-    def __init__(self):
-        super().__init__()
-
-    def choose_action(self, world_state: PolycraftState):
-        ''' Choose which action to perform in the given state '''
-
-        logger.info("World state summary is: {}".format(str(world_state)))
-
-        # Choose random action types
-        chosen_action = self._choose_random(world_state)
-
-        return chosen_action
-
-    def _choose_random(self, world_state: PolycraftState):
-        ''' Choose a random action from the list of possible actions '''
-        world_state.get_available_actions()
-        action_class = random.choice([PolyTP, PolyEntityTP, PolyTurn, PolyTilt, PolyTilt, PolyBreak, PolyInteract,
-                                      PolySelectItem, PolyUseItem, PolyPlaceItem, PolyCollect, PolyDeleteItem, PolyTradeItems,
-                                      PolyCraftItem])
-
-        if action_class == PolyTP:
-            coordinate = random.choice(list(world_state.game_map.keys())).split(",")
-            return PolyTP(coordinate)
-        elif action_class == PolyEntityTP:
-            npcs = [npc for npc in world_state.entities.keys()]
-            if len(npcs) > 0:
-                npc = random.choice(npcs)
-                return PolyEntityTP(npc)
-            else:
-                return PolyNoAction()
-        elif action_class == PolyTurn:
-            dir = random.choice(range(0, 360, 15))
-            return PolyTurn(dir)
-        elif action_class == PolyTilt:
-            angle = random.choice(list(TiltDir))    # Choose from DOWN, FORWARD, and UP
-            return PolyTilt(angle)
-        elif action_class == PolyBreak:
-            return PolyBreak()
-        elif action_class == PolySelectItem:
-            items = [item['item'] for item in world_state.inventory.values()]
-            if len(items) > 0:
-                item_name = random.choice(items)
-                return PolySelectItem(item_name)
-            else:
-                return PolyNoAction()   # No items to select
-        elif action_class == PolyUseItem:
-            return PolyUseItem()
-        elif action_class == PolyPlaceItem:
-            items = [item['item'] for item in world_state.inventory.values()]
-            if len(items) > 0:
-                item_name = random.choice(items)
-                return PolyPlaceItem(item_name)
-            else:
-                return PolyNoAction()   # No items to place
-        elif action_class == PolyDeleteItem:
-            items = [item['item'] for item in world_state.inventory.values()]
-            if len(items) > 0:
-                item_name = random.choice(items)
-                return PolyDeleteItem(item_name)
-            else:
-                return PolyNoAction()   # No items to place
-        elif action_class == PolyCollect:
-            return PolyCollect()
-        elif action_class == PolyInteract:
-            npcs = [npc for npc in world_state.entities.keys()]
-            if len(npcs) > 0:
-                npc = random.choice(npcs)
-                return PolyInteract(npc)
-            else:
-                return PolyNoAction()   # Do nothing.
-        elif action_class == PolyTradeItems:
-            # Choose trade from list of possible trades
-            if len(world_state.trades) > 0:
-                random_trade = random.choice(world_state.trades)
-            else:
-                return PolyNoAction()
-            return PolyTradeItems(random_trade['entity_id'], random_trade['input'])
-        elif action_class == PolyCraftItem:
-            if len(world_state.trades) > 0:
-                random_recipe = random.choice(world_state.recipes)
-            else:
-                return PolyNoAction()
-            return PolyCraftItem.create_action(random_recipe)
-        else:
-            raise ValueError("Bad action class {}".format(action_class))
-
 
 class PolycraftDoNothingAgent(PolycraftHydraAgent):
     ''' An agent that does nothing '''

@@ -16,7 +16,7 @@ class PolyMoveThroughDoor(PolycraftAction):
     def __str__(self):
         return f"<PolyMoveThroughDoor {self.door_cell} success={self.success}>"
 
-    def do(self, poly_client: poly.PolycraftInterface) -> dict:
+    def do(self, state:PolycraftState, poly_client: poly.PolycraftInterface) -> dict:
         for i in range(PolyMoveThroughDoor.MAX_STEPS):
             response = poly_client.MOVE(MoveDir.FORWARD)
             if self.is_success(response)==False:
@@ -35,9 +35,8 @@ class PolyBreakAndCollect(PolycraftAction):
     def __str__(self):
         return "<PolyBreakAndCollect {} success={}>".format(self.cell, self.success)
 
-    def do(self, poly_client: poly.PolycraftInterface) -> dict:
+    def do(self, state:PolycraftState, poly_client: poly.PolycraftInterface) -> dict:
         # Store the state before breaking, to identify the new item
-        current_state = PolycraftState.sense(poly_client)
 
         # Break the block!
         result = poly_client.BREAK_BLOCK()
@@ -47,12 +46,11 @@ class PolyBreakAndCollect(PolycraftAction):
             return result
 
         # Find and collect the item
-        previous_state = current_state
-        current_state = PolycraftState.sense(poly_client)
+        sensed_state = PolycraftState.sense(poly_client)
         # If item in inventory - success!
-        self._wait_to_collect_adjacent_items(current_state, poly_client)
+        self._wait_to_collect_adjacent_items(sensed_state, poly_client)
         current_state = PolycraftState.sense(poly_client)
-        state_diff = current_state.diff(previous_state)
+        state_diff = current_state.diff(state)
         if has_new_item(state_diff):
             self.success = True
             return result
@@ -148,17 +146,18 @@ class MacroAction(PolycraftAction):
         if self.active_action is not None:
             self.active_action.set_current_state(state)
 
-    def do(self, poly_interface: poly.PolycraftInterface) -> dict:
+    def do(self, state:PolycraftState, poly_client: poly.PolycraftInterface) -> dict:
         ''' Key: macro action accept the environment, not the polycraft_interface'''
         logger.info(f"Doing macro action {self} until done")
         result = None
         i = 0
         while i<self.max_steps:
-            self.set_current_state(PolycraftState.sense(poly_interface))
-            result = self._do_action(poly_interface)
+            self.set_current_state(state)
+            result = self._do_action(stte, poly_interface)
             if self.is_done():
                 return result
             i = i+1
+            self.set_current_state(self._current_state)
         return result
 
     def _do_action(self, poly_interface: poly.PolycraftInterface) -> dict:
@@ -194,8 +193,9 @@ class MacroAction(PolycraftAction):
         ''' Perform the macro action until either success if false or it is done '''
         logger.info(f"Doing macro action {self} until done")
         while self.is_done()==False:
-            self.set_current_state(PolycraftState.sense(poly_interface))
+            self.set_current_state(self._current_state)
             result = self.do(poly_interface)
+            self._current_state.update(poly_interface)
         return result
 
 class TeleportAndFaceCell(MacroAction):

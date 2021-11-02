@@ -210,18 +210,18 @@ class CollectAndMineItem(PolycraftAction):
         return f"<CollectAndMineItem {self.desired_item_type} {self.desired_quantity} " \
                f"{self.relevant_block_types} {self.max_tries} success={self.success}>"
 
-    def do(self, poly_client: poly.PolycraftInterface) -> dict:
+    def do(self, state:PolycraftState, poly_client: poly.PolycraftInterface) -> dict:
         ''' Try to collect '''
-        current_state = PolycraftState.sense(poly_client)
-        initial_quantity = current_state.count_items_of_type(self.desired_item_type)
+        sensed_state = PolycraftState.sense(poly_client)
+        initial_quantity = sensed_state.count_items_of_type(self.desired_item_type)
         for i in range(self.max_tries):
             # Choose action
-            action = self._choose_action(current_state)
+            action = self._choose_action(sensed_state)
             if action is not None:
                 result = action.do(poly_client)
 
-                current_state = PolycraftState.sense(poly_client)
-                new_quantity = current_state.count_items_of_type(self.desired_item_type)
+                sensed_state = PolycraftState.sense(poly_client)
+                new_quantity = sensed_state.count_items_of_type(self.desired_item_type)
                 if new_quantity-initial_quantity>=self.desired_quantity:
                     self.success=True
                     return result
