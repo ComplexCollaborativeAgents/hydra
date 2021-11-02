@@ -269,7 +269,7 @@ def test_mine_diamonds(launch_polycraft: Polycraft, execution_number):
     agent, state = _setup_env(env, TEST_LEVEL)
 
     # Select iron pickaxe
-    action = worlds.polycraft_actions.PolySelectItem(ItemType.IRON_PICKAXE.value)
+    action = PolySelectItem(ItemType.IRON_PICKAXE.value)
     after_state, step_cost = agent.do(action, env)
     assert(action.success)
     assert(after_state.get_selected_item()==ItemType.IRON_PICKAXE.value)
@@ -375,7 +375,7 @@ def test_trade_two_titanium_blocks(launch_polycraft: Polycraft):
     agent, state = _setup_env(env, TEST_LEVEL)
 
     # Select iron pickaxe
-    action = worlds.polycraft_actions.PolySelectItem(ItemType.IRON_PICKAXE.value)
+    action = PolySelectItem(ItemType.IRON_PICKAXE.value)
     after_state, step_cost = agent.do(action, env)
     assert(action.success)
     assert(after_state.get_selected_item()==ItemType.IRON_PICKAXE.value)
@@ -506,12 +506,12 @@ def test_open_safe(launch_polycraft: Polycraft):
     action = TeleportToAndUse(cell, ItemType.KEY.value)
     state, step_cost = agent.do(action, env)
     # assert(action.success)
-    assert(state.game_map[cell]["open"].upper()=="TRUE")
 
     # Collect what's in the safe
     action = TeleportToAndCollect(cell)
     state, step_cost = agent.do(action, env)
     assert(action.success)
+    assert(state.count_items_of_type(ItemType.DIAMOND.value)>10)
 
 
 
@@ -554,33 +554,35 @@ def test_move_between_rooms(launch_polycraft: Polycraft):
     state, step_cost = agent.do(action, env)
     assert(action.success)
 
-def test_helper_functions():
-    ''' Test some of the helper functions '''
-    test_path = pathlib.Path(settings.ROOT_PATH) / "tests"
-    state = None
-    with open(test_path / "polycraft_obs_for_test.p", "rb") as in_file:
-        obs = pickle.load(in_file)
-    assert(obs is not None)
-    state = obs.states[1]
 
-    item_to_recipe = get_recipe_forest(state)
-    assert (ItemType.WOODEN_POGO_STICK.value in item_to_recipe)
-    print(" ")
-    print_recipe_forest(item_to_recipe)
-
-    item_to_trades = get_item_to_trades(state)
-    print(" ")
-    print_item_to_trades(item_to_trades)
-
-    print(" ")
-    type_to_cells = state.get_type_to_cells()
-    for type, cells in type_to_cells.items():
-        if type not in [BlockType.AIR.value, BlockType.BEDROCK.value]:
-            print(f'{type} in cells {cells}')
-
-    log_cells = state.get_cells_of_type(ItemType.LOG.value)
-    assert(len(log_cells)>0)
-    for cell in log_cells:
-        cell_type = state.game_map[cell]["name"]
-        assert(cell_type==ItemType.LOG.value)
-        print(f'cell {cell} is of type {cell_type}')
+# TODO: Obs file need to be re-created
+# def test_helper_functions():
+#     ''' Test some of the helper functions '''
+#     test_path = pathlib.Path(settings.ROOT_PATH) / "tests"
+#     state = None
+#     with open(test_path / "polycraft_obs_for_test.p", "rb") as in_file:
+#         obs = pickle.load(in_file)
+#     assert(obs is not None)
+#     state = obs.states[1]
+#
+#     item_to_recipe = get_recipe_forest(state)
+#     assert (ItemType.WOODEN_POGO_STICK.value in item_to_recipe)
+#     print(" ")
+#     print_recipe_forest(item_to_recipe)
+#
+#     item_to_trades = get_item_to_trades(state)
+#     print(" ")
+#     print_item_to_trades(item_to_trades)
+#
+#     print(" ")
+#     type_to_cells = state.get_type_to_cells()
+#     for type, cells in type_to_cells.items():
+#         if type not in [BlockType.AIR.value, BlockType.BEDROCK.value]:
+#             print(f'{type} in cells {cells}')
+#
+#     log_cells = state.get_cells_of_type(ItemType.LOG.value)
+#     assert(len(log_cells)>0)
+#     for cell in log_cells:
+#         cell_type = state.game_map[cell]["name"]
+#         assert(cell_type==ItemType.LOG.value)
+#         print(f'cell {cell} is of type {cell_type}')

@@ -251,7 +251,7 @@ class PolycraftHydraAgent(HydraAgent):
             self.exploration_tasks.append(task)
 
         # Initialize the current observation object
-        current_state = env.get_current_state()
+        self.current_state = env.get_current_state()
         self.current_observation = PolycraftObservation() # Start a new observation object for this level
         self.current_observation.states.append(current_state)
         self.observations_list.append(self.current_observation)

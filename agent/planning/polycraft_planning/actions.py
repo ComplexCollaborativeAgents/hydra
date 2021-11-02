@@ -39,7 +39,7 @@ class PolyBreakAndCollect(PolycraftAction):
 
     def do(self, state:PolycraftState, env: Polycraft) -> dict:
         # Store the state before breaking, to identify the new item
-
+        state_before_breaking = state
         # Break the block!
         poly_client = env.poly_client
         result = poly_client.BREAK_BLOCK()
@@ -48,19 +48,22 @@ class PolyBreakAndCollect(PolycraftAction):
             logger.info(f"Action {str(self)} failed during BREAK_BLOCK, Message: {result}")
             return result
 
-        # Find and collect the item
-        state = env.get_current_state()
-
         # If item in inventory - success!
-        self._wait_to_collect_adjacent_items(state, poly_client)
+        current_state = env.get_current_state()
+        if has_new_item(current_state.diff(state_before_breaking)):
+            self.success = True
+            return result
+
+        # Else: find and collect the item
+        self._wait_to_collect_adjacent_items(current_state, poly_client)
         current_state = env.get_current_state()
 
-        state_diff = current_state.diff(state)
-        if has_new_item(state_diff):
+        if has_new_item(current_state.diff(state_before_breaking)):
             self.success = True
             return result
 
         # Else, new item appears as an EntityItem and needs to be collected
+        state_diff = current_state.diff(state_before_breaking)
         assert("entities" in state_diff) # If the new item is not in the inventory, it should be a new EntityItem
         new_entity_items = get_new_entity_items(state_diff)
         assert(len(new_entity_items)>0)
@@ -95,14 +98,12 @@ class PolyBreakAndCollect(PolycraftAction):
             return result
 
         # Assert new item collected
-        previous_state = current_state
         current_state = env.get_current_state()
         self._wait_to_collect_adjacent_items(current_state, poly_client)
         current_state = env.get_current_state()
-        state_diff = current_state.diff(previous_state)
 
         # If item was collected - hurray!
-        if has_new_item(state_diff):
+        if has_new_item(current_state.diff(state_before_breaking)):
             self.success = True
         else:
             self.success = False
