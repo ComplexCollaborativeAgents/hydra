@@ -61,8 +61,7 @@ def run():
             else:
                 # Clean up old recipes and trades
                 world.poly_client._logger.info("Finished prior level, preparing for new one")
-                world.reset_current_trades()
-                world.reset_current_recipes()
+                world.init_state_information()
                 advancing_level = True
 
 

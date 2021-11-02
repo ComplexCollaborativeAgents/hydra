@@ -1,10 +1,11 @@
 import pytest
-
+from tests.test_polycraft import launch_polycraft
 from agent.planning.polycraft_planning.fixed_planner import CollectAndMineItem
 from agent.planning.polycraft_planning.actions import *
-import worlds.polycraft_world as poly
-from agent.polycraft_hydra_agent import PolycraftObservation, PolycraftManualAgent
-from tests.test_polycraft import launch_polycraft
+from agent.polycraft_hydra_agent import PolycraftManualAgent
+from worlds.polycraft_actions import *
+from worlds.polycraft_world import *
+
 logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("TestPolycraftWorld")
 
@@ -20,14 +21,14 @@ def _setup_env(env, test_level):
     state = env.get_current_state()
     return agent, state
 
-def _move_to_cell_and_do(cell: str, action: PolycraftAction, env:poly.Polycraft):
+def _move_to_cell_and_do(cell: str, action: PolycraftAction, env: Polycraft):
     ''' Move to a cell and do the chosen command '''
     tp_action = TeleportAndFaceCell(cell)
-    tp_action.set_current_state(env.get_current_state())
-    result = tp_action.do(env.poly_client)
+    state = env.get_current_state()
+    result = tp_action.do(state, env)
     assert(action.is_success(result))
 
-    return action.do(env.poly_client)
+    return action.do(state, env)
 
 
 @pytest.mark.parametrize('execution_number', range(1))
@@ -36,7 +37,7 @@ def test_agent_break_and_collect(launch_polycraft, execution_number):
     env = launch_polycraft
     agent, state = _setup_env(env, TEST_LEVEL)
 
-    log_type = poly.ItemType.LOG.value
+    log_type = ItemType.LOG.value
     log_cells = state.get_cells_of_type(log_type, only_accessible=True)
     assert (len(log_cells) > 0)
     cell = log_cells[execution_number % len(log_cells)]  # Change the log cell we choose
@@ -54,12 +55,12 @@ def test_agent_break_and_collect(launch_polycraft, execution_number):
         assert(dist_to_pogoist<=2)
 
 @pytest.mark.parametrize('execution_number', range(1))
-def test_mining_two_logs(launch_polycraft: poly.Polycraft, execution_number):
+def test_mining_two_logs(launch_polycraft: Polycraft, execution_number):
     ''' Test mining two oak blocks and collecting the resulting logs '''
     env = launch_polycraft
     agent, state = _setup_env(env, TEST_LEVEL)
 
-    log_type = poly.ItemType.LOG.value
+    log_type = ItemType.LOG.value
     log_cells = state.get_cells_of_type(log_type, only_accessible=True)
     assert(len(log_cells)>1)
     logs_before_break = state.count_items_of_type(log_type)
@@ -100,35 +101,35 @@ def test_select_iron_pickaxe(launch_polycraft, execution_number):
     assert(selected_item is None or len(selected_item)==0) # No item selected initially
 
     # Assert we have an iron pickaxe
-    iron_pickaxe_entries = state.get_inventory_entries_of_type(poly.ItemType.IRON_PICKAXE.value)
+    iron_pickaxe_entries = state.get_inventory_entries_of_type(ItemType.IRON_PICKAXE.value)
     assert(len(iron_pickaxe_entries)>0) # We have an iron pickaxe in our inventory
 
     # Select the iron pickaxe
-    action = poly.PolySelectItem(poly.ItemType.IRON_PICKAXE.value)
+    action = PolySelectItem(ItemType.IRON_PICKAXE.value)
     after_state, step_cost = agent.do(action, env)
 
-    assert(after_state.get_selected_item()==poly.ItemType.IRON_PICKAXE.value)
+    assert(after_state.get_selected_item()==ItemType.IRON_PICKAXE.value)
 
 
 @pytest.mark.parametrize('execution_number', range(1))
-def test_agent_mine_with_pickaxe(launch_polycraft: poly.Polycraft, execution_number:int):
+def test_agent_mine_with_pickaxe(launch_polycraft: Polycraft, execution_number:int):
     ''' Select a pickaxe and use it'''
     env = launch_polycraft
     agent, state = _setup_env(env, TEST_LEVEL)
 
     # Select pickaxe
-    iron_pickaxe_entries = state.get_inventory_entries_of_type(poly.ItemType.IRON_PICKAXE.value)
+    iron_pickaxe_entries = state.get_inventory_entries_of_type(ItemType.IRON_PICKAXE.value)
     assert(len(iron_pickaxe_entries) > 0)
-    assert(state.get_selected_item()!=poly.ItemType.IRON_PICKAXE.value)
+    assert(state.get_selected_item()!=ItemType.IRON_PICKAXE.value)
 
-    action = poly.PolySelectItem(poly.ItemType.IRON_PICKAXE.value)
+    action = PolySelectItem(ItemType.IRON_PICKAXE.value)
     after_state, step_cost = agent.do(action, env)
     assert(action.success)
-    assert(after_state.get_selected_item()==poly.ItemType.IRON_PICKAXE.value)
+    assert(after_state.get_selected_item()==ItemType.IRON_PICKAXE.value)
     state = after_state
 
     # Mine a log (with the pickaxe)
-    log_cells = state.get_cells_of_type(poly.ItemType.LOG.value)
+    log_cells = state.get_cells_of_type(ItemType.LOG.value)
     assert (len(log_cells) > 0)
     accessible_log_cells = []
     for cell in log_cells:
@@ -151,7 +152,7 @@ def test_agent_mine_with_pickaxe(launch_polycraft: poly.Polycraft, execution_num
 
 
 @pytest.mark.parametrize('execution_number', range(1))
-def test_craft_items(launch_polycraft: poly.Polycraft, execution_number):
+def test_craft_items(launch_polycraft: Polycraft, execution_number):
     ''' Test mining logs, crafting planks from the logs, and crafting sticks from planks '''
     env = launch_polycraft
     agent, state = _setup_env(env, TEST_LEVEL)
@@ -178,7 +179,7 @@ def test_craft_items(launch_polycraft: poly.Polycraft, execution_number):
     state = after_state
 
     # Find a place for placing the tree tap
-    log_cells = state.get_cells_of_type(poly.BlockType.LOG.value, only_accessible=True)
+    log_cells = state.get_cells_of_type(BlockType.LOG.value, only_accessible=True)
     assert (len(log_cells) > 0)
     cells_to_place_tree_tap = []
     for cell in log_cells:
@@ -211,44 +212,44 @@ def test_craft_items(launch_polycraft: poly.Polycraft, execution_number):
 
 def _craft_tree_tap(agent, env, state):
     ''' Craft a tree tap'''
-    tree_tap_recipes = state.get_all_recipes_for(poly.ItemType.TREE_TAP.value)
+    tree_tap_recipes = state.get_all_recipes_for(ItemType.TREE_TAP.value)
     assert (len(tree_tap_recipes) == 1)
     recipe = tree_tap_recipes[0]
     missing_ingridients = compute_missing_ingridients(recipe, state)
     assert (len(missing_ingridients) == 0)
     action = PolyCraftItem.create_action(recipe)
     after_state, step_cost = agent.do(action, env)
-    assert (after_state.has_item(poly.ItemType.TREE_TAP.value))
+    assert (after_state.has_item(ItemType.TREE_TAP.value))
     return after_state
 
 
 def _craft_stick(agent, env, state):
     ''' Crafts a stick '''
-    stick_recipes = state.get_all_recipes_for(poly.ItemType.STICK.value)
+    stick_recipes = state.get_all_recipes_for(ItemType.STICK.value)
     assert (len(stick_recipes) == 1)
     recipe = stick_recipes[0]
     action = PolyCraftItem.create_action(recipe)
     after_state, step_cost = agent.do(action, env)
-    assert (after_state.has_item(poly.ItemType.STICK.value))
+    assert (after_state.has_item(ItemType.STICK.value))
     state = after_state
     return state
 
 
 def _craft_planks(agent, env, state):
     ''' Crafts planks'''
-    planks_recipes = state.get_all_recipes_for(poly.ItemType.PLANKS.value)
+    planks_recipes = state.get_all_recipes_for(ItemType.PLANKS.value)
     assert (len(planks_recipes) == 1)
     planks_recipe = planks_recipes[0]
     action = PolyCraftItem.create_action(planks_recipe)
     after_state, step_cost = agent.do(action, env)
-    assert (after_state.has_item(poly.ItemType.PLANKS.value))
+    assert (after_state.has_item(ItemType.PLANKS.value))
     state = after_state
     return planks_recipe, state
 
 
 def _mine_logs(agent, env, state):
     ''' Go to a log block cell, mine it, and collect it'''
-    log_type = poly.ItemType.LOG.value
+    log_type = ItemType.LOG.value
     log_cells = state.get_cells_of_type(log_type)
     assert (len(log_cells) > 0)
     cell = log_cells[0]
@@ -262,22 +263,22 @@ def _mine_logs(agent, env, state):
     return state
 
 @pytest.mark.parametrize('execution_number', range(5))
-def test_mine_diamonds(launch_polycraft: poly.Polycraft, execution_number):
+def test_mine_diamonds(launch_polycraft: Polycraft, execution_number):
     ''' Test mining logs, crafting planks from the logs, and crafting sticks from planks '''
     env = launch_polycraft
     agent, state = _setup_env(env, TEST_LEVEL)
 
     # Select iron pickaxe
-    action = poly.PolySelectItem(poly.ItemType.IRON_PICKAXE.value)
+    action = worlds.polycraft_actions.PolySelectItem(ItemType.IRON_PICKAXE.value)
     after_state, step_cost = agent.do(action, env)
     assert(action.success)
-    assert(after_state.get_selected_item()==poly.ItemType.IRON_PICKAXE.value)
+    assert(after_state.get_selected_item()==ItemType.IRON_PICKAXE.value)
     state = after_state
 
     # Mine
-    diamond_cells = state.get_cells_of_type(poly.BlockType.DIAMOND_ORE.value, only_accessible=True)
+    diamond_cells = state.get_cells_of_type(BlockType.DIAMOND_ORE.value, only_accessible=True)
     mined_diamonds = 0
-    current_diamonds_in_inventory = len(state.get_inventory_entries_of_type(poly.ItemType.DIAMOND.value))
+    current_diamonds_in_inventory = len(state.get_inventory_entries_of_type(ItemType.DIAMOND.value))
     assert(current_diamonds_in_inventory==0)
     while current_diamonds_in_inventory<9 and len(diamond_cells)>0:
         # Mine the diamond
@@ -289,7 +290,7 @@ def test_mine_diamonds(launch_polycraft: poly.Polycraft, execution_number):
         if action.success==True:
             assert(has_new_item(after_state.diff(state)))
             old_diamonds_in_inventory = current_diamonds_in_inventory
-            current_diamonds_in_inventory = after_state.count_items_of_type(poly.ItemType.DIAMOND.value)
+            current_diamonds_in_inventory = after_state.count_items_of_type(ItemType.DIAMOND.value)
             assert (current_diamonds_in_inventory >= old_diamonds_in_inventory)
             logger.info(f'Diamond collected from {cell}!')
         else:
@@ -300,7 +301,7 @@ def test_mine_diamonds(launch_polycraft: poly.Polycraft, execution_number):
 
         # Find next diamond to mine
         state = after_state
-        diamond_cells = state.get_cells_of_type(poly.BlockType.DIAMOND_ORE.value, only_accessible=True)
+        diamond_cells = state.get_cells_of_type(BlockType.DIAMOND_ORE.value, only_accessible=True)
 
     logger.info(f'A total of {current_diamonds_in_inventory} were mined!')
     assert(current_diamonds_in_inventory>=9)
@@ -310,20 +311,20 @@ def test_mine_diamonds(launch_polycraft: poly.Polycraft, execution_number):
     state = after_state
 
     # Craft the diamond block
-    diamond_block_recipes = state.get_all_recipes_for(poly.ItemType.DIAMOND_BLOCK.value)
+    diamond_block_recipes = state.get_all_recipes_for(ItemType.DIAMOND_BLOCK.value)
     assert (len(diamond_block_recipes) == 1)
     recipe = diamond_block_recipes[0]
     action = PolyCraftItem.create_action(recipe)
     after_state, step_cost = agent.do(action, env)
-    assert (after_state.has_item(poly.ItemType.DIAMOND_BLOCK.value))
+    assert (after_state.has_item(ItemType.DIAMOND_BLOCK.value))
 
 
 def _go_to_crafting_table(agent, env, state):
     ''' Teleport to an accessible crafting table'''
-    crafting_table_cells = state.get_cells_of_type(poly.BlockType.CRAFTING_TABLE.value, only_accessible=True)
+    crafting_table_cells = state.get_cells_of_type(BlockType.CRAFTING_TABLE.value, only_accessible=True)
     assert (len(crafting_table_cells) == 1)
     target_cell = crafting_table_cells[0]
-    action = poly.PolyTP(target_cell, dist=1)
+    action = PolyTP(target_cell, dist=1)
     after_state, step_cost = agent.do(action, env)
     assert (action.success)
     distance_to_table = compute_cell_distance(cell_to_coordinates(target_cell), after_state.location['pos'])
@@ -331,16 +332,16 @@ def _go_to_crafting_table(agent, env, state):
     return after_state, step_cost
 
 
-def test_trade_logs(launch_polycraft: poly.Polycraft):
+def test_trade_logs(launch_polycraft: Polycraft):
     ''' Test getting logs and trading them for titanium '''
     env = launch_polycraft
     agent, state = _setup_env(env, TEST_LEVEL)
 
     # Select iron pickaxe
-    action = poly.PolySelectItem(poly.ItemType.IRON_PICKAXE.value)
+    action = PolySelectItem(ItemType.IRON_PICKAXE.value)
     after_state, step_cost = agent.do(action, env)
     assert(action.success)
-    assert(after_state.get_selected_item()==poly.ItemType.IRON_PICKAXE.value)
+    assert(after_state.get_selected_item()==ItemType.IRON_PICKAXE.value)
     state = after_state
 
     # Collect block of platinum
@@ -368,16 +369,16 @@ def test_trade_logs(launch_polycraft: poly.Polycraft):
     return # All done!
 
 
-def test_trade_two_titanium_blocks(launch_polycraft: poly.Polycraft):
+def test_trade_two_titanium_blocks(launch_polycraft: Polycraft):
     ''' Mine 2 platinum blocks and then trade them for two titanium blocks '''
     env = launch_polycraft
     agent, state = _setup_env(env, TEST_LEVEL)
 
     # Select iron pickaxe
-    action = poly.PolySelectItem(poly.ItemType.IRON_PICKAXE.value)
+    action = worlds.polycraft_actions.PolySelectItem(ItemType.IRON_PICKAXE.value)
     after_state, step_cost = agent.do(action, env)
     assert(action.success)
-    assert(after_state.get_selected_item()==poly.ItemType.IRON_PICKAXE.value)
+    assert(after_state.get_selected_item()==ItemType.IRON_PICKAXE.value)
     state = after_state
 
     # Collect block of platinum
@@ -411,7 +412,7 @@ def test_trade_two_titanium_blocks(launch_polycraft: poly.Polycraft):
 
 
 @pytest.mark.parametrize('execution_number', range(3))
-def test_open_chest(launch_polycraft: poly.Polycraft, execution_number):
+def test_open_chest(launch_polycraft: Polycraft, execution_number):
     env = launch_polycraft
     agent, state = _setup_env(env, TEST_LEVEL)
 
@@ -450,7 +451,7 @@ def test_open_chest(launch_polycraft: poly.Polycraft, execution_number):
 
 
 @pytest.mark.parametrize('execution_number', range(3))
-def test_open_door(launch_polycraft: poly.Polycraft, execution_number):
+def test_open_door(launch_polycraft: Polycraft, execution_number):
     ''' Tests the action of open a door and exploring it '''
     env = launch_polycraft
     agent, state = _setup_env(env, TEST_LEVEL)
@@ -473,7 +474,7 @@ def test_open_door(launch_polycraft: poly.Polycraft, execution_number):
     state, step_cost = agent.do(PolyMoveThroughDoor(door),env)
     assert(agent.current_observation.actions[-1].success == True)
 
-def test_open_safe(launch_polycraft: poly.Polycraft):
+def test_open_safe(launch_polycraft: Polycraft):
     ''' test getting the key from the plastic chest and opening the bigger chest '''
     env = launch_polycraft
     agent, state = _setup_env(env, TEST_LEVEL)
@@ -514,7 +515,7 @@ def test_open_safe(launch_polycraft: poly.Polycraft):
 
 
 
-def test_move_between_rooms(launch_polycraft: poly.Polycraft):
+def test_move_between_rooms(launch_polycraft: Polycraft):
     ''' test getting the key from the plastic chest and opening the bigger chest '''
     env = launch_polycraft
     agent, state = _setup_env(env, TEST_LEVEL)
@@ -563,7 +564,7 @@ def test_helper_functions():
     state = obs.states[1]
 
     item_to_recipe = get_recipe_forest(state)
-    assert (poly.ItemType.WOODEN_POGO_STICK.value in item_to_recipe)
+    assert (ItemType.WOODEN_POGO_STICK.value in item_to_recipe)
     print(" ")
     print_recipe_forest(item_to_recipe)
 
@@ -574,12 +575,12 @@ def test_helper_functions():
     print(" ")
     type_to_cells = state.get_type_to_cells()
     for type, cells in type_to_cells.items():
-        if type not in [poly.BlockType.AIR.value, poly.BlockType.BEDROCK.value]:
+        if type not in [BlockType.AIR.value, BlockType.BEDROCK.value]:
             print(f'{type} in cells {cells}')
 
-    log_cells = state.get_cells_of_type(poly.ItemType.LOG.value)
+    log_cells = state.get_cells_of_type(ItemType.LOG.value)
     assert(len(log_cells)>0)
     for cell in log_cells:
         cell_type = state.game_map[cell]["name"]
-        assert(cell_type==poly.ItemType.LOG.value)
+        assert(cell_type==ItemType.LOG.value)
         print(f'cell {cell} is of type {cell_type}')

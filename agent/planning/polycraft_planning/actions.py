@@ -1,6 +1,8 @@
 import random
 
 from utils.polycraft_utils import *
+from worlds.polycraft_actions import PolyNoAction, PolyTP, PolyTurn, PolySelectItem, PolyUseItem, PolyCollect, \
+    PolyTradeItems, PolyCraftItem
 from worlds.polycraft_world import *
 import worlds.polycraft_interface.client.polycraft_interface as poly
 
@@ -16,9 +18,9 @@ class PolyMoveThroughDoor(PolycraftAction):
     def __str__(self):
         return f"<PolyMoveThroughDoor {self.door_cell} success={self.success}>"
 
-    def do(self, state:PolycraftState, poly_client: poly.PolycraftInterface) -> dict:
+    def do(self, state:PolycraftState, env: Polycraft) -> dict:
         for i in range(PolyMoveThroughDoor.MAX_STEPS):
-            response = poly_client.MOVE(MoveDir.FORWARD)
+            response = env.poly_client.MOVE(MoveDir.FORWARD)
             if self.is_success(response)==False:
                 self.success=False
                 return response
@@ -35,10 +37,11 @@ class PolyBreakAndCollect(PolycraftAction):
     def __str__(self):
         return "<PolyBreakAndCollect {} success={}>".format(self.cell, self.success)
 
-    def do(self, state:PolycraftState, poly_client: poly.PolycraftInterface) -> dict:
+    def do(self, state:PolycraftState, env: Polycraft) -> dict:
         # Store the state before breaking, to identify the new item
 
         # Break the block!
+        poly_client = env.poly_client
         result = poly_client.BREAK_BLOCK()
         if self.is_success(result) == False:
             self.success = False
@@ -46,10 +49,12 @@ class PolyBreakAndCollect(PolycraftAction):
             return result
 
         # Find and collect the item
-        sensed_state = PolycraftState.sense(poly_client)
+        state = env.get_current_state()
+
         # If item in inventory - success!
-        self._wait_to_collect_adjacent_items(sensed_state, poly_client)
-        current_state = PolycraftState.sense(poly_client)
+        self._wait_to_collect_adjacent_items(state, poly_client)
+        current_state = env.get_current_state()
+
         state_diff = current_state.diff(state)
         if has_new_item(state_diff):
             self.success = True
@@ -91,9 +96,9 @@ class PolyBreakAndCollect(PolycraftAction):
 
         # Assert new item collected
         previous_state = current_state
-        current_state = PolycraftState.sense(poly_client)
+        current_state = env.get_current_state()
         self._wait_to_collect_adjacent_items(current_state, poly_client)
-        current_state = PolycraftState.sense(poly_client)
+        current_state = env.get_current_state()
         state_diff = current_state.diff(previous_state)
 
         # If item was collected - hurray!
@@ -132,49 +137,41 @@ class MacroAction(PolycraftAction):
         super().__init__()
         self.active_action = None # If we're in the middle of doing some action
         self._is_done = False
-        self._current_state = None
         self.max_steps = max_steps # Maximal number of steps (actions) required to do this macro action is expected
 
-    def _get_next_action(self)->PolycraftAction:
+    def _get_next_action(self, state:PolycraftState, env: Polycraft)->PolycraftAction:
         raise NotImplementedError("Subclasses of MacroAction should implement this and set self.next_action in it")
 
     def is_done(self):
         return self._is_done
 
-    def set_current_state(self, state: PolycraftState):
-        self._current_state = state
-        if self.active_action is not None:
-            self.active_action.set_current_state(state)
-
-    def do(self, state:PolycraftState, poly_client: poly.PolycraftInterface) -> dict:
+    def do(self, state:PolycraftState, env: Polycraft) -> dict:
         ''' Key: macro action accept the environment, not the polycraft_interface'''
         logger.info(f"Doing macro action {self} until done")
         result = None
         i = 0
         while i<self.max_steps:
-            self.set_current_state(state)
-            result = self._do_action(stte, poly_interface)
+            result = self._do_action(state, env)
             if self.is_done():
                 return result
             i = i+1
-            self.set_current_state(self._current_state)
+            state = env.get_current_state() # TODO: Wasteful: requires too many SENSE_ALL calls
         return result
 
-    def _do_action(self, poly_interface: poly.PolycraftInterface) -> dict:
+    def _do_action(self, state:PolycraftState, env: Polycraft) -> dict:
         ''' Key: macro action accept the environment, not the polycraft_interface'''
         # Select next action to do
         if self.active_action is None:
-            next_action = self._get_next_action()
+            next_action = self._get_next_action(state, env)
         else:
             next_action = self.active_action
 
 
         logger.info(f"Do action {next_action} as part of macro action {self}")
         if isinstance(next_action, MacroAction):
-            next_action.set_current_state(self._current_state)
-            result = next_action._do_action(poly_interface)
+            result = next_action._do_action(state,env)
         else:
-            result = next_action.do(poly_interface)
+            result = next_action.do(state,env)
 
         self.success = next_action.is_success(result)
 
@@ -189,15 +186,6 @@ class MacroAction(PolycraftAction):
             self.success=None
         return result
 
-    def do_until_done(self, poly_interface:poly.PolycraftInterface)->dict:
-        ''' Perform the macro action until either success if false or it is done '''
-        logger.info(f"Doing macro action {self} until done")
-        while self.is_done()==False:
-            self.set_current_state(self._current_state)
-            result = self.do(poly_interface)
-            self._current_state.update(poly_interface)
-        return result
-
 class TeleportAndFaceCell(MacroAction):
     MAX_STEPS = 3
 
@@ -209,9 +197,7 @@ class TeleportAndFaceCell(MacroAction):
     def __str__(self):
         return "<TeleportAndFaceCell {} success={}>".format(self.cell, self.success)
 
-    def _get_next_action(self)->PolycraftAction:
-        state = self._current_state
-
+    def _get_next_action(self, state:PolycraftState, env: Polycraft)->PolycraftAction:
         # If not in the same room at Steve, move to that room
         path_to_room = get_door_path_to_cell(self.cell, state)
         if len(path_to_room)>0:
@@ -249,9 +235,7 @@ class TeleportToAndDo(MacroAction):
     def _action_at_cell(self, state:PolycraftState):
         raise NotImplementedError("Subclasses should implement this. Returns the next action to do after facing a cell. Do not forget to mark _is_done when done.")
 
-    def _get_next_action(self)->PolycraftAction:
-        state = self._current_state
-
+    def _get_next_action(self, state:PolycraftState, env: Polycraft)->PolycraftAction:
         # If not near the cell, teleport to it
         if is_adjacent_to_steve(self.cell, state)==False:
             return TeleportAndFaceCell(self.cell)
@@ -340,8 +324,7 @@ class TeleportToTraderAndTrade(TeleportToAndDo):
         self._is_done = True
         return PolyTradeItems.create_action(self.trader_id, self.trade)
 
-    def _get_next_action(self)->PolycraftAction:
-        state = self._current_state
+    def _get_next_action(self, state:PolycraftState, env: Polycraft)->PolycraftAction:
         trader_obj = state.entities[self.trader_id]
         self.cell = coordinates_to_cell(trader_obj["pos"])
         return super()._get_next_action()
@@ -364,9 +347,8 @@ class CreateByRecipe(MacroAction):
         ''' An action that is used to collect the given quantity of the given ingredient '''
         raise NotImplementedError("Subclasses need to implement")
 
-    def _get_next_action(self)->PolycraftAction:
+    def _get_next_action(self, state:PolycraftState, env: Polycraft)->PolycraftAction:
         ''' Return an action to perform '''
-        state = self._current_state
         recipe = state.get_recipe_for(self.item_to_craft)
         missing_ingredients = compute_missing_ingredients(recipe, state)
 
@@ -410,9 +392,8 @@ class CreateByTrade(MacroAction):
         ''' An action that is used to collect the given quantity of the given ingredient '''
         raise NotImplementedError("Subclasses need to implement")
 
-    def _get_next_action(self)->PolycraftAction:
+    def _get_next_action(self, state:PolycraftState, env: Polycraft)->PolycraftAction:
         ''' Return an action to perform '''
-        state = self._current_state
         (trader_id, trade) = state.get_trade_for(self.item_type_to_get, self.item_types_to_give)
         missing_ingredients = compute_missing_ingredients(trade, state)
 
@@ -421,7 +402,7 @@ class CreateByTrade(MacroAction):
             try:
                 trader_pos = state.entities[trader_id]["pos"]
             except KeyError as err:
-                raise KeyError("Trader {} not in entities? {}".format(trader_id, self._current_state.entities))
+                raise KeyError("Trader {} not in entities? {}".format(trader_id, state.entities))
 
             trader_cell = coordinates_to_cell(trader_pos)
             if is_adjacent_to_steve(trader_cell, state)==False:

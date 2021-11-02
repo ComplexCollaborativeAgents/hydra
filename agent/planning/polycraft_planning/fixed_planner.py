@@ -1,6 +1,7 @@
 import random
 
 import settings
+import worlds.polycraft_world
 from agent.hydra_agent import HydraPlanner
 from agent.planning.polycraft_meta_model import PolycraftMetaModel
 from agent.planning.polycraft_planning.actions import CreateByRecipe, CreateByTrade, MacroAction, \
@@ -9,8 +10,11 @@ from agent.polycraft_hydra_agent import logger
 from utils.polycraft_utils import get_adjacent_cells, is_adjacent_to_steve, get_angle_to_adjacent_cell, \
     coordinates_to_cell
 from worlds.polycraft_interface.client import polycraft_interface as poly
-from worlds.polycraft_world import PolycraftState, ItemType, PolyNoAction, BlockType, PolycraftAction, PolyPlaceTreeTap, \
-    PolyCollect, EntityType, PolySelectItem, logger
+from worlds.polycraft_world import PolycraftState, ItemType, BlockType, PolycraftAction, EntityType, Polycraft
+from worlds.polycraft_actions import PolyNoAction, PolySelectItem, PolyPlaceTreeTap, PolyCollect
+import logging
+logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger("FixedPlanner")
 
 
 class FixedPlanPlanner(HydraPlanner):
@@ -125,10 +129,8 @@ class CreateSackPolyisoprenePellets(MacroAction):
     def __init__(self):
         super().__init__()
 
-    def _get_next_action(self)->PolycraftAction:
+    def _get_next_action(self, state:PolycraftState, env: Polycraft)->PolycraftAction:
         ''' Return an action to perform '''
-        state = self._current_state
-
         tree_tap_cells = state.get_cells_of_type(ItemType.TREE_TAP.value)
         if len(tree_tap_cells)==0: # Need to place the tree tap
             if state.count_items_of_type(ItemType.TREE_TAP.value)==0: # Need to create the tree tap
@@ -210,23 +212,23 @@ class CollectAndMineItem(PolycraftAction):
         return f"<CollectAndMineItem {self.desired_item_type} {self.desired_quantity} " \
                f"{self.relevant_block_types} {self.max_tries} success={self.success}>"
 
-    def do(self, state:PolycraftState, poly_client: poly.PolycraftInterface) -> dict:
+    def do(self, state:PolycraftState, env:Polycraft) -> dict:
         ''' Try to collect '''
-        sensed_state = PolycraftState.sense(poly_client)
+        sensed_state = env.get_current_state()
         initial_quantity = sensed_state.count_items_of_type(self.desired_item_type)
         for i in range(self.max_tries):
             # Choose action
             action = self._choose_action(sensed_state)
             if action is not None:
-                result = action.do(poly_client)
+                result = action.do(sensed_state, env)
 
-                sensed_state = PolycraftState.sense(poly_client)
+                sensed_state = env.get_current_state()
                 new_quantity = sensed_state.count_items_of_type(self.desired_item_type)
                 if new_quantity-initial_quantity>=self.desired_quantity:
                     self.success=True
                     return result
             else: # No action relevant - do nothing and report failure
-                result = PolyNoAction().do(poly_client)
+                result = PolyNoAction().do(sensed_state, env)
                 break
         self.success = False
         return result

@@ -1,5 +1,4 @@
 import json
-import math
 import os
 import sys
 import queue
@@ -71,10 +70,10 @@ class PolycraftState(State):
 
     def __init__(self, step_num: int, facing_block: str, location: dict, game_map: dict,
                  entities: dict, inventory: dict, current_item: str,
-                 recipes: list, trades: list, terminal: bool, step_cost: float):
+                 recipes: list, trades: list, door_to_room_cells:dict, terminal: bool, step_cost:int = -1):
         super().__init__()
 
-        self.id = step_num
+        self.step_num = step_num
         self.facing_block = facing_block  # the block the actor is currently facing
         self.location = location  # Formatted as {"pos": [x,y,z], "facing": DIR, yaw: ANGLE, pitch: ANGLE }
         self.game_map = game_map  # Formatted as {"xyz_string": {"name": "block_name", isAccessible: bool}, ...}
@@ -82,65 +81,10 @@ class PolycraftState(State):
         self.inventory = inventory  # Formatted as {SLOT_NUM:{ATTRIBUTES}, "selectedItem":{ATTRIBUTES}}
         self.current_item = current_item
         self.terminal = terminal
-        self.step_cost = step_cost
-
-        self.door_to_cells = dict()  # Maps a room id to the door through which to enter to it
+        self.step_cost = step_cost # TODO Remove this
+        self.door_to_room_cells = door_to_room_cells  # Maps a room id to the door through which to enter to it
         self.recipes = recipes
         self.trades = trades
-
-    def update(self, poly_client: poly.PolycraftInterface):
-        ''' Updates the current state with the sensed information '''
-        sensed = poly_client.SENSE_ALL()
-        self.id = sensed['step']
-        self.facing_block = sensed['blockInFront']
-        self.inventory = sensed['inventory']
-        self.currently_selected = sensed['inventory']['selectedItem']
-        self.pos = sensed['player']
-
-        self.terminal = sensed['gameOver']
-        if 'goal' in sensed:
-            self.terminal = sensed['gameOver'] or sensed['goal']['goalAchieved']
-
-        self.entities = sensed['entities']
-        sensed_game_map = sensed['map']
-        for cell_id, cell_attr in sensed_game_map.game_map.items():
-            for door_cell_id, room_game_map in self.door_to_cells.items():
-                if cell_id in room_game_map:
-                    room_game_map[cell_id] = cell_attr
-
-    @staticmethod
-    def sense(poly_client: poly.PolycraftInterface):
-        ''' Calls the SENSE_ALL command, returns a PolycraftState object only with the observed information.
-         NOTE: When in a room you only sense the room cells. '''
-        # Call API
-        sensed = poly_client.SENSE_ALL()
-
-        # Extract values from SENSE_ALL
-        step_num = sensed['step']
-        facing_block = sensed['blockInFront']
-        inventory = sensed['inventory']
-        currently_selected = sensed['inventory']['selectedItem']
-        pos = sensed['player']
-        entities = sensed['entities']
-        game_map = sensed['map']
-        terminal = sensed['gameOver']
-
-        if 'goal' in sensed:
-            terminal = sensed['gameOver'] or sensed['goal']['goalAchieved']
-        return PolycraftState(step_num, facing_block, pos, game_map, entities,
-                              inventory, currently_selected, None, None, terminal, -1)
-
-    def __str__(self):
-        return "< Step: {} | Action Cost: {} | Location: {} | Inventory: {} >".format(self.id, self.step_cost,
-                                                                                      self.location, self.inventory)
-
-    def get_block_at(self, x: int, y: int, z: int) -> tuple:
-        """ Helper function to get info of a block at coordinates xyz from the game map (type, accessibility) """
-        coord_str = "{},{},{}".format(x, y, z)
-        if coord_str not in self.game_map:
-            return None, None
-
-        return self.game_map[coord_str]["name"], self.game_map["isAccesible"]
 
     def get_cells_of_type(self, item_type: str, only_accessible=False):
         ''' returns a list of cells that are of the given type '''
@@ -151,6 +95,18 @@ class PolycraftState(State):
                     continue
                 cells.append(cell)
         return cells
+
+    def __str__(self):
+        return "< Step: {} | Action Cost: {} | Location: {} | Inventory: {} >".format(self.step_num, self.step_cost,
+                                                                                      self.location, self.inventory)
+
+    def get_block_at(self, x: int, y: int, z: int) -> tuple:
+        """ Helper function to get info of a block at coordinates xyz from the game map (type, accessibility) """
+        coord_str = "{},{},{}".format(x, y, z)
+        if coord_str not in self.game_map:
+            return None, None
+
+        return self.game_map[coord_str]["name"], self.game_map["isAccesible"]
 
     def get_type_to_cells(self):
         ''' Returns a dictionary of cell type to the list of cells of that type '''
@@ -335,306 +291,9 @@ class PolycraftAction(Action):
     def __str__(self):
         return f"<{self.name} success={self.success}>"
 
-    def do(self, state:PolycraftState, poly_client: poly.PolycraftInterface) -> dict:
+    def do(self, state:PolycraftState, env) -> dict:
         raise NotImplementedError("Subclasses of PolycraftAction should implement this")
 
-class PolyNoAction(PolycraftAction):
-    """ A no action (do nothing) """
-        
-    def __str__(self):
-        return "<PolyNoAction>"
-    
-    def do(self, state:PolycraftState, poly_client: poly.PolycraftInterface) -> dict:
-        return poly_client.CHECK_COST()
-
-
-class PolyTP(PolycraftAction):
-    """ Teleport to a position "dist" away from the given cell (cell name is its coordinates)"""
-    def __init__(self, cell:str, dist: int = 0):
-        super().__init__()
-        self.cell = cell
-        self.dist = dist
-
-    def __str__(self):
-        return "<PolyTP pos=({}) dist={} success={}>".format(self.cell, self.dist, self.success)
-
-    def do(self, state:PolycraftState, poly_client: poly.PolycraftInterface) -> dict:
-        result = poly_client.TP_TO_POS(self.cell, distance=self.dist)
-        self.success = self.is_success(result)
-        return result
-
-
-class PolyEntityTP(PolycraftAction):
-    """ Teleport to a position "dist" away from the entity facing in direction d and with pitch p"""
-    def __init__(self, entity_id: str, dist: int = 0):
-        super().__init__()
-        self.entity_id = entity_id
-        self.dist = dist
-
-    def __str__(self):
-        return "<PolyEntityTP entity={} dist={} success={}>".format(self.entity_id, self.dist, self.success)
-
-    def do(self, state:PolycraftState, poly_client: poly.PolycraftInterface) -> dict:
-        result =  poly_client.TP_TO_ENTITY(self.entity_id)
-        self.success = self.is_success(result)
-        return result
-
-
-class PolyTurn(PolycraftAction):
-    """ Turn the actor side to side in the y axis (vertical) in increments of 15 degrees """
-    def __init__(self, direction: int):
-        super().__init__()
-        self.direction = direction
-
-    def __str__(self):
-        return "<PolyTurn dir={} success={}>".format(self.direction, self.success)
-
-    def do(self, state:PolycraftState, poly_client: poly.PolycraftInterface) -> dict:
-        result = poly_client.TURN(self.direction)
-        self.success = self.is_success(result)
-        return result
-
-
-class PolyTilt(PolycraftAction):
-    """ Tilt the actor's focus up/down in the x axis (horizontal) in increments of 15 degrees """
-    def __init__(self, pitch: str):
-        super().__init__()
-        self.pitch = pitch
-
-    def __str__(self):
-        return "<PolyTilt pitch={} success={}>".format(self.pitch, self.success)
-
-    def do(self, state:PolycraftState, poly_client: poly.PolycraftInterface) -> dict:
-        result = poly_client.SMOOTH_TILT(self.pitch)
-        self.success = self.is_success(result)
-        return result
-
-
-class PolyBreak(PolycraftAction):
-    """ Break the block directly in front of the actor """
-
-    def __str__(self):
-        return "<PolyBreak success={}>".format(self.success)
-
-    def do(self, state:PolycraftState, poly_client: poly.PolycraftInterface) -> dict:
-        result = poly_client.BREAK_BLOCK()
-        self.success = self.is_success(result)
-        return result
-
-
-class PolyInteract(PolycraftAction):
-    """ Similarly to SENSE_RECIPES, this command returns the list of available trades with a particular entity (must be adjacent) """
-    def __init__(self, entity_id: str):
-        super().__init__()
-        self.entity_id = entity_id
-
-    def __str__(self):
-        return "<PolyInteract entity={} success={}>".format(self.entity_id, self.success)
-
-    def do(self, state:PolycraftState, poly_client: poly.PolycraftInterface) -> dict:
-        result = poly_client.INTERACT(self.entity_id)
-        self.success = self.is_success(result)
-        return result
-
-
-class PolySense(PolycraftAction):
-    """ Senses the actor's current inventory, all available blocks, recipes and entities that are in the same room as the actor """
-
-    def __str__(self):
-        return "<PolySense success={}>".format(self.success)
-
-    def do(self, state:PolycraftState, poly_client: poly.PolycraftInterface) -> dict:
-        result = poly_client.SENSE_ALL()
-        self.success = self.is_success(result)
-        return result
-
-
-class PolySelectItem(PolycraftAction):
-    """ Select an item by name within the actor's inventory to be the item that the actor is currently holding (active item).  Pass no item name to deselect the current selected item. """
-    def __init__(self, item_name: str):
-        super().__init__()
-        self.item_name = item_name
-
-    def __str__(self):
-        return "<PolySelectItem item={} success={}>".format(self.item_name, self.success)
-
-    def do(self, state:PolycraftState, poly_client: poly.PolycraftInterface) -> dict:
-        result = poly_client.SELECT_ITEM(item_name=self.item_name)
-        self.success = self.is_success(result)
-        return result
-
-
-class PolyUseItem(PolycraftAction):
-    """ Perform the use action (use key on safe, open door) with the item that is currently selected.  Alternatively, pass the item in to use that item. """
-    def __init__(self, item_name: str = ""):
-        super().__init__()
-        self.item_name = item_name
-
-    def __str__(self):
-        return "<PolyUseItem item={} success={}>".format(self.item_name, self.success)
-
-    def do(self, state:PolycraftState, poly_client: poly.PolycraftInterface) -> dict:
-        result = poly_client.USE_ITEM(item_name=self.item_name)
-        self.success = self.is_success(result)
-        return result
-
-
-class PolyPlaceItem(PolycraftAction):
-    """ Place a block or item from the actor's inventory in the space adjacent to the block in front of the player.  This command may fail if there is no block available to place the item upon. """
-    def __init__(self, item_name: str):
-        super().__init__()
-        self.item_name = item_name
-
-    def __str__(self):
-        return "<PolyPlaceItem item={} success={}>".format(self.item_name, self.success)
-
-    def do(self, state:PolycraftState, poly_client: poly.PolycraftInterface) -> dict:
-        result = poly_client.PLACE(self.item_name)
-        self.success = self.is_success(result)
-        return result
-
-class PolyPlaceTreeTap(PolycraftAction):
-    """ Places a tree tap (polycraft:tree_tap) """
-    def __init__(self):
-        super().__init__()
-
-    def do(self, state:PolycraftState, poly_client: poly.PolycraftInterface) -> dict:
-        result = poly_client.PLACE_TREE_TAP()
-        self.success = self.is_success(result)
-        return result
-
-
-class PolyCollect(PolycraftAction):
-    """ Collect item from block in front of actor - use for collecting rubber from a tree tap. """
-
-    def __str__(self):
-        return "<PolyCollect success={}>".format(self.success)
-
-    def do(self, state:PolycraftState, poly_client: poly.PolycraftInterface) -> dict:
-        result = poly_client.COLLECT()
-        self.success = self.is_success(result)
-        return result
-
-class PolyGiveUp(PolycraftAction):
-    ''' An action in which the agent gives up'''
-    def __str__(self):
-        return "<PolyGiveUp success={}>".format(self.success)
-
-    def do(self, state:PolycraftState, poly_client: poly.PolycraftInterface) -> dict:
-        result = poly_client.GIVE_UP()
-        self.success = self.is_success(result)
-        return result
-
-class PolyDeleteItem(PolycraftAction):
-    """ Deletes the item in the player's inventory to prevent a fail state where the player is unable to pick up items due to having a full inventory """
-    def __init__(self, item_name: str):
-        super().__init__()
-        self.item_name = item_name
-
-    def __str__(self):
-        return "<PolyDeleteItem item={} success={}>".format(self.item_name, self.success)
-
-    def do(self, state:PolycraftState, poly_client: poly.PolycraftInterface) -> dict:
-        result = poly_client.DELETE(self.item_name)
-        self.success = self.is_success(result)
-        return result
-
-
-class PolyTradeItems(PolycraftAction):
-    """
-    Perform a trade action with an adjacent entity. Accepts up to 5 items, and can result in up to 5 items.
-    "items" is a list of tuples with format ( {"item_name": str, "stackSize":int} )
-    """
-    def __init__(self, entity_id: str, items: list):
-        super().__init__()
-        self.entity_id = entity_id
-        self.items = items
-
-    def __str__(self):
-        return "<PolyTradeItems entity={} items={} success={}>".format(self.entity_id, self.items, self.success)
-
-    def do(self, state:PolycraftState, poly_client: poly.PolycraftInterface) -> dict:
-        result = poly_client.TRADE(self.entity_id, self.items)
-        self.success = self.is_success(result)
-        return result
-
-    @staticmethod
-    def create_action(trader_id, trade_obj):
-        ''' Create a PolyCraftItem action from a given recipe object '''
-        trade_inputs = trade_obj['inputs']
-
-        # Arrange trade inputs in the required format
-        trade_list = []
-        for recipe_item in trade_inputs:
-            item_name = recipe_item['Item']
-            quantity = recipe_item['stackSize']
-            trade_list.append({"Item": item_name, "stackSize": quantity})
-
-        return PolyTradeItems(entity_id=trader_id, items=trade_list)
-
-
-class PolyCraftItem(PolycraftAction):
-    """
-    Craft an item using resources from the actor's inventory.
-    [From Stephen Goss's (UTD) explanation in Slack]
-    Recipes in Minecraft work in a 3x3 matrix format. So the sticks recipe is stored as [[planks, 0, 0],[planks, 0, 0],[0,0,0]].
-    This means that you need sticks in slots 0 and 3.  The 2x2 crafting matrix represents a sub-matrix of the regular 3x3 grid.
-    The problem is that slots only have one integer identifier, so the matrix is flattened out into an array starting with the top left slot.
-    NOTE: "0" stands for a null/empty space in the matrix
-    """
-    def __init__(self, recipe: list):
-        super().__init__()
-        self.recipe = recipe
-
-    @staticmethod
-    def create_action(recipe_obj):
-        ''' Create a PolyCraftItem action from a given recipe object '''
-        slot_to_item = dict()
-        recipe_inputs = recipe_obj['inputs']
-
-        # Ugly special case of slot=-1 which occurs in planks. Assumption: if slot==-1 it means it doesn't matter. TODO: Verify this with UTD
-        if len(recipe_inputs)==1 and recipe_inputs[0]['slot']==-1:
-            adjusted_recipe_inputs = list()
-            adjusted_recipe_inputs.append({'Item': recipe_inputs[0]['Item'], 'slot':0, 'stackSize':recipe_inputs[0]['stackSize']})
-            recipe_inputs = adjusted_recipe_inputs
-
-        for recipe_item in recipe_inputs:
-            item_name = recipe_item['Item']
-            assert (recipe_item['stackSize'] == 1)  # Currently supporting only one item per slot recipes
-            slot = recipe_item['slot']
-            slot_to_item[slot] = item_name
-
-        # TODO: Better understand the behavior of this with UTD
-        matrix = list()
-        for i in range(3):
-            row = list()
-            matrix.append(row)
-            for j in range(3):
-                row.append("0")
-
-        for slot, item in slot_to_item.items():
-            row = math.floor(slot/3)
-            col = slot % 3
-            matrix[row][col]=item
-
-        # Infer if this is a 3x3 or 2x2 recipe
-        if max(slot_to_item.keys()) > 3:  # then this is  3x3 recipe
-            recipe_dim = 3
-        else:  # then this is a 2x2 recipe
-            recipe_dim = 2
-        recipe_items = []
-        for row in range(recipe_dim):
-            for col in range(recipe_dim):
-                recipe_items.append(matrix[row][col])
-        return PolyCraftItem(recipe=recipe_items)
-
-    def __str__(self):
-        return "<PolyCraftItem recipe={} success={}>".format(self.recipe, self.success)
-
-    def do(self, state:PolycraftState, poly_client: poly.PolycraftInterface) -> dict:
-        result = poly_client.CRAFT(self.recipe)
-        self.success = self.is_success(result)
-        return result
 
 class Polycraft(World):
     DUMMY_DOOR = "-1,-1,-1" # This marks the "door cell" for the main room, for the self.door_to_cells dict.
@@ -670,9 +329,13 @@ class Polycraft(World):
 
     def init_state_information(self):
         ''' Initialize information about the current state in the current episode (level) '''
-        self.current_recipes = []
+
+        # Represent the current knowledge of the world. TODO: Think about moving this to the agent.
+        self.current_recipes = list()
         self.current_trades = dict()  # Maps entity id to its trades
-        self.door_to_rooms = dict() # Maps door cell to dict of gamemap cell in the room of that door
+        self.door_to_room_cells = dict() # Maps door cell to dict of gamemap cell in the room of that door
+
+        # Store information
         self.last_cmd_success = True
         self.ready_for_cmds = False
 
@@ -859,13 +522,12 @@ class Polycraft(World):
         NOTE: at every end level, the gameOver boolean in the returned dictionary turns to True - we need to handle advancing to next level on our side
         """
         # Reset values from past level
-        self.reset_current_recipes()
-        self.reset_current_trades()
-        
         self.current_level = s_level
         self.ready_for_cmds = False
         self.current_trades.clear()
         self.current_recipes.clear()
+        self.door_to_room_cells.clear()
+
         try:
             self.poly_client.RESET(self.current_level)
             
@@ -884,14 +546,14 @@ class Polycraft(World):
             logger.error("Polycraft server connection interrupted ({})".format(err))
             self.kill(exit_program=True)
 
-    def act(self, action: PolycraftAction) -> tuple:
+    def act(self, state: PolycraftState, action: PolycraftAction) -> tuple:
         ''' returns the state and step cost / reward '''
         # Match action with low level command in polycraft_interface.py
         results = dict()
 
         if isinstance(action, PolycraftAction):
             try:
-                results = action.do(self.poly_client)   # Perform each polycraft action's unique do command which uses the Polycraft API
+                results = action.do(state, self)   # Perform each polycraft action's unique do command which uses the Polycraft API
                 self.last_cmd_success = results['command_result']['result'] == "SUCCESS"    # Update if last command was successful or not
                 action.response = results
                 logger.debug(str(action))
@@ -912,28 +574,45 @@ class Polycraft(World):
         """
         # Call SENSE ALL API
         try:
-            state = PolycraftState.sense(self.poly_client)
+            sensed = self.poly_client.SENSE_ALL()
+
+            # Update game map knowledge with the sensed knowledge (note: sense only returns the game map for the current room)
+            sensed_game_map = sensed['map']
+            doors = [cell_id for cell_id, cell_attr in sensed_game_map.items() if cell_attr["name"]==BlockType.WOODER_DOOR.value]
+            for cell_id, cell_attr in sensed_game_map.items():
+                known_cell = False
+                for door_cell_id, room_game_map in self.door_to_room_cells.items():
+                    if cell_id in room_game_map:
+                        known_cell = True
+                        room_game_map[cell_id] = cell_attr
+                if known_cell == False:
+                    for door_cell in doors:
+                        self.door_to_room_cells[door_cell][cell_id]=cell_attr
+
+            id = sensed['step']
+            facing_block = sensed['blockInFront']
+            inventory = sensed['inventory']
+            currently_selected = sensed['inventory']['selectedItem']
+            pos = sensed['player']
+
+            terminal = sensed['gameOver']
+            if 'goal' in sensed:
+                terminal = sensed['gameOver'] or sensed['goal']['goalAchieved']
+            entities = sensed['entities']
+            state = PolycraftState(id, facing_block, pos, sensed_game_map, entities, inventory,currently_selected,
+                                   copy.deepcopy(self.current_recipes),
+                                   copy.deepcopy(self.current_trades),
+                                   copy.deepcopy(self.door_to_room_cells),
+                                   terminal=terminal,
+                                   step_cost=self.get_level_total_step_cost())
+
+
         except (BrokenPipeError, KeyboardInterrupt) as err:
             self.kill()
             logger.error("Polycraft server connection interrupted (broken pipe or keyboard interrupt")
             raise err
 
-        # Populate current recipes and trades
-        state.trades = copy.deepcopy(self.current_trades)
-        state.recipes = copy.deepcopy(self.current_recipes)
-        state.door_to_cells = copy.deepcopy(self.door_to_rooms)
-
-        # Obtain current cost
-        step_cost = self.get_level_total_step_cost()
-        state.step_cost = step_cost
-
         return state
-
-    def reset_current_trades(self):
-        self.current_trades = {}
-
-    def reset_current_recipes(self):
-        self.current_recipes = []
 
     def populate_current_recipes(self):
         """
@@ -942,6 +621,19 @@ class Polycraft(World):
         response = self.poly_client.SENSE_RECIPES()
         assert(response['command_result']['result']=='SUCCESS')
         self.current_recipes = response['recipes']
+
+    def populate_door_to_room_cells(self):
+        # Initialize door to cells dictionary, mapping door cell to a gamemap-like dictionary of the room that door is pointing to
+        response = self.poly_client.SENSE_ALL()
+        assert(response['command_result']['result']=='SUCCESS')
+        game_map = response['map']
+        self.door_to_room_cells[Polycraft.DUMMY_DOOR] = dict()
+        for cell_id, cell_attr in game_map.items():
+            if cell_attr["name"]==BlockType.WOODER_DOOR.value:
+                self.door_to_room_cells[cell_id]=dict()
+                self.door_to_room_cells[cell_id][cell_id]=cell_attr
+            self.door_to_room_cells[Polycraft.DUMMY_DOOR][cell_id] = cell_attr
+
 
     def get_level_total_step_cost(self) -> float:
         try:

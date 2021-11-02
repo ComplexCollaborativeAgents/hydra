@@ -1,16 +1,14 @@
 import datetime
-import pickle
 
 from agent.consistency.observation import HydraObservation
 from agent.planning.polycraft_planning.tasks import *
 from agent.planning.polycraft_planning.actions import *
-from worlds.polycraft_interface.client.polycraft_interface import TiltDir
+from worlds.polycraft_actions import PolyNoAction, PolyEntityTP, PolyInteract, PolyGiveUp
 from agent.planning.pddlplus_parser import *
 from agent.hydra_agent import HydraAgent, HydraPlanner, MetaModelRepair
 from worlds.polycraft_world import *
 from agent.planning.nyx import nyx
 import agent.planning.nyx.heuristic_functions as nyx_heuristics
-import shutil
 
 logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("Polycraft")
@@ -195,15 +193,9 @@ class PolycraftHydraAgent(HydraAgent):
         # Explore the level
         env.init_state_information()
         env.populate_current_recipes()
-        current_state = env.get_current_state()
+        env.populate_door_to_room_cells()
 
-        # Initialize door to cells dictionary, mapping door cell to a gamemap-like dictionary of the room that door is pointing to
-        env.door_to_rooms[Polycraft.DUMMY_DOOR] = dict(())
-        for cell_id, cell_attr in current_state.game_map.items():
-            if cell_attr["name"]==BlockType.WOODER_DOOR.value:
-                env.door_to_rooms[cell_id]=dict()
-                env.door_to_rooms[cell_id][cell_id]=cell_attr
-            env.door_to_rooms[Polycraft.DUMMY_DOOR][cell_id] = cell_attr
+        current_state = env.get_current_state()
 
         # Try to interact with all other agents
         for entity_id, entity_attr in current_state.entities.items():
@@ -218,7 +210,7 @@ class PolycraftHydraAgent(HydraAgent):
 
                 # Move to trader
                 tp_action = PolyEntityTP(entity_id,dist=1)
-                current_state, step_cost = env.act(tp_action)
+                current_state, step_cost = env.act(current_state, tp_action)
 
                 if tp_action.success==False:
                     trader_cell = coordinates_to_cell(entity_attr['pos'])
@@ -229,7 +221,7 @@ class PolycraftHydraAgent(HydraAgent):
                     max_attempts = 4
                     while cell_accessible and attempts < max_attempts:
                         tp_action = PolyEntityTP(entity_id, dist=1)
-                        current_state, step_cost = env.act(tp_action)
+                        current_state, step_cost = env.act(current_state, tp_action)
                         if tp_action.success:
                             break # Managed to reach the trader
                         attempts = attempts+1
@@ -248,7 +240,7 @@ class PolycraftHydraAgent(HydraAgent):
 
                 # Interact with it
                 interact_action = PolyInteract(entity_id)
-                current_state, step_cost = env.act(interact_action)
+                current_state, step_cost = env.act(current_state, interact_action)
                 assert(interact_action.success)
                 env.current_trades[entity_id] = interact_action.response['trades']['trades']
 
@@ -373,10 +365,10 @@ class PolycraftHydraAgent(HydraAgent):
 
     def do(self, action: PolycraftAction, env : Polycraft):
         ''' Perform the given aciton in the given environment '''
-        if isinstance(action, MacroAction):
-            action.set_current_state(env.get_current_state())
         self.current_observation.actions.append(action)
-        next_state, step_cost =  env.act(action)  # Note this returns step cost for the action
+
+        next_state, step_cost =  env.act(self.current_state, action)  # Note this returns step cost for the action
+
         if action.success ==False:
             logger.info(f"Action{action} failed: {action.response}")
         self.current_state = next_state
@@ -388,7 +380,7 @@ class PolycraftHydraAgent(HydraAgent):
         ''' Updates the current state object with the information from the new state.
         Needed because sometimes agents leave/enter rooms.'''
         for cell_id, cell_attr in new_state.game_map.items():
-            for door_cell_id, room_game_map in self.current_state.door_to_cells.items():
+            for door_cell_id, room_game_map in self.current_state.door_to_room_cells.items():
                 if cell_id in room_game_map:
                     room_game_map[cell_id] = cell_attr
         self.current_state = new_state

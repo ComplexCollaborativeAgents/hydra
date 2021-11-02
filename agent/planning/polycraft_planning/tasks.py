@@ -1,6 +1,8 @@
 from agent.planning.polycraft_meta_model import *
 from agent.planning.nyx.abstract_heuristic import AbstractHeuristic
 from agent.planning.polycraft_planning.actions import *
+from worlds.polycraft_actions import PolySelectItem, PolyPlaceTreeTap, PolyCraftItem
+
 
 class CreatePogoTask(Task):
     ''' A task that the polycraft agent can aim to do '''

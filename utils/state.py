@@ -5,10 +5,10 @@ class State:
 
     newid = itertools.count()
     def __init__(self):
-        self.id = next(State.newid)
+        self.step_num = next(State.newid)
 
     def get_rl_id(self):
-        return self.id
+        return self.step_num
 
 class Action:
     """

@@ -2,6 +2,7 @@
 # from tests.test_polycraft import launch_polycraft
 import pytest
 
+import worlds.polycraft_world
 from agent.planning.polycraft_planning.fixed_planner import FixedPlanPlanner
 from agent.polycraft_hydra_agent import *
 

@@ -4,6 +4,9 @@ import pathlib
 import settings
 from worlds.polycraft_world import PolycraftState, ItemType, EntityType, Polycraft
 from worlds.polycraft_interface.client.polycraft_interface import *
+import os
+import os.path
+import re
 
 def has_new_item(state_diff: dict):
     ''' Check if the state diff dictionary reports on a new item in the inventory '''
@@ -254,7 +257,7 @@ def is_adjacent_to_steve(cell:str, state:PolycraftState):
 def is_in_room_with_steve(cell:str, state:PolycraftState):
     ''' Checks if the given cell is in the same room as Steve '''
     steve_cell = coordinates_to_cell(state.location["pos"])
-    for door_cell, door_game_map in state.door_to_cells.items():
+    for door_cell, door_game_map in state.door_to_room_cells.items():
         if cell in door_game_map and steve_cell in door_game_map:
             return True
     return False
@@ -262,17 +265,17 @@ def is_in_room_with_steve(cell:str, state:PolycraftState):
 def get_exit_door(cell:str, state:PolycraftState):
     ''' Returns the door through which to exit back to the main room.
      Returns Polycraft.DUMMY_DOOR if in the main room '''
-    if cell in state.door_to_cells[Polycraft.DUMMY_DOOR]:
+    if cell in state.door_to_room_cells[Polycraft.DUMMY_DOOR]:
         return Polycraft.DUMMY_DOOR
     else:
-        for door_cell, door_game_map in state.door_to_cells.items():
+        for door_cell, door_game_map in state.door_to_room_cells.items():
             if cell in door_game_map:
                 return door_cell
 
 def get_door_path_to_cell(cell:str, state:PolycraftState)->list:
     ''' Returns a list of door cells we need to cross to get steve in the same room as the given cell '''
     cell_exit_door = get_exit_door(cell, state)
-    steve_exit_door = get_exit_door(coordinates_to_cell(state.location["pos"]))
+    steve_exit_door = get_exit_door(coordinates_to_cell(state.location["pos"]), state)
     if cell_exit_door==steve_exit_door:
         return []
     if cell_exit_door==Polycraft.DUMMY_DOOR:
@@ -310,6 +313,28 @@ def is_steve_facing_cell(cell:str, state:PolycraftState):
 
 def get_non_novelty_levels_files():
     ''' Return a list of config files for the non-novelty levels we have for training. '''
+    levels = []
+    levels_dir_path = pathlib.Path(settings.POLYCRAFT_NON_NOVELTY_LEVEL_DIR)
+    for level_file in os.listdir(levels_dir_path):
+        if level_file.endswith(".json2") == False:
+            levels.append(levels_dir_path / level_file)
+    return levels
+
+
+def get_novelty_levels_files(level_to_types:dict = None):
+    ''' Return a list of config files for the non-novelty levels we have for training. '''
+    NOVELTY_FOLDER_RE = re.compile("POGO\_L(..)\_T(..)\_S(..)")
+    level_to_type = dict()
+    non_novelty_levels_root = pathlib.Path(settings.POLYCRAFT_NON_NOVELTY_LEVEL_DIR)
+    if level_to_types is None: # Means try all levels and novelties
+        print(3)
+        for level_file in os.listdir(non_novelty_levels_root):
+            if os.path.isdir(level_file):
+                pattern = NOVELTY_FOLDER_RE.match()
+                if pattern is not None:
+                    g = pattern.groups()
+
+
     levels = []
     levels_dir_path = pathlib.Path(settings.POLYCRAFT_NON_NOVELTY_LEVEL_DIR)
     for level_file in os.listdir(levels_dir_path):
