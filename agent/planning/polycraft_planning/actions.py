@@ -1,31 +1,12 @@
 import random
 
 from utils.polycraft_utils import *
-from worlds.polycraft_actions import PolyNoAction, PolyTP, PolyTurn, PolySelectItem, PolyUseItem, PolyCollect, \
-    PolyTradeItems, PolyCraftItem
+from worlds.polycraft_actions import *
 from worlds.polycraft_world import *
 import worlds.polycraft_interface.client.polycraft_interface as poly
 
 # Helper actions
 
-class PolyMoveThroughDoor(PolycraftAction):
-    MAX_STEPS = 3 # Maximum forward steps until explored room
-    ''' Action that moves through a door '''
-    def __init__(self, door_cell: str):
-        super().__init__()
-        self.door_cell = door_cell
-
-    def __str__(self):
-        return f"<PolyMoveThroughDoor {self.door_cell} success={self.success}>"
-
-    def do(self, state:PolycraftState, env: Polycraft) -> dict:
-        for i in range(PolyMoveThroughDoor.MAX_STEPS):
-            response = env.poly_client.MOVE(MoveDir.FORWARD)
-            if self.is_success(response)==False:
-                self.success=False
-                return response
-        self.success = True
-        return response
 
 
 class PolyBreakAndCollect(PolycraftAction):
@@ -134,7 +115,7 @@ class PolyBreakAndCollect(PolycraftAction):
 ######## Macro actions
 class MacroAction(PolycraftAction):
     ''' A macro action is a generator of basic PolycraftActions based on the current state '''
-    def __init__(self, max_steps:int):
+    def __init__(self, max_steps:int=1):
         super().__init__()
         self.active_action = None # If we're in the middle of doing some action
         self._is_done = False
@@ -181,8 +162,6 @@ class MacroAction(PolycraftAction):
         if isinstance(next_action, MacroAction):
             if next_action.is_done()==False:
                 self.active_action = next_action
-            else:
-                logger.info(f"Macro action {self.active_action} is done")
         if self.is_done()==False and self.success!=False:  # Macro action not done yet - do not declare success
             self.success=None
         return result
@@ -203,14 +182,7 @@ class TeleportAndFaceCell(MacroAction):
         path_to_room = get_door_path_to_cell(self.cell, state)
         if len(path_to_room)>0:
             # Need to move through some doors to get to the cell
-            first_door = path_to_room[0]
-            if is_steve_facing_cell(first_door, state) == False:
-                return TeleportAndFaceCell(first_door)
-            elif state.game_map[self.cell]['open'].upper() == False:
-                return OpenDoor(first_door)
-            else:
-                logger.info("Moving to a different room")
-                return PolyMoveThroughDoor(first_door)
+            return MoveThroughDoor(path_to_room[0])
 
         # If not near the cell - teleport to it
         if is_adjacent_to_steve(self.cell, state)==False:
@@ -247,6 +219,62 @@ class TeleportToAndDo(MacroAction):
             return PolyTurn(turn_angle)
 
         return self._action_at_cell(state)
+
+class ExploreRoom(PolycraftAction):
+    ''' This action updates the environment (Polycraft) by sensing the current room. '''
+
+    def __init__(self, door_cell:str):
+        ''' door_cell is the cell of the door though which we entered the room. Important for remmebering how to enter/exist the room to reach the cells in it '''
+        super().__init__()
+        self.door_cell = door_cell
+
+    def do(self, state: PolycraftState, env: Polycraft):
+        result = env.poly_client.SENSE_ALL()
+
+        # Update game map knowledge with the sensed knowledge (note: sense only returns the game map for the current room)
+        sensed_game_map = result['map']
+        new_room_explored = False
+        for cell_id, cell_attr in sensed_game_map.items():
+            known_cell = False
+            for door_cell_id, room_game_map in env.door_to_room_cells.items():
+                if cell_id in room_game_map:
+                    known_cell = True
+                    room_game_map[cell_id] = cell_attr
+            if known_cell == False: #
+                new_room_explored = True
+                env.door_to_room_cells[self.door_cell][cell_id] = cell_attr
+        if new_room_explored:
+            logger.info(f"Explored a new room! room reachable through door {self.door_cell}")
+        return result
+
+class MoveThroughDoor(MacroAction):
+    MAX_STEPS = 3 # Maximum forward steps until explored room
+    ''' Action that moves through a door '''
+    def __init__(self, door_cell: str):
+        super().__init__(max_steps=TeleportAndFaceCell.MAX_STEPS+MoveThroughDoor.MAX_STEPS)
+        self.door_cell = door_cell
+        self.before_entering = True
+
+    def __str__(self):
+        return f"<MoveThroughDoor {self.door_cell} success={self.success}>"
+
+    def _get_next_action(self, state:PolycraftState, env: Polycraft)->PolycraftAction:
+        # If not near the cell, teleport to it
+        if self.before_entering:
+            if is_adjacent_to_steve(self.door_cell, state)==False:
+                return TeleportAndFaceCell(self.door_cell)
+            turn_angle = get_angle_to_adjacent_cell(self.door_cell, state)
+
+            # If not facing the cell, turn to it
+            if turn_angle != 0:
+                return PolyTurn(turn_angle)
+            else:
+                self.before_entering = False
+                return PolyMove(MoveDir.FORWARD, MoveThroughDoor.MAX_STEPS)
+        else:
+            self._is_done = True
+            return ExploreRoom(self.door_cell)
+
 
 class TeleportToAndCollect(TeleportToAndDo):
     ''' Macro for teleporting to a given cell, turning to face it, and collecting an item from it.
@@ -456,3 +484,25 @@ class OpenDoor(TeleportToAndDo):
         if door_attr["open"].upper()=="False".upper():
             self._is_done = True
             return PolyUseItem()
+
+class OpenSafeAndCollect(TeleportToAndDo):
+    ''' Move to a door, open it, and explore the room '''
+
+    def __init__(self, safe_cell: str):
+        super().__init__(safe_cell, max_steps=TeleportAndFaceCell.MAX_STEPS + 3)
+        self.safe_opened = False
+
+    def __str__(self):
+        return f"<OpenSafeAndCollect{self.cell} success={self.success}>"
+
+    def _action_at_cell(self, state: PolycraftState):
+        known_cells = state.get_known_cells()
+        if self.safe_opened==False:
+            if state.get_selected_item()!=ItemType.KEY.value:
+                return PolySelectItem(ItemType.KEY.value)
+            else:
+                self.safe_opened=True
+                return PolyUseItem(ItemType.KEY.value)
+        else:
+            self._is_done = True
+            return PolyCollect()

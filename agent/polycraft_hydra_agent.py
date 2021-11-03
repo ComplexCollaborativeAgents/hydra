@@ -183,7 +183,7 @@ class PolycraftHydraAgent(HydraAgent):
         self.current_observation = None
         self.current_state = None # Maintains the agent's knowledge about the current state
         self.exploration_tasks = list()
-        self.exploration_rate = 1 # Number of failed actions to endure before trying one exploration task
+        self.exploration_rate = 10 # Number of failed actions to endure before trying one exploration task
         self.failed_actions_in_level = 0 # Count how many actions have failed in a given level
 
     def start_level(self, env: Polycraft):
@@ -271,6 +271,12 @@ class PolycraftHydraAgent(HydraAgent):
                 open_door_tasks.append(exploration_task)
         if len(open_door_tasks)>0:
             return random.choice(open_door_tasks)
+
+        safe_cells= world_state.get_cells_of_type(BlockType.SAFE.value)
+        for safe_cell in safe_cells:
+            exploration_task = CollectFromSafeTask(safe_cell)
+            if exploration_task not in self.exploration_tasks:
+                self.exploration_tasks.append[CollectFromSafeTask(safe_cell)]
 
         # No open door tasks? choose a random exploration task
         return random.choice(self.exploration_tasks)
@@ -371,6 +377,8 @@ class PolycraftHydraAgent(HydraAgent):
 
         if action.success ==False:
             logger.info(f"Action{action} failed: {action.response}")
+        else:
+            logger.info(f"Action{action} finished successfully!")
         self.current_state = next_state
         self.current_observation.states.append(self.current_state)
         self.current_observation.rewards.append(step_cost)

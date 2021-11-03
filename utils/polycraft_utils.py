@@ -262,7 +262,7 @@ def is_in_room_with_steve(cell:str, state:PolycraftState):
             return True
     return False
 
-def get_exit_door(cell:str, state:PolycraftState):
+def get_room_door(cell:str, state:PolycraftState):
     ''' Returns the door through which to exit back to the main room.
      Returns Polycraft.DUMMY_DOOR if in the main room '''
     if cell in state.door_to_room_cells[Polycraft.DUMMY_DOOR]:
@@ -271,18 +271,18 @@ def get_exit_door(cell:str, state:PolycraftState):
         for door_cell, door_game_map in state.door_to_room_cells.items():
             if cell in door_game_map:
                 return door_cell
-
+    assert(False) # No door to the cell
 def get_door_path_to_cell(cell:str, state:PolycraftState)->list:
     ''' Returns a list of door cells we need to cross to get steve in the same room as the given cell '''
-    cell_exit_door = get_exit_door(cell, state)
-    steve_exit_door = get_exit_door(coordinates_to_cell(state.location["pos"]), state)
-    if cell_exit_door==steve_exit_door:
+    cell_room_door = get_room_door(cell, state)
+    steve_room_door = get_room_door(coordinates_to_cell(state.location["pos"]), state)
+    if cell_room_door==steve_room_door or steve_room_door==cell: # Left hand condition for cases where we teleport to a door
         return []
-    if cell_exit_door==Polycraft.DUMMY_DOOR:
-        return [steve_exit_door]
-    if steve_exit_door==Polycraft.DUMMY_DOOR:
-        return [cell_exit_door]
-    return [steve_exit_door, cell_exit_door]
+    if cell_room_door==Polycraft.DUMMY_DOOR:
+        return [steve_room_door]
+    if steve_room_door==Polycraft.DUMMY_DOOR:
+        return [cell_room_door]
+    return [steve_room_door, cell_room_door]
 
 def get_angle_to_adjacent_cell(cell:str, state:PolycraftState):
     ''' Computes the angle between the direction Steve is facing and the given adjacent cell. '''
@@ -327,12 +327,16 @@ def get_novelty_levels_files(level_to_types:dict = None):
     level_to_type = dict()
     non_novelty_levels_root = pathlib.Path(settings.POLYCRAFT_NON_NOVELTY_LEVEL_DIR)
     if level_to_types is None: # Means try all levels and novelties
-        print(3)
         for level_file in os.listdir(non_novelty_levels_root):
             if os.path.isdir(level_file):
                 pattern = NOVELTY_FOLDER_RE.match()
                 if pattern is not None:
-                    g = pattern.groups()
+                    groups = pattern.groups()
+                    assert(len(groups)==3)
+                    level = groups[0]
+                    type = groups[1]
+                    level_set = groups[2]
+
 
 
     levels = []

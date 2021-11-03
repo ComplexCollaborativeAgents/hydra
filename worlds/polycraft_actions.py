@@ -1,6 +1,7 @@
 import math
 
-from worlds.polycraft_interface.client import polycraft_interface as poly
+from worlds.polycraft_interface.client import *
+from worlds.polycraft_interface.client.polycraft_interface import MoveDir
 from worlds.polycraft_world import PolycraftAction, PolycraftState, Polycraft
 
 
@@ -29,6 +30,24 @@ class PolyTP(PolycraftAction):
         self.success = self.is_success(result)
         return result
 
+class PolyMove(PolycraftAction):
+    ''' Move to one of the 8 neighboring cells '''
+    def __init__(self, move_dir:MoveDir, steps=1):
+        super().__init__()
+        self.move_dir = move_dir
+        self.steps = steps
+
+    def __str__(self):
+        return f"<PolyMove move_dir={self.move_dir.name} steps={self.steps} success={self.success}>"
+
+    def do(self, state:PolycraftState, env: Polycraft) -> dict:
+        for i in range(self.steps):
+            response = env.poly_client.MOVE(self.move_dir)
+            if self.is_success(response)==False:
+                self.success=False
+                return response
+        self.success = True
+        return response
 
 class PolyEntityTP(PolycraftAction):
     """ Teleport to a position "dist" away from the entity facing in direction d and with pitch p"""

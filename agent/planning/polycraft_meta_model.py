@@ -17,6 +17,7 @@ class Predicate(enum.Enum):
     ''' Note: the first prameter in the list is needed: otherwise python will merge enum elements. '''
     isAccessible = ["isAccessible", ("?c", PddlType.cell.name)]
     adjacent = ["adjacent", ("?c1", PddlType.cell.name), ("?c2", PddlType.cell.name)]
+
     door_is_accessible = ["door_is_accessible", ("?c", PddlType.door_cell.name)]
     adjacent_to_door = ["adjacent_to_door", ("?c1", PddlType.cell.name), ("?c2", PddlType.door_cell.name)]
     open = ["open", ("?c", PddlType.door_cell.name)]
@@ -25,12 +26,14 @@ class Predicate(enum.Enum):
     safe_is_accessible = ["safe_is_accessible", ("?c", PddlType.safe_cell.name)]
     adjacent_to_safe = ["adjacent_to_safe", ("?c1", PddlType.cell.name), ("?c2", PddlType.safe_cell.name)]
     safe_collected = ["safe_collected", ("?c", PddlType.safe_cell.name)]
+    safe_open = ["safe_open", ("?c", PddlType.safe_cell.name)]
 
 class Function(enum.Enum):
     ''' Note: the first prameter in the list is needed: otherwise python will merge enum elements. '''
     cell_type = ["cell_type", ("?c", PddlType.cell.name)]
     door_cell_type = ["door_cell_type", ("?c", PddlType.door_cell.name)]
     selectedItem = ["selectedItem"]
+
 
 
 ###### PDDL OBJECTS AND FLUENTS
@@ -113,9 +116,10 @@ class PddlGameMapCellType(PolycraftObjectType):
         # Cell adjacency info
         world_state = params["world_state"]
         active_cells = params["active_cells"]
+        known_cells = world_state.get_known_cells()
         for adjacent_cell in get_adjacent_cells(cell_id):
             if adjacent_cell in active_cells:
-                adjacent_cell_type = world_state.game_map[adjacent_cell]["name"]
+                adjacent_cell_type = known_cells[adjacent_cell]["name"]
                 if adjacent_cell_type in [BlockType.BEDROCK.value, BlockType.WOODER_DOOR.value]:
                     continue
                 adjacent_cell_name = PddlGameMapCellType.get_cell_object_name(adjacent_cell)
@@ -145,13 +149,44 @@ class PddlDoorCellType(PddlGameMapCellType):
         # Handle adjacency
         world_state = params["world_state"]
         active_cells = params["active_cells"]
+        known_cells = world_state.get_known_cells()
         for adjacent_cell in get_adjacent_cells(cell_id):
             if adjacent_cell in active_cells:
-                adjacent_cell_type = world_state.game_map[adjacent_cell]["name"]
+                adjacent_cell_type = known_cells[adjacent_cell]["name"]
                 if adjacent_cell_type in [BlockType.BEDROCK.value, BlockType.WOODER_DOOR.value]:
                     continue
                 adjacent_cell_name = PddlGameMapCellType.get_cell_object_name(adjacent_cell)
                 fluent_to_value[(Predicate.adjacent_to_door.name, adjacent_cell_name, cell_name)]=True
+
+        return fluent_to_value
+
+class PddlSafeCellType(PddlGameMapCellType):
+    def __init__(self, type_idx=-1):
+        super().__init__(type_idx, [])
+        self.pddl_type = PddlType.safe_cell.name
+
+    def _compute_obj_fluents(self, obj, params:dict)->dict:
+        ''' Maps fluent_name to fluent_value for all fluents created for this object'''
+        cell_name = self.get_object_name(obj)
+        fluent_to_value = dict()
+
+        (cell_id, cell_attr) = obj
+        for attribute, attribute_value in cell_attr.items():
+            # If attribute is Boolean no need for an "=" sign
+            if attribute == Predicate.isAccessible.name:
+                fluent_to_value[(Predicate.safe_is_accessible.name, cell_name)] = attribute_value
+
+        # Handle adjacency
+        world_state = params["world_state"]
+        active_cells = params["active_cells"]
+        known_cells = world_state.get_known_cells()
+        for adjacent_cell in get_adjacent_cells(cell_id):
+            if adjacent_cell in active_cells:
+                adjacent_cell_type = known_cells[adjacent_cell]["name"]
+                if adjacent_cell_type in [BlockType.BEDROCK.value, BlockType.WOODER_DOOR.value, BlockType.SAFE.value]:
+                    continue
+                adjacent_cell_name = PddlGameMapCellType.get_cell_object_name(adjacent_cell)
+                fluent_to_value[(Predicate.adjacent_to_safe.name, adjacent_cell_name, cell_name)]=True
 
         return fluent_to_value
 
@@ -174,6 +209,15 @@ class Task:
         raise NotImplementedError()
     def get_planner_heuristic(self, world_state:PolycraftState):
         ''' Returns the heuristic to be used by the planner'''
+        raise NotImplementedError()
+    def get_relevant_types(self, world_state:PolycraftState, meta_model):
+        ''' Returns a list of actions for the agent to use when planning '''
+        raise NotImplementedError()
+    def get_relevant_predicates(self, world_state:PolycraftState, meta_model):
+        ''' Returns a list of actions for the agent to use when planning '''
+        raise NotImplementedError()
+    def get_relevant_functions(self, world_state:PolycraftState, meta_model):
+        ''' Returns a list of actions for the agent to use when planning '''
         raise NotImplementedError()
 
 class PolycraftMetaModel(MetaModel):
@@ -200,6 +244,8 @@ class PolycraftMetaModel(MetaModel):
         # Maps a cell type to what we get if we collect from it. The latter is in the form of a pair (item type, quantity).
         self.collect_block_to_outcome = dict()
         self.collect_block_to_outcome[BlockType.TREE_TAP.value] = (ItemType.SACK_POLYISOPRENE_PELLETS.value, 1)
+        self.collect_block_to_outcome[BlockType.PLASTIC_CHEST.value] = (ItemType.KEY.value, 1)
+
 
         # List of cell types that require an iron pickaxe to break
         self.needs_iron_pickaxe = list()
@@ -209,6 +255,7 @@ class PolycraftMetaModel(MetaModel):
         # List of items that one may select
         self.selectable_items = list()
         self.selectable_items.append(ItemType.IRON_PICKAXE.value)
+        self.selectable_items.append(ItemType.KEY.value)
 
         # Assign indices to block types and item types
         self.block_type_to_idx = dict()
@@ -241,11 +288,12 @@ class PolycraftMetaModel(MetaModel):
         pddl_domain.name = "polycraft"
         pddl_domain.requirements = [":typing", ":disjunctive-preconditions", ":fluents", ":time", ":negative-preconditions"]
 
-        for object_type in PddlType:
+        # Add object types
+        for object_type in self.active_task.get_relevant_types(world_state, self):
             pddl_domain.types.append(object_type.name)
 
         # Add predicates
-        for predicate in Predicate:
+        for predicate in self.active_task.get_relevant_predicates(world_state,self):
             predicate_as_list = [predicate.name]
             for (param_name, param_type) in predicate.value[1:]:
                 predicate_as_list.extend([param_name,"-", param_type])
@@ -255,7 +303,7 @@ class PolycraftMetaModel(MetaModel):
             pddl_domain.predicates.append([f"trader_{trader_id}_at", "?c", "-", "cell"])
 
         # Add functions
-        for function in Function:
+        for function in self.active_task.get_relevant_functions(world_state, self):
             function_as_list = [function.name]
             for (param_name, param_type) in function.value[1:]:
                 function_as_list.extend([param_name,"-", param_type])
@@ -322,7 +370,8 @@ class PolycraftMetaModel(MetaModel):
     def _should_ignore_cell(self, cell:str, world_state:PolycraftState):
         ''' An optimization step: identify cells that are not needed for the problem solving '''
         cell_types_to_ignore = [BlockType.BEDROCK.value]
-        type_str = world_state.game_map[cell]['name']
+        known_cells = world_state.get_known_cells()
+        type_str = known_cells[cell]['name']
         if type_str in cell_types_to_ignore:
             return True
 
@@ -338,8 +387,8 @@ class PolycraftMetaModel(MetaModel):
         # Ignore air cell that all its neighbors are also air cells
         all_neighbors_air = True
         for neighbor_cell in get_adjacent_cells(cell):
-            if neighbor_cell in world_state.game_map:
-                neighbor_type = world_state.game_map[neighbor_cell]['name']
+            if neighbor_cell in known_cells:
+                neighbor_type = known_cells[neighbor_cell]['name']
                 if neighbor_type!=BlockType.AIR.value:
                     all_neighbors_air=False
                     break
@@ -363,8 +412,9 @@ class PolycraftMetaModel(MetaModel):
         problem_params["world_state"]= world_state
 
         # For efficiency reasons, we consider only a subset of the cells in the map
+        known_cells = world_state.get_known_cells()
         active_cells = list()
-        for cell, cell_attr in world_state.game_map.items():
+        for cell, cell_attr in known_cells.items():
             # Pruning cells to gain efficiency
             if self._should_ignore_cell(cell, world_state)==False:
                 active_cells.append(cell)
@@ -372,13 +422,15 @@ class PolycraftMetaModel(MetaModel):
 
         # Add fluents for the active game map cells to the problem
         for cell in active_cells:
-            cell_attr = world_state.game_map[cell]
+            cell_attr = known_cells[cell]
             type_str = cell_attr['name']
             if type_str not in self.block_type_to_idx:
                 logger.info("Unknown game map cell type: %s" % type_str)
                 type = PddlGameMapCellType(type_idx=-1)
             elif type_str == BlockType.WOODER_DOOR.value:
                 type = PddlDoorCellType(type_idx=self.block_type_to_idx[type_str])
+            elif type_str == BlockType.SAFE.value:
+                type = PddlSafeCellType(type_idx=self.block_type_to_idx[type_str])
             else:
                 type = PddlGameMapCellType(type_idx=self.block_type_to_idx[type_str])
             type.add_object_to_pddl((cell, cell_attr), pddl_problem, problem_params)

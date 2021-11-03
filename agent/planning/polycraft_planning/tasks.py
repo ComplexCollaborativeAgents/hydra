@@ -6,6 +6,17 @@ from worlds.polycraft_actions import PolySelectItem, PolyPlaceTreeTap, PolyCraft
 
 class CreatePogoTask(Task):
     ''' A task that the polycraft agent can aim to do '''
+    def get_relevant_types(self, world_state:PolycraftState, meta_model):
+        ''' Returns a list of actions for the agent to use when planning '''
+        return [PddlType.cell]
+    def get_relevant_predicates(self, world_state:PolycraftState, meta_model):
+        ''' Returns a list of actions for the agent to use when planning '''
+        return [Predicate.isAccessible,
+                Predicate.adjacent]
+    def get_relevant_functions(self, world_state:PolycraftState, meta_model):
+        ''' Returns a list of actions for the agent to use when planning '''
+        return [Function.cell_type, Function.selectedItem]
+
     def create_relevant_actions(self, world_state:PolycraftState, meta_model:PolycraftMetaModel):
         pddl_actions = []
         pddl_actions.append(PddlPlaceTreeTapAction())
@@ -48,7 +59,7 @@ class CreatePogoTask(Task):
         return[['>', [f"count_{ItemType.WOODEN_POGO_STICK.value}",], "0"]]
 
     def create_relevant_events(self, world_state:PolycraftState, meta_model:PolycraftMetaModel):
-        return [CellAccessibleEvent(), DoorAccessibleEvent()]
+        return [CellAccessibleEvent()]
 
     def get_metric(self, world_state:PolycraftState, meta_model:PolycraftMetaModel):
         return 'minimize(total-time)'
@@ -59,31 +70,101 @@ class CreatePogoTask(Task):
 class ExploreDoorTask(CreatePogoTask):
     def __init__(self, door_cell:str=None):
         self.door_cell = door_cell
+
+    def get_relevant_types(self, world_state:PolycraftState, meta_model):
+        ''' Returns a list of actions for the agent to use when planning '''
+        return [PddlType.cell, PddlType.door_cell]
+    def get_relevant_predicates(self, world_state:PolycraftState, meta_model):
+        ''' Returns a list of actions for the agent to use when planning '''
+        return [Predicate.isAccessible,
+                Predicate.adjacent,
+                Predicate.door_is_accessible,
+                Predicate.adjacent_to_door,
+                Predicate.open,
+                Predicate.passed_door]
+
+    def get_relevant_functions(self, world_state:PolycraftState, meta_model):
+        ''' Returns a list of actions for the agent to use when planning '''
+        return [Function.cell_type,
+                Function.selectedItem,
+                Function.door_cell_type]
+
     def get_goals(self, world_state:PolycraftState, meta_model:PolycraftMetaModel):
         return [[Predicate.passed_door.name, PddlGameMapCellType.get_cell_object_name(self.door_cell)]]
+
     def get_planner_heuristic(self, world_state:PolycraftState, meta_model:PolycraftMetaModel):
         ''' Returns the heuristic to be used by the planner'''
         return OpenDoorHeuristic(self.door_cell)
+
     def create_relevant_actions(self, world_state:PolycraftState, meta_model:PolycraftMetaModel):
         action_generators = super().create_relevant_actions(world_state, meta_model)
         action_generators.extend([PddlMoveThroughDoorAction(),
                                   PddlUseDoorAction()])
         return action_generators
 
+    def create_relevant_events(self, world_state:PolycraftState, meta_model:PolycraftMetaModel):
+        return [CellAccessibleEvent(),DoorAccessibleEvent()]
+
 class CollectFromSafeTask(CreatePogoTask):
     ''' Task includes obtaining a key if none exists, going to the safe, opening it with the key and collecting what's in'''
     def __init__(self, safe_cell:str):
         self.safe_cell = safe_cell
+
     def get_goals(self, world_state:PolycraftState, meta_model:PolycraftMetaModel):
-        return [[Predicate.passed_door.name, PddlGameMapCellType.get_cell_object_name(self.door_cell)]]
+        return [[Predicate.safe_collected.name, PddlGameMapCellType.get_cell_object_name(self.safe_cell)]]
+
+    def get_relevant_types(self, world_state:PolycraftState, meta_model):
+        ''' Returns a list of actions for the agent to use when planning '''
+        return [PddlType.cell, PddlType.safe_cell]
+
+    def get_relevant_predicates(self, world_state:PolycraftState, meta_model):
+        ''' Returns a list of actions for the agent to use when planning '''
+        return [Predicate.isAccessible,
+                Predicate.adjacent,
+                Predicate.safe_is_accessible,
+                Predicate.adjacent_to_safe,
+                Predicate.safe_collected,
+                Predicate.safe_open]
+
+    def get_relevant_functions(self, world_state:PolycraftState, meta_model):
+        ''' Returns a list of actions for the agent to use when planning '''
+        return [Function.cell_type, Function.selectedItem]
+
     def get_planner_heuristic(self, world_state:PolycraftState, meta_model:PolycraftMetaModel):
         ''' Returns the heuristic to be used by the planner'''
-        return OpenDoorHeuristic(self.door_cell)
+        return CollectFromSafeHeuristic(self.safe_cell)
+
     def create_relevant_actions(self, world_state:PolycraftState, meta_model:PolycraftMetaModel):
-        action_generators = super().create_relevant_actions(world_state, meta_model)
-        action_generators.extend([PddlMoveThroughDoorAction(),
-                                  PddlUseDoorAction()])
-        return action_generators
+        pddl_actions = []
+        for item_type in meta_model.selectable_items:
+            pddl_actions.append(PddlSelectAction(item_type=item_type))
+
+        # Add blocks to break and get items
+        for block_type, outcome in meta_model.break_block_to_outcome.items():
+            item_type = outcome[0]
+            quantity = outcome[1]
+            if block_type in meta_model.needs_iron_pickaxe:
+                needs_iron_pickaxe = True
+            else:
+                needs_iron_pickaxe = False
+            pddl_actions.append(PddlBreakAction(block_type, item_type, quantity,
+                                                needs_iron_pickaxe=needs_iron_pickaxe))
+
+        # Add collect item to outcome
+        for block_type, outcome in meta_model.collect_block_to_outcome.items():
+            item_type = outcome[0]
+            quantity = outcome[1]
+            pddl_actions.append(PddlCollectAction(block_type, item_type, quantity))
+
+        pddl_actions.append(PddlOpenSafeAndCollect())
+
+    def get_goals(self, world_state:PolycraftState, meta_model:PolycraftMetaModel):
+        return ([[f"{Predicate.safe_collected.name}",]])
+    def create_relevant_events(self, world_state:PolycraftState, meta_model:PolycraftMetaModel):
+        return [CellAccessibleEvent(), SafeAccessibleEvent()]
+    def get_metric(self, world_state:PolycraftState, meta_model:PolycraftMetaModel):
+        return 'minimize(total-time)'
+
 
 
 class MakeCellAccessibleTask(CreatePogoTask):
@@ -143,6 +224,16 @@ class OpenDoorHeuristic(AbstractHeuristic):
             return 2
         else:
             return 3 # Can improve this
+
+class CollectFromSafeHeuristic(AbstractHeuristic):
+    ''' Heuristic for polycraft to be used by the Nyx planner when solving an collect from safe task'''
+    def __init__(self, safe_cell:str):
+        super().__init__()
+        self.safe_cell = safe_cell
+
+    def evaluate(self, node):
+        return 0 # TODO: IMPROVE THIS
+
 
 class MakeCellAccessibleHeuristic(AbstractHeuristic):
     ''' Heuristic for polycraft to be used by the Nyx planner when solving an open door task'''
@@ -354,6 +445,25 @@ class PddlUseDoorAction(PddlPolycraftAction):
     def to_polycraft(self, parameter_binding: dict) -> PolycraftAction:
         return OpenDoor(parameter_binding["?c"])
 
+class PddlOpenSafeAndCollect(PddlPolycraftAction):
+    ''' An action generator for opening a safe and collecting it '''
+    def __init__(self):
+        super().__init__(f"open_safe_and_collect")
+
+    def to_pddl(self, meta_model: MetaModel) -> PddlPlusWorldChange:
+        pddl_action = PddlPlusWorldChange(WorldChangeTypes.action)
+        pddl_action.name = self.pddl_name
+        pddl_action.parameters.append(["?c", "-", PddlType.safe_cell.name])
+
+        pddl_action.preconditions.append([Predicate.safe_is_accessible.name, "?c"])
+        pddl_action.preconditions.append([">=", [f"count_{ItemType.KEY.name}"], "1"])
+        pddl_action.effects.append([Predicate.safe_collected.name, "?c"])
+
+        return pddl_action
+
+    def to_polycraft(self, parameter_binding: dict) -> PolycraftAction:
+        return OpenSafeAndCollect(parameter_binding["?c"])
+
 
 class PddlTradeAction(PddlPolycraftAction):
     ''' An action for trading an item with a trader
@@ -435,6 +545,19 @@ class DoorAccessibleEvent(PddlPolycraftEvent):
         pddl_event.effects.append([Predicate.door_is_accessible.name, "?c2"])
         return pddl_event
 
+class SafeAccessibleEvent(PddlPolycraftEvent):
+    def to_pddl(self, meta_model: MetaModel):
+        pddl_event = PddlPlusWorldChange(WorldChangeTypes.event)
+        pddl_event.name = "safe_accessible"
+        pddl_event.parameters.append(["?c1","-", PddlType.cell.name,
+                                      "?c2", "-", PddlType.safe_cell.name])
+        pddl_event.preconditions.append([Predicate.isAccessible.name, "?c1"])
+        pddl_event.preconditions.append(["not", [Predicate.safe_is_accessible.name, "?c2"]])
+        air_idx = meta_model.block_type_to_idx[BlockType.AIR.value]
+        pddl_event.preconditions.append(["=", [Function.cell_type.name, "?c1"], f"{air_idx}"])
+        pddl_event.preconditions.append([Predicate.adjacent_to_safe.name, "?c1", "?c2"])
+        pddl_event.effects.append([Predicate.safe_is_accessible.name, "?c2"])
+        return pddl_event
 
 class PddlCraftAction(PddlPolycraftAction):
     ''' An action for crafting an item
@@ -522,7 +645,7 @@ class PddlMoveThroughDoorAction(PddlPolycraftAction):
         return pddl_action
 
     def to_polycraft(self, parameter_binding: dict) -> PolycraftAction:
-        return PolyMoveThroughDoor(parameter_binding["?cell"])
+        return MoveThroughDoor(parameter_binding["?cell"])
 
 class PolycraftTask(enum.Enum):
     ''' The types of tasks this meta model object supports '''

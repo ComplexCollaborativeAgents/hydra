@@ -86,10 +86,18 @@ class PolycraftState(State):
         self.recipes = recipes
         self.trades = trades
 
+    def get_known_cells(self)->dict:
+        ''' Returns a game-map-like dictionary containing all the cells from all the rooms '''
+        cell_to_attr = dict()
+        for door, room_cells in self.door_to_room_cells.items():
+            for cell, cell_attr in room_cells.items():
+                cell_to_attr[cell]=cell_attr
+        return cell_to_attr
+
     def get_cells_of_type(self, item_type: str, only_accessible=False):
         ''' returns a list of cells that are of the given type '''
         cells = []
-        for cell, cell_attr in self.game_map.items():
+        for cell, cell_attr in self.get_known_cells().items():
             if cell_attr["name"] == item_type:
                 if only_accessible and cell_attr['isAccessible'] == False:
                     continue
@@ -100,18 +108,10 @@ class PolycraftState(State):
         return "< Step: {} | Action Cost: {} | Location: {} | Inventory: {} >".format(self.step_num, self.step_cost,
                                                                                       self.location, self.inventory)
 
-    def get_block_at(self, x: int, y: int, z: int) -> tuple:
-        """ Helper function to get info of a block at coordinates xyz from the game map (type, accessibility) """
-        coord_str = "{},{},{}".format(x, y, z)
-        if coord_str not in self.game_map:
-            return None, None
-
-        return self.game_map[coord_str]["name"], self.game_map["isAccesible"]
-
     def get_type_to_cells(self):
         ''' Returns a dictionary of cell type to the list of cells of that type '''
         type_to_cells = dict()
-        for cell, cell_attr in self.game_map.items():
+        for cell, cell_attr in self.get_known_cells():
             cell_type = cell_attr["name"]
             if cell_type not in type_to_cells:
                 type_to_cells[cell_type] = list()
@@ -576,18 +576,13 @@ class Polycraft(World):
         try:
             sensed = self.poly_client.SENSE_ALL()
 
-            # Update game map knowledge with the sensed knowledge (note: sense only returns the game map for the current room)
+            # Update game map knowledge with the sensed knowledge (note: SENSE_ALL only returns the game map for the current room)
+            # Note: this will only update cells already explored. The action ExploreDoor should be used to explore new doors
             sensed_game_map = sensed['map']
-            doors = [cell_id for cell_id, cell_attr in sensed_game_map.items() if cell_attr["name"]==BlockType.WOODER_DOOR.value]
             for cell_id, cell_attr in sensed_game_map.items():
-                known_cell = False
                 for door_cell_id, room_game_map in self.door_to_room_cells.items():
                     if cell_id in room_game_map:
-                        known_cell = True
                         room_game_map[cell_id] = cell_attr
-                if known_cell == False:
-                    for door_cell in doors:
-                        self.door_to_room_cells[door_cell][cell_id]=cell_attr
 
             id = sensed['step']
             facing_block = sensed['blockInFront']

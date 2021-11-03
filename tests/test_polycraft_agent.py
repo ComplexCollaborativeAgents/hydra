@@ -28,20 +28,8 @@ def launch_polycraft():
     logger.info("teardown tests")
     env.kill()
 
-@pytest.mark.parametrize('execution_number', range(3))
-def test_debug(launch_polycraft, execution_number):
-    ''' A bug in which an accessible trader is not accessible'''
-    bug_level = "POGO_L00_T01_S01_X0100_U9999_V0_G00066_I0066_N0"
-    levels = get_non_novelty_levels_files()
-    test_level = [level for level in levels if bug_level in level.name][0]
 
-    env, agent, levels = launch_polycraft
-    logger.info(f"Loading level {test_level}...")
-    env.init_selected_level(test_level)
-    agent.start_level(env)  # Collect trades and recipes
-    assert(True)
-
-@pytest.mark.parametrize('execution_number', range(100))
+@pytest.mark.parametrize('execution_number', range(1))
 def test_fixed_planner(launch_polycraft, execution_number):
     ''' Run the fixed planner and observe results '''
     env, agent, levels = launch_polycraft
@@ -102,12 +90,16 @@ def test_expore_door(launch_polycraft, execution_number):
     meta_model = PolycraftMetaModel(active_task=open_door_task)
     agent.set_meta_model(meta_model)
     max_iterations = 5
-    old_num_of_known_cells = len(state.game_map)
+
+    assert(len(state.door_to_room_cells[door_cell])==1)
+    for door, cells in state.door_to_room_cells.items():
+        if door!=Polycraft.DUMMY_DOOR:
+            assert(len(cells)==1)
+
     for i in range(max_iterations):
         action = agent.choose_action(state)
         state, _ = agent.do(action, env)
-        new_num_of_known_cells = len(state.game_map)
-        if new_num_of_known_cells > old_num_of_known_cells:
+        if len(state.door_to_room_cells[door_cell]) > 1:
             return
     assert(False)
 

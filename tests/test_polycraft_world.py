@@ -1,3 +1,5 @@
+import random
+
 import pytest
 from tests.test_polycraft import launch_polycraft
 from agent.planning.polycraft_planning.fixed_planner import CollectAndMineItem
@@ -276,8 +278,8 @@ def test_mine_diamonds(launch_polycraft: Polycraft, execution_number):
     state = after_state
 
     # Mine
-    diamond_cells = state.get_cells_of_type(BlockType.DIAMOND_ORE.value, only_accessible=True)
     mined_diamonds = 0
+    diamond_cells = state.get_cells_of_type(BlockType.DIAMOND_ORE.value, only_accessible=True)
     current_diamonds_in_inventory = len(state.get_inventory_entries_of_type(ItemType.DIAMOND.value))
     assert(current_diamonds_in_inventory==0)
     while current_diamonds_in_inventory<9 and len(diamond_cells)>0:
@@ -471,7 +473,7 @@ def test_open_door(launch_polycraft: Polycraft, execution_number):
     assert(agent.current_observation.actions[-1].success==True)
     assert(state.game_map[door]["open"]=='true')
 
-    state, step_cost = agent.do(PolyMoveThroughDoor(door),env)
+    state, step_cost = agent.do(MoveThroughDoor(door), env)
     assert(agent.current_observation.actions[-1].success == True)
 
 def test_open_safe(launch_polycraft: Polycraft):
@@ -495,7 +497,8 @@ def test_open_safe(launch_polycraft: Polycraft):
     action = OpenDoor(door)
     state, step_cost = agent.do(action, env)
     assert(action.success)
-    action = PolyMoveThroughDoor(door)
+
+    action = MoveThroughDoor(door)
     state, step_cost = agent.do(action, env)
     assert(action.success)
 
@@ -513,46 +516,49 @@ def test_open_safe(launch_polycraft: Polycraft):
     assert(action.success)
     assert(state.count_items_of_type(ItemType.DIAMOND.value)>10)
 
-
-
 def test_move_between_rooms(launch_polycraft: Polycraft):
     ''' test getting the key from the plastic chest and opening the bigger chest '''
     env = launch_polycraft
     agent, state = _setup_env(env, TEST_LEVEL)
 
-    # Open door and move through it
+    # Open door and
     door_cells = state.get_cells_of_type(BlockType.WOODER_DOOR.value, only_accessible=True)
     door = door_cells[0]
     action = OpenDoor(door)
     state, step_cost = agent.do(action, env)
     assert(action.success)
-    action = PolyMoveThroughDoor(door)
+
+    assert (len(state.door_to_room_cells[door]) == 1)
+
+    # move through it
+    action = MoveThroughDoor(door)
     state, step_cost = agent.do(action, env)
     assert(action.success)
+    state = env.get_current_state()
+    assert(len(state.door_to_room_cells[door])>0)
+    assert(len(state.game_map)!=len(state.door_to_room_cells[Polycraft.DUMMY_DOOR]))
+    not_door_cells_in_room = state.get_cells_of_type(BlockType.AIR.value, only_accessible=True)
+    cell_in_room = random.choice(not_door_cells_in_room)
 
-    # Get key from chest
-    chest_cells = state.get_cells_of_type(BlockType.PLASTIC_CHEST.value, only_accessible=True)
-    assert (len(chest_cells) > 0)
-    chest_cell = chest_cells[0]
-
-    action = TeleportToAndCollect(chest_cell)
+    # move out from it
+    action = MoveThroughDoor(door)
     state, step_cost = agent.do(action, env)
     assert(action.success)
-    assert(state.count_items_of_type(ItemType.KEY.value)>0)
+    assert(len(state.game_map)==len(state.door_to_room_cells[Polycraft.DUMMY_DOOR]))
 
-    # Open open safe
-    safe_cells = state.get_cells_of_type(BlockType.SAFE.value, only_accessible=True)
-    assert(len(safe_cells)>0)
-    cell = safe_cells[0]
-    action = TeleportToAndUse(cell, ItemType.KEY.value)
+    # choose cell in one room and teleport to a cell in the other room
+    not_door_cells = state.get_cells_of_type(BlockType.AIR.value, only_accessible=True)
+    cell_in_main_area = random.choice(not_door_cells)
+    action = TeleportAndFaceCell(cell_in_main_area)
     state, step_cost = agent.do(action, env)
-    # assert(action.success)
-    assert(state.game_map[cell]["open"].upper()=="TRUE")
+    assert (compute_cell_distance(state.location["pos"], cell_to_coordinates(cell_in_main_area)) < 2)
 
-    # Collect what's in the safe
-    action = TeleportToAndCollect(cell)
+    # Teleport to a cell in the room
+    action = TeleportAndFaceCell(cell_in_room)
     state, step_cost = agent.do(action, env)
-    assert(action.success)
+    assert (action.success)
+    assert(state.location["pos"])
+    assert(compute_cell_distance(state.location["pos"], cell_to_coordinates(cell_in_room))<2)
 
 
 # TODO: Obs file need to be re-created
