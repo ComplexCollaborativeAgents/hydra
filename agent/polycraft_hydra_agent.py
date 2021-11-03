@@ -153,7 +153,7 @@ class PolycraftPlanner(HydraPlanner):
     def extract_actions_from_plan_trace(self, plane_trace_file: str):
         ''' Parses the given plan trace file and outputs the plan '''
         pddl_action_names = [action.name for action in self.pddl_domain.actions]
-        action_generators = self.meta_model.create_action_generators(self.initial_state)
+        action_generators = self.meta_model.get_action_generators(self.initial_state)
         plan_actions = []
         with open(plane_trace_file) as plan_trace_file:
             for i, line in enumerate(plan_trace_file):

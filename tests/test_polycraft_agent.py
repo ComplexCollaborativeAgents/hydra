@@ -68,6 +68,27 @@ def test_pddl_planner(launch_polycraft, execution_number):
 
 
 @pytest.mark.parametrize('execution_number', range(1))
+def test_pddl_planner_on_novelty_levels(launch_polycraft, execution_number):
+    ''' Run the fixed planner and observe results '''
+    env, agent, levels = launch_polycraft
+
+    levels = get_novelty_levels_files()
+    test_level = levels[execution_number % len(levels)]  # Choose the level to try now
+
+    logger.info(f"Loading level {test_level}...")
+    env.init_selected_level(test_level)
+    agent.start_level(env)  # Collect trades and recipes
+    state = env.get_current_state()
+
+    assert(state.terminal==False)
+    max_iterations = 30
+    state, step_cost = agent.do_batch(max_iterations, state, env)
+
+    assert(state.count_items_of_type(ItemType.WOODEN_POGO_STICK.value)>0)
+    logger.info("Pogo stick created !!!!")
+
+
+@pytest.mark.parametrize('execution_number', range(1))
 def test_expore_door(launch_polycraft, execution_number):
     ''' Test finding a plan to open the door and opening it '''
     env, agent, levels = launch_polycraft

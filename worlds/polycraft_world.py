@@ -111,7 +111,7 @@ class PolycraftState(State):
     def get_type_to_cells(self):
         ''' Returns a dictionary of cell type to the list of cells of that type '''
         type_to_cells = dict()
-        for cell, cell_attr in self.get_known_cells():
+        for cell, cell_attr in self.get_known_cells().items():
             cell_type = cell_attr["name"]
             if cell_type not in type_to_cells:
                 type_to_cells[cell_type] = list()

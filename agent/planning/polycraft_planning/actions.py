@@ -356,7 +356,7 @@ class TeleportToTraderAndTrade(TeleportToAndDo):
     def _get_next_action(self, state:PolycraftState, env: Polycraft)->PolycraftAction:
         trader_obj = state.entities[self.trader_id]
         self.cell = coordinates_to_cell(trader_obj["pos"])
-        return super()._get_next_action()
+        return super()._get_next_action(state, env)
 
 
 class CreateByRecipe(MacroAction):

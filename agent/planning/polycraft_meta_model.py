@@ -28,12 +28,25 @@ class Predicate(enum.Enum):
     safe_collected = ["safe_collected", ("?c", PddlType.safe_cell.name)]
     safe_open = ["safe_open", ("?c", PddlType.safe_cell.name)]
 
+    def to_pddl(self)->list:
+        ''' Returns this predicate in a list format as expected by the pddl domain object '''
+        predicate_as_list = [self.name]
+        for (param_name, param_type) in self.value[1:]:
+            predicate_as_list.extend([param_name, "-", param_type])
+        return predicate_as_list
+
 class Function(enum.Enum):
     ''' Note: the first prameter in the list is needed: otherwise python will merge enum elements. '''
     cell_type = ["cell_type", ("?c", PddlType.cell.name)]
     door_cell_type = ["door_cell_type", ("?c", PddlType.door_cell.name)]
     selectedItem = ["selectedItem"]
 
+    def to_pddl(self)->list:
+        ''' Returns this function in a list format as expected by the pddl domain object '''
+        function_as_list = [self.name]
+        for (param_name, param_type) in self.value[1:]:
+            function_as_list.extend([param_name, "-", param_type])
+        return function_as_list
 
 
 ###### PDDL OBJECTS AND FLUENTS
@@ -120,7 +133,7 @@ class PddlGameMapCellType(PolycraftObjectType):
         for adjacent_cell in get_adjacent_cells(cell_id):
             if adjacent_cell in active_cells:
                 adjacent_cell_type = known_cells[adjacent_cell]["name"]
-                if adjacent_cell_type in [BlockType.BEDROCK.value, BlockType.WOODER_DOOR.value]:
+                if adjacent_cell_type in [BlockType.BEDROCK.value, BlockType.WOODER_DOOR.value, BlockType.SAFE.value]:
                     continue
                 adjacent_cell_name = PddlGameMapCellType.get_cell_object_name(adjacent_cell)
                 fluent_to_value[(Predicate.adjacent.name, cell_name, adjacent_cell_name)]=True
@@ -220,6 +233,10 @@ class Task:
         ''' Returns a list of actions for the agent to use when planning '''
         raise NotImplementedError()
 
+    def get_type_for_cell(self, cell_attr, meta_model)->PddlGameMapCellType:
+        ''' Return a PddlGameMapCellType appropriate to generate objects representing this game map cell'''
+        raise NotImplementedError()
+
 class PolycraftMetaModel(MetaModel):
 
     ''' Sets the default meta-model'''
@@ -293,40 +310,29 @@ class PolycraftMetaModel(MetaModel):
             pddl_domain.types.append(object_type.name)
 
         # Add predicates
-        for predicate in self.active_task.get_relevant_predicates(world_state,self):
-            predicate_as_list = [predicate.name]
-            for (param_name, param_type) in predicate.value[1:]:
-                predicate_as_list.extend([param_name,"-", param_type])
+        for predicate_as_list in self.active_task.get_relevant_predicates(world_state,self):
             pddl_domain.predicates.append(predicate_as_list)
 
-        for trader_id in set(world_state.trades.keys()):
-            pddl_domain.predicates.append([f"trader_{trader_id}_at", "?c", "-", "cell"])
-
         # Add functions
-        for function in self.active_task.get_relevant_functions(world_state, self):
-            function_as_list = [function.name]
-            for (param_name, param_type) in function.value[1:]:
-                function_as_list.extend([param_name,"-", param_type])
+        for function_as_list in self.active_task.get_relevant_functions(world_state, self):
             pddl_domain.functions.append(function_as_list)
 
         for item in self.item_type_to_idx:
             pddl_domain.functions.append([f"count_{item}",])
 
         # Add actions
-        for action_generator in self.create_action_generators(world_state):
+        for action_generator in self.get_action_generators(world_state):
             pddl_domain.actions.append(action_generator.to_pddl(self))
 
         # Add events
-        for event_generator in self.create_event_generators(world_state):
+        for event_generator in self.active_task.create_relevant_events(world_state, self):
             pddl_domain.events.append(event_generator.to_pddl(self))
 
         self._convert_polycraft_naming_in_domain(pddl_domain)
         return pddl_domain
 
-    def create_action_generators(self, initial_state: PolycraftState):
-        return self.active_task.create_relevant_actions(initial_state, self)
-    def create_event_generators(self, initial_state: PolycraftState):
-        return self.active_task.create_relevant_events(initial_state, self)
+    def get_action_generators(self, state):
+        return self.active_task.create_relevant_actions(state, self)
 
     def _convert_polycraft_naming_in_domain(self, pddl_domain:PddlPlusDomain):
         ''' Change the elements in the domain so that they fit the pddl convention of not using ":" '''
@@ -423,16 +429,7 @@ class PolycraftMetaModel(MetaModel):
         # Add fluents for the active game map cells to the problem
         for cell in active_cells:
             cell_attr = known_cells[cell]
-            type_str = cell_attr['name']
-            if type_str not in self.block_type_to_idx:
-                logger.info("Unknown game map cell type: %s" % type_str)
-                type = PddlGameMapCellType(type_idx=-1)
-            elif type_str == BlockType.WOODER_DOOR.value:
-                type = PddlDoorCellType(type_idx=self.block_type_to_idx[type_str])
-            elif type_str == BlockType.SAFE.value:
-                type = PddlSafeCellType(type_idx=self.block_type_to_idx[type_str])
-            else:
-                type = PddlGameMapCellType(type_idx=self.block_type_to_idx[type_str])
+            type = self.active_task.get_type_for_cell(cell_attr, self)
             type.add_object_to_pddl((cell, cell_attr), pddl_problem, problem_params)
 
         # Add inventory items

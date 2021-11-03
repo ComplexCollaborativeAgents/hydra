@@ -11,11 +11,16 @@ class CreatePogoTask(Task):
         return [PddlType.cell]
     def get_relevant_predicates(self, world_state:PolycraftState, meta_model):
         ''' Returns a list of actions for the agent to use when planning '''
-        return [Predicate.isAccessible,
-                Predicate.adjacent]
+        predicates = [Predicate.isAccessible.to_pddl(),
+                      Predicate.adjacent.to_pddl()]
+
+        for trader_id in set(world_state.trades.keys()):
+            predicates.append([f"trader_{trader_id}_at", "?c", "-", "cell"])
+        return predicates
+
     def get_relevant_functions(self, world_state:PolycraftState, meta_model):
         ''' Returns a list of actions for the agent to use when planning '''
-        return [Function.cell_type, Function.selectedItem]
+        return [Function.cell_type.to_pddl(), Function.selectedItem.to_pddl()]
 
     def create_relevant_actions(self, world_state:PolycraftState, meta_model:PolycraftMetaModel):
         pddl_actions = []
@@ -37,9 +42,12 @@ class CreatePogoTask(Task):
 
         # Add collect item to outcome
         for block_type, outcome in meta_model.collect_block_to_outcome.items():
+            if block_type==BlockType.TREE_TAP.value:
+                continue # Special treatment to collecting from tree tap
             item_type = outcome[0]
             quantity = outcome[1]
             pddl_actions.append(PddlCollectAction(block_type, item_type, quantity))
+        pddl_actions.append(PddlCollectFromTreeTapAction())
 
         # Add recipes
         for recipe_idx, recipe in enumerate(world_state.recipes):
@@ -54,6 +62,15 @@ class CreatePogoTask(Task):
             for trade_idx, trade in enumerate(trades):
                 pddl_actions.append(PddlTradeAction(trader_id, trade_idx, trade))
         return pddl_actions
+
+    def get_type_for_cell(self, cell_attr, meta_model) -> PddlGameMapCellType:
+        ''' Return a PddlGameMapCellType appropriate to generate objects representing this game map cell'''
+        type_str = cell_attr['name']
+        if type_str not in meta_model.block_type_to_idx:
+            logger.info("Unknown game map cell type: %s" % type_str)
+            return PddlGameMapCellType(type_idx=-1)
+        else:
+            return PddlGameMapCellType(type_idx=meta_model.block_type_to_idx[type_str])
 
     def get_goals(self, world_state:PolycraftState, meta_model:PolycraftMetaModel):
         return[['>', [f"count_{ItemType.WOODEN_POGO_STICK.value}",], "0"]]
@@ -76,18 +93,18 @@ class ExploreDoorTask(CreatePogoTask):
         return [PddlType.cell, PddlType.door_cell]
     def get_relevant_predicates(self, world_state:PolycraftState, meta_model):
         ''' Returns a list of actions for the agent to use when planning '''
-        return [Predicate.isAccessible,
-                Predicate.adjacent,
-                Predicate.door_is_accessible,
-                Predicate.adjacent_to_door,
-                Predicate.open,
-                Predicate.passed_door]
+        return [Predicate.isAccessible.to_pddl(),
+                Predicate.adjacent.to_pddl(),
+                Predicate.door_is_accessible.to_pddl(),
+                Predicate.adjacent_to_door.to_pddl(),
+                Predicate.open.to_pddl(),
+                Predicate.passed_door.to_pddl()]
 
     def get_relevant_functions(self, world_state:PolycraftState, meta_model):
         ''' Returns a list of actions for the agent to use when planning '''
-        return [Function.cell_type,
-                Function.selectedItem,
-                Function.door_cell_type]
+        return [Function.cell_type.to_pddl(),
+                Function.selectedItem.to_pddl(),
+                Function.door_cell_type.to_pddl()]
 
     def get_goals(self, world_state:PolycraftState, meta_model:PolycraftMetaModel):
         return [[Predicate.passed_door.name, PddlGameMapCellType.get_cell_object_name(self.door_cell)]]
@@ -105,6 +122,17 @@ class ExploreDoorTask(CreatePogoTask):
     def create_relevant_events(self, world_state:PolycraftState, meta_model:PolycraftMetaModel):
         return [CellAccessibleEvent(),DoorAccessibleEvent()]
 
+    def get_type_for_cell(self, cell_attr, meta_model) -> PddlGameMapCellType:
+        ''' Return a PddlGameMapCellType appropriate to generate objects representing this game map cell'''
+        type_str = cell_attr['name']
+        if type_str not in meta_model.block_type_to_idx:
+            logger.info("Unknown game map cell type: %s" % type_str)
+            return PddlGameMapCellType(type_idx=-1)
+        elif type_str==meta_model.block_type_to_idx[BlockType.WOODER_DOOR.value]:
+            return PddlDoorCellType(type_idx=meta_model.block_type_to_idx[type_str])
+        else:
+            return PddlGameMapCellType(type_idx=meta_model.block_type_to_idx[type_str])
+
 class CollectFromSafeTask(CreatePogoTask):
     ''' Task includes obtaining a key if none exists, going to the safe, opening it with the key and collecting what's in'''
     def __init__(self, safe_cell:str):
@@ -119,16 +147,16 @@ class CollectFromSafeTask(CreatePogoTask):
 
     def get_relevant_predicates(self, world_state:PolycraftState, meta_model):
         ''' Returns a list of actions for the agent to use when planning '''
-        return [Predicate.isAccessible,
-                Predicate.adjacent,
-                Predicate.safe_is_accessible,
-                Predicate.adjacent_to_safe,
-                Predicate.safe_collected,
-                Predicate.safe_open]
+        return [Predicate.isAccessible.to_pddl(),
+                Predicate.adjacent.to_pddl(),
+                Predicate.safe_is_accessible.to_pddl(),
+                Predicate.adjacent_to_safe.to_pddl(),
+                Predicate.safe_collected.to_pddl(),
+                Predicate.safe_open.to_pddl()]
 
     def get_relevant_functions(self, world_state:PolycraftState, meta_model):
         ''' Returns a list of actions for the agent to use when planning '''
-        return [Function.cell_type, Function.selectedItem]
+        return [Function.cell_type.to_pddl(), Function.selectedItem.to_pddl()]
 
     def get_planner_heuristic(self, world_state:PolycraftState, meta_model:PolycraftMetaModel):
         ''' Returns the heuristic to be used by the planner'''
@@ -158,6 +186,17 @@ class CollectFromSafeTask(CreatePogoTask):
 
         pddl_actions.append(PddlOpenSafeAndCollect())
 
+    def get_type_for_cell(self, cell_attr, meta_model) -> PddlGameMapCellType:
+        ''' Return a PddlGameMapCellType appropriate to generate objects representing this game map cell'''
+        type_str = cell_attr['name']
+        if type_str not in meta_model.block_type_to_idx:
+            logger.info("Unknown game map cell type: %s" % type_str)
+            return PddlGameMapCellType(type_idx=-1)
+        elif type_str==meta_model.block_type_to_idx[BlockType.SAFE.value]:
+            return PddlSafeCellType(type_idx=meta_model.block_type_to_idx[type_str])
+        else:
+            return PddlGameMapCellType(type_idx=meta_model.block_type_to_idx[type_str])
+
     def get_goals(self, world_state:PolycraftState, meta_model:PolycraftMetaModel):
         return ([[f"{Predicate.safe_collected.name}",]])
     def create_relevant_events(self, world_state:PolycraftState, meta_model:PolycraftMetaModel):
@@ -165,6 +204,18 @@ class CollectFromSafeTask(CreatePogoTask):
     def get_metric(self, world_state:PolycraftState, meta_model:PolycraftMetaModel):
         return 'minimize(total-time)'
 
+    def add_cell_objects_to_problem(self, cell_obj: tuple, pddl_problem: PddlPlusProblem, problem_params: dict, ):
+        ''' Adds the objects relevant for this cell to the given pddl_problem  '''
+        cell, cell_attr = cell_obj
+        type_str = cell_attr['name']
+        if type_str not in self.block_type_to_idx:
+            logger.info("Unknown game map cell type: %s" % type_str)
+            type = PddlGameMapCellType(type_idx=-1)
+        elif type_str == BlockType.SAFE.value:
+            type = PddlSafeCellType(type_idx=self.block_type_to_idx[type_str])
+        else:
+            type = PddlGameMapCellType(type_idx=self.block_type_to_idx[type_str])
+        type.add_object_to_pddl((cell, cell_attr), pddl_problem, problem_params)
 
 
 class MakeCellAccessibleTask(CreatePogoTask):
@@ -294,15 +345,15 @@ class PddlPlaceTreeTapAction(PddlPolycraftAction):
         pddl_action = PddlPlusWorldChange(WorldChangeTypes.action)
         pddl_action.name = self.pddl_name
         pddl_action.parameters.append(["?at", "-", "cell", "?near_to", "-", "cell"])
-        pddl_action.preconditions.append(["isAccessible", "?at"])
-        pddl_action.preconditions.append(["isAccessible", "?near_to"])
-        pddl_action.preconditions.append(["adjacent", "?at", "?near_to"])
 
-        air_idx = meta_model.block_type_to_idx[BlockType.AIR.value]
-        pddl_action.preconditions.append(["=", ["cell_type", "?at"], f"{air_idx}"])
+        pddl_action.preconditions.append([">=", [f"count_{ItemType.TREE_TAP.value}",], "1"])
         log_idx = meta_model.block_type_to_idx[BlockType.LOG.value]
         pddl_action.preconditions.append(["=", ["cell_type", "?near_to"], f"{log_idx}"])
-        pddl_action.preconditions.append([">=", [f"count_{ItemType.TREE_TAP.value}",], "1"])
+        air_idx = meta_model.block_type_to_idx[BlockType.AIR.value]
+        pddl_action.preconditions.append(["=", ["cell_type", "?at"], f"{air_idx}"])
+        pddl_action.preconditions.append(["adjacent", "?at", "?near_to"])
+        pddl_action.preconditions.append(["isAccessible", "?at"])
+        pddl_action.preconditions.append(["isAccessible", "?near_to"])
 
         pddl_action.effects.append(["decrease", [f"count_{ItemType.TREE_TAP.value}",], "1"])
         tree_tap_idx = meta_model.block_type_to_idx[BlockType.TREE_TAP.value]
@@ -335,11 +386,51 @@ class PddlCollectAction(PddlPolycraftAction):
         pddl_action = PddlPlusWorldChange(WorldChangeTypes.action)
         pddl_action.name = self.pddl_name
         pddl_action.parameters.append(["?c", "-", "cell"])
-        pddl_action.preconditions.append(["isAccessible", "?c"])
 
         cell_type_idx = meta_model.block_type_to_idx[self.collect_from_block_type]
         pddl_action.preconditions.append(["=", ["cell_type", "?c"], f"{cell_type_idx}"])
+        pddl_action.preconditions.append(["isAccessible", "?c"])
+
         pddl_action.effects.append(["increase", [f"count_{self.item_type_to_collect}", ], str(self.quantity)])
+        return pddl_action
+
+    def to_polycraft(self, parameter_binding: dict) -> PolycraftAction:
+        return TeleportToAndCollect(parameter_binding['?c'])
+
+
+class PddlCollectFromTreeTapAction(PddlPolycraftAction):
+    ''' An action corresponding to collecting an item from a cell (COLLECT in the Polycraft API)
+    (:action collect_from_tree_tap
+        :parameters (?c - cell near_to? - cell)
+        :precondition( and
+            (cell_type c? {tree_tap})
+            (cell_type near_to? {log})
+            (adjacent c? near_to?)
+            (isAccessible ?c)
+        )
+        :effect( and
+            (increase(count_{item_type}) 1)
+        )
+    )
+    '''
+    def __init__(self):
+        super().__init__(f"collect_from_tree_tap")
+
+    def to_pddl(self, meta_model: MetaModel)->PddlPlusWorldChange:
+        pddl_action = PddlPlusWorldChange(WorldChangeTypes.action)
+        pddl_action.name = self.pddl_name
+        pddl_action.parameters.append(["?c", "-", "cell", "?near_to", "-", "cell"])
+
+        tree_tap_idx = meta_model.block_type_to_idx[BlockType.TREE_TAP.value]
+        pddl_action.preconditions.append(["=", ["cell_type", "?c"], f"{tree_tap_idx}"])
+        pddl_action.preconditions.append([Predicate.adjacent.name, "?c", "?near_to"])
+        log_idx = meta_model.block_type_to_idx[BlockType.LOG.value]
+        pddl_action.preconditions.append(["=", ["cell_type", "?near_to"], f"{log_idx}"])
+        pddl_action.preconditions.append([Predicate.isAccessible.name, "?c"])
+
+        sack_of_pellets_per_collect = meta_model.collect_block_to_outcome[BlockType.TREE_TAP.value][1]
+        pddl_action.effects.append(["increase", [f"count_{ItemType.SACK_POLYISOPRENE_PELLETS.value}", ],
+                                    str(sack_of_pellets_per_collect)])
         return pddl_action
 
     def to_polycraft(self, parameter_binding: dict) -> PolycraftAction:
@@ -373,13 +464,14 @@ class PddlBreakAction(PddlPolycraftAction):
         pddl_action = PddlPlusWorldChange(WorldChangeTypes.action)
         pddl_action.name = self.pddl_name
         pddl_action.parameters.append(["?c", "-", "cell"])
-        pddl_action.preconditions.append(["isAccessible", "?c"])
 
         cell_type_idx = meta_model.block_type_to_idx[self.block_type_to_break]
         pddl_action.preconditions.append(["=", ["cell_type", "?c"], f"{cell_type_idx}"])
         if self.needs_iron_pickaxe:
             iron_pickaxe_idx = meta_model.item_type_to_idx[ItemType.IRON_PICKAXE.value]
             pddl_action.preconditions.append(["=", ["selectedItem",], f"{iron_pickaxe_idx}"])
+        pddl_action.preconditions.append(["isAccessible", "?c"])
+
         pddl_action.effects.append(["increase", [f"count_{self.item_type_to_collect}", ], str(self.items_per_block)])
         air_cell_idx = meta_model.block_type_to_idx[BlockType.AIR.value]
         pddl_action.effects.append(["assign", ["cell_type", "?c"], f"{air_cell_idx}"])
@@ -407,9 +499,11 @@ class PddlSelectAction(PddlPolycraftAction):
     def to_pddl(self, meta_model: MetaModel)->PddlPlusWorldChange:
         pddl_action = PddlPlusWorldChange(WorldChangeTypes.action)
         pddl_action.name = self.pddl_name
-        pddl_action.preconditions.append([">=", [f"count_{self.item_type_name}",], "1"])
+
         item_type_idx = meta_model.item_type_to_idx[self.item_type_name]
         pddl_action.preconditions.append(["not", ["=", ["selectedItem", ], f"{item_type_idx}"]])
+        pddl_action.preconditions.append([">=", [f"count_{self.item_type_name}",], "1"])
+
         pddl_action.effects.append(
             ["assign", ["selectedItem", ], f"{item_type_idx}"])
         return pddl_action
@@ -455,8 +549,9 @@ class PddlOpenSafeAndCollect(PddlPolycraftAction):
         pddl_action.name = self.pddl_name
         pddl_action.parameters.append(["?c", "-", PddlType.safe_cell.name])
 
-        pddl_action.preconditions.append([Predicate.safe_is_accessible.name, "?c"])
         pddl_action.preconditions.append([">=", [f"count_{ItemType.KEY.name}"], "1"])
+        pddl_action.preconditions.append([Predicate.safe_is_accessible.name, "?c"])
+
         pddl_action.effects.append([Predicate.safe_collected.name, "?c"])
 
         return pddl_action
@@ -492,14 +587,16 @@ class PddlTradeAction(PddlPolycraftAction):
         pddl_action = PddlPlusWorldChange(WorldChangeTypes.action)
         pddl_action.name = self.pddl_name
         pddl_action.parameters.append(["?trader_loc","-", "cell"])
-        pddl_action.preconditions.append(["isAccessible", "?trader_loc"])
-        pddl_action.preconditions.append([f"trader_{self.trader_id}_at", "?trader_loc"])
 
         for input in self.trade["inputs"]:
             item_type = input['Item']
             quantity = input['stackSize']
             pddl_action.preconditions.append([">=", [f"count_{item_type}"], str(quantity)])
             pddl_action.effects.append(["decrease", [f"count_{item_type}"], str(quantity)])
+
+        pddl_action.preconditions.append([f"trader_{self.trader_id}_at", "?trader_loc"])
+
+        pddl_action.preconditions.append(["isAccessible", "?trader_loc"])
 
         for output in self.trade["outputs"]:
             item_type = output['Item']
@@ -523,11 +620,12 @@ class CellAccessibleEvent(PddlPolycraftEvent):
         pddl_event = PddlPlusWorldChange(WorldChangeTypes.event)
         pddl_event.name = "cell_accessible"
         pddl_event.parameters.append(["?c1","-", PddlType.cell.name, "?c2", "-", PddlType.cell.name])
-        pddl_event.preconditions.append([Predicate.isAccessible.name, "?c1"])
         pddl_event.preconditions.append(["not", [Predicate.isAccessible.name, "?c2"]])
+        pddl_event.preconditions.append([Predicate.adjacent.name, "?c1", "?c2"])
         air_idx = meta_model.block_type_to_idx[BlockType.AIR.value]
         pddl_event.preconditions.append(["=", [Function.cell_type.name, "?c1"], f"{air_idx}"])
-        pddl_event.preconditions.append([Predicate.adjacent.name, "?c1", "?c2"])
+        pddl_event.preconditions.append([Predicate.isAccessible.name, "?c1"])
+
         pddl_event.effects.append([Predicate.isAccessible.name, "?c2"])
         return pddl_event
 
@@ -598,15 +696,15 @@ class PddlCraftAction(PddlPolycraftAction):
         pddl_action = PddlPlusWorldChange(WorldChangeTypes.action)
         pddl_action.name = self.pddl_name
 
+        for item_type, quantity in get_ingredients_for_recipe(self.recipe).items():
+            pddl_action.preconditions.append([">=", [f"count_{item_type}"], str(quantity)])
+            pddl_action.effects.append(["decrease", [f"count_{item_type}"], str(quantity)])
+
         if self.needs_crafting_table: # TODO: Not robust to problems with multiple crafting tables
             pddl_action.parameters.append(["?from", "-", "cell"])
             crafting_table_idx = meta_model.block_type_to_idx[BlockType.CRAFTING_TABLE.value]
             pddl_action.preconditions.append(["=", ["cell_type", "?from",], f"{crafting_table_idx}"])
             pddl_action.preconditions.append(["isAccessible", "?from"])
-
-        for item_type, quantity in get_ingredients_for_recipe(self.recipe).items():
-            pddl_action.preconditions.append([">=", [f"count_{item_type}"], str(quantity)])
-            pddl_action.effects.append(["decrease", [f"count_{item_type}"], str(quantity)])
 
         for item_type, quantity in get_outputs_of_recipe(self.recipe).items():
             pddl_action.effects.append(["increase", [f"count_{item_type}"], str(quantity)])
@@ -617,9 +715,6 @@ class PddlCraftAction(PddlPolycraftAction):
             return TeleportToTableAndCraft(parameter_binding["?from"], self.recipe)
         else:
             return PolyCraftItem.create_action(self.recipe)
-
-
-
 
 class PddlMoveThroughDoorAction(PddlPolycraftAction):
     ''' An action for moving through a door

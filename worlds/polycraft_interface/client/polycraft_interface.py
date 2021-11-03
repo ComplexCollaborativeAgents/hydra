@@ -120,7 +120,8 @@ class PolycraftInterface:
     def _send_cmd(self, cmd: str):
         """Low level - send command to Polycraft Instance"""
         try:
-            self._logger.info("Sending command: {}".format(cmd))
+            if "CHECK_COST" or "SENSE_ALL" not in cmd: # This commands are so often...
+                self._logger.info("Sending command: {}".format(cmd))
             self.sock.send(str.encode(cmd + '\n'))
         except BrokenPipeError as err:
             self.disconnect_from_polycraft()

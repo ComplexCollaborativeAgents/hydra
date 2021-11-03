@@ -316,19 +316,19 @@ def get_non_novelty_levels_files():
     levels = []
     levels_dir_path = pathlib.Path(settings.POLYCRAFT_NON_NOVELTY_LEVEL_DIR)
     for level_file in os.listdir(levels_dir_path):
-        if level_file.endswith(".json2") == False:
+        if level_file.endswith(".json"):
             levels.append(levels_dir_path / level_file)
     return levels
 
 
-def get_novelty_levels_files(level_to_types:dict = None):
+def get_novelty_levels_files(novelty_to_levels:dict = None):
     ''' Return a list of config files for the non-novelty levels we have for training. '''
     NOVELTY_FOLDER_RE = re.compile("POGO\_L(..)\_T(..)\_S(..)")
-    level_to_type = dict()
     non_novelty_levels_root = pathlib.Path(settings.POLYCRAFT_NON_NOVELTY_LEVEL_DIR)
-    if level_to_types is None: # Means try all levels and novelties
-        for level_file in os.listdir(non_novelty_levels_root):
-            if os.path.isdir(level_file):
+    if novelty_to_levels is None: # Means try all levels and novelties
+        novelty_to_levels = dict()
+        for level_dir in os.listdir(non_novelty_levels_root):
+            if os.path.isdir(level_dir):
                 pattern = NOVELTY_FOLDER_RE.match()
                 if pattern is not None:
                     groups = pattern.groups()
@@ -336,12 +336,16 @@ def get_novelty_levels_files(level_to_types:dict = None):
                     level = groups[0]
                     type = groups[1]
                     level_set = groups[2]
-
-
+                    key = (level, type, level_set)
+                    novelty_to_levels[key]=[]
+                    for file_name in os.listdir(level_dir / "X01001"):
+                        if os.path.isdir(file_name):
+                            novelty_to_levels[key].append(file_name)
 
     levels = []
-    levels_dir_path = pathlib.Path(settings.POLYCRAFT_NON_NOVELTY_LEVEL_DIR)
-    for level_file in os.listdir(levels_dir_path):
-        if level_file.endswith(".json2") == False:
-            levels.append(levels_dir_path / level_file)
+    for (level, type, level_set), levels_paths in novelty_to_levels.items():
+        for level_file in levels_paths:
+            if level_file.endswith(".json"):
+                levels.append(level_file)
+
     return levels
