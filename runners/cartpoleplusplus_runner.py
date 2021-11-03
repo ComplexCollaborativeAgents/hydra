@@ -6,6 +6,8 @@ from worlds.cartpoleplusplus_dispatcher import CartPolePlusPlusDispatcher
 from worlds.wsu.generator.m_1 import CartPolePPMock1
 from worlds.wsu.generator.m_2 import CartPolePPMock2
 from worlds.wsu.generator.n_0 import CartPole
+from worlds.wsu.generator.n import CartPoleNoBlocks
+
 from worlds.wsu.wsu_dispatcher import WSUObserver
 from agent.cartpoleplusplus_hydra_agent import CartpolePlusPlusHydraAgentObserver, RepairingCartpolePlusPlusHydraAgent, CartpolePlusPlusHydraAgent
 
@@ -13,7 +15,7 @@ from agent.cartpoleplusplus_hydra_agent import CartpolePlusPlusHydraAgentObserve
 def start_wsu_interface():
     observer = CartpolePlusPlusHydraAgentObserver(CartpolePlusPlusHydraAgent)
     env = CartPolePlusPlusDispatcher(observer, render=True)
-    env.run(generators=[CartPole, CartPolePPMock1], difficulties=['easy', 'medium', 'hard'])
+    env.run(generators=[CartPole], difficulties=['easy', 'medium', 'hard'])
 
 
 def setup_logging(level: int = logging.INFO):

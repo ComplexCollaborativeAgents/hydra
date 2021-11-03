@@ -113,11 +113,11 @@ class CartPolePlusPlusMetaModel(MetaModel):
         pddl_problem.objects.append(['dummy_obj', 'dummy'])
         pddl_problem.objects.append(['dummy_block', 'block'])
 
-        euler_pole = self.quaternion_to_euler(round(observation_array['pole']['x_quaternion'], 5), round(observation_array['pole']['y_quaternion'], 5), round(observation_array['pole']['z_quaternion'], 5), round(observation_array['pole']['w_quaternion'], 5))
-        obs_theta_x = round(euler_pole[0], 5)
-        obs_theta_y = round(euler_pole[1], 5)
-        # obs_theta_x = np.radians(round(observation_array['pole']['x_position'], 5))
-        # obs_theta_y = np.radians(round(observation_array['pole']['y_position'], 5))
+        # euler_pole = self.quaternion_to_euler(round(observation_array['pole']['x_quaternion'], 5), round(observation_array['pole']['y_quaternion'], 5), round(observation_array['pole']['z_quaternion'], 5), round(observation_array['pole']['w_quaternion'], 5))
+        # obs_theta_x = round(euler_pole[0], 5)
+        # obs_theta_y = round(euler_pole[1], 5)
+        obs_theta_x = np.radians(round(observation_array['pole']['x_position'], 5))
+        obs_theta_y = np.radians(round(observation_array['pole']['y_position'], 5))
         obs_theta_x_dot = round(observation_array['pole']['x_velocity'], 5)
         obs_theta_y_dot = round(observation_array['pole']['y_velocity'], 5)
         obs_pos_x = round(observation_array['cart']['x_position'], 5)
@@ -149,7 +149,7 @@ class CartPolePlusPlusMetaModel(MetaModel):
         pddl_problem.init.append(['=', ['theta_y'], round(obs_theta_y, CartPolePlusPlusMetaModel.PLANNER_PRECISION)])
         pddl_problem.init.append(['=', ['theta_x_dot'], round(obs_theta_x_dot, CartPolePlusPlusMetaModel.PLANNER_PRECISION)])
         pddl_problem.init.append(['=', ['theta_y_dot'], round(obs_theta_y_dot, CartPolePlusPlusMetaModel.PLANNER_PRECISION)])
-        pddl_problem.init.append(['=', ['F_x'], 0.0])
+        pddl_problem.init.append(['=', ['F_x'], 10.0])
         pddl_problem.init.append(['=', ['F_y'], 0.0])
 
         initial_F = 0.0 # TODO: import initial force based on the last action applied, split initial_F into X and Y directions.

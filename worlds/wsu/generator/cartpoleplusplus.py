@@ -120,6 +120,8 @@ class CartPoleBulletEnv(gym.Env):
         else:
             raise Exception("unknown discrete action [%s]" % action)
 
+        print("ACTUAL FORCES: FX=" + str(fx) + ", FY="+str(fy))
+
         # Apply correccted forces
         p.applyExternalForce(self.cartpole, 0, (fx, fy, 0.0), (0, 0, 0), p.LINK_FRAME)
 
@@ -307,7 +309,7 @@ class CartPoleBulletEnv(gym.Env):
 
         # Get pole info =============================================
         state = dict()
-        use_euler = False
+        use_euler = True
 
         # Position and orientation, the other two not used
         pos, vel, jRF, aJMT = p.getJointStateMultiDof(self.cartpole, 1)
