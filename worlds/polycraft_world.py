@@ -118,6 +118,19 @@ class PolycraftState(State):
             type_to_cells[cell_type].append(cell)
         return type_to_cells
 
+    def get_item_to_count(self):
+        ''' Return a map of inventory item type to count, excluding the selected item '''
+        item_to_count = dict()
+        for entry, entry_attr in self.inventory.items():
+            if entry == "selectedItem":  # Do not consider the selected item
+                continue
+            item_type=entry_attr["item"]
+            if item_type not in item_to_count:
+                item_to_count[item_type]=1
+            else:
+                item_to_count[item_type] = item_to_count[item_type]+1
+        return item_to_count
+
     def get_inventory_entries_of_type(self, item_type: str):
         ''' Returns the inventory entries that contain an item of the given type '''
         entries = []

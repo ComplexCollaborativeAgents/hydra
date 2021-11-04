@@ -68,6 +68,19 @@ def test_to_pddl_domain(execution_number):
 
     PddlDomainExporter().to_file(pddl_domain, test_path / "poly_domain.pddl")
 
+def test_plan_to_open_door():
+    ''' Test generating a plan to open a door'''
+    with open(os.path.join(settings.ROOT_PATH, "tests", "test_open_door_state.p"), "rb") as in_file:
+        state = pickle.load(in_file)
+    planner = PolycraftPlanner()
+
+    door_cells = [cell for cell in state.door_to_room_cells if cell!=Polycraft.DUMMY_DOOR]
+    task = PolycraftTask.EXPLORE_DOOR.create_instance()
+    task.door_cell = door_cells[0]
+    planner.meta_model.set_active_task(task)
+    plan = planner.make_plan(state)
+    assert(len(plan)>0)
+
 @pytest.mark.parametrize('execution_number', range(1))
 def test_run_planner(execution_number):
     test_path = pathlib.Path(settings.ROOT_PATH) / "tests"

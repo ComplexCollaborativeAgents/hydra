@@ -262,6 +262,18 @@ def is_in_room_with_steve(cell:str, state:PolycraftState):
             return True
     return False
 
+def is_steve_in_room(door_cell:str, state:PolycraftState):
+    ''' Checks if steve is in the given room '''
+    steve_cell = coordinates_to_cell(state.location["pos"])
+    if door_cell == Polycraft.DUMMY_DOOR:
+        return steve_cell in state.door_to_room_cells[Polycraft.DUMMY_DOOR]
+    else:
+        # Only consider steve in a room if steve passes through the door
+        if steve_cell in state.door_to_room_cells[Polycraft.DUMMY_DOOR]:
+            return False
+        return steve_cell in state.door_to_room_cells[door_cell]
+
+
 def get_room_door(cell:str, state:PolycraftState):
     ''' Returns the door through which to exit back to the main room.
      Returns Polycraft.DUMMY_DOOR if in the main room '''
@@ -324,12 +336,12 @@ def get_non_novelty_levels_files():
 def get_novelty_levels_files(novelty_to_levels:dict = None):
     ''' Return a list of config files for the non-novelty levels we have for training. '''
     NOVELTY_FOLDER_RE = re.compile("POGO\_L(..)\_T(..)\_S(..)")
-    non_novelty_levels_root = pathlib.Path(settings.POLYCRAFT_NON_NOVELTY_LEVEL_DIR)
+    non_novelty_levels_root = pathlib.Path(settings.POLYCRAFT_NOVELTY_LEVEL_DIR)
     if novelty_to_levels is None: # Means try all levels and novelties
         novelty_to_levels = dict()
         for level_dir in os.listdir(non_novelty_levels_root):
-            if os.path.isdir(level_dir):
-                pattern = NOVELTY_FOLDER_RE.match()
+            if os.path.isdir(non_novelty_levels_root / level_dir):
+                pattern = NOVELTY_FOLDER_RE.match(level_dir)
                 if pattern is not None:
                     groups = pattern.groups()
                     assert(len(groups)==3)
@@ -338,7 +350,7 @@ def get_novelty_levels_files(novelty_to_levels:dict = None):
                     level_set = groups[2]
                     key = (level, type, level_set)
                     novelty_to_levels[key]=[]
-                    for file_name in os.listdir(level_dir / "X01001"):
+                    for file_name in os.listdir(non_novelty_levels_root / level_dir / "X0100"):
                         if os.path.isdir(file_name):
                             novelty_to_levels[key].append(file_name)
 

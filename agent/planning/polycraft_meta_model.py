@@ -1,7 +1,11 @@
 from agent.planning.meta_model import *
+from agent.planning.meta_model import MetaModel
+from agent.planning.pddl_plus import PddlPlusWorldChange
 from agent.planning.polycraft_planning.actions import *
 from worlds.polycraft_world import *
 from agent.planning.pddl_plus import *
+from worlds.polycraft_world import PolycraftAction
+
 logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("polycraft_meta_model")
 logger.setLevel(logging.INFO)
@@ -98,7 +102,7 @@ class PolycraftObjectType():
         raise NotImplementedError("Subclass should implement. Return a dict mapping fluent name to value")
 
 class PddlGameMapCellType(PolycraftObjectType):
-    def __init__(self, type_idx=-1, relevant_attributes:list = ["isAccessible"]):
+    def __init__(self, type_idx=-1, relevant_attributes:list = [Predicate.isAccessible.name]):
         super().__init__()
         self.pddl_type = "cell"
         self.type_idx = type_idx
@@ -118,7 +122,7 @@ class PddlGameMapCellType(PolycraftObjectType):
         ''' Maps fluent_name to fluent_value for all fluents created for this object'''
         cell_name = self.get_object_name(obj)
         fluent_to_value = dict()
-        fluent_to_value[("cell_type", cell_name)] = self.type_idx
+        fluent_to_value[(Function.cell_type.name, cell_name)] = self.type_idx
 
         (cell_id, cell_attr) = obj
         for attribute, attribute_value in cell_attr.items():
@@ -232,10 +236,54 @@ class Task:
     def get_relevant_functions(self, world_state:PolycraftState, meta_model):
         ''' Returns a list of actions for the agent to use when planning '''
         raise NotImplementedError()
-
     def get_type_for_cell(self, cell_attr, meta_model)->PddlGameMapCellType:
         ''' Return a PddlGameMapCellType appropriate to generate objects representing this game map cell'''
         raise NotImplementedError()
+    def is_done(self, state:PolycraftState)->bool:
+        ''' Checks if the task has been succesfully completed '''
+        raise NotImplementedError()
+
+class PddlPolycraftAction(PolycraftAction):
+    ''' Wrapper for Polycraft World Action that also stores the grounded pddl action that corresponds to this action '''
+    def __init__(self, poly_action, pddl_name, binding):
+        super().__init__()
+        self.poly_action = poly_action
+        self.binding = binding
+        self.pddl_name = pddl_name
+
+    def is_success(self, result: dict):
+        return self.poly_action.is_success(result)
+
+    def __str__(self):
+        if len(self.binding)>0:
+            params_str = " ".join([f"{k}={v}" for k,v in self.binding.items()])
+            return f"<({self.pddl_name} {params_str}) success={self.success}>"
+        else:
+            return f"<({self.pddl_name}) success={self.success}>"
+
+    def do(self, state:PolycraftState, env) -> dict:
+        result = self.poly_action.do(state, env)
+        self.success = self.poly_action.success
+        return result
+
+class PddlPolycraftActionGenerator():
+    ''' An object that bridges between pddl actions and polycraft actions'''
+    def __init__(self, pddl_name):
+        self.pddl_name = pddl_name # The name of this PDDL action
+
+    ''' A class representing a PDDL+ action in polycraft '''
+    def to_pddl(self, meta_model: MetaModel)->PddlPlusWorldChange:
+        ''' This method should be implemented by sublcasses and output a string representation of the corresponding PDDL+ action '''
+        raise NotImplementedError()
+
+    def to_polycraft(self, parameter_binding:dict)->PolycraftAction:
+        ''' This method should be implemented by sublcasses and output a string representation of the corresponding PDDL+ action '''
+        raise NotImplementedError()
+
+    def to_pddl_polycraft(self, parameter_binding:dict)->PddlPolycraftAction:
+        return PddlPolycraftAction(poly_action=self.to_polycraft(parameter_binding),
+                                   pddl_name=self.pddl_name,
+                                   binding=parameter_binding)
 
 class PolycraftMetaModel(MetaModel):
 
@@ -262,7 +310,6 @@ class PolycraftMetaModel(MetaModel):
         self.collect_block_to_outcome = dict()
         self.collect_block_to_outcome[BlockType.TREE_TAP.value] = (ItemType.SACK_POLYISOPRENE_PELLETS.value, 1)
         self.collect_block_to_outcome[BlockType.PLASTIC_CHEST.value] = (ItemType.KEY.value, 1)
-
 
         # List of cell types that require an iron pickaxe to break
         self.needs_iron_pickaxe = list()

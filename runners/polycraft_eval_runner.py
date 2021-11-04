@@ -41,12 +41,9 @@ def run():
 
         # Handle level change
         if advancing_level:
-            # assert(len(world.current_recipes) == 0 and len(world.current_trades) == 0)
-            # world.poly_client._logger.info("Trades before are: {}".format(world.current_trades))
             agent.start_level(world)
             state = world.get_current_state()
-            # world.poly_client._logger.info("Trades after are: {}".format(world.current_trades))
-            advancing_level = False      
+            advancing_level = False
 
         action = agent.choose_action(state)
         state, reward = agent.do(action, world)
@@ -55,6 +52,7 @@ def run():
 
         # LaunchTournament.py handles detecting and advancing to next level
         if state.is_terminal():
+            agent.novelty_detection(report_novelty=True) #
             if SINGLE_LEVEL_MODE:
                 world.poly_client._logger.info("Finished the level!")
                 return

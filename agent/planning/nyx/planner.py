@@ -58,9 +58,9 @@ class Planner:
 
         expanded_states = 0
         while self.queue:
-            if expanded_states % constants.EXPANDED_STATES_LOGGING_FREQUENCY ==0:
-                logger.info(f"Expanded {expanded_states} nodes, generated {self.explored_states}, planning time so far {time.time() - start_solve_time}.")
             state = self.queue.pop()
+            if expanded_states % constants.EXPANDED_STATES_LOGGING_FREQUENCY ==0:
+                logger.info(f"Expanded {expanded_states} nodes, generated {self.explored_states}, best state g={state.g} h={state.h} time passed {time.time() - start_solve_time}.")
             from_state = VisitedState(state)
             time_passed = round(state.time + constants.DELTA_T, constants.NUMBER_PRECISION)
             for aa in grounded_instance.actions.get_applicable(state):

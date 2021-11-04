@@ -55,7 +55,7 @@ POLYCRAFT_HEADLESS = "xvfb-run -s '-screen 0 1280x1024x24'" # Prepend to Polycra
 POLYCRAFT_NON_NOVELTY_LEVEL_DIR = path.join(POLYCRAFT_DIR, "pogo_100_PN")   # Path to Polycraft pre-novelty levels
 POLYCRAFT_NOVELTY_LEVEL_DIR = path.join(POLYCRAFT_DIR, "shared_novelty", "POGO")
 POLYCRAFT_LEVEL_DIR = path.join(ROOT_PATH, 'bin', 'pal', 'POGO_100_PN')  # Path to the polycraft levels directory.  NOTE: Please update this in your "local_settings.py" (create it if it doesn't exist)
-
+POLYCRAFT_MAX_EXPLORATION_PLANNING_ATTEMPTS = 2 # Maximum number of times the polycraft agent will try to find a plan for an exploration task before giving up
 
 SB_PLANNING_DOCKER_PATH = path.join(ROOT_PATH, 'agent', 'planning', 'sb_planning')
 CARTPOLE_PLANNING_DOCKER_PATH = path.join(ROOT_PATH, 'agent', 'planning', 'cartpole_planning')

@@ -31,15 +31,14 @@ class PolyBreakAndCollect(PolycraftAction):
 
         # If item in inventory - success!
         current_state = env.get_current_state()
-        if has_new_item(current_state.diff(state_before_breaking)):
+        if self._item_collected(state_before_breaking, current_state):
             self.success = True
             return result
 
-        # Else: find and collect the item
+        # Else: wait, maybe it needs a bit time
         self._wait_to_collect_adjacent_items(current_state, poly_client)
         current_state = env.get_current_state()
-
-        if has_new_item(current_state.diff(state_before_breaking)):
+        if self._item_collected(state_before_breaking, current_state):
             self.success = True
             return result
 
@@ -71,24 +70,21 @@ class PolyBreakAndCollect(PolycraftAction):
         item_pos_cell = ",".join([str(coord) for coord in new_item_pos])
         logger.info(f"Item not in inventory, teleport to its cell: {item_pos_cell}")
         result = poly_client.TP_TO_ENTITY(new_item)
-
-        # Sometimes the item gets collected even if the TP fails. Maybe some timing issue where it gets collected before we move there
-        # TODO: Investigate this
-        if self.is_success(result) == False:
+        # Sometimes the item gets collected even if the TP fails. Maybe some timing issue where it gets collected before we move there TODO: Investigate this
+        current_state = env.get_current_state()
+        if self._item_collected(state_before_breaking, current_state):
+            self.success = True
+            return result
+        else:
             logger.info(f"Action {str(self)} failed during TP_TO_ENTITY(new_item), Message: {result}")
+            self.success = False
             return result
 
-        # Assert new item collected
-        current_state = env.get_current_state()
-        self._wait_to_collect_adjacent_items(current_state, poly_client)
-        current_state = env.get_current_state()
-
-        # If item was collected - hurray!
+    def _item_collected(self, state_before_breaking, current_state):
         if has_new_item(current_state.diff(state_before_breaking)):
-            self.success = True
+            return True
         else:
-            self.success = False
-        return result
+            return False
 
     def _wait_to_collect_adjacent_items(self,current_state:PolycraftState, poly_client: poly.PolycraftInterface):
         ''' Waits some time steps if there is item near by that should have been collected automatically '''
@@ -117,6 +113,7 @@ class MacroAction(PolycraftAction):
     ''' A macro action is a generator of basic PolycraftActions based on the current state '''
     def __init__(self, max_steps:int=1):
         super().__init__()
+        self.actions_done = [] # a list of the actions performed in this macro action. Useful for debugging.
         self.active_action = None # If we're in the middle of doing some action
         self._is_done = False
         self.max_steps = max_steps # Maximal number of steps (actions) required to do this macro action is expected
@@ -145,11 +142,12 @@ class MacroAction(PolycraftAction):
         # Select next action to do
         if self.active_action is None:
             next_action = self._get_next_action(state, env)
+            self.actions_done.append(next_action)
         else:
             next_action = self.active_action
 
 
-        logger.info(f"Do action {next_action} as part of macro action {self}")
+        logger.debug(f"\t Do action {next_action} as part of macro action {self}")
         if isinstance(next_action, MacroAction):
             result = next_action._do_action(state,env)
         else:
@@ -167,7 +165,7 @@ class MacroAction(PolycraftAction):
         return result
 
 class TeleportAndFaceCell(MacroAction):
-    MAX_STEPS = 3
+    MAX_STEPS = 6 # TODO: Rethink this
 
     ''' Macro for teleporting to a given cell and turning to face it '''
     def __init__(self, cell: str):
@@ -242,7 +240,8 @@ class ExploreRoom(PolycraftAction):
                     room_game_map[cell_id] = cell_attr
             if known_cell == False: #
                 new_room_explored = True
-                env.door_to_room_cells[self.door_cell][cell_id] = cell_attr
+            env.door_to_room_cells[self.door_cell][cell_id] = cell_attr # A cell may exists in multiple door-to-cells entries
+
         if new_room_explored:
             logger.info(f"Explored a new room! room reachable through door {self.door_cell}")
         return result

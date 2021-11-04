@@ -1,5 +1,6 @@
 from agent.planning.polycraft_meta_model import *
 from agent.planning.nyx.abstract_heuristic import AbstractHeuristic
+from agent.planning.polycraft_meta_model import PddlPolycraftActionGenerator
 from agent.planning.polycraft_planning.actions import *
 from worlds.polycraft_actions import PolySelectItem, PolyPlaceTreeTap, PolyCraftItem
 
@@ -22,14 +23,58 @@ class CreatePogoTask(Task):
         ''' Returns a list of actions for the agent to use when planning '''
         return [Function.cell_type.to_pddl(), Function.selectedItem.to_pddl()]
 
-    def create_relevant_actions(self, world_state:PolycraftState, meta_model:PolycraftMetaModel):
+    def create_relevant_actions(self, world_state:PolycraftState, meta_model:PolycraftMetaModel)->list:
+        action_generators = []
+        action_generators.extend(self._create_select_item_actions(meta_model))
+        action_generators.extend(self._create_break_block_actions(meta_model))
+        action_generators.extend(self._create_collect_actions(meta_model))
+        action_generators.extend(self._create_craft_item_actions(world_state))
+        action_generators.extend(self._create_trade_actions(world_state))
+
+        action_generators.append(PddlPlaceTreeTapActionGenerator())
+        action_generators.append(PddlCollectFromTreeTapActionGenerator())
+        return action_generators
+
+    def _create_select_item_actions(self, meta_model):
+        # Create select item action generators
         pddl_actions = []
-        pddl_actions.append(PddlPlaceTreeTapAction())
-
         for item_type in meta_model.selectable_items:
-            pddl_actions.append(PddlSelectAction(item_type=item_type))
+            pddl_actions.append(PddlSelectActionGenerator(item_type=item_type))
+        return pddl_actions
 
+    def _create_trade_actions(self, world_state):
+        # Create trade actions generators
+        pddl_actions = []
+        for trader_id, trades in world_state.trades.items():
+            for trade_idx, trade in enumerate(trades):
+                pddl_actions.append(PddlTradeActionGenerator(trader_id, trade_idx, trade))
+        return pddl_actions
+
+    def _create_craft_item_actions(self, world_state):
+        # Create crfat item (recipes) actions
+        pddl_actions = []
+        for recipe_idx, recipe in enumerate(world_state.recipes):
+            craft_action = PolyCraftItem.create_action(recipe)
+            if len(craft_action.recipe) == 9:  # Need a crafting table
+                pddl_actions.append(PddlCraftActionGenerator(recipe_idx, recipe, needs_crafting_table=True))
+            else:
+                pddl_actions.append(PddlCraftActionGenerator(recipe_idx, recipe, needs_crafting_table=False))
+        return pddl_actions
+
+    def _create_collect_actions(self, meta_model):
+        # Add collect item to outcome
+        pddl_actions = []
+        for block_type, outcome in meta_model.collect_block_to_outcome.items():
+            if block_type == BlockType.TREE_TAP.value:
+                continue  # Special treatment to collecting from tree tap
+            item_type = outcome[0]
+            quantity = outcome[1]
+            pddl_actions.append(PddlCollectActionGenerator(block_type, item_type, quantity))
+        return pddl_actions
+
+    def _create_break_block_actions(self, meta_model):
         # Add blocks to break and get items
+        pddl_actions = []
         for block_type, outcome in meta_model.break_block_to_outcome.items():
             item_type = outcome[0]
             quantity = outcome[1]
@@ -37,30 +82,8 @@ class CreatePogoTask(Task):
                 needs_iron_pickaxe = True
             else:
                 needs_iron_pickaxe = False
-            pddl_actions.append(PddlBreakAction(block_type, item_type, quantity,
-                                                needs_iron_pickaxe=needs_iron_pickaxe))
-
-        # Add collect item to outcome
-        for block_type, outcome in meta_model.collect_block_to_outcome.items():
-            if block_type==BlockType.TREE_TAP.value:
-                continue # Special treatment to collecting from tree tap
-            item_type = outcome[0]
-            quantity = outcome[1]
-            pddl_actions.append(PddlCollectAction(block_type, item_type, quantity))
-        pddl_actions.append(PddlCollectFromTreeTapAction())
-
-        # Add recipes
-        for recipe_idx, recipe in enumerate(world_state.recipes):
-            craft_action = PolyCraftItem.create_action(recipe)
-            if len(craft_action.recipe) == 9:  # Need a crafting table
-                pddl_actions.append(PddlCraftAction(recipe_idx, recipe, needs_crafting_table=True))
-            else:
-                pddl_actions.append(PddlCraftAction(recipe_idx, recipe, needs_crafting_table=False))
-
-        # Add trades
-        for trader_id, trades in world_state.trades.items():
-            for trade_idx, trade in enumerate(trades):
-                pddl_actions.append(PddlTradeAction(trader_id, trade_idx, trade))
+            pddl_actions.append(PddlBreakActionGenerator(block_type, item_type, quantity,
+                                                         needs_iron_pickaxe=needs_iron_pickaxe))
         return pddl_actions
 
     def get_type_for_cell(self, cell_attr, meta_model) -> PddlGameMapCellType:
@@ -84,9 +107,20 @@ class CreatePogoTask(Task):
         ''' Returns the heuristic to be used by the planner'''
         return CraftPogoHeuristic(world_state)
 
+    def is_done(self, state:PolycraftState)->bool:
+        ''' Checks if the task has been succesfully completed '''
+        if state.count_items_of_type(ItemType.WOODEN_POGO_STICK.value)>0:
+            return True
+        else:
+            return False
+
 class ExploreDoorTask(CreatePogoTask):
     def __init__(self, door_cell:str=None):
         self.door_cell = door_cell
+
+    def is_done(self, state:PolycraftState)->bool:
+        ''' Checks if the task has been succesfully completed '''
+        return is_steve_in_room(self.door_cell, state)
 
     def get_relevant_types(self, world_state:PolycraftState, meta_model):
         ''' Returns a list of actions for the agent to use when planning '''
@@ -113,10 +147,13 @@ class ExploreDoorTask(CreatePogoTask):
         ''' Returns the heuristic to be used by the planner'''
         return OpenDoorHeuristic(self.door_cell)
 
-    def create_relevant_actions(self, world_state:PolycraftState, meta_model:PolycraftMetaModel):
-        action_generators = super().create_relevant_actions(world_state, meta_model)
-        action_generators.extend([PddlMoveThroughDoorAction(),
-                                  PddlUseDoorAction()])
+    def create_relevant_actions(self, world_state:PolycraftState, meta_model:PolycraftMetaModel)->list:
+        action_generators = []
+        action_generators.extend(self._create_select_item_actions(meta_model))
+        action_generators.extend(self._create_break_block_actions(meta_model))
+        action_generators.extend(self._create_collect_actions(meta_model))
+        action_generators.extend([PddlMoveThroughDoorActionGenerator(),
+                                  PddlUseDoorActionGenerator()])
         return action_generators
 
     def create_relevant_events(self, world_state:PolycraftState, meta_model:PolycraftMetaModel):
@@ -128,15 +165,20 @@ class ExploreDoorTask(CreatePogoTask):
         if type_str not in meta_model.block_type_to_idx:
             logger.info("Unknown game map cell type: %s" % type_str)
             return PddlGameMapCellType(type_idx=-1)
-        elif type_str==meta_model.block_type_to_idx[BlockType.WOODER_DOOR.value]:
-            return PddlDoorCellType(type_idx=meta_model.block_type_to_idx[type_str])
         else:
-            return PddlGameMapCellType(type_idx=meta_model.block_type_to_idx[type_str])
+            type_idx = meta_model.block_type_to_idx[type_str]
+            if type_str==BlockType.WOODER_DOOR.value:
+                return PddlDoorCellType(type_idx=type_idx)
+            else:
+                return PddlGameMapCellType(type_idx=type_idx)
 
 class CollectFromSafeTask(CreatePogoTask):
     ''' Task includes obtaining a key if none exists, going to the safe, opening it with the key and collecting what's in'''
     def __init__(self, safe_cell:str):
         self.safe_cell = safe_cell
+
+    def is_done(self, state:PolycraftState)->bool:
+        return False # TODO: Mark in some way which safes have been collected
 
     def get_goals(self, world_state:PolycraftState, meta_model:PolycraftMetaModel):
         return [[Predicate.safe_collected.name, PddlGameMapCellType.get_cell_object_name(self.safe_cell)]]
@@ -162,29 +204,14 @@ class CollectFromSafeTask(CreatePogoTask):
         ''' Returns the heuristic to be used by the planner'''
         return CollectFromSafeHeuristic(self.safe_cell)
 
-    def create_relevant_actions(self, world_state:PolycraftState, meta_model:PolycraftMetaModel):
-        pddl_actions = []
-        for item_type in meta_model.selectable_items:
-            pddl_actions.append(PddlSelectAction(item_type=item_type))
+    def create_relevant_actions(self, world_state:PolycraftState, meta_model:PolycraftMetaModel)->list:
+        action_generators = []
+        action_generators.extend(self._create_select_item_actions(meta_model))
+        action_generators.extend(self._create_break_block_actions(meta_model))
+        action_generators.extend(self._create_collect_actions(meta_model))
 
-        # Add blocks to break and get items
-        for block_type, outcome in meta_model.break_block_to_outcome.items():
-            item_type = outcome[0]
-            quantity = outcome[1]
-            if block_type in meta_model.needs_iron_pickaxe:
-                needs_iron_pickaxe = True
-            else:
-                needs_iron_pickaxe = False
-            pddl_actions.append(PddlBreakAction(block_type, item_type, quantity,
-                                                needs_iron_pickaxe=needs_iron_pickaxe))
-
-        # Add collect item to outcome
-        for block_type, outcome in meta_model.collect_block_to_outcome.items():
-            item_type = outcome[0]
-            quantity = outcome[1]
-            pddl_actions.append(PddlCollectAction(block_type, item_type, quantity))
-
-        pddl_actions.append(PddlOpenSafeAndCollect())
+        action_generators.append(PddlOpenSafeAndCollectGenerator())
+        return action_generators
 
     def get_type_for_cell(self, cell_attr, meta_model) -> PddlGameMapCellType:
         ''' Return a PddlGameMapCellType appropriate to generate objects representing this game map cell'''
@@ -192,13 +219,16 @@ class CollectFromSafeTask(CreatePogoTask):
         if type_str not in meta_model.block_type_to_idx:
             logger.info("Unknown game map cell type: %s" % type_str)
             return PddlGameMapCellType(type_idx=-1)
-        elif type_str==meta_model.block_type_to_idx[BlockType.SAFE.value]:
-            return PddlSafeCellType(type_idx=meta_model.block_type_to_idx[type_str])
         else:
-            return PddlGameMapCellType(type_idx=meta_model.block_type_to_idx[type_str])
+            type_idx = meta_model.block_type_to_idx[type_str]
+            if type_str==BlockType.SAFE.value:
+                return PddlSafeCellType(type_idx=type_idx)
+            else:
+                return PddlGameMapCellType(type_idx=type_idx)
 
     def get_goals(self, world_state:PolycraftState, meta_model:PolycraftMetaModel):
-        return ([[f"{Predicate.safe_collected.name}",]])
+        return [[Predicate.safe_collected.name, PddlGameMapCellType.get_cell_object_name(self.safe_cell)]]
+
     def create_relevant_events(self, world_state:PolycraftState, meta_model:PolycraftMetaModel):
         return [CellAccessibleEvent(), SafeAccessibleEvent()]
     def get_metric(self, world_state:PolycraftState, meta_model:PolycraftMetaModel):
@@ -219,6 +249,7 @@ class CollectFromSafeTask(CreatePogoTask):
 
 
 class MakeCellAccessibleTask(CreatePogoTask):
+    ''' TODO: Complete this '''
     def __init__(self, cell:str=None):
         self.cell = cell
     def get_goals(self, world_state:PolycraftState, meta_model:PolycraftMetaModel):
@@ -226,6 +257,12 @@ class MakeCellAccessibleTask(CreatePogoTask):
     def get_planner_heuristic(self, world_state:PolycraftState, meta_model:PolycraftMetaModel):
         ''' Returns the heuristic to be used by the planner'''
         return MakeCellAccessibleHeuristic(self.cell)
+    def is_done(self, state:PolycraftState)->bool:
+        ''' Checks if the task has been succesfully completed '''
+        if state.get_known_cells()[self.cell][Predicate.isAccessible.name]:
+            return True
+        else:
+            return False
 
 ### Heuristic functions for tasks
 
@@ -307,20 +344,8 @@ class MakeCellAccessibleHeuristic(AbstractHeuristic):
 ########### Actions
 
 ###### PDDL ACTIONS, PROCESSES, AND EVENTS
-class PddlPolycraftAction():
-    def __init__(self, pddl_name):
-        self.pddl_name = pddl_name # The name of this PDDL action
 
-    ''' A class representing a PDDL+ action in polycraft '''
-    def to_pddl(self, meta_model: MetaModel)->PddlPlusWorldChange:
-        ''' This method should be implemented by sublcasses and output a string representation of the corresponding PDDL+ action '''
-        raise NotImplementedError()
-
-    def to_polycraft(self, parameter_binding:dict)->PolycraftAction:
-        ''' This method should be implemented by sublcasses and output a string representation of the corresponding PDDL+ action '''
-        raise NotImplementedError()
-
-class PddlPlaceTreeTapAction(PddlPolycraftAction):
+class PddlPlaceTreeTapActionGenerator(PddlPolycraftActionGenerator):
     ''' An action corresponding to placing a tree tap
         (:action place_tree_tap
             :parameters (?at - cell ?near_to - cell)
@@ -363,7 +388,7 @@ class PddlPlaceTreeTapAction(PddlPolycraftAction):
     def to_polycraft(self, parameter_binding:dict)->PolycraftAction:
         return PolyPlaceTreeTap()
 
-class PddlCollectAction(PddlPolycraftAction):
+class PddlCollectActionGenerator(PddlPolycraftActionGenerator):
     ''' An action corresponding to collecting an item from a cell (COLLECT in the Polycraft API)
     (:action collect_{item_type}_from_{block_type}
         :parameters (?c - cell)
@@ -398,7 +423,7 @@ class PddlCollectAction(PddlPolycraftAction):
         return TeleportToAndCollect(parameter_binding['?c'])
 
 
-class PddlCollectFromTreeTapAction(PddlPolycraftAction):
+class PddlCollectFromTreeTapActionGenerator(PddlPolycraftActionGenerator):
     ''' An action corresponding to collecting an item from a cell (COLLECT in the Polycraft API)
     (:action collect_from_tree_tap
         :parameters (?c - cell near_to? - cell)
@@ -436,7 +461,7 @@ class PddlCollectFromTreeTapAction(PddlPolycraftAction):
     def to_polycraft(self, parameter_binding: dict) -> PolycraftAction:
         return TeleportToAndCollect(parameter_binding['?c'])
 
-class PddlBreakAction(PddlPolycraftAction):
+class PddlBreakActionGenerator(PddlPolycraftActionGenerator):
     ''' An action for moving to a cell, breaking it, and collecting the resulting item.
 
     ; TELEPORT_TO AND BREAK
@@ -480,7 +505,7 @@ class PddlBreakAction(PddlPolycraftAction):
     def to_polycraft(self, parameter_binding: dict) -> PolycraftAction:
         return TeleportToBreakAndCollect(parameter_binding['?c'])
 
-class PddlSelectAction(PddlPolycraftAction):
+class PddlSelectActionGenerator(PddlPolycraftActionGenerator):
     ''' An action for selecting an item from the inventory
         ; SELECT
         (:action select_{item_type.name}
@@ -511,7 +536,7 @@ class PddlSelectAction(PddlPolycraftAction):
     def to_polycraft(self, parameter_binding: dict) -> PolycraftAction:
         return PolySelectItem(self.item_type_name)
 
-class PddlUseDoorAction(PddlPolycraftAction):
+class PddlUseDoorActionGenerator(PddlPolycraftActionGenerator):
     ''' An action for using a dor
         ; Use door (USE)
         (:action select_{item_type.name}
@@ -539,7 +564,7 @@ class PddlUseDoorAction(PddlPolycraftAction):
     def to_polycraft(self, parameter_binding: dict) -> PolycraftAction:
         return OpenDoor(parameter_binding["?c"])
 
-class PddlOpenSafeAndCollect(PddlPolycraftAction):
+class PddlOpenSafeAndCollectGenerator(PddlPolycraftActionGenerator):
     ''' An action generator for opening a safe and collecting it '''
     def __init__(self):
         super().__init__(f"open_safe_and_collect")
@@ -560,7 +585,7 @@ class PddlOpenSafeAndCollect(PddlPolycraftAction):
         return OpenSafeAndCollect(parameter_binding["?c"])
 
 
-class PddlTradeAction(PddlPolycraftAction):
+class PddlTradeActionGenerator(PddlPolycraftActionGenerator):
     ''' An action for trading an item with a trader
         ; TRADE
         (:action trade_recipe_{trader_id}_{trade_idx}
@@ -657,7 +682,7 @@ class SafeAccessibleEvent(PddlPolycraftEvent):
         pddl_event.effects.append([Predicate.safe_is_accessible.name, "?c2"])
         return pddl_event
 
-class PddlCraftAction(PddlPolycraftAction):
+class PddlCraftActionGenerator(PddlPolycraftActionGenerator):
     ''' An action for crafting an item
         ; CRAFT 1
         (:action craft_recipe_{recipe_idx}
@@ -716,7 +741,7 @@ class PddlCraftAction(PddlPolycraftAction):
         else:
             return PolyCraftItem.create_action(self.recipe)
 
-class PddlMoveThroughDoorAction(PddlPolycraftAction):
+class PddlMoveThroughDoorActionGenerator(PddlPolycraftActionGenerator):
     ''' An action for moving through a door
         ; MOVE w w
         (:action move_through_door_{door_cell}
@@ -745,7 +770,7 @@ class PddlMoveThroughDoorAction(PddlPolycraftAction):
 class PolycraftTask(enum.Enum):
     ''' The types of tasks this meta model object supports '''
     CRAFT_POGO = CreatePogoTask
-    OPEN_DOOR = ExploreDoorTask
+    EXPLORE_DOOR = ExploreDoorTask
     MAKE_CELL_ACCESSIBLE = MakeCellAccessibleTask
     COLLECT_FROM_SAFE = CollectFromSafeTask
     def create_instance(self):
