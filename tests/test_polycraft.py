@@ -44,15 +44,3 @@ def test_polycraft_hydra(launch_polycraft: Polycraft):
         logger.info("Post action state: {}".format(str(after_state)))
         logger.info("Post action step cost: {}".format(step_cost))
         state = after_state
-
-
-
-def test_bla():
-    levels = get_novelty_levels_files()
-    import pickle
-    with open("bad_state.p","rb") as in_file:
-        state = pickle.load(in_file)
-
-    planner = PolycraftPlanner()
-    plan = planner.make_plan(state)
-    os.path.join(settings.ROOT_PATH, "polycraft_failed_state.p")

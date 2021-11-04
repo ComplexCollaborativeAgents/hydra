@@ -99,6 +99,18 @@ def test_run_planner(execution_number):
 
     assert(len(plan)>0)
 
+@pytest.mark.parametrize('execution_number', range(1))
+def test_run_planner_bug(execution_number):
+    test_path = pathlib.Path(settings.ROOT_PATH) / "tests"
+
+    state = None
+    with open(test_path / f"polycraft_failed_CreatePogoTask" ,"rb") as in_file:
+        state = pickle.load(in_file)
+    planner = PolycraftPlanner()
+    plan = planner.make_plan(state)
+
+    assert(len(plan)>0)
+
 @pytest.fixture(scope="module")
 def launch_polycraft():
     # Load levels
@@ -132,31 +144,6 @@ def test_plan_for_non_novelty_levels(launch_polycraft, execution_number):
 
     assert(len(plan)>0)
 
-@pytest.mark.parametrize('execution_number', range(100))
-def test_plan_for_published_novelty_levels(launch_polycraft, execution_number):
-    ''' Run the fixed planner and observe results '''
-    env, agent, _ = launch_polycraft
-    levels_dir_path = pathlib.Path(settings.POLYCRAFT_NOVELTY_LEVEL_DIR)
-    levels = []
-    for level_file in os.listdir(levels_dir_path):
-        if level_file.endswith(".json2") == False:
-            levels.append(levels_dir_path / level_file)
-    test_level = levels[execution_number % len(levels)]  # Choose the level to try now
-
-
-    logger.info(f"Loading level {test_level}...")
-    env.init_selected_level(test_level)
-    agent.start_level(env)  # Collect trades and recipes
-    state = env.get_current_state()
-
-    planner = PolycraftPlanner()
-    plan = planner.make_plan(state)
-    # If failed, store state
-    if len(plan)==0:
-        with open(TEST_PATH / f"failed_init_state_{test_level.name}.p", "wb") as out_file:
-            pickle.dump(state, out_file)
-
-    assert(len(plan)>0)
 
 # def test_observation():
 #     test_path = pathlib.Path(settings.ROOT_PATH) / "tests"

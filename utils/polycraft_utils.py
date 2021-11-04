@@ -7,6 +7,7 @@ from worlds.polycraft_interface.client.polycraft_interface import *
 import os
 import os.path
 import re
+import shutil
 
 def has_new_item(state_diff: dict):
     ''' Check if the state diff dictionary reports on a new item in the inventory '''
@@ -333,31 +334,32 @@ def get_non_novelty_levels_files():
     return levels
 
 
-def get_novelty_levels_files(novelty_to_levels:dict = None):
+def get_novelty_levels_files():
     ''' Return a list of config files for the non-novelty levels we have for training. '''
     NOVELTY_FOLDER_RE = re.compile("POGO\_L(..)\_T(..)\_S(..)")
     non_novelty_levels_root = pathlib.Path(settings.POLYCRAFT_NOVELTY_LEVEL_DIR)
-    if novelty_to_levels is None: # Means try all levels and novelties
-        novelty_to_levels = dict()
-        for level_dir in os.listdir(non_novelty_levels_root):
-            if os.path.isdir(non_novelty_levels_root / level_dir):
-                pattern = NOVELTY_FOLDER_RE.match(level_dir)
-                if pattern is not None:
-                    groups = pattern.groups()
-                    assert(len(groups)==3)
-                    level = groups[0]
-                    type = groups[1]
-                    level_set = groups[2]
-                    key = (level, type, level_set)
-                    novelty_to_levels[key]=[]
-                    for file_name in os.listdir(non_novelty_levels_root / level_dir / "X0100"):
-                        if os.path.isdir(file_name):
-                            novelty_to_levels[key].append(file_name)
-
-    levels = []
-    for (level, type, level_set), levels_paths in novelty_to_levels.items():
-        for level_file in levels_paths:
-            if level_file.endswith(".json"):
-                levels.append(level_file)
-
+    levels = list()
+    for level_dir in os.listdir(non_novelty_levels_root):
+        if os.path.isdir(non_novelty_levels_root / level_dir):
+            pattern = NOVELTY_FOLDER_RE.match(level_dir)
+            if pattern is not None:
+                groups = pattern.groups()
+                assert(len(groups)==3)
+                level = groups[0]
+                type = groups[1]
+                level_set = groups[2]
+                x0100_dir = non_novelty_levels_root / level_dir / "X0100"
+                files_in_x0100 = list(os.listdir(x0100_dir))
+                for file_name in files_in_x0100:
+                    if os.path.isdir(x0100_dir / file_name):
+                        levels_dir = x0100_dir / file_name
+                    elif str(file_name).endswith(".zip"):
+                        dir_name = str(file_name)[:-4]
+                        levels_dir = x0100_dir / dir_name
+                        shutil.unpack_archive(x0100_dir / file_name, levels_dir)
+                    else:
+                        continue # File that is not a dir or a zip file is out of scopre
+                    for f in os.listdir(levels_dir):
+                        if f.endswith(".json"):
+                            levels.append(x0100_dir / levels_dir / f)
     return levels

@@ -338,6 +338,30 @@ class PolycraftMetaModel(MetaModel):
 
         self.active_task = active_task
 
+    def introduce_novel_block_type(self, block_type):
+        if block_type in self.block_type_to_idx:
+            logger.info(f"Block type {block_type} already known")
+            return
+        type_idx = max(self.block_type_to_idx.values())+1
+        self.block_type_to_idx[block_type]=type_idx
+        self.break_block_to_outcome[block_type]=self.break_block_to_outcome[BlockType.LOG.value] # Assume unknown object behaves like a log
+        # Assume new item is not collectable
+
+    def introduce_novel_inventory_item_type(self, item_type):
+        ''' Introduce new item type.'''
+        if item_type in self.item_type_to_idx:
+            logger.info(f"Item type {item_type} already known")
+            return
+        type_idx = max(self.item_type_to_idx.values())+1
+        self.item_type_to_idx[item_type]=type_idx
+
+        if item_type not in self.selectable_items:
+            self.selectable_items.append(item_type) # Assume unknown item is selectable
+
+    def introduce_novel_entity_type(self, entity_type):
+        ''' Introduce novel entity type'''
+        logger.info(f"Currently ignoring novel entity type {entity_type}")
+
     def set_active_task(self, task:Task):
         ''' Sets the active task for which to create PDDL domains and problems '''
         self.active_task = task
@@ -515,8 +539,6 @@ class PolycraftMetaModel(MetaModel):
 
     def get_nyx_heuristic(self, world_state):
         return self.active_task.get_planner_heuristic(world_state, self)
-
-
 
 
     #

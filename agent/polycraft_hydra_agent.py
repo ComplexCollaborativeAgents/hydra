@@ -292,6 +292,7 @@ class PolycraftHydraAgent(HydraAgent):
         ''' Generate a plan for the active task '''
         if active_task is not None:
             self.set_active_task(active_task)
+        self._adapt_to_novel_objects(self.current_state)
         return self.planner.make_plan(self.current_state)
 
     def should_replan(self):
@@ -420,16 +421,32 @@ class PolycraftHydraAgent(HydraAgent):
         if isinstance(self.planner, PolycraftPlanner):
             self.planner.meta_model = meta_model
 
+    def _adapt_to_novel_objects(self, state):
+        ''' Computes the novel blocks, items, and entities in the current state'''
+        for block_type in state.get_type_to_cells():
+            if block_type not in self.meta_model.block_type_to_idx:
+                logger.info(f"Novel block type detected - {block_type}")
+                self.meta_model.introduce_novel_block_type(block_type)
+        for item_type in state.get_item_to_count():
+            if item_type not in self.meta_model.item_type_to_idx:
+                logger.info(f"Novel item type detected - {item_type}")
+                self.meta_model.introduce_novel_inventory_item_type(item_type)
+        for entity, entity_attr in state.entities.items():
+            entity_type = entity_attr["type"]
+            if entity_type not in [entity.value for entity in EntityType]:
+                logger.info(f"Novel entity type detected - {entity_type}")
+                self.meta_model.introduce_novel_entity_type(entity_type)
+
     def novelty_detection(self, report_novelty=True):
         ''' Computes the likelihood that the current observation is novel '''
         last_observation = self.observations_list[-1]
         novelties = set()
         for i, state in enumerate(last_observation.states):
             for block_type in state.get_type_to_cells():
-                if block_type not in self.meta_model.block_type_to_idx:
+                if block_type not in [type.value for type in BlockType]:
                     novelties.add(f"Block type {block_type} unknown")
             for item_type in state.get_item_to_count():
-                if item_type not in self.meta_model.item_type_to_idx:
+                if item_type not in [type.value for type in ItemType]:
                     novelties.add(f"Item type {item_type} is unknown")
             for entity, entity_attr in state.entities.items():
                 entity_type = entity_attr["type"]
