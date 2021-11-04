@@ -386,7 +386,7 @@ class PddlPlaceTreeTapActionGenerator(PddlPolycraftActionGenerator):
         return pddl_action
 
     def to_polycraft(self, parameter_binding:dict)->PolycraftAction:
-        return PolyPlaceTreeTap()
+        return TeleportToAndPlaceTreeTap(parameter_binding["?at"])
 
 class PddlCollectActionGenerator(PddlPolycraftActionGenerator):
     ''' An action corresponding to collecting an item from a cell (COLLECT in the Polycraft API)

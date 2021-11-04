@@ -303,8 +303,17 @@ class TeleportToAndUse(TeleportToAndDo):
         else:
             return PolySelectItem(self.item_to_use)
 
+class TeleportToAndPlaceTreeTap(TeleportToAndDo):
+    ''' Macro for teleporting to a given cell, turning to face it, and placing a tree tap on it. '''
+    def __init__(self, cell: str):
+        super().__init__(cell, max_steps=TeleportAndFaceCell.MAX_STEPS+2)
 
+    def __str__(self):
+        return f"<TeleportToAndPlaceTreeTap {self.cell} success={self.success}>"
 
+    def _action_at_cell(self, state:PolycraftState):
+        self._is_done = True
+        return PolyPlaceTreeTap()
 
 class TeleportToBreakAndCollect(TeleportToAndDo):
     ''' Macro for teleporting to a given cell, turning to face it, breaking it, and collecting the resulting item.

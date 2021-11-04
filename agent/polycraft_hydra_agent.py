@@ -277,7 +277,7 @@ class PolycraftHydraAgent(HydraAgent):
             self.active_plan = self.replan(world_state)
             self.actions_since_planning = 0
         else:
-            logger.info("Continue to perform the current plan")
+            logger.info(f"Continue to perform the current plan. Next action is {self.active_plan[0]}")
 
         # If no plan found, choose default action
         if self.active_plan is None:
