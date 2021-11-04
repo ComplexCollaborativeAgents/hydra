@@ -10,6 +10,8 @@ import worlds.polycraft_interface.client.polycraft_interface as poly
 
 
 class PolyBreakAndCollect(PolycraftAction):
+    MAX_COLLECT_RANGE_AFTER_BREAK = 4
+
     """ Teleport near a brick, break it, and collect the resulting item """
     def __init__(self, cell: str):
         super().__init__()
@@ -29,56 +31,52 @@ class PolyBreakAndCollect(PolycraftAction):
             logger.info(f"Action {str(self)} failed during BREAK_BLOCK, Message: {result}")
             return result
 
-        # If item in inventory - success!
+        # Search for the mined items. Some may be in invenotry, some in the near by area as EntityItem objects
         current_state = env.get_current_state()
-        if self._item_collected(state_before_breaking, current_state):
-            self.success = True
-            return result
-
-        # Else: wait, maybe it needs a bit time
-        self._wait_to_collect_adjacent_items(current_state, poly_client)
-        current_state = env.get_current_state()
-        if self._item_collected(state_before_breaking, current_state):
-            self.success = True
-            return result
-
-        # Else, new item appears as an EntityItem and needs to be collected
         state_diff = current_state.diff(state_before_breaking)
-        assert("entities" in state_diff) # If the new item is not in the inventory, it should be a new EntityItem
         new_entity_items = get_new_entity_items(state_diff)
-        assert(len(new_entity_items)>0)
-
-        if len(new_entity_items)>=1: # Choose the closest entity item
-            min_dist_to_item = None
-            new_item_pos = None
-            new_item = None
-            steve_pos = current_state.location['pos']
-            for (entity_id, entity_attr) in new_entity_items:
-                item_pos = entity_attr['pos']
-                if new_item_pos is None:
-                    min_dist_to_item = compute_cell_distance(steve_pos, item_pos)
-                    new_item_pos = item_pos
-                    new_item = entity_id
-                else:
-                    dist_to_item = compute_cell_distance(steve_pos, item_pos)
-                    if dist_to_item<min_dist_to_item:
-                        min_dist_to_item = dist_to_item
-                        new_item_pos = item_pos
-                        new_item = entity_id
-
-        # Move to new item location to collect it
-        item_pos_cell = ",".join([str(coord) for coord in new_item_pos])
-        logger.info(f"Item not in inventory, teleport to its cell: {item_pos_cell}")
-        result = poly_client.TP_TO_ENTITY(new_item)
-        # Sometimes the item gets collected even if the TP fails. Maybe some timing issue where it gets collected before we move there TODO: Investigate this
-        current_state = env.get_current_state()
+        if len(new_entity_items)>0:
+            steve_break_block_pos = current_state.location['pos']
+            entity_items_to_collect = self._get_relevant_entity_items(steve_break_block_pos,
+                                                                      new_entity_items=new_entity_items,
+                                                                      current_state=current_state,
+                                                                      max_range=PolyBreakAndCollect.MAX_COLLECT_RANGE_AFTER_BREAK)
+            while len(entity_items_to_collect) > 0:
+                entity_id = entity_items_to_collect.pop(0)
+                entity_cell = coordinates_to_cell(current_state.entities[entity_id]["pos"])
+                result = poly_client.TP_TO_ENTITY(entity_id)
+                current_state = env.get_current_state()
+                entity_items_to_collect = self._get_relevant_entity_items(steve_break_block_pos,
+                                                                          entity_items_to_collect,
+                                                                          current_state=current_state,
+                                                                          max_range=PolyBreakAndCollect.MAX_COLLECT_RANGE_AFTER_BREAK)
         if self._item_collected(state_before_breaking, current_state):
             self.success = True
             return result
         else:
-            logger.info(f"Action {str(self)} failed during TP_TO_ENTITY(new_item), Message: {result}")
+            logger.info(f"Action {str(self)} failed to collect a new item, Message: {result}")
             self.success = False
             return result
+
+    def _get_relevant_entity_items(self, state_pos_at_break, new_entity_items, current_state, max_range):
+        ''' Returns a list on entity items to collect after the break '''
+        relevant_entities = []
+        min_dist_to_entity = None
+        for entity_id in new_entity_items:
+            if entity_id not in current_state.entities:
+                continue
+            item_pos = current_state.entities[entity_id]['pos']
+            dist_to_break_pos = compute_cell_distance(state_pos_at_break, item_pos)
+            if dist_to_break_pos<=max_range:
+                if min_dist_to_entity is None:
+                    min_dist_to_entity = dist_to_break_pos
+                    relevant_entities.append(entity_id)
+                elif min_dist_to_entity > dist_to_break_pos:
+                    min_dist_to_entity = dist_to_break_pos
+                    relevant_entities.insert(0,entity_id)
+                else:
+                    relevant_entities.append(entity_id)
+        return relevant_entities
 
     def _item_collected(self, state_before_breaking, current_state):
         if has_new_item(current_state.diff(state_before_breaking)):

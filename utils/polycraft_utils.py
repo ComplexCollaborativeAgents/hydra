@@ -22,11 +22,11 @@ def has_new_item(state_diff: dict):
 def get_new_entity_items(state_diff: dict):
     ''' returns the list of new entity items in the state diff dictionary '''
     entities_diff = state_diff["entities"]
-    new_entity_items = []
+    new_entities = []
     for entity_id, entity_attr in entities_diff.items():
         if entity_attr['self']['type'] == 'EntityItem':
-            new_entity_items.append((entity_id, entity_attr['self']))
-    return new_entity_items
+            new_entities.append(entity_id)
+    return new_entities
 
 def print_diff(state_diff: dict, prefix = ""):
     ''' For debug: pretty printing of a state diff '''
