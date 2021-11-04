@@ -258,7 +258,7 @@ class PolycraftHydraAgent(HydraAgent):
         # Open safe
         safe_cells= world_state.get_cells_of_type(BlockType.SAFE.value)
         for safe_cell in safe_cells:
-            exploration_tasks.append[CollectFromSafeTask(safe_cell)]
+            exploration_tasks.append(CollectFromSafeTask(safe_cell))
 
         # No open door tasks? choose a random exploration task
         return random.choice(exploration_tasks)
