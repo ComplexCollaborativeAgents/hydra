@@ -574,7 +574,7 @@ class PddlOpenSafeAndCollectGenerator(PddlPolycraftActionGenerator):
         pddl_action.name = self.pddl_name
         pddl_action.parameters.append(["?c", "-", PddlType.safe_cell.name])
 
-        pddl_action.preconditions.append([">=", [f"count_{ItemType.KEY.name}"], "1"])
+        pddl_action.preconditions.append([">=", [f"count_{ItemType.KEY.value}"], "1"])
         pddl_action.preconditions.append([Predicate.safe_is_accessible.name, "?c"])
 
         pddl_action.effects.append([Predicate.safe_collected.name, "?c"])
