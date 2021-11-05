@@ -48,11 +48,13 @@ def run():
         action = agent.choose_action(state)
         state, reward = agent.do(action, world)
 
+        agent.novelty_detection(report_novelty=True, only_last_state=True)
+
         world.poly_client._logger.info("State: {}\nReward: {}".format(state, reward))
 
         # LaunchTournament.py handles detecting and advancing to next level
         if state.is_terminal():
-            agent.novelty_detection(report_novelty=True) #
+            # agent.novelty_detection(report_novelty=True) #
             if SINGLE_LEVEL_MODE:
                 world.poly_client._logger.info("Finished the level!")
                 return

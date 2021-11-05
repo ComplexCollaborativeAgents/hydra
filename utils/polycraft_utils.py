@@ -22,6 +22,9 @@ def has_new_item(state_diff: dict):
 
 def get_new_entity_items(state_diff: dict):
     ''' returns the list of new entity items in the state diff dictionary '''
+    if "entities" not in state_diff:
+        return []
+
     entities_diff = state_diff["entities"]
     new_entities = []
     for entity_id, entity_attr in entities_diff.items():

@@ -439,21 +439,15 @@ class PolycraftHydraAgent(HydraAgent):
                 logger.info(f"Novel entity type detected - {entity_type}")
                 self.meta_model.introduce_novel_entity_type(entity_type)
 
-    def novelty_detection(self, report_novelty=True):
+    def novelty_detection(self, report_novelty=True, only_last_state=True):
         ''' Computes the likelihood that the current observation is novel '''
-        last_observation = self.observations_list[-1]
         novelties = set()
-        for i, state in enumerate(last_observation.states):
-            for block_type in state.get_type_to_cells():
-                if block_type not in [type.value for type in BlockType]:
-                    novelties.add(f"Block type {block_type} unknown")
-            for item_type in state.get_item_to_count():
-                if item_type not in [type.value for type in ItemType]:
-                    novelties.add(f"Item type {item_type} is unknown")
-            for entity, entity_attr in state.entities.items():
-                entity_type = entity_attr["type"]
-                if entity_type not in [entity.value for entity in EntityType]:
-                    novelties.add(f"Entity type {entity_type} unknown")
+        if only_last_state==False:
+            last_observation = self.observations_list[-1]
+            for i, state in enumerate(last_observation.states):
+                novelties.update(self._detect_unknown_objects(novelties, state))
+        else:
+            novelties = self._detect_unknown_objects(novelties, self.current_state)
 
         if len(novelties)>0:
             novelty_characterization = "\n".join(novelties)
@@ -464,6 +458,21 @@ class PolycraftHydraAgent(HydraAgent):
             novelty_characterization = ""
             novelty_likelihood = 0.0
         return novelty_likelihood, novelty_characterization
+
+    def _detect_unknown_objects(self, state):
+        ''' Returns a list of unknown object novelties identified in the given state '''
+        novelties = set()
+        for block_type in state.get_type_to_cells():
+            if block_type not in [type.value for type in BlockType]:
+                novelties.add(f"Block type {block_type} unknown")
+        for item_type in state.get_item_to_count():
+            if item_type not in [type.value for type in ItemType]:
+                novelties.add(f"Item type {item_type} is unknown")
+        for entity, entity_attr in state.entities.items():
+            entity_type = entity_attr["type"]
+            if entity_type not in [entity.value for entity in EntityType]:
+                novelties.add(f"Entity type {entity_type} unknown")
+        return novelties
 
     def should_repair(self, observation):
         ''' Choose if the agent should repair its meta model based on the given observation '''
