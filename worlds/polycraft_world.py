@@ -569,6 +569,7 @@ class Polycraft(World):
                 results = action.do(state, self)   # Perform each polycraft action's unique do command which uses the Polycraft API
                 self.last_cmd_success = results['command_result']['result'] == "SUCCESS"    # Update if last command was successful or not
                 action.response = results
+                action.success = action.is_success(results)
                 logger.debug(str(action))
             except (BrokenPipeError, KeyboardInterrupt) as err:
                 logger.error("Polycraft server connection interrupted ({})".format(err))
