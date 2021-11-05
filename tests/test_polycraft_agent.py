@@ -48,7 +48,7 @@ def test_fixed_planner(launch_polycraft, execution_number):
     assert(state.count_items_of_type(ItemType.WOODEN_POGO_STICK.value)>0)
     logger.info("Pogo stick created !!!!")
 
-@pytest.mark.parametrize('execution_number', range(100))
+@pytest.mark.parametrize('execution_number', range(5))
 def test_pddl_planner(launch_polycraft, execution_number):
     ''' Run the fixed planner and observe results '''
     env, agent, levels = launch_polycraft
@@ -67,7 +67,7 @@ def test_pddl_planner(launch_polycraft, execution_number):
     logger.info("Pogo stick created !!!!")
 
 
-@pytest.mark.parametrize('execution_number', range(100))
+@pytest.mark.parametrize('execution_number', range(5))
 def test_pddl_planner_on_novelty_levels(launch_polycraft, execution_number):
     ''' Run the fixed planner and observe results '''
     env, agent, levels = launch_polycraft

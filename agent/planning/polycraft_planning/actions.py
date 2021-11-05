@@ -288,7 +288,7 @@ class TeleportToBreakAndCollect(TeleportToAndDo):
     ''' Macro for teleporting to a given cell, turning to face it, breaking it, and collecting the resulting item.
     The macro only teleports to the cell if Steve isn't already adjacent to it, and only turns to face the cell if needed. '''
     def __init__(self, cell: str):
-        super().__init__(cell, max_steps=TeleportAndFaceCell.MAX_STEPS+1)
+        super().__init__(cell, max_steps=TeleportAndFaceCell.MAX_STEPS+BreakAndCollect.MAX_STEPS)
 
     def __str__(self):
         return "<TeleportToBreakAndCollect {} success={}>".format(self.cell, self.success)

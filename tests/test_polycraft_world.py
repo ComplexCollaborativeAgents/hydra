@@ -334,6 +334,28 @@ def _go_to_crafting_table(agent, env, state):
     return after_state, step_cost
 
 
+def test_mine_paltinum_blocks(launch_polycraft: Polycraft):
+    ''' Test mining platinum'''
+    env = launch_polycraft
+    agent, state = _setup_env(env, TEST_LEVEL)
+
+    # Select iron pickaxe
+    action = PolySelectItem(ItemType.IRON_PICKAXE.value)
+    after_state, step_cost = agent.do(action, env)
+    assert(action.success)
+    assert(after_state.get_selected_item()==ItemType.IRON_PICKAXE.value)
+    state = after_state
+
+    # Collect block of platinum
+    cells = state.get_cells_of_type(BlockType.BLOCK_OF_PLATINUM.value, only_accessible=True)
+    assert(len(cells)>0)
+    cell = cells[0]
+    action = TeleportToBreakAndCollect(cell)
+    after_state, step_cost = agent.do(action, env)
+    assert(action.success)
+    assert(after_state.count_items_of_type(BlockType.BLOCK_OF_PLATINUM.value)>=1)
+    state = after_state
+
 def test_trade_logs(launch_polycraft: Polycraft):
     ''' Test getting logs and trading them for titanium '''
     env = launch_polycraft
