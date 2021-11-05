@@ -48,7 +48,7 @@ def test_fixed_planner(launch_polycraft, execution_number):
     assert(state.count_items_of_type(ItemType.WOODEN_POGO_STICK.value)>0)
     logger.info("Pogo stick created !!!!")
 
-@pytest.mark.parametrize('execution_number', range(50))
+@pytest.mark.parametrize('execution_number', range(100))
 def test_pddl_planner(launch_polycraft, execution_number):
     ''' Run the fixed planner and observe results '''
     env, agent, levels = launch_polycraft
@@ -61,19 +61,19 @@ def test_pddl_planner(launch_polycraft, execution_number):
 
     assert(state.terminal==False)
     max_iterations = 30
-    state, step_cost = agent.do_batch(max_iterations, state, env)
+    state, step_cost = agent.do_batch(max_iterations, state, env, time_limit=600)
 
     assert(state.count_items_of_type(ItemType.WOODEN_POGO_STICK.value)>0)
     logger.info("Pogo stick created !!!!")
 
 
-@pytest.mark.parametrize('execution_number', range(1))
+@pytest.mark.parametrize('execution_number', range(100))
 def test_pddl_planner_on_novelty_levels(launch_polycraft, execution_number):
     ''' Run the fixed planner and observe results '''
     env, agent, levels = launch_polycraft
 
     levels = get_novelty_levels_files()
-    test_level = levels[execution_number % len(levels)]  # Choose the level to try now
+    test_level = random.choice(levels)
 
     logger.info(f"Loading level {test_level}...")
     env.init_selected_level(test_level)
@@ -82,7 +82,7 @@ def test_pddl_planner_on_novelty_levels(launch_polycraft, execution_number):
 
     assert(state.terminal==False)
     max_iterations = 30
-    state, step_cost = agent.do_batch(max_iterations, state, env)
+    state, step_cost = agent.do_batch(max_iterations, state, env, time_limit=600)
 
     assert(state.count_items_of_type(ItemType.WOODEN_POGO_STICK.value)>0)
     logger.info("Pogo stick created !!!!")

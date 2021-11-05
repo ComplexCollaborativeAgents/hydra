@@ -402,13 +402,15 @@ class PolycraftHydraAgent(HydraAgent):
                     room_game_map[cell_id] = cell_attr
         self.current_state = new_state
 
-    def do_batch(self, batch_size:int, state:PolycraftState, env:Polycraft):
+    def do_batch(self, batch_size:int, state:PolycraftState, env:Polycraft, time_limit=0):
         ''' Runs a batch of actions from the given state using the given environment.
         Halt after batch_size actions or if the level has been finished. '''
         iteration = 0
+        start_time = time.time()
         while state.terminal == False and \
                 state.count_items_of_type(ItemType.WOODEN_POGO_STICK.value) == 0 and \
-                iteration < batch_size:
+                iteration < batch_size and \
+                (time_limit==0 or (time.time()-start_time<time_limit)):
             action = self.choose_action(state)
             after_state, step_cost = self.do(action, env)
             state = after_state
