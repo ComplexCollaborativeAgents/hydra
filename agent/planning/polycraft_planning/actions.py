@@ -10,7 +10,6 @@ class MacroAction(PolycraftAction):
     def __init__(self, max_steps:int=1):
         super().__init__()
         self.actions_done = [] # a list of the actions performed in this macro action. Useful for debugging.
-        self.active_action = None # If we're in the middle of doing some action
         self._is_done = False
         self.max_steps = max_steps # Maximal number of steps (actions) required to do this macro action is expected
 
@@ -26,40 +25,17 @@ class MacroAction(PolycraftAction):
         result = None
         i = 0
         while i<self.max_steps:
-            result = self._do_action(state, env)
+            next_action = self._get_next_action(state, env)
+            if next_action is not None:
+                result = next_action.do(state,env)
+                next_action.response = result # Store action result
+                self.actions_done.append(next_action)
+
             if self.is_done():
                 return result
             i = i+1
             state = env.get_current_state() # TODO: Wasteful: requires too many SENSE_ALL calls
         return result
-
-    def _do_action(self, state:PolycraftState, env: Polycraft) -> dict:
-        ''' Key: macro action accept the environment, not the polycraft_interface'''
-        # Select next action to do
-        if self.active_action is None:
-            next_action = self._get_next_action(state, env)
-            self.actions_done.append(next_action)
-        else:
-            next_action = self.active_action
-
-
-        logger.debug(f"\t Do action {next_action} as part of macro action {self}")
-        if isinstance(next_action, MacroAction):
-            result = next_action._do_action(state,env)
-        else:
-            result = next_action.do(state,env)
-
-        self.success = next_action.is_success(result)
-
-        # If next action not done yet, set it as the active action. Otherwise, set the active action to none.
-        self.active_action = None
-        if isinstance(next_action, MacroAction):
-            if next_action.is_done()==False:
-                self.active_action = next_action
-        if self.is_done()==False and self.success!=False:  # Macro action not done yet - do not declare success
-            self.success=None
-        return result
-
 
 class BreakAndCollect(MacroAction):
     MAX_COLLECT_RANGE_AFTER_BREAK = 4
@@ -72,19 +48,17 @@ class BreakAndCollect(MacroAction):
         self.state_before_break = None
         self.entity_items_to_collect = None
         self.break_action = None # Store the break action, since its result and success are the one we consider
-        self.break_result = None # Store the response we got after the break action. This is the result that will be returned for this action
 
     def __str__(self):
         return "<BreakAndCollect {} success={}>".format(self.cell, self.success)
 
-    def _do_action(self, state:PolycraftState, env: Polycraft) -> dict:
+    def do(self, state:PolycraftState, env: Polycraft) -> dict:
         ''' Key: macro action accept the environment, not the polycraft_interface'''
-        result = super()._do_action(state, env)
-        if self.actions_done[-1]==self.break_action:
-            self.break_result = result
-        self.success = self.break_action.is_success(self.break_result)
+        result = super().do(state, env)
+        break_result = self.break_action.response
+        self.success = self.break_action.is_success(break_result)
         if result is not None:
-            return self.break_result
+            return break_result
 
     def _get_next_action(self, state:PolycraftState, env: Polycraft)->PolycraftAction:
         if self.state_before_break is None:
@@ -100,7 +74,7 @@ class BreakAndCollect(MacroAction):
                                                                          max_range=BreakAndCollect.MAX_COLLECT_RANGE_AFTER_BREAK)
         if len(self.entity_items_to_collect)==0:
             self._is_done = True
-            return PolyNoAction()
+            return None
         else: # len(self.entity_items_to_collect)>0:
             # Search for the mined items. Some may be in invenotry, some in the near by area as EntityItem objects
             entity_id = self.entity_items_to_collect.pop(0)
@@ -157,7 +131,7 @@ class TeleportAndFaceCell(MacroAction):
         self._is_done = True
         turn_angle = get_angle_to_adjacent_cell(self.cell, state)
         if turn_angle == 0:
-            return PolyNoAction() # TODO: Add a mechanism that says no action needed. Not critical to do this
+            return None # TODO: Add a mechanism that says no action needed. Not critical to do this
         else:
             return PolyTurn(turn_angle)
 
