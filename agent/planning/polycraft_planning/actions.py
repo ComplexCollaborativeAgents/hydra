@@ -1,112 +1,10 @@
+import copy
 import random
 
 from utils.polycraft_utils import *
 from worlds.polycraft_actions import *
 from worlds.polycraft_world import *
-import worlds.polycraft_interface.client.polycraft_interface as poly
 
-# Helper actions
-
-
-
-class PolyBreakAndCollect(PolycraftAction):
-    MAX_COLLECT_RANGE_AFTER_BREAK = 4
-
-    """ Teleport near a brick, break it, and collect the resulting item """
-    def __init__(self, cell: str):
-        super().__init__()
-        self.cell = cell
-
-    def __str__(self):
-        return "<PolyBreakAndCollect {} success={}>".format(self.cell, self.success)
-
-    def do(self, state:PolycraftState, env: Polycraft) -> dict:
-        # Store the state before breaking, to identify the new item
-        state_before_breaking = state
-        # Break the block!
-        poly_client = env.poly_client
-        result = poly_client.BREAK_BLOCK()
-        if self.is_success(result) == False:
-            self.success = False
-            logger.info(f"Action {str(self)} failed during BREAK_BLOCK, Message: {result}")
-            return result
-
-        # Search for the mined items. Some may be in invenotry, some in the near by area as EntityItem objects
-        current_state = env.get_current_state()
-        state_diff = current_state.diff(state_before_breaking)
-        new_entity_items = get_new_entity_items(state_diff)
-        if len(new_entity_items)>0:
-            steve_break_block_pos = current_state.location['pos']
-            entity_items_to_collect = self._get_relevant_entity_items(steve_break_block_pos,
-                                                                      new_entity_items=new_entity_items,
-                                                                      current_state=current_state,
-                                                                      max_range=PolyBreakAndCollect.MAX_COLLECT_RANGE_AFTER_BREAK)
-            while len(entity_items_to_collect) > 0:
-                entity_id = entity_items_to_collect.pop(0)
-                entity_cell = coordinates_to_cell(current_state.entities[entity_id]["pos"])
-                result = poly_client.TP_TO_ENTITY(entity_id)
-                current_state = env.get_current_state()
-                entity_items_to_collect = self._get_relevant_entity_items(steve_break_block_pos,
-                                                                          entity_items_to_collect,
-                                                                          current_state=current_state,
-                                                                          max_range=PolyBreakAndCollect.MAX_COLLECT_RANGE_AFTER_BREAK)
-        if self._item_collected(state_before_breaking, current_state):
-            self.success = True
-            return result
-        else:
-            logger.info(f"Action {str(self)} failed to collect a new item, Message: {result}")
-            self.success = False
-            return result
-
-    def _get_relevant_entity_items(self, state_pos_at_break, new_entity_items, current_state, max_range):
-        ''' Returns a list on entity items to collect after the break '''
-        relevant_entities = []
-        min_dist_to_entity = None
-        for entity_id in new_entity_items:
-            if entity_id not in current_state.entities:
-                continue
-            item_pos = current_state.entities[entity_id]['pos']
-            dist_to_break_pos = compute_cell_distance(state_pos_at_break, item_pos)
-            if dist_to_break_pos<=max_range:
-                if min_dist_to_entity is None:
-                    min_dist_to_entity = dist_to_break_pos
-                    relevant_entities.append(entity_id)
-                elif min_dist_to_entity > dist_to_break_pos:
-                    min_dist_to_entity = dist_to_break_pos
-                    relevant_entities.insert(0,entity_id)
-                else:
-                    relevant_entities.append(entity_id)
-        return relevant_entities
-
-    def _item_collected(self, state_before_breaking, current_state):
-        if has_new_item(current_state.diff(state_before_breaking)):
-            return True
-        else:
-            return False
-
-    def _wait_to_collect_adjacent_items(self,current_state:PolycraftState, poly_client: poly.PolycraftInterface):
-        ''' Waits some time steps if there is item near by that should have been collected automatically '''
-        MAX_WAIT = 3 # The maximal number of no-ops we allow before giving up
-        REACHABILITY = 1 # If the item is at this distance from Steve, we expect it to be automatically collected
-        steve_location = current_state.location["pos"]
-        for i in range(MAX_WAIT):
-            has_item_in_range = False
-            items = current_state.get_entities_of_type(EntityType.ITEM.value)
-            for entity_id in items:
-                entity_attr = current_state.entities[entity_id]
-                item_location = entity_attr["pos"]
-                distance = compute_cell_distance(steve_location, item_location)
-                if distance<=REACHABILITY:
-                    has_item_in_range = True
-                    break
-
-            # if no item is in range, no point in waiting
-            if has_item_in_range==False:
-                return
-            else:
-                poly_client.CHECK_COST() # Do a no-op
-
-######## Macro actions
 class MacroAction(PolycraftAction):
     ''' A macro action is a generator of basic PolycraftActions based on the current state '''
     def __init__(self, max_steps:int=1):
@@ -161,6 +59,77 @@ class MacroAction(PolycraftAction):
         if self.is_done()==False and self.success!=False:  # Macro action not done yet - do not declare success
             self.success=None
         return result
+
+
+class BreakAndCollect(MacroAction):
+    MAX_COLLECT_RANGE_AFTER_BREAK = 4
+    MAX_STEPS = 4**MAX_COLLECT_RANGE_AFTER_BREAK
+
+    """ Teleport near a brick, break it, and collect the resulting item """
+    def __init__(self, cell: str):
+        super().__init__(max_steps=BreakAndCollect.MAX_STEPS)
+        self.cell = cell
+        self.state_before_break = None
+        self.entity_items_to_collect = None
+        self.break_action = None # Store the break action, since its result and success are the one we consider
+        self.break_result = None # Store the response we got after the break action. This is the result that will be returned for this action
+
+    def __str__(self):
+        return "<BreakAndCollect {} success={}>".format(self.cell, self.success)
+
+    def _do_action(self, state:PolycraftState, env: Polycraft) -> dict:
+        ''' Key: macro action accept the environment, not the polycraft_interface'''
+        result = super()._do_action(state, env)
+        if self.actions_done[-1]==self.break_action:
+            self.break_result = result
+        self.success = self.break_action.is_success(self.break_result)
+        if result is not None:
+            return self.break_result
+
+    def _get_next_action(self, state:PolycraftState, env: Polycraft)->PolycraftAction:
+        if self.state_before_break is None:
+            self.state_before_break=copy.deepcopy(state)
+            self.break_action = PolyBreak()  # Store break action to correctly return the result of this macro action (collect after break sometimes fail even when break and collect has worked)
+            return self.break_action
+
+        # Compute entities to collect
+        if self.entity_items_to_collect is None:
+            state_diff = state.diff(self.state_before_break)
+            self.entity_items_to_collect = get_new_entity_items(state_diff)
+        self.entity_items_to_collect = self._get_entity_items_to_collect(current_state=state,
+                                                                         max_range=BreakAndCollect.MAX_COLLECT_RANGE_AFTER_BREAK)
+        if len(self.entity_items_to_collect)==0:
+            self._is_done = True
+            return PolyNoAction()
+        else: # len(self.entity_items_to_collect)>0:
+            # Search for the mined items. Some may be in invenotry, some in the near by area as EntityItem objects
+            entity_id = self.entity_items_to_collect.pop(0)
+            entity_cell = coordinates_to_cell(state.entities[entity_id]["pos"])
+            return PolyEntityTP(entity_id)
+
+    def _get_entity_items_to_collect(self, current_state, max_range):
+        ''' Returns a list on entity items to collect after the break '''
+        if self.entity_items_to_collect is None: # consider entity items that have appeared after breaking the block
+            return get_new_entity_items(current_state.diff(self.state_before_break))
+
+        block_coord = cell_to_coordinates(self.cell)
+        relevant_entities = []
+        min_dist_to_entity = None
+        for entity_id in self.entity_items_to_collect:
+            if entity_id not in current_state.entities:
+                continue
+            item_pos = current_state.entities[entity_id]['pos']
+            dist_to_break_pos = compute_cell_distance(block_coord, item_pos)
+            if dist_to_break_pos<=max_range:
+                if min_dist_to_entity is None:
+                    min_dist_to_entity = dist_to_break_pos
+                    relevant_entities.append(entity_id)
+                elif min_dist_to_entity > dist_to_break_pos:
+                    min_dist_to_entity = dist_to_break_pos
+                    relevant_entities.insert(0,entity_id)
+                else:
+                    relevant_entities.append(entity_id)
+        return relevant_entities
 
 class TeleportAndFaceCell(MacroAction):
     MAX_STEPS = 6 # TODO: Rethink this
@@ -326,7 +295,7 @@ class TeleportToBreakAndCollect(TeleportToAndDo):
 
     def _action_at_cell(self, state:PolycraftState):
         self._is_done = True
-        return PolyBreakAndCollect(self.cell)
+        return BreakAndCollect(self.cell)
 
 class TeleportToTableAndCraft(TeleportToAndDo):
     ''' Move to the crafting table (if not already there) and crafts according to a recipe '''

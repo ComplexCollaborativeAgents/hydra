@@ -124,26 +124,6 @@ def launch_polycraft():
     logger.info("teardown tests")
     env.kill()
 
-@pytest.mark.parametrize('execution_number', range(100))
-def test_plan_for_non_novelty_levels(launch_polycraft, execution_number):
-    ''' Run the fixed planner and observe results '''
-    env, agent, levels = launch_polycraft
-    test_level = levels[execution_number % len(levels)]  # Choose the level to try now
-
-    logger.info(f"Loading level {test_level}...")
-    env.init_selected_level(test_level)
-    agent.start_level(env)  # Collect trades and recipes
-    state = env.get_current_state()
-
-    planner = PolycraftPlanner()
-    plan = planner.make_plan(state)
-    # If failed, store state
-    if len(plan)==0:
-        with open(TEST_PATH / f"failed_init_state_{test_level.name}.p", "wb") as out_file:
-            pickle.dump(state, out_file)
-
-    assert(len(plan)>0)
-
 
 # def test_observation():
 #     test_path = pathlib.Path(settings.ROOT_PATH) / "tests"

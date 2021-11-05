@@ -45,7 +45,7 @@ def test_agent_break_and_collect(launch_polycraft, execution_number):
     cell = log_cells[execution_number % len(log_cells)]  # Change the log cell we choose
     logs_before_break = state.count_items_of_type(log_type)
 
-    action = PolyBreakAndCollect(cell)
+    action = BreakAndCollect(cell)
     result = _move_to_cell_and_do(cell, action, env)
     state = env.get_current_state()
     logs_after_break = state.count_items_of_type(log_type)
@@ -70,7 +70,7 @@ def test_mining_two_logs(launch_polycraft: Polycraft, execution_number):
     cell1 = log_cells[execution_number % len(log_cells)]
     cell2 = log_cells[(execution_number +1) % len(log_cells)]
 
-    action = PolyBreakAndCollect(cell1)
+    action = BreakAndCollect(cell1)
     result = _move_to_cell_and_do(cell1, action, env)
 
     assert(action.is_success(result))
@@ -82,7 +82,7 @@ def test_mining_two_logs(launch_polycraft: Polycraft, execution_number):
         logger.info("Log cell disappeared or became inaccessible. Maybe the other pogoist took it")
         return
 
-    action = PolyBreakAndCollect(cell2)
+    action = BreakAndCollect(cell2)
     result = action.do(env)
     state = env.get_current_state()
     if action.is_success(result):
@@ -142,7 +142,7 @@ def test_agent_mine_with_pickaxe(launch_polycraft: Polycraft, execution_number:i
     log_type = BlockType.LOG.value
     logs_before = state.count_items_of_type(log_type)
     cell = accessible_log_cells[execution_number % len(accessible_log_cells)]  # Change the log cell we choose
-    action = PolyBreakAndCollect(cell)
+    action = BreakAndCollect(cell)
     result = _move_to_cell_and_do(cell, action, env)
     if action.is_success(result):
         state= env.get_current_state()
@@ -255,7 +255,7 @@ def _mine_logs(agent, env, state):
     log_cells = state.get_cells_of_type(log_type)
     assert (len(log_cells) > 0)
     cell = log_cells[0]
-    action = PolyBreakAndCollect(cell)
+    action = BreakAndCollect(cell)
     result  = _move_to_cell_and_do(cell, action, env)
     assert(action.is_success(result))
     logs_before = state.count_items_of_type(log_type)
@@ -285,7 +285,7 @@ def test_mine_diamonds(launch_polycraft: Polycraft, execution_number):
     while current_diamonds_in_inventory<9 and len(diamond_cells)>0:
         # Mine the diamond
         cell = diamond_cells[0]
-        action = PolyBreakAndCollect(cell)
+        action = BreakAndCollect(cell)
         result = _move_to_cell_and_do(cell, action, env)
         after_state = env.get_current_state()
 
