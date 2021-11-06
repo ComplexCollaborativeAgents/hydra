@@ -136,7 +136,7 @@ class CartPolePlusPlusDispatcher:
                     time.sleep(1/50)
 
                 label = self.delegate.testing_instance(feature_vector=features, novelty_indicator=novelty_indicator)
-                self.log.debug("Received label={}".format(label))
+                # self.log.debug("Received label={}".format(label))
                 action = self.actions[label['action']]
 
                 observation, reward, done, _ = env.step(action)

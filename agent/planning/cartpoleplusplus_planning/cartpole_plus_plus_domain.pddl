@@ -69,8 +69,8 @@
         (increase (theta_y) (* #t (theta_y_dot)))
         (increase (pos_x_dot) (* #t (pos_x_ddot)) )
         (increase (pos_y_dot) (* #t (pos_y_ddot)) )
-        (increase (theta_x_dot) (* #t (theta_x_ddot)) )
-        (increase (theta_y_dot) (* #t (theta_y_ddot)) )
+        (decrease (theta_x_dot) (* #t (theta_x_ddot)) )
+        (decrease (theta_y_dot) (* #t (theta_y_ddot)) )
         (increase (elapsed_time) (* #t 1) )
     )
   )
@@ -121,35 +121,35 @@
       )
   )
 
-  (:action move_cart_right
-    :parameters (?d - dummy)
-    :precondition (and
-    	(ready)
-    	;(= (F_x) (force_mag))
-    	(cart_available)
-    	(not (total_failure))
-	)
-    :effect (and
-      (assign (F_x) (- 0.0 (force_mag)))
-      (assign (F_y) 0.0)
-      (not (cart_available))
-  	)
-  )
+ ;  (:action move_cart_right
+ ;    :parameters (?d - dummy)
+ ;    :precondition (and
+ ;    	(ready)
+ ;    	;(= (F_x) (force_mag))
+ ;    	(cart_available)
+ ;    	(not (total_failure))
+	; )
+ ;    :effect (and
+ ;      (assign (F_x) (- 0.0 (force_mag)))
+ ;      (assign (F_y) 0.0)
+ ;      (not (cart_available))
+ ;  	)
+ ;  )
 
-  (:action move_cart_left
-    :parameters (?d - dummy)
-    :precondition (and
-    	(ready)
-    	;(= (F_x) (- 0.0 (force_mag)))
-    	(cart_available)
-    	(not (total_failure))
-	)
-    :effect (and
-      (assign (F_x) (force_mag))
-      (assign (F_y) 0.0)
-      (not (cart_available))
-  	)
-  )
+ ;  (:action move_cart_left
+ ;    :parameters (?d - dummy)
+ ;    :precondition (and
+ ;    	(ready)
+ ;    	;(= (F_x) (- 0.0 (force_mag)))
+ ;    	(cart_available)
+ ;    	(not (total_failure))
+	; )
+ ;    :effect (and
+ ;      (assign (F_x) (force_mag))
+ ;      (assign (F_y) 0.0)
+ ;      (not (cart_available))
+ ;  	)
+ ;  )
 
   (:action move_cart_backward
     :parameters (?d - dummy)
@@ -181,20 +181,20 @@
     )
   )
 
-  (:action do_nothing
-    :parameters (?d - dummy)
-    :precondition (and
-      (ready)
-      ;(= (F_x) (- 0.0 (force_mag)))
-      (cart_available)
-      (not (total_failure))
-  )
-    :effect (and
-      (assign (F_y) 0.0)
-      (assign (F_x) 0.0)
-      (not (cart_available))
-    )
-  )
+  ; (:action do_nothing
+  ;   :parameters (?d - dummy)
+  ;   :precondition (and
+  ;     (ready)
+  ;     ;(= (F_x) (- 0.0 (force_mag)))
+  ;     (cart_available)
+  ;     (not (total_failure))
+  ; )
+  ;   :effect (and
+  ;     (assign (F_y) 0.0)
+  ;     (assign (F_x) 0.0)
+  ;     (not (cart_available))
+  ;   )
+  ; )
 
   (:event exited_goal_region
       :parameters (?d - dummy)

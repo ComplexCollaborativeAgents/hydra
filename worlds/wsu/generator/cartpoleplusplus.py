@@ -233,13 +233,13 @@ class CartPoleBulletEnv(gym.Env):
                                        force=[0, 0, 0])
 
         # Reset cart (technicaly ground object)
-        cart_pos = list(self.np_random.uniform(low=-3, high=3, size=(2,))) + [0]
+        cart_pos = list(self.np_random.uniform(low=-0, high=0, size=(2,))) + [0]
         cart_vel = list(self.np_random.uniform(low=-1, high=1, size=(2,))) + [100]
         p.resetBasePositionAndOrientation(self.cartpole, cart_pos, [0, 0, 0, 1])
-        p.applyExternalForce(self.cartpole, 0, cart_vel, (0, 0, 0), p.WORLD_FRAME)
+        p.applyExternalForce(self.cartpole, 0, [0, cart_vel[1], cart_vel[2]], (0, 0, 0), p.WORLD_FRAME)
 
         # Reset pole
-        randstate = list(self.np_random.uniform(low=-0.01, high=0.01, size=(6,)))
+        randstate = list(self.np_random.uniform(low=-0.0, high=0.0, size=(6,)))
         pole_pos = randstate[0:3] + [1]
         # zero so it doesnt spin like a top :)
         pole_ori = list(randstate[3:5]) + [0]
