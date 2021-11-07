@@ -72,6 +72,7 @@ class PolycraftPlanner(HydraPlanner):
         nyx_heuristics.active_heuristic = self.meta_model.get_nyx_heuristic(state)
         logger.info(f"Planning to achieve task {self.meta_model.active_task}")
         try:
+            nyx.constants.MAX_GENERATED_NODES = settings.POLYCRAFT_MAX_GENERATED_NODES
             nyx.runner(self.pddl_domain_file,
                        self.pddl_problem_file,
                        ['-vv', '-to:%s' % str(self.timeout), '-noplan', '-search:gbfs', '-custom_heuristic:3', '-th:10',

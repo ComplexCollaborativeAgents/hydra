@@ -124,7 +124,8 @@ class Planner:
 
             expanded_states = expanded_states+1
 
-            if constants.NO_TIMEOUT==False and (time.time() - start_solve_time) >= constants.TIMEOUT:
+            if (constants.NO_TIMEOUT==False and (time.time() - start_solve_time) >= constants.TIMEOUT)\
+                    or (self.explored_states>=constants.MAX_GENERATED_NODES):
                 logger.info(f"Timeout reached, found {len(self.reached_goal_states)} plans")
 
                 if (constants.ANYTIME):
