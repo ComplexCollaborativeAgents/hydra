@@ -90,7 +90,7 @@ class HeuristicSum(AbstractHeuristic):
 
     def notify_expanded(self, node):
         for h in self.h_list:
-            h.notify_initial_state(node)
+            h.notify_expanded(node)
 
     def evaluate(self, node):
         return sum([h.evaluate(node) for h in self.h_list])
