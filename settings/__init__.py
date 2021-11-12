@@ -46,6 +46,8 @@ SB_REPAIR_MAX_ITERATIONS = 30
 SB_CONSISTENCY_THRESHOLD = 50
 SB_ANOMOLY_DETECTOR_THRESHOLD = 0.55
 
+SB_REWARD_CONSISTENCY_THRESHOLD = 0.5
+
 SCIENCE_BIRDS_SERVER_CMD = 'java -jar {}'.format(path.join(SCIENCE_BIRDS_BIN_DIR, 'linux', 'game_playing_interface.jar'))
 POLYCRAFT_SERVER_CMD = "./gradlew --no-daemon --stacktrace runclient"   # Must be run in pal/PolycraftAIGym
 POLYCRAFT_HEADLESS = "xvfb-run -s '-screen 0 1280x1024x24'" # Prepend to Polycraft run command to run headless
