@@ -11,11 +11,11 @@ REWARD_ESTIMATOR_MODEL_PATH = "{}/model/reward_estimator_model_300.pth".format(s
 class RewardEstimator:
     def __init__(self):
         self.model = CNN()
-        self.model.load_state_dict(torch.load(REWARD_ESTIMATOR_MODEL_PATH))
+        self.model.load_state_dict(torch.load(REWARD_ESTIMATOR_MODEL_PATH, map_location=torch.device('cpu')) )
 
     def compute_estimated_reward_difference(self, observation):
         """
-        :rtype: estimated expected reward upon making the shot
+        :rtype: difference in estimated expected reward and actual reward upon making the shot
         :param:
         """
         print(observation)
@@ -24,7 +24,7 @@ class RewardEstimator:
         state_tensor = torch.tensor(initial_state).float()
         action_tensor = torch.tensor(applied_action).float()
         reward = self.model(state_tensor, action_tensor)[0,:].detach().numpy()
-        difference = received_reward[0] - reward[0]
+        difference = abs(received_reward[0] - reward[0])
         return difference
 
 
