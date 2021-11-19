@@ -90,14 +90,14 @@ class Perception():
                 new_objs[obj['properties']['id']] = new_obj
             elif obj['geometry'] and obj['geometry']['type'] != 'MultiPoint': #if it is not the ground or a trajectory
                 if settings.SB_COLLECT_PERCEPTION_DATA:
-                    type = self.classify_object_for_data_collection(obj)
+                    object_type = self.classify_object_for_data_collection(obj)
                 else:
-                    type = self.classify_obj(obj)
-                new_obj = {'type':type,
+                    object_type = self.classify_obj(obj)
+                new_obj = {'type':object_type,
                             'polygon':Polygon(obj['geometry']['coordinates'][0])}
-                if type == 'unknown':
+                if object_type == 'unknown':
                     new_obj['colormap']=obj['properties']['colormap']
-                if type == 'platform':
+                if object_type == 'platform':
                     new_obj['id'] = obj['properties']['id']
                     platforms.append(new_obj)
                 else:
