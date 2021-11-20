@@ -17,7 +17,7 @@ LaunchTournament.py handles trial sets and most of simulation management, such a
 
 RUNNER_MODE = ServerMode.CLIENT
 
-SINGLE_LEVEL_MODE = True   # For testing purposes, load a single level and finish when it's done
+SINGLE_LEVEL_MODE = False   # For testing purposes, load a single level and finish when it's done
 SINGLE_LEVEL_TO_RUN = pathlib.Path(settings.POLYCRAFT_NON_NOVELTY_LEVEL_DIR) / "POGO_L00_T01_S01_X0100_U9999_V0_G00066_I0066_N0.json"
 
 def run():
