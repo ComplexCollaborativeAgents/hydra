@@ -2,7 +2,7 @@ import datetime
 import time
 
 import settings
-from agent.hydra_agent import logger, NN_PROB, PDDL_PROB, NOVELTY_EXISTANCE_NOT_GIVEN, NOVELTY_LIKELIHOOD
+from agent.hydra_agent import logger, NN_PROB, PDDL_PROB, NOVELTY_EXISTENCE_NOT_GIVEN, NOVELTY_LIKELIHOOD
 from agent.planning.sb_planner import SBPlanner
 from agent.repair.meta_model_repair import *
 #from state_prediction.anomaly_detector_fc_multichannel import FocusedSBAnomalyDetector
@@ -19,7 +19,7 @@ logger = logging.getLogger("hydra_agent")
 from agent.reward_estimation.reward_estimator import RewardEstimator
 
 # Flags from ANU
-NOVELTY_EXISTANCE_NOT_GIVEN = -1 # The self.novelty_existance value indicating that novelty detection is not given by the environment
+NOVELTY_EXISTENCE_NOT_GIVEN = -1 # The self.novelty_existance value indicating that novelty detection is not given by the environment
 
 # stats_per_level dictionary keys
 ## NN_PROB = "nn_novelty_likelihood" this originally was the state-based detector written by UPenn
