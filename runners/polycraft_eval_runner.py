@@ -48,7 +48,7 @@ def run():
         action = agent.choose_action(state)
         state, reward = agent.do(action, world)
 
-        agent.novelty_detection(report_novelty=True, only_last_state=True)
+        agent.novelty_detection(report_novelty=True, only_current_state=True)
 
         world.poly_client._logger.info("State: {}\nReward: {}".format(state, reward))
 

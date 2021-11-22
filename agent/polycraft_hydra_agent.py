@@ -440,15 +440,15 @@ class PolycraftHydraAgent(HydraAgent):
                 logger.info(f"Novel entity type detected - {entity_type}")
                 self.meta_model.introduce_novel_entity_type(entity_type)
 
-    def novelty_detection(self, report_novelty=True, only_last_state=True):
+    def novelty_detection(self, report_novelty=True, only_current_state=True):
         ''' Computes the likelihood that the current observation is novel '''
-        novelties = set()
-        if only_last_state==False:
+        if only_current_state==False:
+            novelties = set()
             last_observation = self.observations_list[-1]
             for i, state in enumerate(last_observation.states):
-                novelties.update(self._detect_unknown_objects(novelties, state))
+                novelties.update(self._detect_unknown_objects(state))
         else:
-            novelties = self._detect_unknown_objects(novelties, self.current_state)
+            novelties = self._detect_unknown_objects(self.current_state)
 
         if len(novelties)>0:
             novelty_characterization = "\n".join(novelties)
