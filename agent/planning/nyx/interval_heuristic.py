@@ -28,19 +28,30 @@ class IntervalHeuristic(AbstractHeuristic):
         """
         A state that stores intervals for each variable, for the heuristic's ARPG.
         """
-        def __init__(self, state):
-            State.__init__(self, t=state.time, h=state.h, g=state.g, state_vars=state.state_vars)
-            for key, val in self.state_vars.items():
-                if type(val) is not bool:
-                    self.state_vars[key] = ComparableInterval(val) # In theory, all the regular math works on these.
-            self.state_vars['pos_inf'] = ComparableInterval[1, inf]
-            self.state_vars['neg_inf'] = ComparableInterval[-inf, 1]
+        def __init__(self, **kwargs):
+            State.__init__(self, **kwargs)
+            if kwargs.get('predecessor') and not isinstance(kwargs['predecessor'], IntervalHeuristic.IntervalState):
+                # Convert to intervals. This only happens in one place, maybe move it there?
+                for key, val in self.state_vars.items():
+                    if type(val) is not bool:
+                        self.state_vars[key] = ComparableInterval(val)  # In theory, all the regular math works on these.
+                self.state_vars['pos_inf'] = ComparableInterval[1, inf]
+                self.state_vars['neg_inf'] = ComparableInterval[-inf, 1]
 
         # TODO should sub-class happening named Supporters to return interval? will need entirely new JIT, because the
         #   current one compiles all the effects into a single function body, exactly the way you'd expect for efficiency.
         #   Should I have a JIT at all? start without and add later if we use this?
         #   New precondition tree?
         #  Also need to remove predicate delete effects: not set things to False
+
+        def apply_happening(self, happening, from_state=None, create_new_state=True):
+            if create_new_state:
+                predecessor = self if from_state is None else from_state
+                successor = IntervalHeuristic.IntervalState(predecessor=predecessor, predecessor_action=happening)
+            else:
+                successor = self
+            happening.effects_func(successor, constants)
+            return successor
 
     def __init__(self, g_pddl: GroundedPDDLInstance):
         """
@@ -74,18 +85,22 @@ class IntervalHeuristic(AbstractHeuristic):
         if effect[0] == 'assign':
             # transform assignments to additive effects
             effect[0] = 'increase'
-            effect[2] = ['-', effect[2], [effect[1]]]
+            effect[2] = ['-', effect[2], effect[1]]
         if effect[0] == 'increase':
             #  multiply by special state variables with values of [-inf, 1] and [1, inf] to get desired intervals.
             self.supporters.add(
-                Supporter('increase_inf', parameters, conditions + [['>', effect[2], '0']], ['*', effect[1], 'pos_inf']))
+                Supporter('increase_inf', parameters, conditions + [['>', effect[2], '0']],
+                          [['assign', effect[1], ['*', effect[1], 'pos_inf']]]))
             self.supporters.add(
-                Supporter('increase_neg_inf', parameters, conditions + [['<', effect[2], '0']], ['*', effect[1], 'neg_inf']))
+                Supporter('increase_neg_inf', parameters, conditions + [['<', effect[2], '0']],
+                          [['assign', effect[1], ['*', effect[1], 'neg_inf']]]))
         elif effect[0] == 'decrease':
             self.supporters.add(
-                Supporter('decrease_inf', parameters, conditions + [['>', effect[2], '0']], ['*', effect[1], 'neg_inf']))
+                Supporter('decrease_inf', parameters, conditions + [['>', effect[2], '0']],
+                          [['assign', effect[1], ['*', effect[1], 'neg_inf']]]))
             self.supporters.add(
-                Supporter('decrease_neg_inf', parameters, conditions + [['<', effect[2], '0']], ['*', effect[1], 'pos_inf']))
+                Supporter('decrease_neg_inf', parameters, conditions + [['<', effect[2], '0']],
+                          [['assign', effect[1], ['*', effect[1], 'pos_inf']]]))
 
     def _relaxed_effect(self, name, parameters, conditions, effect):
         """
@@ -109,14 +124,14 @@ class IntervalHeuristic(AbstractHeuristic):
          particularly accurate; see paper). Otherwise, return infinity.
         """
         supporters = self.supporters.copy()
-        state = IntervalHeuristic.IntervalState(node)
+        state = IntervalHeuristic.IntervalState(predecessor=node)
         state_updated = True
         happenings_applied = 0
         while supporters and state_updated and not self.grounded_domain.goals(state, constants):
             state_updated = False
             for happening in state.get_applicable_happenings(supporters):  # TODO This line is gonna kill our performance
                 state_updated = True
-                happenings_applied +=1
+                happenings_applied += 1
                 state.apply_happening(happening)
                 supporters.remove(happening)
 

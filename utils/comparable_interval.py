@@ -19,7 +19,7 @@ class ComparableInterval(interval):
             if len(self) == 0 or len(other) == 0:
                 return False
             else:
-                return self[0].inf < other[0].sup
+                return self[0].inf < other[-1].sup
         else:
             return self[0].inf < other
 
@@ -28,7 +28,7 @@ class ComparableInterval(interval):
             if len(self) == 0 or len(other) == 0:
                 return False
             else:
-                return self[0].sup > other[0].inf
+                return self[-1].sup > other[0].inf
         else:
             return self[0].sup > other
 
@@ -39,19 +39,23 @@ class ComparableInterval(interval):
         return self > other or self == other
 
     def __round__(self, n=None):
-        if len(self) > 0:
-            return ComparableInterval[round(self[0].inf, n), round(self[0].sup, n)]
+        return self._canonical(self.Component(round(x.inf, n), round(x.sup, n)) for x in self)
+
+    def inverse(self):
+        return self._canonical(self.Component(x.inf, x.sup) for x in interval.inverse(self))
 
 
 if __name__ == '__main__':
     # unit tests
-    a = ComparableInterval(1)
-    b = ComparableInterval[0.5, 1.5]
+    a = ComparableInterval([2, 3], [60, 70])
+    b = ComparableInterval([0.5, 1.5], [4, 5])
     print(a == b)
     print(a < b)
-    c = b + 3
-    d = round(c, 2)
+    print(b.inverse())
+    c = b / 2
+    print(c)
+    d = round(a, 2)
     print(d)
-    print(a >= c)
+    print(a <= c)
     e = a * c
     print(e)
