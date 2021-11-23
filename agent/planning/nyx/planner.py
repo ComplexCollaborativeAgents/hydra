@@ -29,7 +29,7 @@ class Planner:
         self.explored_states = 0
         # self.total_visited = 0
         self.visited_hashmap = {}
-        self.heuristic = get_heuristic_function(constants.CUSTOM_HEURISTIC_ID)  # TODO get this parameter in some normal way
+        self.heuristic = None
         self.queue = self._get_open_list()  # TODO get this parameter in some normal way
 
     def solve(self, domain, problem):
@@ -38,6 +38,7 @@ class Planner:
         # Parser
         parser = PDDL_Parser(domain, problem)
         grounded_instance = parser.grounded_instance
+        self.heuristic = get_heuristic_function(constants.CUSTOM_HEURISTIC_ID, groundedPPDL=grounded_instance)  # TODO get this parameter in some normal way
         # Parsed data
         state = grounded_instance.init_state
         self.initial_state = grounded_instance.init_state

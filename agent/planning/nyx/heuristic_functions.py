@@ -4,8 +4,10 @@ from agent.planning.nyx.abstract_heuristic import AbstractHeuristic, HeuristicSu
 import agent.planning.nyx.syntax.constants as constants
 import math
 
+from agent.planning.nyx.interval_heuristic import IntervalHeuristic
 
-def get_heuristic_function(heuristic=constants.CUSTOM_HEURISTIC_ID):
+
+def get_heuristic_function(heuristic=constants.CUSTOM_HEURISTIC_ID, **kwargs):
     if heuristic == 1:
         return CartpolePlusPlusHeuristic()
     elif heuristic == 2:
@@ -18,6 +20,8 @@ def get_heuristic_function(heuristic=constants.CUSTOM_HEURISTIC_ID):
         return SBOneBirdHeuristic()
     elif heuristic == 6:
         return SBBlockedPigsHeuristic()
+    elif heuristic == 7:
+        return IntervalHeuristic(kwargs.get('groundedPPDL'))
     elif heuristic == 11:  # 5 + 6, get it?
         return HeuristicSum([SBOneBirdHeuristic(), SBBlockedPigsHeuristic()])
     else:
