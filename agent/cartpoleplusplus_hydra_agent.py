@@ -56,55 +56,60 @@ class CartpolePlusPlusHydraAgent(HydraAgent):
     def choose_action(self, observation: CartPoleObservation) -> \
             dict:
 
-        time.sleep(0.5)
+        replan_now = False
+        # time.sleep(0.5)
 
-        if abs(observation['pole']['x_position']) > 5.0 or abs(observation['pole']['y_position']) > 5.0:
+        euls = self.quaternions_to_eulers(observation['pole']['x_quaternion'], observation['pole']['y_quaternion'],
+                                          observation['pole']['z_quaternion'], observation['pole']['w_quaternion'])
+
+        if round(abs(math.degrees(euls[0])), 6) > 5.0 or round(abs(math.degrees(euls[1])), 6) > 5.0:
+            self.replan_idx = 5
+        elif round(abs(math.degrees(euls[0])), 6) > 7.0 or round(abs(math.degrees(euls[1])), 6) > 7.0:
             self.replan_idx = 1
         else:
             self.replan_idx = self.default_replan_idx
 
         if self.plan is None:
             # self.meta_model.constant_numeric_fluents['time_limit'] = 4.0
-            self.meta_model.constant_numeric_fluents['time_limit'] = max(0.02, min(1.0, round((4.0 - ((self.steps) * 0.02)), 2)))
+            self.meta_model.constant_numeric_fluents['time_limit'] = max(0.02, min(2.0, round((4.0 - ((self.steps) * 0.02)), 2)))
             self.plan = self.planner.make_plan(observation, 0)
             self.current_observation = CartPoleObservation()
             if len(self.plan) == 0:
                 self.plan_idx = 999
+        else:
+            difference = 0.0
 
-        if self.plan_idx >= self.replan_idx:
-            self.meta_model.constant_numeric_fluents['time_limit'] = max(0.02, min(1.0, round((4.0 - ((self.steps) * 0.02)), 2)))
+
+
+            if difference > 0.0:
+                replan_now == True
+
+
+        if self.plan_idx >= self.replan_idx or replan_now==True:
+            self.meta_model.constant_numeric_fluents['time_limit'] = max(0.02, min(2.0, round((4.0 - ((self.steps) * 0.02)), 2)))
             new_plan = self.planner.make_plan(observation, 0)
             self.current_observation = CartPoleObservation()
             if len(new_plan) != 0:
                 self.plan = new_plan
                 self.plan_idx = 0
 
-        # euls = self.quaternions_to_eulers(observation['pole']['x_quaternion'], observation['pole']['y_quaternion'],
-        #                                   observation['pole']['z_quaternion'], observation['pole']['w_quaternion'])
-
         state_values_list = self.planner.extract_state_values_from_trace("%s/plan_cartpole_prob.pddl" % str(settings.CARTPOLEPLUSPLUS_PLANNING_DOCKER_PATH))
-        # state_values_list.insert(0, (observation['cart']['x_position'], observation['cart']['y_position'], observation['cart']['x_velocity'], observation['cart']['y_velocity'], math.radians(euls[1]), math.radians(euls[0]), observation['pole']['y_velocity'], observation['pole']['x_velocity']))
-        state_values_list.insert(0, (observation['cart']['x_position'], observation['cart']['y_position'], observation['cart']['x_velocity'], observation['cart']['y_velocity'], math.radians(observation['pole']['y_position']), math.radians(observation['pole']['x_position']), observation['pole']['y_velocity'], observation['pole']['x_velocity']))
+        state_values_list.insert(0, (observation['cart']['x_position'], observation['cart']['y_position'], observation['cart']['x_velocity'], observation['cart']['y_velocity'],
+                                     euls[0], euls[1], observation['pole']['x_velocity'], observation['pole']['y_velocity']))
 
         if (len(state_values_list) > 1):
-            print("cart observation (X,Y,Vx,Vy):\t\t" + str(observation['cart']['x_position']) + ",\t\t " + str(observation['cart']['y_position']) + ",\t\t " + str(observation['cart']['x_velocity']) + ",\t\t " + str(observation['cart']['y_velocity']))
-            print("cart plan val (X,Y,Vx,Vy):\t\t\t" + str(state_values_list[self.plan_idx][0]) + ",\t\t " + str(state_values_list[self.plan_idx][1]) + ",\t\t " + str(state_values_list[self.plan_idx][2]) + ",\t\t " + str(state_values_list[self.plan_idx][3]))
+            print("cart observation (X,Y,Vx,Vy):\t\t" + str(observation['cart']['x_position']) + ",\t\t " + str(observation['cart']['y_position']) +
+                  ",\t\t " + str(observation['cart']['x_velocity']) + ",\t\t " + str(observation['cart']['y_velocity']))
+            print("cart plan val (X,Y,Vx,Vy):\t\t\t" + str(state_values_list[self.plan_idx][0]) + ",\t\t " + str(state_values_list[self.plan_idx][1]) +
+                  ",\t\t " + str(state_values_list[self.plan_idx][2]) + ",\t\t " + str(state_values_list[self.plan_idx][3]))
 
-            # euls = self.quaternions_to_eulers(observation['pole']['x_quaternion'], observation['pole']['y_quaternion'], observation['pole']['z_quaternion'], observation['pole']['w_quaternion'])
-            # print("pole observation (X,Y,Vx,Vy):\t" + str(euls[0]) + ",\t\t " + str(
-            #     euls[1]) + ",\t\t " + str(observation['pole']['x_velocity']) + ",\t\t " + str(
-            #     observation['pole']['y_velocity']))
-            # print("pole plan val (X,Y,Vx,Vy):\t\t" + str(
-            #     round(math.degrees(state_values_list[self.plan_idx][4]), 6)) + ",\t\t " + str(
-            #     round(math.degrees(state_values_list[self.plan_idx][5]), 6)) + ",\t\t " + str(
-            #     state_values_list[self.plan_idx][6]) + ",\t\t " + str(state_values_list[self.plan_idx][7]))
-
-            print("pole obs (roll(x),pitch(y),Vx,Vy):\t" + str(observation['pole']['y_position']) + ",\t\t " + str(
-                observation['pole']['x_position']) + ",\t\t " + str(observation['pole']['y_velocity']) + ",\t\t " + str(
-                observation['pole']['x_velocity']))
-            print("pole plan val (X,Y,Vx,Vy):\t\t\t" + str(round(math.degrees(state_values_list[self.plan_idx][4]), 6)) + ",\t\t " + str(
+            print("pole observation (X,Y,Vx,Vy):\t" + str(round(math.degrees(euls[0]), 6)) + ",\t\t " + str(round(math.degrees(euls[1]), 6)) +
+                  ",\t\t " + str(observation['pole']['x_velocity']) + ",\t\t " + str(observation['pole']['y_velocity']))
+            print("pole plan val (X,Y,Vx,Vy):\t\t" + str(
+                round(math.degrees(state_values_list[self.plan_idx][4]), 6)) + ",\t\t " + str(
                 round(math.degrees(state_values_list[self.plan_idx][5]), 6)) + ",\t\t " + str(
                 state_values_list[self.plan_idx][6]) + ",\t\t " + str(state_values_list[self.plan_idx][7]))
+
 
 
         action = random.randint(0, 4)
@@ -120,8 +125,6 @@ class CartpolePlusPlusHydraAgent(HydraAgent):
                 action = 3
             elif self.plan[self.plan_idx].action_name == "move_cart_backward dummy_obj":
                 action = 4
-
-            # action = 1 if self.plan[self.plan_idx].action_name == "move_cart_right dummy_obj" else 0
 
         self.plan_idx += 1
         self.steps += 1

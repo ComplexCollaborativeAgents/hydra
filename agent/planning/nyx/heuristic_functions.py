@@ -10,16 +10,14 @@ def heuristic_function(state):
     if constants.CUSTOM_HEURISTIC_ID == 1:
 
         # CARTPOLE++ HEURISTIC
+        w_pos = 0.5
+        w_t = 1.0
 
         if (state.state_vars["['total_failure']"]):
             return 999999
-        return math.sqrt(math.pow(state.state_vars["['pos_x']"], 2) + math.pow(state.state_vars["['theta_x']"], 2) + math.pow(
-            state.state_vars["['theta_x_dot']"], 2) + math.pow(state.state_vars["['pos_x_dot']"], 2) + math.pow(
-            state.state_vars["['theta_x_ddot']"], 2) + math.pow(state.state_vars["['pos_x_ddot']"], 2) +
-            math.pow(state.state_vars["['pos_y']"], 2) + math.pow(state.state_vars["['theta_y']"], 2) + math.pow(
-                state.state_vars["['theta_y_dot']"], 2) + math.pow(state.state_vars["['pos_y_dot']"], 2) + math.pow(
-                state.state_vars["['theta_y_ddot']"], 2) + math.pow(state.state_vars["['pos_y_ddot']"], 2)) * (
-                           state.state_vars["['time_limit']"] - state.state_vars["['elapsed_time']"])
+        return (math.sqrt( math.pow(state.state_vars["['theta_x']"], 2) +
+                math.pow(state.state_vars["['theta_y']"], 2)) * w_pos) * \
+                ((state.state_vars["['time_limit']"] - state.state_vars["['elapsed_time']"]) * w_t)
 
     elif constants.CUSTOM_HEURISTIC_ID == 2:
 

@@ -114,16 +114,14 @@ class CartPolePlusPlusMetaModel(MetaModel):
         pddl_problem.objects.append(['dummy_block', 'block'])
 
 
-        # NOTE: POLE X_POSITION AND Y_POSITION ARE REVERSED & MISNAMED!!!
-        # X = PITCH AND Y = ROLL ANGLES (INSTEAD OF ABSOLUTE X AND Y POSITIONS WRT THE WORLD FRAME)
-        # euler_pole = self.quaternion_to_euler(round(observation_array['pole']['x_quaternion'], 5), round(observation_array['pole']['y_quaternion'], 5), round(observation_array['pole']['z_quaternion'], 5), round(observation_array['pole']['w_quaternion'], 5))
-        # obs_theta_x = round(euler_pole[1], 5) # XY reversed on purpose to match observation
-        # obs_theta_y = round(euler_pole[0], 5) # XY reversed on purpose to match observation
-        obs_theta_x = np.radians(round(observation_array['pole']['y_position'], 5)) # XY reversed on purpose to match observation
-        obs_theta_y = np.radians(round(observation_array['pole']['x_position'], 5)) # XY reversed on purpose to match observation
+        euler_pole = self.quaternion_to_euler(round(observation_array['pole']['x_quaternion'], 5), round(observation_array['pole']['y_quaternion'], 5), round(observation_array['pole']['z_quaternion'], 5), round(observation_array['pole']['w_quaternion'], 5))
+        obs_theta_x = round(euler_pole[0], 5) # XY reversed on purpose to match observation
+        obs_theta_y = round(euler_pole[1], 5) # XY reversed on purpose to match observation
+        # obs_theta_x = np.radians(round(observation_array['pole']['x_position'], 5))
+        # obs_theta_y = np.radians(round(observation_array['pole']['y_position'], 5))
 
-        obs_theta_x_dot = round(observation_array['pole']['y_velocity'], 5) # XY reversed on purpose to match observation
-        obs_theta_y_dot = round(observation_array['pole']['x_velocity'], 5) # XY reversed on purpose to match observation
+        obs_theta_x_dot = round(observation_array['pole']['x_velocity'], 5)
+        obs_theta_y_dot = round(observation_array['pole']['y_velocity'], 5)
         obs_pos_x = round(observation_array['cart']['x_position'], 5)
         obs_pos_y = round(observation_array['cart']['y_position'], 5)
         obs_pos_x_dot = round(observation_array['cart']['x_velocity'], 5)
@@ -153,10 +151,10 @@ class CartPolePlusPlusMetaModel(MetaModel):
         pddl_problem.init.append(['=', ['theta_y'], round(obs_theta_y, CartPolePlusPlusMetaModel.PLANNER_PRECISION)])
         pddl_problem.init.append(['=', ['theta_x_dot'], round(obs_theta_x_dot, CartPolePlusPlusMetaModel.PLANNER_PRECISION)])
         pddl_problem.init.append(['=', ['theta_y_dot'], round(obs_theta_y_dot, CartPolePlusPlusMetaModel.PLANNER_PRECISION)])
-        pddl_problem.init.append(['=', ['F_x'], 0.0])
-        pddl_problem.init.append(['=', ['F_y'], 10.0])
+        pddl_problem.init.append(['=', ['F_x'], 10.0])
+        pddl_problem.init.append(['=', ['F_y'], 0.0])
 
-        initial_Fx = 0.0 # TODO: import initial force based on the last action applied, split initial_F into X and Y directions.
+        initial_Fx = 10.0 # TODO: import initial force based on the last action applied, split initial_F into X and Y directions.
         initial_Fy = 0.0
 
         # TODO; WP: changed "self.constant_numeric_fluents['force_mag']" to "self.constant_numeric_fluents['F_x']" to "initial_F=0.0" at the beginning of calc_temp_x (verify that it's the correct thing to do).
@@ -195,12 +193,10 @@ class CartPolePlusPlusMetaModel(MetaModel):
 
         euler_pole = self.quaternion_to_euler(round(observations_array['pole']['x_quaternion'], 5), round(observations_array['pole']['y_quaternion'], 5), round(observations_array['pole']['z_quaternion'], 5), round(observations_array['pole']['w_quaternion'], 5))
 
-        # NOTE: POLE X_POSITION AND Y_POSITION ARE REVERSED & MISNAMED!!!
-        # X = PITCH AND Y = ROLL ANGLES (INSTEAD OF ABSOLUTE X AND Y POSITIONS WRT THE WORLD FRAME)
-        obs_theta_x = round(euler_pole[1], 5) # XY reversed on purpose to match observation
-        obs_theta_y = round(euler_pole[0], 5) # XY reversed on purpose to match observation
-        obs_theta_x_dot = round(observations_array['pole']['y_velocity'], 5) # XY reversed on purpose to match observation
-        obs_theta_y_dot = round(observations_array['pole']['x_velocity'], 5) # XY reversed on purpose to match observation
+        obs_theta_x = round(euler_pole[0], 5)
+        obs_theta_y = round(euler_pole[1], 5)
+        obs_theta_x_dot = round(observations_array['pole']['x_velocity'], 5)
+        obs_theta_y_dot = round(observations_array['pole']['y_velocity'], 5)
 
         obs_pos_x = round(observations_array['cart']['x_position'], 5)
         obs_pos_y = round(observations_array['cart']['y_position'], 5)
