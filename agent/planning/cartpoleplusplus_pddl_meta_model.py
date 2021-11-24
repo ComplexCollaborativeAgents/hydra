@@ -69,15 +69,13 @@ class CartPolePlusPlusMetaModel(MetaModel):
             domain_file_name="cartpole_plus_plus_domain.pddl",
             delta_t=settings.CP_DELTA_T,
             metric='minimize(total-time)',
-            repairable_constants=('m_cart', 'l_pole', 'm_pole', 'force_mag', 'gravity', 'angle_limit', 'x_limit'),
+            repairable_constants=('m_cart', 'l_pole', 'm_pole', 'force_mag', 'gravity', 'angle_limit'),
             repair_deltas=(1.0, 0.1, 0.1, 1.0, 1.0, 0.1, 0.1),
             constant_numeric_fluents={
                 'm_cart': 1.0,
-                'friction_cart': 0.0,
                 'l_pole': 1.0,
                 # 'l_pole': 0.5,
                 'm_pole': 0.1,
-                'friction_pole': 0.0,
                 'force_mag': 10.0,
                 'inertia': 1.0,
                 'elapsed_time': 0.0,
@@ -151,10 +149,10 @@ class CartPolePlusPlusMetaModel(MetaModel):
         pddl_problem.init.append(['=', ['theta_y'], round(obs_theta_y, CartPolePlusPlusMetaModel.PLANNER_PRECISION)])
         pddl_problem.init.append(['=', ['theta_x_dot'], round(obs_theta_x_dot, CartPolePlusPlusMetaModel.PLANNER_PRECISION)])
         pddl_problem.init.append(['=', ['theta_y_dot'], round(obs_theta_y_dot, CartPolePlusPlusMetaModel.PLANNER_PRECISION)])
-        pddl_problem.init.append(['=', ['F_x'], 10.0])
+        pddl_problem.init.append(['=', ['F_x'], 0.0])
         pddl_problem.init.append(['=', ['F_y'], 0.0])
 
-        initial_Fx = 10.0 # TODO: import initial force based on the last action applied, split initial_F into X and Y directions.
+        initial_Fx = 0.0 # TODO: import initial force based on the last action applied, split initial_F into X and Y directions.
         initial_Fy = 0.0
 
         # TODO; WP: changed "self.constant_numeric_fluents['force_mag']" to "self.constant_numeric_fluents['F_x']" to "initial_F=0.0" at the beginning of calc_temp_x (verify that it's the correct thing to do).

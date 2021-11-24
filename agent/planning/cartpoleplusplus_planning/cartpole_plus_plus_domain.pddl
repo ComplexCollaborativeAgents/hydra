@@ -10,10 +10,10 @@
 
   (:functions
     (pos_x) (pos_y) (pos_x_dot) (pos_x_ddot) (pos_y_dot) (pos_y_ddot)
-    (m_cart) (friction_cart)
+    (m_cart)
     (theta_x) (theta_y) (theta_x_dot) (theta_y_dot) (theta_x_ddot) (theta_y_ddot)
-    (l_pole) (m_pole) (friction_pole)
-    (gravity) (F_x) (F_y) (elapsed_time) (inertia)
+    (l_pole) (m_pole) 
+    (gravity) (F_x) (F_y) (elapsed_time)
     (time_limit) (angle_limit) (force_mag)
     (wall_x_min) (wall_x_max) (wall_y_min) (wall_y_max) (wall_z_min) (wall_z_max)
     (block_x ?bl - block) (block_y ?bl - block) (block_z ?bl - block) (block_r ?bl - block)

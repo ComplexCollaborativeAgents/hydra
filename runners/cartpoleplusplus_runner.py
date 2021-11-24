@@ -13,7 +13,7 @@ from agent.cartpoleplusplus_hydra_agent import CartpolePlusPlusHydraAgentObserve
 
 
 def start_wsu_interface():
-    observer = CartpolePlusPlusHydraAgentObserver(CartpolePlusPlusHydraAgent)
+    observer = CartpolePlusPlusHydraAgentObserver(RepairingCartpolePlusPlusHydraAgent)
     # observer = WSUObserver()
     env = CartPolePlusPlusDispatcher(observer, render=True)
     env.run(generators=[CartPole], difficulties=['easy', 'medium', 'hard'])

@@ -5,10 +5,10 @@ import time
 
 import numpy as np
 
-from agent.consistency.observation import CartPoleObservation
+from agent.consistency.observation import CartPolePlusPlusObservation
 from agent.planning.cartpoleplusplus_pddl_meta_model import CartPolePlusPlusMetaModel
 from agent.planning.cartpoleplusplus_planner import CartPolePlusPlusPlanner
-from agent.repair.cartpole_repair import CartpoleRepair, CartpoleConsistencyEstimator
+from agent.repair.cartpoleplusplus_repair import CartpolePlusPlusRepair, CartpolePlusPlusConsistencyEstimator
 from agent.consistency.focused_anomaly_detector import FocusedAnomalyDetector
 import json
 import settings
@@ -40,7 +40,7 @@ class CartpolePlusPlusHydraAgent(HydraAgent):
         self.plan_idx = 0
         self.steps = 0
         self.plan = None
-        self.current_observation = CartPoleObservation()
+        self.current_observation = CartPolePlusPlusObservation()
         self.last_performance = []
 
     def episode_end(self, performance: float, feedback: dict = None):
@@ -48,48 +48,37 @@ class CartpolePlusPlusHydraAgent(HydraAgent):
         self.plan_idx = 0
         self.plan = None
         self.observations_list.append(self.current_observation)
-        self.current_observation = CartPoleObservation()
+        self.current_observation = CartPolePlusPlusObservation()
         self.last_performance.append(performance) # Records the last performance value, to show impact
 
         return self.novelty_likelihood, self.novelty_threshold, self.novelty_type, self.novelty_characterization
 
-    def choose_action(self, observation: CartPoleObservation) -> \
+    def choose_action(self, observation: CartPolePlusPlusObservation) -> \
             dict:
-
-        replan_now = False
-        # time.sleep(0.5)
 
         euls = self.quaternions_to_eulers(observation['pole']['x_quaternion'], observation['pole']['y_quaternion'],
                                           observation['pole']['z_quaternion'], observation['pole']['w_quaternion'])
 
-        if round(abs(math.degrees(euls[0])), 6) > 5.0 or round(abs(math.degrees(euls[1])), 6) > 5.0:
+        if round(abs(math.degrees(euls[0])), 6) > 3.0 or round(abs(math.degrees(euls[1])), 6) > 3.0:
             self.replan_idx = 5
-        elif round(abs(math.degrees(euls[0])), 6) > 7.0 or round(abs(math.degrees(euls[1])), 6) > 7.0:
-            self.replan_idx = 1
+        elif round(abs(math.degrees(euls[0])), 6) > 5.0 or round(abs(math.degrees(euls[1])), 6) > 5.0:
+            self.replan_idx = 2
         else:
             self.replan_idx = self.default_replan_idx
 
         if self.plan is None:
             # self.meta_model.constant_numeric_fluents['time_limit'] = 4.0
-            self.meta_model.constant_numeric_fluents['time_limit'] = max(0.02, min(2.0, round((4.0 - ((self.steps) * 0.02)), 2)))
+            self.meta_model.constant_numeric_fluents['time_limit'] = max(0.02, min(4.0, round((4.0 - ((self.steps) * 0.02)), 2)))
             self.plan = self.planner.make_plan(observation, 0)
-            self.current_observation = CartPoleObservation()
+            self.current_observation = CartPolePlusPlusObservation()
             if len(self.plan) == 0:
                 self.plan_idx = 999
-        else:
-            difference = 0.0
 
-
-
-            if difference > 0.0:
-                replan_now == True
-
-
-        if self.plan_idx >= self.replan_idx or replan_now==True:
-            self.meta_model.constant_numeric_fluents['time_limit'] = max(0.02, min(2.0, round((4.0 - ((self.steps) * 0.02)), 2)))
+        if self.plan_idx >= self.replan_idx:
+            self.meta_model.constant_numeric_fluents['time_limit'] = max(0.02, min(4.0, round((4.0 - ((self.steps) * 0.02)), 2)))
             new_plan = self.planner.make_plan(observation, 0)
-            self.current_observation = CartPoleObservation()
             if len(new_plan) != 0:
+                self.current_observation = CartPolePlusPlusObservation()
                 self.plan = new_plan
                 self.plan_idx = 0
 
@@ -97,20 +86,19 @@ class CartpolePlusPlusHydraAgent(HydraAgent):
         state_values_list.insert(0, (observation['cart']['x_position'], observation['cart']['y_position'], observation['cart']['x_velocity'], observation['cart']['y_velocity'],
                                      euls[0], euls[1], observation['pole']['x_velocity'], observation['pole']['y_velocity']))
 
-        if (len(state_values_list) > 1):
-            print("cart observation (X,Y,Vx,Vy):\t\t" + str(observation['cart']['x_position']) + ",\t\t " + str(observation['cart']['y_position']) +
-                  ",\t\t " + str(observation['cart']['x_velocity']) + ",\t\t " + str(observation['cart']['y_velocity']))
-            print("cart plan val (X,Y,Vx,Vy):\t\t\t" + str(state_values_list[self.plan_idx][0]) + ",\t\t " + str(state_values_list[self.plan_idx][1]) +
-                  ",\t\t " + str(state_values_list[self.plan_idx][2]) + ",\t\t " + str(state_values_list[self.plan_idx][3]))
-
-            print("pole observation (X,Y,Vx,Vy):\t" + str(round(math.degrees(euls[0]), 6)) + ",\t\t " + str(round(math.degrees(euls[1]), 6)) +
-                  ",\t\t " + str(observation['pole']['x_velocity']) + ",\t\t " + str(observation['pole']['y_velocity']))
-            print("pole plan val (X,Y,Vx,Vy):\t\t" + str(
-                round(math.degrees(state_values_list[self.plan_idx][4]), 6)) + ",\t\t " + str(
-                round(math.degrees(state_values_list[self.plan_idx][5]), 6)) + ",\t\t " + str(
-                state_values_list[self.plan_idx][6]) + ",\t\t " + str(state_values_list[self.plan_idx][7]))
-
-
+        # if (len(state_values_list) > 1):
+        #     print("cart observation (X,Y,Vx,Vy):\t\t" + str(observation['cart']['x_position']) + ",\t\t " + str(observation['cart']['y_position']) +
+        #           ",\t\t " + str(observation['cart']['x_velocity']) + ",\t\t " + str(observation['cart']['y_velocity']))
+        #     print("cart plan val (X,Y,Vx,Vy):\t\t\t" + str(state_values_list[self.plan_idx][0]) + ",\t\t " + str(state_values_list[self.plan_idx][1]) +
+        #           ",\t\t " + str(state_values_list[self.plan_idx][2]) + ",\t\t " + str(state_values_list[self.plan_idx][3]))
+        #
+        #     print("pole observation (X,Y,Vx,Vy):\t" + str(round(math.degrees(euls[0]), 6)) + ",\t\t " + str(round(math.degrees(euls[1]), 6)) +
+        #           ",\t\t " + str(observation['pole']['x_velocity']) + ",\t\t " + str(observation['pole']['y_velocity']))
+        #     print("pole plan val (X,Y,Vx,Vy):\t\t" + str(
+        #         round(math.degrees(state_values_list[self.plan_idx][4]), 6)) + ",\t\t " + str(
+        #         round(math.degrees(state_values_list[self.plan_idx][5]), 6)) + ",\t\t " + str(
+        #         state_values_list[self.plan_idx][6]) + ",\t\t " + str(state_values_list[self.plan_idx][7]))
+        # print("STEP: " + str(self.steps))
 
         action = random.randint(0, 4)
         if self.plan_idx < len(self.plan):
@@ -178,8 +166,8 @@ class RepairingCartpolePlusPlusHydraAgent(CartpolePlusPlusHydraAgent):
         self.repair_threshold = 0.975 # 195/200
         self.has_repaired = False
         self.detector = FocusedAnomalyDetector()
-        self.consistency_checker = CartpoleConsistencyEstimator()
-        self.meta_model_repair = CartpoleRepair()
+        self.consistency_checker = CartpolePlusPlusConsistencyEstimator()
+        self.meta_model_repair = CartpolePlusPlusRepair()
 
     def episode_end(self, performance: float, feedback: dict = None)-> \
             (float, float, int, dict):
@@ -196,9 +184,9 @@ class RepairingCartpolePlusPlusHydraAgent(CartpolePlusPlusHydraAgent):
         return self.novelty_likelihood, self.novelty_threshold, self.novelty_type, self.novelty_characterization
 
 
-    def should_repair(self, observation: CartPoleObservation) -> bool:
+    def should_repair(self, observation: CartPolePlusPlusObservation) -> bool:
         ''' Checks if we should repair basd on the given observation '''
-        return self.novelty_existence is not False and self.last_performance[-1] < self.repair_threshold
+        return self.novelty_existence is not False and (len(self.last_performance) >= 2) and (self.last_performance[-1] < self.repair_threshold) and (self.last_performance[-2] < self.repair_threshold)
 
     def novelty_detection(self):
         ''' Computes the likelihood that the current observation is novel '''
