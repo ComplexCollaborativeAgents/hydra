@@ -1,0 +1,1759 @@
+{
+    "levels": [
+        {
+            "birds": {
+                "BirdBlue": 1,
+                "BirdWhite": 1,
+                "BirdYellow": 1
+            },
+            "birds_remaining": 0,
+            "birds_start": 3,
+            "level": "Levels/novelty_level_2/type8/Levels/00905_3_0_8_2.xml",
+            "novelty_detection": true,
+            "novelty_likelihood": false,
+            "objects": 195,
+            "pddl_novelty_likelihood": [
+                1000,
+                1000,
+                1000
+            ],
+            "pigs_remaining": 0,
+            "pigs_start": 3,
+            "reward_estimator_likelihood": [
+                0.09020224996830073,
+                0.08926312701751883,
+                0.7568394448996948
+            ],
+            "score": 42610.0,
+            "status": "Pass",
+            "unknown_object": [
+                true,
+                true,
+                true
+            ]
+        },
+        {
+            "birds": {
+                "BirdBlack": 1,
+                "BirdRed": 4,
+                "BirdYellow": 3
+            },
+            "birds_remaining": 0,
+            "birds_start": 8,
+            "level": "Levels/novelty_level_2/type8/Levels/01741_12_0_8_2.xml",
+            "novelty_detection": true,
+            "novelty_likelihood": false,
+            "objects": 53,
+            "pddl_novelty_likelihood": [
+                1000,
+                1000,
+                1000,
+                1000,
+                1000,
+                1000,
+                1000,
+                1000
+            ],
+            "pigs_remaining": 1,
+            "pigs_start": 13,
+            "reward_estimator_likelihood": [
+                0.013974931790887518,
+                0.03610298399454731,
+                0.01739110946089764,
+                0.26116146602485846,
+                0.02463735594808264,
+                0.26340794153299457,
+                0.029301889905214762,
+                0.163460835814476
+            ],
+            "score": 82160.0,
+            "status": "Fail",
+            "unknown_object": [
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true
+            ]
+        },
+        {
+            "birds": {
+                "BirdBlack": 1,
+                "BirdBlue": 1,
+                "BirdRed": 1
+            },
+            "birds_remaining": 0,
+            "birds_start": 3,
+            "level": "Levels/novelty_level_2/type8/Levels/01305_1_0_8_2.xml",
+            "novelty_detection": true,
+            "novelty_likelihood": true,
+            "objects": 156,
+            "pddl_novelty_likelihood": [
+                1000,
+                1000,
+                1000
+            ],
+            "pigs_remaining": 2,
+            "pigs_start": 3,
+            "reward_estimator_likelihood": [
+                0.33350469149380524,
+                0.13691064393045327,
+                0.20971940259892757
+            ],
+            "score": 36960.0,
+            "status": "Fail",
+            "unknown_object": [
+                true,
+                true,
+                true
+            ]
+        },
+        {
+            "birds": {
+                "BirdBlack": 1,
+                "BirdBlue": 1,
+                "BirdRed": 1,
+                "BirdYellow": 1
+            },
+            "birds_remaining": 0,
+            "birds_start": 4,
+            "level": "Levels/novelty_level_2/type8/Levels/01101_4_0_8_2.xml",
+            "novelty_detection": true,
+            "novelty_likelihood": true,
+            "objects": 206,
+            "pddl_novelty_likelihood": [
+                1000,
+                1000,
+                1000,
+                1000
+            ],
+            "pigs_remaining": 4,
+            "pigs_start": 5,
+            "reward_estimator_likelihood": [
+                0.061237789110847846,
+                0.11092524230480194,
+                0.36839180082026196,
+                0.08157571519687913
+            ],
+            "score": 23590.0,
+            "status": "Fail",
+            "unknown_object": [
+                true,
+                true,
+                true,
+                true
+            ]
+        },
+        {
+            "birds": {
+                "BirdBlack": 1,
+                "BirdRed": 3,
+                "BirdWhite": 1
+            },
+            "birds_remaining": 0,
+            "birds_start": 5,
+            "level": "Levels/novelty_level_2/type8/Levels/01707_5_0_8_2.xml",
+            "novelty_detection": true,
+            "novelty_likelihood": true,
+            "objects": 49,
+            "pddl_novelty_likelihood": [
+                1000,
+                1000,
+                1000,
+                1000,
+                1000
+            ],
+            "pigs_remaining": 0,
+            "pigs_start": 6,
+            "reward_estimator_likelihood": [
+                0.22587562919341636,
+                0.043924269939735666,
+                0.03177734610025526,
+                0.11154433233801281,
+                0.009760842151388505
+            ],
+            "score": 51900.0,
+            "status": "Pass",
+            "unknown_object": [
+                true,
+                true,
+                true,
+                true,
+                true
+            ]
+        },
+        {
+            "birds": {
+                "BirdBlack": 1,
+                "BirdBlue": 1,
+                "BirdYellow": 1
+            },
+            "birds_remaining": 0,
+            "birds_start": 3,
+            "level": "Levels/novelty_level_2/type8/Levels/01204_1_0_8_2.xml",
+            "novelty_detection": true,
+            "novelty_likelihood": true,
+            "objects": 170,
+            "pddl_novelty_likelihood": [
+                1000,
+                1000,
+                1000
+            ],
+            "pigs_remaining": 1,
+            "pigs_start": 1,
+            "reward_estimator_likelihood": [
+                0.19982601942554595,
+                0.23532842390196823,
+                0.00018193888030874905
+            ],
+            "score": 29020.0,
+            "status": "Fail",
+            "unknown_object": [
+                true,
+                true,
+                true
+            ]
+        },
+        {
+            "birds": {
+                "BirdBlack": 1,
+                "BirdRed": 1,
+                "BirdWhite": 1,
+                "BirdYellow": 1
+            },
+            "birds_remaining": 0,
+            "birds_start": 4,
+            "level": "Levels/novelty_level_2/type8/Levels/01202_11_0_8_2.xml",
+            "novelty_detection": true,
+            "novelty_likelihood": true,
+            "objects": 158,
+            "pddl_novelty_likelihood": [
+                1000,
+                1000,
+                1000,
+                1000
+            ],
+            "pigs_remaining": 0,
+            "pigs_start": 4,
+            "reward_estimator_likelihood": [
+                0.39684639618055195,
+                0.3795668723687275,
+                0.008657402145116108,
+                0.14235348858123031
+            ],
+            "score": 59260.0,
+            "status": "Pass",
+            "unknown_object": [
+                true,
+                true,
+                true,
+                true
+            ]
+        },
+        {
+            "birds": {
+                "BirdRed": 4
+            },
+            "birds_remaining": 0,
+            "birds_start": 4,
+            "level": "Levels/novelty_level_2/type8/Levels/01729_2_0_8_2.xml",
+            "novelty_detection": true,
+            "novelty_likelihood": true,
+            "objects": 77,
+            "pddl_novelty_likelihood": [
+                1000,
+                1000,
+                1000,
+                1000
+            ],
+            "pigs_remaining": 2,
+            "pigs_start": 4,
+            "reward_estimator_likelihood": [
+                0.2325889870552682,
+                0.14933516085147858,
+                0.19780246913433075,
+                0.12637339532375336
+            ],
+            "score": 17240.0,
+            "status": "Fail",
+            "unknown_object": [
+                true,
+                true,
+                true,
+                true
+            ]
+        },
+        {
+            "birds": {
+                "BirdBlack": 2,
+                "BirdYellow": 1
+            },
+            "birds_remaining": 0,
+            "birds_start": 3,
+            "level": "Levels/novelty_level_2/type8/Levels/01500_5_0_8_2.xml",
+            "novelty_detection": true,
+            "novelty_likelihood": true,
+            "objects": 83,
+            "pddl_novelty_likelihood": [
+                1000,
+                1000,
+                1000
+            ],
+            "pigs_remaining": 1,
+            "pigs_start": 2,
+            "reward_estimator_likelihood": [
+                0.14546160399913788,
+                0.007469328067334385,
+                0.11777767078134548
+            ],
+            "score": 8610.0,
+            "status": "Fail",
+            "unknown_object": [
+                true,
+                true,
+                true
+            ]
+        },
+        {
+            "birds": {
+                "BirdRed": 2,
+                "BirdWhite": 2,
+                "BirdYellow": 1
+            },
+            "birds_remaining": 0,
+            "birds_start": 5,
+            "level": "Levels/novelty_level_2/type8/Levels/01519_5_0_8_2.xml",
+            "novelty_detection": true,
+            "novelty_likelihood": true,
+            "objects": 272,
+            "pddl_novelty_likelihood": [
+                1000,
+                1000,
+                1000,
+                1000,
+                1000
+            ],
+            "pigs_remaining": 2,
+            "pigs_start": 3,
+            "reward_estimator_likelihood": [
+                0.040158652886041424,
+                0.23215800102453754,
+                0.07788617436754636,
+                0.24165115202909626,
+                0.11024237497651374
+            ],
+            "score": 43390.0,
+            "status": "Fail",
+            "unknown_object": [
+                true,
+                true,
+                true,
+                true,
+                true
+            ]
+        },
+        {
+            "birds": {
+                "BirdBlack": 2,
+                "BirdBlue": 1,
+                "BirdWhite": 1
+            },
+            "birds_remaining": 0,
+            "birds_start": 4,
+            "level": "Levels/novelty_level_2/type8/Levels/01554_13_0_8_2.xml",
+            "novelty_detection": true,
+            "novelty_likelihood": true,
+            "objects": 215,
+            "pddl_novelty_likelihood": [
+                1000,
+                1000,
+                1000,
+                1000
+            ],
+            "pigs_remaining": 1,
+            "pigs_start": 9,
+            "reward_estimator_likelihood": [
+                0.11272650139947091,
+                0.30303137271578445,
+                0.018403991774092132,
+                0.21356202319858197
+            ],
+            "score": 46190.0,
+            "status": "Fail",
+            "unknown_object": [
+                true,
+                true,
+                true,
+                true
+            ]
+        },
+        {
+            "birds": {
+                "BirdRed": 1,
+                "BirdWhite": 1,
+                "BirdYellow": 2
+            },
+            "birds_remaining": 0,
+            "birds_start": 4,
+            "level": "Levels/novelty_level_2/type8/Levels/00800_5_0_8_2.xml",
+            "novelty_detection": true,
+            "novelty_likelihood": true,
+            "objects": 146,
+            "pddl_novelty_likelihood": [
+                1000,
+                1000,
+                1000,
+                1000
+            ],
+            "pigs_remaining": 1,
+            "pigs_start": 4,
+            "reward_estimator_likelihood": [
+                0.04012215154446959,
+                0.11098385156897486,
+                0.014625043496913653,
+                0.25819319424412057
+            ],
+            "score": 30060.0,
+            "status": "Fail",
+            "unknown_object": [
+                true,
+                true,
+                true,
+                true
+            ]
+        },
+        {
+            "birds": {
+                "BirdBlue": 1,
+                "BirdRed": 1,
+                "BirdWhite": 1,
+                "BirdYellow": 1
+            },
+            "birds_remaining": 0,
+            "birds_start": 4,
+            "level": "Levels/novelty_level_2/type8/Levels/01003_1_0_8_2.xml",
+            "novelty_detection": true,
+            "novelty_likelihood": true,
+            "objects": 148,
+            "pddl_novelty_likelihood": [
+                1000,
+                1000,
+                1000,
+                1000
+            ],
+            "pigs_remaining": 2,
+            "pigs_start": 4,
+            "reward_estimator_likelihood": [
+                0.07484647592059576,
+                0.035379813238271496,
+                0.27279394592177936,
+                0.025908618656462462
+            ],
+            "score": 32600.0,
+            "status": "Fail",
+            "unknown_object": [
+                true,
+                true,
+                true,
+                true
+            ]
+        },
+        {
+            "birds": {
+                "BirdBlack": 3,
+                "BirdBlue": 1,
+                "BirdRed": 2,
+                "BirdYellow": 2
+            },
+            "birds_remaining": 0,
+            "birds_start": 8,
+            "level": "Levels/novelty_level_2/type8/Levels/01746_5_0_8_2.xml",
+            "novelty_detection": true,
+            "novelty_likelihood": true,
+            "objects": 78,
+            "pddl_novelty_likelihood": [
+                1000,
+                1000,
+                1000,
+                1000,
+                1000,
+                1000,
+                1000,
+                1000
+            ],
+            "pigs_remaining": 7,
+            "pigs_start": 11,
+            "reward_estimator_likelihood": [
+                0.17866317416051758,
+                0.11316752823978041,
+                0.1499580032063164,
+                0.20919500627825338,
+                0.24463589825937826,
+                0.3830465604559973,
+                0.12714481582790896,
+                0.15492148768064873
+            ],
+            "score": 49620.0,
+            "status": "Fail",
+            "unknown_object": [
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true
+            ]
+        },
+        {
+            "birds": {
+                "BirdRed": 4
+            },
+            "birds_remaining": 0,
+            "birds_start": 4,
+            "level": "Levels/novelty_level_2/type8/Levels/01729_12_0_8_2.xml",
+            "novelty_detection": true,
+            "novelty_likelihood": true,
+            "objects": 77,
+            "pddl_novelty_likelihood": [
+                1000,
+                1000,
+                1000,
+                1000
+            ],
+            "pigs_remaining": 2,
+            "pigs_start": 4,
+            "reward_estimator_likelihood": [
+                0.27454365026453187,
+                0.19656294584274292,
+                0.1547444611787796,
+                0.14204701781272888
+            ],
+            "score": 17720.0,
+            "status": "Fail",
+            "unknown_object": [
+                true,
+                true,
+                true,
+                true
+            ]
+        },
+        {
+            "birds": {
+                "BirdRed": 2
+            },
+            "birds_remaining": 0,
+            "birds_start": 2,
+            "level": "Levels/novelty_level_2/type8/Levels/01516_1_0_8_2.xml",
+            "novelty_detection": true,
+            "novelty_likelihood": true,
+            "objects": 312,
+            "pddl_novelty_likelihood": [
+                1000,
+                1000
+            ],
+            "pigs_remaining": 0,
+            "pigs_start": 2,
+            "reward_estimator_likelihood": [
+                0.3166761518910216,
+                0.792637036523059
+            ],
+            "score": 54820.0,
+            "status": "Pass",
+            "unknown_object": [
+                true,
+                true
+            ]
+        },
+        {
+            "birds": {
+                "BirdBlack": 1,
+                "BirdRed": 1,
+                "BirdWhite": 1,
+                "BirdYellow": 1
+            },
+            "birds_remaining": 0,
+            "birds_start": 4,
+            "level": "Levels/novelty_level_2/type8/Levels/01202_2_0_8_2.xml",
+            "novelty_detection": true,
+            "novelty_likelihood": true,
+            "objects": 158,
+            "pddl_novelty_likelihood": [
+                1000,
+                1000,
+                1000,
+                1000
+            ],
+            "pigs_remaining": 0,
+            "pigs_start": 4,
+            "reward_estimator_likelihood": [
+                0.439135347756308,
+                0.364472279074183,
+                0.008629728271228307,
+                0.022685096233348023
+            ],
+            "score": 52590.0,
+            "status": "Pass",
+            "unknown_object": [
+                true,
+                true,
+                true,
+                true
+            ]
+        },
+        {
+            "birds": {
+                "BirdBlack": 1,
+                "BirdBlue": 1,
+                "BirdYellow": 1
+            },
+            "birds_remaining": 0,
+            "birds_start": 3,
+            "level": "Levels/novelty_level_2/type8/Levels/00601_3_0_8_2.xml",
+            "novelty_detection": true,
+            "novelty_likelihood": true,
+            "objects": 134,
+            "pddl_novelty_likelihood": [
+                1000,
+                1000,
+                1000
+            ],
+            "pigs_remaining": 0,
+            "pigs_start": 3,
+            "reward_estimator_likelihood": [
+                0.009001548336624421,
+                0.34593955377926183,
+                0.05131773715679741
+            ],
+            "score": 32010.0,
+            "status": "Pass",
+            "unknown_object": [
+                true,
+                true,
+                true
+            ]
+        },
+        {
+            "birds": {
+                "BirdBlue": 1,
+                "BirdWhite": 2,
+                "BirdYellow": 1
+            },
+            "birds_remaining": 0,
+            "birds_start": 4,
+            "level": "Levels/novelty_level_2/type8/Levels/01752_11_0_8_2.xml",
+            "novelty_detection": true,
+            "novelty_likelihood": true,
+            "objects": 106,
+            "pddl_novelty_likelihood": [
+                1000,
+                1000,
+                1000,
+                1000
+            ],
+            "pigs_remaining": 3,
+            "pigs_start": 4,
+            "reward_estimator_likelihood": [
+                0.018942508146704035,
+                0.12295352667570114,
+                0.1178087368607521,
+                0.1273968368768692
+            ],
+            "score": 7070.0,
+            "status": "Fail",
+            "unknown_object": [
+                true,
+                true,
+                true,
+                true
+            ]
+        },
+        {
+            "birds": {
+                "BirdBlack": 1,
+                "BirdBlue": 1,
+                "BirdRed": 1
+            },
+            "birds_remaining": 0,
+            "birds_start": 3,
+            "level": "Levels/novelty_level_2/type8/Levels/01005_1_0_8_2.xml",
+            "novelty_detection": true,
+            "novelty_likelihood": true,
+            "objects": 161,
+            "pddl_novelty_likelihood": [
+                1000,
+                1000,
+                1000
+            ],
+            "pigs_remaining": 2,
+            "pigs_start": 3,
+            "reward_estimator_likelihood": [
+                0.11638321802444204,
+                0.3020528792288769,
+                0.03090654386727023
+            ],
+            "score": 18520.0,
+            "status": "Fail",
+            "unknown_object": [
+                true,
+                true,
+                true
+            ]
+        },
+        {
+            "birds": {
+                "BirdBlue": 1,
+                "BirdYellow": 1
+            },
+            "birds_remaining": 0,
+            "birds_start": 2,
+            "level": "Levels/novelty_level_2/type8/Levels/01561_5_0_8_2.xml",
+            "novelty_detection": true,
+            "novelty_likelihood": true,
+            "objects": 116,
+            "pddl_novelty_likelihood": [
+                1000,
+                1000
+            ],
+            "pigs_remaining": 7,
+            "pigs_start": 7,
+            "reward_estimator_likelihood": [
+                0.1299220576345129,
+                0.09726838702495003
+            ],
+            "score": 2980.0,
+            "status": "Fail",
+            "unknown_object": [
+                true,
+                true
+            ]
+        },
+        {
+            "birds": {
+                "BirdBlack": 1,
+                "BirdBlue": 1
+            },
+            "birds_remaining": 0,
+            "birds_start": 2,
+            "level": "Levels/novelty_level_2/type8/Levels/01523_6_0_8_2.xml",
+            "novelty_detection": true,
+            "novelty_likelihood": true,
+            "objects": 88,
+            "pddl_novelty_likelihood": [
+                1000,
+                1000
+            ],
+            "pigs_remaining": 1,
+            "pigs_start": 2,
+            "reward_estimator_likelihood": [
+                0.05566094103189753,
+                0.34295814327429097
+            ],
+            "score": 24280.0,
+            "status": "Fail",
+            "unknown_object": [
+                true,
+                true
+            ]
+        },
+        {
+            "birds": {
+                "BirdBlack": 1,
+                "BirdBlue": 1,
+                "BirdRed": 1,
+                "BirdYellow": 1
+            },
+            "birds_remaining": 0,
+            "birds_start": 4,
+            "level": "Levels/novelty_level_2/type8/Levels/01713_5_0_8_2.xml",
+            "novelty_detection": true,
+            "novelty_likelihood": true,
+            "objects": 79,
+            "pddl_novelty_likelihood": [
+                1000,
+                1000,
+                1000,
+                1000
+            ],
+            "pigs_remaining": 2,
+            "pigs_start": 4,
+            "reward_estimator_likelihood": [
+                0.2626871058339186,
+                0.3154704753146904,
+                0.16852872116063533,
+                0.7342609945522087
+            ],
+            "score": 62880.0,
+            "status": "Fail",
+            "unknown_object": [
+                true,
+                true,
+                true,
+                true
+            ]
+        },
+        {
+            "birds": {
+                "BirdRed": 2,
+                "BirdYellow": 1
+            },
+            "birds_remaining": 0,
+            "birds_start": 3,
+            "level": "Levels/novelty_level_2/type8/Levels/01736_11_0_8_2.xml",
+            "novelty_detection": true,
+            "novelty_likelihood": true,
+            "objects": 58,
+            "pddl_novelty_likelihood": [
+                1000,
+                1000,
+                1000
+            ],
+            "pigs_remaining": 2,
+            "pigs_start": 2,
+            "reward_estimator_likelihood": [
+                0.16039004746605368,
+                0.10558715618199596,
+                0.1256220016409369
+            ],
+            "score": 7100.0,
+            "status": "Fail",
+            "unknown_object": [
+                true,
+                true,
+                true
+            ]
+        },
+        {
+            "birds": {
+                "BirdBlack": 1,
+                "BirdBlue": 1,
+                "BirdWhite": 1
+            },
+            "birds_remaining": 0,
+            "birds_start": 3,
+            "level": "Levels/novelty_level_2/type8/Levels/01403_2_0_8_2.xml",
+            "novelty_detection": true,
+            "novelty_likelihood": true,
+            "objects": 131,
+            "pddl_novelty_likelihood": [
+                1000,
+                1000,
+                1000
+            ],
+            "pigs_remaining": 1,
+            "pigs_start": 3,
+            "reward_estimator_likelihood": [
+                0.4555650673227021,
+                0.10846349850042494,
+                0.07911755967411642
+            ],
+            "score": 37800.0,
+            "status": "Fail",
+            "unknown_object": [
+                true,
+                true,
+                true
+            ]
+        },
+        {
+            "birds": {
+                "BirdBlue": 1,
+                "BirdRed": 1,
+                "BirdYellow": 1
+            },
+            "birds_remaining": 0,
+            "birds_start": 3,
+            "level": "Levels/novelty_level_2/type8/Levels/00907_7_0_8_2.xml",
+            "novelty_detection": true,
+            "novelty_likelihood": true,
+            "objects": 73,
+            "pddl_novelty_likelihood": [
+                1000,
+                1000,
+                1000
+            ],
+            "pigs_remaining": 2,
+            "pigs_start": 2,
+            "reward_estimator_likelihood": [
+                0.07686336527965552,
+                0.024017926977074347,
+                0.11978410809270798
+            ],
+            "score": 7720.0,
+            "status": "Fail",
+            "unknown_object": [
+                true,
+                true,
+                true
+            ]
+        },
+        {
+            "birds": {
+                "BirdBlue": 2,
+                "BirdRed": 1,
+                "BirdYellow": 1
+            },
+            "birds_remaining": 2,
+            "birds_start": 4,
+            "level": "Levels/novelty_level_2/type8/Levels/01717_13_0_8_2.xml",
+            "novelty_detection": true,
+            "novelty_likelihood": true,
+            "objects": 80,
+            "pddl_novelty_likelihood": [
+                1000,
+                1000
+            ],
+            "pigs_remaining": 0,
+            "pigs_start": 4,
+            "reward_estimator_likelihood": [
+                0.2755717140334381,
+                0.9171290726416816
+            ],
+            "score": 58040.0,
+            "status": "Pass",
+            "unknown_object": [
+                true,
+                true
+            ]
+        },
+        {
+            "birds": {
+                "BirdBlack": 1,
+                "BirdWhite": 1,
+                "BirdYellow": 1
+            },
+            "birds_remaining": 0,
+            "birds_start": 3,
+            "level": "Levels/novelty_level_2/type8/Levels/00707_4_0_8_2.xml",
+            "novelty_detection": true,
+            "novelty_likelihood": true,
+            "objects": 163,
+            "pddl_novelty_likelihood": [
+                1000,
+                1000,
+                1000
+            ],
+            "pigs_remaining": 2,
+            "pigs_start": 2,
+            "reward_estimator_likelihood": [
+                0.08458952074145909,
+                0.06842677259863666,
+                0.2875267187490409
+            ],
+            "score": 21160.0,
+            "status": "Fail",
+            "unknown_object": [
+                true,
+                true,
+                true
+            ]
+        },
+        {
+            "birds": {
+                "BirdBlue": 1,
+                "BirdRed": 2,
+                "BirdWhite": 1,
+                "BirdYellow": 2
+            },
+            "birds_remaining": 3,
+            "birds_start": 6,
+            "level": "Levels/novelty_level_2/type8/Levels/01708_5_0_8_2.xml",
+            "novelty_detection": true,
+            "novelty_likelihood": true,
+            "objects": 97,
+            "pddl_novelty_likelihood": [
+                1000,
+                1000,
+                1000
+            ],
+            "pigs_remaining": 0,
+            "pigs_start": 7,
+            "reward_estimator_likelihood": [
+                2.8480856964325767,
+                0.8077633022781341,
+                0.6720735589908241
+            ],
+            "score": 200650.0,
+            "status": "Pass",
+            "unknown_object": [
+                true,
+                true,
+                true
+            ]
+        },
+        {
+            "birds": {
+                "BirdBlue": 1,
+                "BirdWhite": 1,
+                "BirdYellow": 1
+            },
+            "birds_remaining": 0,
+            "birds_start": 3,
+            "level": "Levels/novelty_level_2/type8/Levels/01107_8_0_8_2.xml",
+            "novelty_detection": true,
+            "novelty_likelihood": true,
+            "objects": 166,
+            "pddl_novelty_likelihood": [
+                1000,
+                1000,
+                1000
+            ],
+            "pigs_remaining": 3,
+            "pigs_start": 3,
+            "reward_estimator_likelihood": [
+                0.07712542662923658,
+                0.09369159457353306,
+                0.05675056436765352
+            ],
+            "score": 6740.0,
+            "status": "Fail",
+            "unknown_object": [
+                true,
+                true,
+                true
+            ]
+        },
+        {
+            "birds": {
+                "BirdBlack": 1,
+                "BirdBlue": 2,
+                "BirdRed": 3,
+                "BirdYellow": 1
+            },
+            "birds_remaining": 0,
+            "birds_start": 7,
+            "level": "Levels/novelty_level_2/type8/Levels/01754_5_0_8_2.xml",
+            "novelty_detection": true,
+            "novelty_likelihood": true,
+            "objects": 44,
+            "pddl_novelty_likelihood": [
+                1000,
+                1000,
+                1000,
+                1000,
+                1000,
+                1000,
+                1000
+            ],
+            "pigs_remaining": 1,
+            "pigs_start": 10,
+            "reward_estimator_likelihood": [
+                0.9076744171824356,
+                0.4202955212210795,
+                0.004909693212221875,
+                0.08817442506551743,
+                0.09132750332355499,
+                0.07727620005607605,
+                0.05604036524891853
+            ],
+            "score": 65130.0,
+            "status": "Fail",
+            "unknown_object": [
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true
+            ]
+        },
+        {
+            "birds": {
+                "BirdBlack": 2,
+                "BirdRed": 1,
+                "BirdWhite": 1
+            },
+            "birds_remaining": 2,
+            "birds_start": 4,
+            "level": "Levels/novelty_level_2/type8/Levels/01745_11_0_8_2.xml",
+            "novelty_detection": true,
+            "novelty_likelihood": true,
+            "objects": 54,
+            "pddl_novelty_likelihood": [
+                1000,
+                1000
+            ],
+            "pigs_remaining": 0,
+            "pigs_start": 4,
+            "reward_estimator_likelihood": [
+                0.4869372122258344,
+                0.6777055593917899
+            ],
+            "score": 56760.0,
+            "status": "Pass",
+            "unknown_object": [
+                true,
+                true
+            ]
+        },
+        {
+            "birds": {
+                "BirdBlack": 1,
+                "BirdBlue": 1,
+                "BirdRed": 1,
+                "BirdYellow": 1
+            },
+            "birds_remaining": 0,
+            "birds_start": 4,
+            "level": "Levels/novelty_level_2/type8/Levels/01102_1_0_8_2.xml",
+            "novelty_detection": true,
+            "novelty_likelihood": true,
+            "objects": 128,
+            "pddl_novelty_likelihood": [
+                1000,
+                1000,
+                1000,
+                1000
+            ],
+            "pigs_remaining": 2,
+            "pigs_start": 5,
+            "reward_estimator_likelihood": [
+                0.17954412450487292,
+                0.05039695308206203,
+                0.19117535980139105,
+                0.3215967726238086
+            ],
+            "score": 39220.0,
+            "status": "Fail",
+            "unknown_object": [
+                true,
+                true,
+                true,
+                true
+            ]
+        },
+        {
+            "birds": {
+                "BirdBlack": 2,
+                "BirdBlue": 1,
+                "BirdWhite": 1,
+                "BirdYellow": 1
+            },
+            "birds_remaining": 0,
+            "birds_start": 5,
+            "level": "Levels/novelty_level_2/type8/Levels/01535_2_0_8_2.xml",
+            "novelty_detection": true,
+            "novelty_likelihood": true,
+            "objects": 214,
+            "pddl_novelty_likelihood": [
+                1000,
+                1000,
+                1000,
+                1000,
+                1000
+            ],
+            "pigs_remaining": 1,
+            "pigs_start": 2,
+            "reward_estimator_likelihood": [
+                0.010190287481222929,
+                0.23396735651104,
+                0.023366246096775706,
+                0.15382292866706848,
+                0.13984782993793488
+            ],
+            "score": 27080.0,
+            "status": "Fail",
+            "unknown_object": [
+                true,
+                true,
+                true,
+                true,
+                true
+            ]
+        },
+        {
+            "birds": {
+                "BirdBlue": 1,
+                "BirdRed": 2
+            },
+            "birds_remaining": 0,
+            "birds_start": 3,
+            "level": "Levels/novelty_level_2/type8/Levels/01709_2_0_8_2.xml",
+            "novelty_detection": true,
+            "novelty_likelihood": true,
+            "objects": 82,
+            "pddl_novelty_likelihood": [
+                1000,
+                1000,
+                1000
+            ],
+            "pigs_remaining": 1,
+            "pigs_start": 2,
+            "reward_estimator_likelihood": [
+                0.11359240875298429,
+                0.0919030189683813,
+                0.35826743972369346
+            ],
+            "score": 22940.0,
+            "status": "Fail",
+            "unknown_object": [
+                true,
+                true,
+                true
+            ]
+        },
+        {
+            "birds": {
+                "BirdRed": 1,
+                "BirdWhite": 1,
+                "BirdYellow": 1
+            },
+            "birds_remaining": 0,
+            "birds_start": 3,
+            "level": "Levels/novelty_level_2/type8/Levels/00700_2_0_8_2.xml",
+            "novelty_detection": true,
+            "novelty_likelihood": true,
+            "objects": 184,
+            "pddl_novelty_likelihood": [
+                1000,
+                1000,
+                1000
+            ],
+            "pigs_remaining": 2,
+            "pigs_start": 3,
+            "reward_estimator_likelihood": [
+                0.03340833341487219,
+                0.1672146808235876,
+                0.033419422140836264
+            ],
+            "score": 19540.0,
+            "status": "Fail",
+            "unknown_object": [
+                true,
+                true,
+                true
+            ]
+        },
+        {
+            "birds": {
+                "BirdBlack": 1,
+                "BirdBlue": 1,
+                "BirdRed": 1
+            },
+            "birds_remaining": 1,
+            "birds_start": 3,
+            "level": "Levels/novelty_level_2/type8/Levels/01104_2_0_8_2.xml",
+            "novelty_detection": true,
+            "novelty_likelihood": true,
+            "objects": 139,
+            "pddl_novelty_likelihood": [
+                1000,
+                1000
+            ],
+            "pigs_remaining": 0,
+            "pigs_start": 3,
+            "reward_estimator_likelihood": [
+                0.21989799504375096,
+                0.5286972656195711
+            ],
+            "score": 40190.0,
+            "status": "Pass",
+            "unknown_object": [
+                true,
+                true
+            ]
+        },
+        {
+            "birds": {
+                "BirdRed": 2,
+                "BirdYellow": 1
+            },
+            "birds_remaining": 0,
+            "birds_start": 3,
+            "level": "Levels/novelty_level_2/type8/Levels/01736_2_0_8_2.xml",
+            "novelty_detection": true,
+            "novelty_likelihood": true,
+            "objects": 58,
+            "pddl_novelty_likelihood": [
+                1000,
+                1000,
+                1000
+            ],
+            "pigs_remaining": 2,
+            "pigs_start": 2,
+            "reward_estimator_likelihood": [
+                0.07256850424934835,
+                0.05699763844316327,
+                0.10803633419340883
+            ],
+            "score": 7470.0,
+            "status": "Fail",
+            "unknown_object": [
+                true,
+                true,
+                true
+            ]
+        },
+        {
+            "birds": {
+                "BirdBlack": 2,
+                "BirdBlue": 1
+            },
+            "birds_remaining": 0,
+            "birds_start": 3,
+            "level": "Levels/novelty_level_2/type8/Levels/01544_13_0_8_2.xml",
+            "novelty_detection": true,
+            "novelty_likelihood": true,
+            "objects": 99,
+            "pddl_novelty_likelihood": [
+                1000,
+                1000,
+                1000
+            ],
+            "pigs_remaining": 5,
+            "pigs_start": 10,
+            "reward_estimator_likelihood": [
+                0.08233797315515196,
+                0.6339545423550217,
+                0.2061590217371989
+            ],
+            "score": 42650.0,
+            "status": "Fail",
+            "unknown_object": [
+                true,
+                true,
+                true
+            ]
+        },
+        {
+            "birds": {
+                "BirdBlue": 1,
+                "BirdRed": 1,
+                "BirdWhite": 2
+            },
+            "birds_remaining": 0,
+            "birds_start": 4,
+            "level": "Levels/novelty_level_2/type8/Levels/01531_7_0_8_2.xml",
+            "novelty_detection": true,
+            "novelty_likelihood": true,
+            "objects": 106,
+            "pddl_novelty_likelihood": [
+                1000,
+                1000,
+                1000,
+                1000
+            ],
+            "pigs_remaining": 2,
+            "pigs_start": 2,
+            "reward_estimator_likelihood": [
+                0.09115744718620854,
+                0.13654343783855438,
+                0.08067268878221512,
+                0.09995986521244049
+            ],
+            "score": 510.0,
+            "status": "Fail",
+            "unknown_object": [
+                true,
+                true,
+                true,
+                true
+            ]
+        },
+        {
+            "birds": {
+                "BirdBlack": 2,
+                "BirdYellow": 1
+            },
+            "birds_remaining": 0,
+            "birds_start": 3,
+            "level": "Levels/novelty_level_2/type8/Levels/00808_4_0_8_2.xml",
+            "novelty_detection": true,
+            "novelty_likelihood": true,
+            "objects": 142,
+            "pddl_novelty_likelihood": [
+                1000,
+                1000,
+                1000
+            ],
+            "pigs_remaining": 0,
+            "pigs_start": 1,
+            "reward_estimator_likelihood": [
+                0.1410686204906207,
+                0.014095101258107784,
+                0.8747321767502763
+            ],
+            "score": 59130.0,
+            "status": "Pass",
+            "unknown_object": [
+                true,
+                true,
+                true
+            ]
+        },
+        {
+            "birds": {
+                "BirdBlack": 1,
+                "BirdBlue": 1,
+                "BirdRed": 3,
+                "BirdYellow": 1
+            },
+            "birds_remaining": 0,
+            "birds_start": 6,
+            "level": "Levels/novelty_level_2/type8/Levels/01723_13_0_8_2.xml",
+            "novelty_detection": true,
+            "novelty_likelihood": true,
+            "objects": 96,
+            "pddl_novelty_likelihood": [
+                1000,
+                1000,
+                1000,
+                1000,
+                1000,
+                1000
+            ],
+            "pigs_remaining": 0,
+            "pigs_start": 7,
+            "reward_estimator_likelihood": [
+                0.11200532127716056,
+                0.13841186181078374,
+                1.0286832643810666,
+                0.11470708926782662,
+                0.09534960705256779,
+                0.013669566903440039
+            ],
+            "score": 74580.0,
+            "status": "Pass",
+            "unknown_object": [
+                true,
+                true,
+                true,
+                true,
+                true,
+                true
+            ]
+        },
+        {
+            "birds": {
+                "BirdBlue": 1,
+                "BirdRed": 2
+            },
+            "birds_remaining": 1,
+            "birds_start": 3,
+            "level": "Levels/novelty_level_2/type8/Levels/00902_11_0_8_2.xml",
+            "novelty_detection": true,
+            "novelty_likelihood": true,
+            "objects": 186,
+            "pddl_novelty_likelihood": [
+                1000,
+                1000
+            ],
+            "pigs_remaining": 0,
+            "pigs_start": 1,
+            "reward_estimator_likelihood": [
+                0.014530023485704882,
+                0.3768528902327087
+            ],
+            "score": 24870.0,
+            "status": "Pass",
+            "unknown_object": [
+                true,
+                true
+            ]
+        },
+        {
+            "birds": {
+                "BirdBlack": 1,
+                "BirdBlue": 1,
+                "BirdRed": 4,
+                "BirdYellow": 2
+            },
+            "birds_remaining": 0,
+            "birds_start": 8,
+            "level": "Levels/novelty_level_2/type8/Levels/01735_6_0_8_2.xml",
+            "novelty_detection": true,
+            "novelty_likelihood": true,
+            "objects": 101,
+            "pddl_novelty_likelihood": [
+                1000,
+                1000,
+                1000,
+                1000,
+                1000,
+                1000,
+                1000,
+                1000
+            ],
+            "pigs_remaining": 7,
+            "pigs_start": 12,
+            "reward_estimator_likelihood": [
+                0.12393922739056075,
+                0.00506246522549661,
+                0.6095552078290953,
+                0.12273642440561551,
+                0.15536607801914215,
+                0.13255589026993095,
+                0.12507998963121672,
+                0.11520757881016161
+            ],
+            "score": 41180.0,
+            "status": "Fail",
+            "unknown_object": [
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true
+            ]
+        },
+        {
+            "birds": {
+                "BirdBlack": 1,
+                "BirdBlue": 1,
+                "BirdYellow": 1
+            },
+            "birds_remaining": 0,
+            "birds_start": 3,
+            "level": "Levels/novelty_level_2/type8/Levels/01404_6_0_8_2.xml",
+            "novelty_detection": true,
+            "novelty_likelihood": true,
+            "objects": 145,
+            "pddl_novelty_likelihood": [
+                1000,
+                1000,
+                1000
+            ],
+            "pigs_remaining": 1,
+            "pigs_start": 2,
+            "reward_estimator_likelihood": [
+                0.07447578035563626,
+                0.009531640435305674,
+                0.024598001246208034
+            ],
+            "score": 18750.0,
+            "status": "Fail",
+            "unknown_object": [
+                true,
+                true,
+                true
+            ]
+        },
+        {
+            "birds": {
+                "BirdBlack": 2,
+                "BirdRed": 4,
+                "BirdWhite": 1
+            },
+            "birds_remaining": 0,
+            "birds_start": 7,
+            "level": "Levels/novelty_level_2/type8/Levels/01714_5_0_8_2.xml",
+            "novelty_detection": true,
+            "novelty_likelihood": true,
+            "objects": 86,
+            "pddl_novelty_likelihood": [
+                1000,
+                1000,
+                1000,
+                1000,
+                1000,
+                1000,
+                1000
+            ],
+            "pigs_remaining": 1,
+            "pigs_start": 9,
+            "reward_estimator_likelihood": [
+                0.7390351016675273,
+                0.20564275924858605,
+                0.08344997465610504,
+                0.29269548854746447,
+                0.00045300225605322125,
+                0.03870437878132771,
+                0.08128764812588918
+            ],
+            "score": 68740.0,
+            "status": "Fail",
+            "unknown_object": [
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true
+            ]
+        },
+        {
+            "birds": {
+                "BirdBlack": 2,
+                "BirdBlue": 2,
+                "BirdRed": 2,
+                "BirdWhite": 1,
+                "BirdYellow": 2
+            },
+            "birds_remaining": 4,
+            "birds_start": 9,
+            "level": "Levels/novelty_level_2/type8/Levels/01716_5_0_8_2.xml",
+            "novelty_detection": true,
+            "novelty_likelihood": true,
+            "objects": 106,
+            "pddl_novelty_likelihood": [
+                1000,
+                1000,
+                1000,
+                1000,
+                1000
+            ],
+            "pigs_remaining": 0,
+            "pigs_start": 13,
+            "reward_estimator_likelihood": [
+                0.5335704525349488,
+                0.056748715195755355,
+                0.012276977583398407,
+                0.7804105612935333,
+                1.0975663712287085
+            ],
+            "score": 126420.0,
+            "status": "Pass",
+            "unknown_object": [
+                true,
+                true,
+                true,
+                true,
+                true
+            ]
+        },
+        {
+            "birds": {
+                "BirdBlack": 1,
+                "BirdRed": 2,
+                "BirdYellow": 5
+            },
+            "birds_remaining": 0,
+            "birds_start": 8,
+            "level": "Levels/novelty_level_2/type8/Levels/01719_14_0_8_2.xml",
+            "novelty_detection": true,
+            "novelty_likelihood": true,
+            "objects": 44,
+            "pddl_novelty_likelihood": [
+                1000,
+                1000,
+                1000,
+                1000,
+                1000,
+                1000,
+                1000,
+                1000
+            ],
+            "pigs_remaining": 4,
+            "pigs_start": 11,
+            "reward_estimator_likelihood": [
+                0.15819193547206312,
+                0.1413523641042058,
+                0.08956100114495749,
+                0.5990656433623475,
+                0.04985314109972351,
+                0.07439218650959022,
+                0.0892775397910339,
+                0.4302275197075033
+            ],
+            "score": 77650.0,
+            "status": "Fail",
+            "unknown_object": [
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true
+            ]
+        },
+        {
+            "birds": {
+                "BirdBlue": 1,
+                "BirdYellow": 1
+            },
+            "birds_remaining": 0,
+            "birds_start": 2,
+            "level": "Levels/novelty_level_2/type8/Levels/01556_1_0_8_2.xml",
+            "novelty_detection": true,
+            "novelty_likelihood": true,
+            "objects": 428,
+            "pddl_novelty_likelihood": [
+                1000,
+                1000
+            ],
+            "pigs_remaining": 0,
+            "pigs_start": 5,
+            "reward_estimator_likelihood": [
+                0.21614152713337703,
+                0.06386309644415888
+            ],
+            "score": 18610.0,
+            "status": "Pass",
+            "unknown_object": [
+                true,
+                true
+            ]
+        },
+        {
+            "birds": {
+                "BirdBlack": 1,
+                "BirdBlue": 1,
+                "BirdRed": 1
+            },
+            "birds_remaining": 0,
+            "birds_start": 3,
+            "level": "Levels/novelty_level_2/type8/Levels/01005_2_0_8_2.xml",
+            "novelty_detection": true,
+            "novelty_likelihood": true,
+            "objects": 161,
+            "pddl_novelty_likelihood": [
+                1000,
+                1000,
+                1000
+            ],
+            "pigs_remaining": 2,
+            "pigs_start": 3,
+            "reward_estimator_likelihood": [
+                0.015005287949342208,
+                0.33645929384842316,
+                0.028504835826961547
+            ],
+            "score": 21050.0,
+            "status": "Fail",
+            "unknown_object": [
+                true,
+                true,
+                true
+            ]
+        }
+    ],
+    "overall": {
+        "agent": "Hydra",
+        "avg_score": 40355.2,
+        "birds": {
+            "BirdBlack": {
+                "failed": 21,
+                "passed": 9
+            },
+            "BirdBlue": {
+                "failed": 23,
+                "passed": 9
+            },
+            "BirdRed": {
+                "failed": 23,
+                "passed": 11
+            },
+            "BirdWhite": {
+                "failed": 12,
+                "passed": 7
+            },
+            "BirdYellow": {
+                "failed": 23,
+                "passed": 10
+            }
+        },
+        "failed": 35,
+        "passed": 15
+    }
+}

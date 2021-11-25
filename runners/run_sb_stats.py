@@ -39,11 +39,12 @@ class AgentType(enum.Enum):
     Eaglewings = 4
 
 NOVELTY = 0
-TYPE = 2
-SAMPLES = 20
+TYPE = 4
+SAMPLES = 50
+
 AGENT = AgentType.Hydra
 
-EXPERIMENT_NAME = "BENCHMARK"
+EXPERIMENT_NAME = "ENSEMBLE2"
 
 def extract_levels(source, destination=None):
     ''' Extract ANU levels. '''
@@ -127,6 +128,26 @@ def run_agent(config, agent, agent_stats=list()):
     finally:
         env.kill()
 
+def get_object_count(level_path="{}/Levels/novelty_level_0/type2/Levels/00501_0_0_4_0.xml".format(SB_BIN_PATH)):
+    with open(level_path, 'rb') as fp:
+        content = fp.read()
+        try:
+            content = content.decode('ascii')
+        except UnicodeError:
+            content = content.decode('utf-16-le')
+
+        lines = content.splitlines()
+        n = 0
+        for line in lines:
+            #print(line)
+            if '<GameObjects>' in line:
+                start = n
+            if '</GameObjects>' in line:
+                stop = n
+            n = n+1
+        num_game_objects = stop - start
+        return num_game_objects
+
 
 def get_bird_count(level_path):
     ''' Given the path to a level XML, return a dictionary with bird count per type of bird. '''
@@ -184,6 +205,8 @@ def compute_stats(results_path, agent, agent_stats = list()):
                 score = float(row['Score'])
                 scores.append(score)
 
+                num_objects = get_object_count(os.path.join(SB_BIN_PATH, level_path))
+
                 level_stats = {'level': level_path,
                                'score': score,
                                'status': status,
@@ -191,6 +214,7 @@ def compute_stats(results_path, agent, agent_stats = list()):
                                'birds_start': int(row['birdsAtStart']),
                                'pigs_remaining': int(row['pigsRemaining']),
                                'pigs_start': int(row['pigsAtStart']),
+                               'objects': num_objects,
                                'birds': birds}
 
                 # Get agent stats
@@ -301,10 +325,11 @@ def compute_eval_stats(results_path, agent, agent_stats = list()):
     return stats
 
 
-def run_sb_stats(extract=False, seed=None):
+def run_sb_stats(extract=False, seed=None, record_novelty_stats=False):
     ''' Run science birds agent stats. '''
-    novelties = {NOVELTY: [TYPE]}
-    run_performance_stats(novelties, agent_type=AGENT, seed=seed, samples=SAMPLES)
+    novelties = {22: [1], 23: [1], 24: [1], 25: [1], 1: [6, 7, 8, 9, 10], 2: [6, 7, 8, 9, 10], 3: [6, 7]}
+    samples = 50
+    run_performance_stats(novelties, agent_type=AGENT, seed=seed, samples=samples, record_novelty_stats=record_novelty_stats)
 
 
 def run_performance_stats(novelties: dict,
@@ -318,7 +343,8 @@ def run_performance_stats(novelties: dict,
                           stats_base_path: pathlib.Path = STATS_BASE_PATH,
                           template: pathlib.Path = SB_CONFIG_PATH / 'test_config.xml',
                           config: pathlib.Path = SB_CONFIG_PATH / 'stats_config.xml',
-                          level_lookup: Optional[dict] = None):
+                          level_lookup: Optional[dict] = None,
+                          record_novelty_stats = False):
     ''' Run science birds agent stats. '''
     if seed is not None:
         random.seed(seed)
@@ -331,8 +357,8 @@ def run_performance_stats(novelties: dict,
             number_samples = len(levels)
             if samples is not None:
                 number_samples = min(number_samples, samples)
-            levels = levels[:number_samples]
-            # levels = random.sample(levels, number_samples) # TODO: Discuss design: this sampling kills the order of the levels, causing the non-novel levels to appear after the novel ones
+            #levels = levels[:number_samples]
+            levels = random.sample(levels, number_samples) # TODO: Discuss design: this sampling kills the order of the levels, causing the non-novel levels to appear after the novel ones
 
             if level_lookup:
                 levels = [levels_path / l for l in level_lookup[str(novelty)][str(novelty_type)]]
@@ -361,6 +387,17 @@ def run_performance_stats(novelties: dict,
                 filename = "{}{}.json".format(filename, current_suffix)
                 with open(stats_base_path / filename, 'w') as f:
                     json.dump(stats, f, sort_keys=True, indent=4)
+
+# def do_record_novelty_stats(novelty, novelty_type, config, agent_stats):
+#
+#     file = open("{}/novelty_detection/ensemble_learning.csv".format(SB_DATA_PATH), "a")
+#     print(agent_stats)
+#     line = "{},{},{},{},{},{}\n".format(novelty, novelty_type, agent_stats[0]['unknown_object'],
+#                              agent_stats[0]['reward_estimator_likelihood'],
+#                              agent_stats[0]['pddl_novelty_likelihood'],
+#                              agent_stats[0]['novelty_detection'])
+#     file.write(line)
+#     file.close()
 
 def run_eval_stats(novelties: dict,
                           agent_type: AgentType,
@@ -485,5 +522,7 @@ def _compute_stats(results, file_suffix):
 
 
 if __name__ == '__main__':
-    run_sb_stats(seed=0)
+    #run_sb_stats(seed=0, record_novelty_stats=True)
+    run_sb_stats(record_novelty_stats=True)
+
 
