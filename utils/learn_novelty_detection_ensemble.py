@@ -23,13 +23,15 @@ class ColumnName(enum.Enum):
     MAX_PDDL_INCONSISTENCY = 'max_pddl_inconsistency',
     AVG_PDDL_INCONSISTENCY = 'avg_pddl_inconsistency',
     HYDRA_NOVELTY_DETECTED = 'hydra_novelty_detected',
-    GROUND_TRUTH = 'ground_truth'
+    GROUND_TRUTH = 'ground_truth',
+    NUM_OBJECTS = 'num_objects'
 
 
 def generate_dataset_from_json():
     dataframe = pandas.DataFrame(columns=[
         ColumnName.LEVEL,
         ColumnName.TYPE,
+        ColumnName.NUM_OBJECTS,
         ColumnName.HAS_NOVEL_OBJECT,
         ColumnName.MAX_REWARD_DIFFERENCE,
         ColumnName.AVG_REWARD_DIFFERENCE,
@@ -79,11 +81,12 @@ def generate_dataset_from_json():
                     avg_reward_difference = 0
                 else:
                     max_reward_difference = numpy.nanmax(episode['reward_estimator_likelihood'])
-                    avg_reward_difference = numpy.nanmax(episode['reward_estimator_likelihood'])
+                    avg_reward_difference = numpy.nanmean(episode['reward_estimator_likelihood'])
 
                 line = {
                     ColumnName.LEVEL: numbers[1],
                     ColumnName.TYPE: numbers[2],
+                    ColumnName.NUM_OBJECTS: episode['objects'],
                     ColumnName.HAS_NOVEL_OBJECT: has_unknown_object,
                     ColumnName.MAX_REWARD_DIFFERENCE: max_reward_difference,
                     ColumnName.AVG_REWARD_DIFFERENCE: avg_reward_difference,
