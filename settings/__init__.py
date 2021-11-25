@@ -25,6 +25,8 @@ CP_PLANNER_MEMORY_LIMIT = 50 # memory limit for UPMurphi (in MB)
 CP_DELTA_T = 0.02 # time discretisation for UPMurphi
 CP_TIMEOUT = 60 # timeout for the planning phase (in seconds)
 CP_CONSISTENCY_THRESHOLD = 0.05
+CP_EPISODE_TIME_LIMIT = 1200
+CP_REPAIR_TIMEOUT = 180
 
 OS_ROOT_PATH = path.abspath(os.sep)
 ROOT_PATH = path.join(path.dirname(path.dirname(path.abspath(__file__))))

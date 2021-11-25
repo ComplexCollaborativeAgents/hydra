@@ -5,7 +5,7 @@ import logging
 from agent.planning.meta_model import *
 import numpy as np
 
-fh = logging.FileHandler("cartpole_hydra.log",mode='w')
+fh = logging.FileHandler("cartpoleplusplus_hydra.log",mode='w')
 formatter = logging.Formatter('%(asctime)-15s %(name)s - %(levelname)s - %(message)s')
 fh.setFormatter(formatter)
 logger = logging.getLogger("cartpole_pddl_meta_model")
@@ -59,6 +59,35 @@ class PddlObjectType():
             else: # Attribute is a number
                 pddl_state.numeric_fluents[fluent_name]=value
 
+    def _get_name(self, obj):
+        return 'object_{}'.format(obj['id'])
+
+class BlockType(PddlObjectType):
+    def __init__(self):
+        super(BlockType,self).__init__()
+        self.pddl_type = "block"
+        self.hyper_parameters["block_radius"] = 0.5
+
+    def _compute_obj_attributes(self, obj, problem_params:dict):
+        obj_attributes = self._compute_observable_obj_attributes(obj, problem_params)
+        # obj_attributes[""] = self.hyper_parameters[""]
+        return obj_attributes
+
+    def _compute_observable_obj_attributes(self, obj, problem_params:dict):
+        obj_attributes = dict()
+        obj_attributes["block_x"] = obj['x_position']
+        obj_attributes["block_y"] = obj['y_position']
+        obj_attributes["block_z"] = obj['z_position']
+        obj_attributes["block_x_dot"] = obj['x_velocity']
+        obj_attributes["block_y_dot"] = obj['y_velocity']
+        obj_attributes["block_z_dot"] = obj['z_velocity']
+        obj_attributes["block_r"] = self.hyper_parameters["block_radius"]
+        obj_attributes['block_active'] = True
+
+        return obj_attributes
+
+    def _get_name(self, obj):
+        return 'block_{}'.format(obj['id'])
 
 class CartPolePlusPlusMetaModel(MetaModel):
     PLANNER_PRECISION = 5 # how many decimal points the planner can handle correctly
@@ -73,11 +102,12 @@ class CartPolePlusPlusMetaModel(MetaModel):
             repair_deltas=(1.0, 0.1, 0.1, 1.0, 1.0, 0.1, 0.1),
             constant_numeric_fluents={
                 'm_cart': 1.0,
+                'r_cart': 0.5,
                 'l_pole': 1.0,
-                # 'l_pole': 0.5,
+                # 'l_pole': 0.5, # original OpenAI Gym version
                 'm_pole': 0.1,
                 'force_mag': 10.0,
-                'inertia': 1.0,
+                # 'inertia': 1.0,
                 'elapsed_time': 0.0,
                 'gravity': 9.81,
                 'time_limit': 1.0,
@@ -96,6 +126,9 @@ class CartPolePlusPlusMetaModel(MetaModel):
                 'ready':True,
                 'cart_available':True})
 
+        self.object_types = dict()
+        self.object_types["block"] = BlockType()
+
     ''' Translate the initial SBState, as observed, to a PddlPlusProblem object. 
     Note that in the initial state, we ignore the location of the bird and assume it is on the slingshot. '''
     def create_pddl_problem(self, observation_array):
@@ -109,8 +142,6 @@ class CartPolePlusPlusMetaModel(MetaModel):
         pddl_problem.goal = []
 
         pddl_problem.objects.append(['dummy_obj', 'dummy'])
-        pddl_problem.objects.append(['dummy_block', 'block'])
-
 
         euler_pole = self.quaternion_to_euler(round(observation_array['pole']['x_quaternion'], 5), round(observation_array['pole']['y_quaternion'], 5), round(observation_array['pole']['z_quaternion'], 5), round(observation_array['pole']['w_quaternion'], 5))
         obs_theta_x = round(euler_pole[0], 5) # XY reversed on purpose to match observation
@@ -172,6 +203,21 @@ class CartPolePlusPlusMetaModel(MetaModel):
 
         pddl_problem.init.append(['=', ['pos_y_ddot'], round(calc_pos_y_ddot, CartPolePlusPlusMetaModel.PLANNER_PRECISION)])
         pddl_problem.init.append(['=', ['theta_y_ddot'], round(calc_theta_y_ddot, CartPolePlusPlusMetaModel.PLANNER_PRECISION)])
+
+
+
+        # FLYING BLOCKS AND THEIR ATTRIBUTES
+        purposely_ignoring_blocks = True
+        # Add objects to problem
+        if len(observation_array['blocks']) == 0 or purposely_ignoring_blocks:
+            pddl_problem.objects.append(['dummy_block', 'block'])
+        else:
+            for bl in observation_array['blocks']:
+                # Get type
+                type = self.object_types["block"]
+                # Add object of this type to the problem
+                type.add_object_to_problem(pddl_problem, bl, problem_params)
+
 
         # Add goal
         # pddl_problem.goal.append(['pole_position'])

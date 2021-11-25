@@ -42,11 +42,13 @@ class CartpolePlusPlusHydraAgent(HydraAgent):
         self.plan = None
         self.current_observation = CartPolePlusPlusObservation()
         self.last_performance = []
+        self.episode_timer = time.time()
 
     def episode_end(self, performance: float, feedback: dict = None):
         self.steps = 0
         self.plan_idx = 0
         self.plan = None
+        self.episode_timer = time.time()
         self.observations_list.append(self.current_observation)
         self.current_observation = CartPolePlusPlusObservation()
         self.last_performance.append(performance) # Records the last performance value, to show impact
@@ -74,7 +76,7 @@ class CartpolePlusPlusHydraAgent(HydraAgent):
             if len(self.plan) == 0:
                 self.plan_idx = 999
 
-        if self.plan_idx >= self.replan_idx:
+        if (self.plan_idx >= self.replan_idx) and ((time.time() - self.episode_timer) < settings.CP_EPISODE_TIME_LIMIT):
             self.meta_model.constant_numeric_fluents['time_limit'] = max(0.02, min(4.0, round((4.0 - ((self.steps) * 0.02)), 2)))
             new_plan = self.planner.make_plan(observation, 0)
             if len(new_plan) != 0:
@@ -82,10 +84,9 @@ class CartpolePlusPlusHydraAgent(HydraAgent):
                 self.plan = new_plan
                 self.plan_idx = 0
 
-        state_values_list = self.planner.extract_state_values_from_trace("%s/plan_cartpole_prob.pddl" % str(settings.CARTPOLEPLUSPLUS_PLANNING_DOCKER_PATH))
-        state_values_list.insert(0, (observation['cart']['x_position'], observation['cart']['y_position'], observation['cart']['x_velocity'], observation['cart']['y_velocity'],
-                                     euls[0], euls[1], observation['pole']['x_velocity'], observation['pole']['y_velocity']))
-
+        # state_values_list = self.planner.extract_state_values_from_trace("%s/plan_cartpole_prob.pddl" % str(settings.CARTPOLEPLUSPLUS_PLANNING_DOCKER_PATH))
+        # state_values_list.insert(0, (observation['cart']['x_position'], observation['cart']['y_position'], observation['cart']['x_velocity'], observation['cart']['y_velocity'],
+        #                              euls[0], euls[1], observation['pole']['x_velocity'], observation['pole']['y_velocity']))
         # if (len(state_values_list) > 1):
         #     print("cart observation (X,Y,Vx,Vy):\t\t" + str(observation['cart']['x_position']) + ",\t\t " + str(observation['cart']['y_position']) +
         #           ",\t\t " + str(observation['cart']['x_velocity']) + ",\t\t " + str(observation['cart']['y_velocity']))
@@ -256,5 +257,5 @@ class CartpolePlusPlusHydraAgentObserver(WSUObserver):
 
         action = self.agent.choose_action(observation)
 
-        self.log.debug("Testing instance: sending action={}".format(action))
+        # self.log.debug("Testing instance: sending action={}".format(action))
         return action

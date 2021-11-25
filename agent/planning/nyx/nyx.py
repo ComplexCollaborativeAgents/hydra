@@ -140,6 +140,9 @@ def runner(dom_file, prob_file, args_list: []):
     problem = prob_file
     plan_file = os.path.dirname(prob_file) + "/plan_" + os.path.basename(prob_file)
 
+    # WP: suppressing printouts for WSU evaluation
+    sys.stdout = open(os.devnull, 'w')
+
     process_arguments(args_list)
 
     print_config(domain, problem, plan_file)

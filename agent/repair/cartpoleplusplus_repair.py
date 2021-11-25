@@ -30,7 +30,8 @@ class CartpolePlusPlusRepair(MetaModelRepair):
         self.meta_model_repair = GreedyBestFirstSearchMetaModelRepair(self.fluents_to_repair,
                                                                       consistency_checker,
                                                                       self.repair_deltas,
-                                                                      consistency_threshold)
+                                                                      consistency_threshold,
+                                                                      time_limit=settings.CP_REPAIR_TIMEOUT)
 
     ''' Repair the given domain and plan such that the given plan's expected outcome matches the observed outcome'''
     def repair(self, pddl_meta_model, observation, delta_t=1.0):
