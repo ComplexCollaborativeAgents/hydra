@@ -24,7 +24,7 @@ pytest
 3. Change directories to `bin` and run `./setup_polycraft.sh`.  This will install other linux dependencies.  
 4. Note that the Polycraft domain requires a different version of Java than that of the Science Birds domain.  If using Ubuntu, you can use the `sudo update-alternatives --config java` command to select the Java version that corresponds with the domain that you want to run in.  If the Polycraft Hydra Agent hangs after starting up, check to make sure that you are running Java 8 (version adoptopenjdk8-hotspot). 
 5. Create the hydra python environment (same as Science Birds above - again, not needed if already installed)
-6. Polycraft will need to do a one time setup.  Navigate to `bin/pal` and run `xvfb-run -s '-screen 0 1280x1024x24' ./gradlew --no-daemon --stacktrace runclient`.  This will run Polycraft independently in headless mode.  Gradle will install any dependencies that the java runtime needs, and eventually a message will appear in the log output `[EXP] game initialization completed`, which signifies that Polycraft is ready to use.  Exit out of the application.
+6. Polycraft will need to do a one time setup.  Navigate to `bin/pal` and run `xvfb-run -s '-screen 0 1280x1024x24' ./gradlew --no-daemon --stacktrace runclient`.  This will run Polycraft independently in headless mode.  Gradle will install any dependencies that the java runtime needs, and eventually a message will appear in the log output `Minecraft finished loading`, which signifies that Polycraft is ready to use.  Exit out of the application.
 
 ## Testing Polycraft
    There exists a `test_polycraft.py` file within `tests/` that tests if the installation is working by loading a level and running a set of random actions upon it.  To run it:  
