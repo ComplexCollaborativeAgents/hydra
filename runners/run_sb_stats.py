@@ -39,9 +39,9 @@ class AgentType(enum.Enum):
 
 
 NOVELTY = 0
-TYPE = 2
-SAMPLES = 10
-AGENT = AgentType.Hydra
+TYPE = 22
+SAMPLES = 50
+AGENT = AgentType.RepairingHydra
 
 EXPERIMENT_NAME = "BENCHMARK"
 

@@ -1,21 +1,18 @@
 #!/usr/bin/env python
 # Four spaces as indentation [no tabs]
-import bisect
-import collections
-from hmac import new
 
+import copy
+import time
+
+import agent.planning.nyx.semantic_attachments as semantic_attachments
+import agent.planning.nyx.syntax.constants as constants
+from agent.planning.nyx.PDDL import PDDL_Parser
 from agent.planning.nyx.heap_open_lists import HeapPriorityList
 from agent.planning.nyx.heuristic_functions import get_heuristic_function
-from agent.planning.nyx.PDDL import PDDL_Parser
-import agent.planning.nyx.syntax.constants as constants
-import time, copy
-
-from agent.planning.nyx.openlist import BFSList, DFSList, PriorityList
-from agent.planning.nyx.syntax.visited_state import VisitedState
+from agent.planning.nyx.openlist import BFSList, DFSList
 from agent.planning.nyx.syntax.state import State
+from agent.planning.nyx.syntax.visited_state import VisitedState
 
-# (NOT AVAILABLE YET ON MASTER BRANCH)
-import agent.planning.nyx.semantic_attachments as semantic_attachments
 
 class Planner:
 

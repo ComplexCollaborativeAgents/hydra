@@ -40,6 +40,10 @@ class AbstractHeuristic:
         return False
 
 
+class ZeroHeuristic(AbstractHeuristic):
+    pass
+
+
 class CompositeHeuristic(AbstractHeuristic):
     """
     Uses a fast heuristic when opening (generating) nodes and a slow but more informative one when expanding.

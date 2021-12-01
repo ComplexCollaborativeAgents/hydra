@@ -113,10 +113,10 @@
         :precondition (and
             (= (active_bird) (bird_id ?b))
             (> (v_bird ?b) 0)
-            (>= (x_bird ?b) (- (x_pig ?p) (- (pig_radius ?p) (* (pig_radius ?p) 0.2)) ) )
-            (<= (x_bird ?b) (+ (x_pig ?p) (- (pig_radius ?p) (* (pig_radius ?p) 0.2)) ) )
-            (>= (y_bird ?b) (- (y_pig ?p) (- (pig_radius ?p) (* (pig_radius ?p) 0.2)) ) )
-            (<= (y_bird ?b) (+ (y_pig ?p) (- (pig_radius ?p) (* (pig_radius ?p) 0.2)) ) )
+            (>= (x_bird ?b) (- (x_pig ?p) (pig_radius ?p)) )
+            (<= (x_bird ?b) (+ (x_pig ?p) (pig_radius ?p)) )
+            (>= (y_bird ?b) (- (y_pig ?p) (pig_radius ?p)) )
+            (<= (y_bird ?b) (+ (y_pig ?p) (pig_radius ?p)) )
             (not (pig_dead ?p))
         )
         :effect (and

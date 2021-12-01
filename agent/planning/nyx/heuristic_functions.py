@@ -1,9 +1,10 @@
 import numpy as np
 
-from agent.planning.nyx.abstract_heuristic import AbstractHeuristic, HeuristicSum
+from agent.planning.nyx.abstract_heuristic import AbstractHeuristic, HeuristicSum, ZeroHeuristic
 import agent.planning.nyx.syntax.constants as constants
 import math
 
+from utils.comparable_interval import ComparableInterval
 from agent.planning.nyx.interval_heuristic import IntervalHeuristic
 
 
@@ -25,7 +26,7 @@ def get_heuristic_function(heuristic=constants.CUSTOM_HEURISTIC_ID, **kwargs):
     elif heuristic == 11:  # 5 + 6, get it?
         return HeuristicSum([SBOneBirdHeuristic(), SBBlockedPigsHeuristic()])
     else:
-        return AbstractHeuristic()  # Implements the null heuristic
+        return ZeroHeuristic()  # Implements the null heuristic
 
 
 class CartpolePlusPlusHeuristic(AbstractHeuristic):
@@ -65,7 +66,7 @@ class BadSBHeuristic(AbstractHeuristic):
         # return 0
 
 
-PolyCraftHeuristic = AbstractHeuristic
+PolyCraftHeuristic = ZeroHeuristic
 
 
 class CartpoltHeuristic(AbstractHeuristic):
@@ -117,15 +118,11 @@ class SBOneBirdHeuristic(AbstractHeuristic):
         # Blue: adding a 20% margin to the bounding box is probably pretty good. TODO: Some experimentation can narrow
         #                                                                           that to a more accurate number.
 
-        # Find active bird ID
-        active_bird_string = [key for key in node.state_vars.keys()
-                              if (key.startswith("['bird_id',")
-                                  and node.state_vars[key] == node.state_vars["['active_bird']"])]
-        if len(active_bird_string) < 1:
+        active_bird_string = self._get_active_bird_string(node)
+        if active_bird_string is None:
             # This heuristic doesn't know what do to without a birb
             node.h = self._backup_heuristic()
             return node.h
-        active_bird_string = active_bird_string[0][10:]
         bird_released = node.state_vars.get("['bird_released'" + active_bird_string)
 
         # near end of bounding box:
@@ -243,6 +240,20 @@ class SBOneBirdHeuristic(AbstractHeuristic):
                 pass
         return node.h
 
+    def _get_active_bird_string(self, node):
+        """
+        Find active bird ID.
+        :return The key string for the active bird, or None if not found.
+        """
+        active_bird_string = [key for key in node.state_vars.keys()
+                              if (key.startswith("['bird_id',")
+                                  and node.state_vars[key] == node.state_vars["['active_bird']"])]
+        if len(active_bird_string) < 1:
+            # can't find active bird
+            return None
+        active_bird_string = active_bird_string[0][10:]
+        return active_bird_string
+
     def _generate_keys(self, node):
         """
         Generates key strings into the state_vars dictionary, and stores them in lookup tables for speed.
@@ -306,6 +317,7 @@ class SBBlockedPigsHeuristic(SBOneBirdHeuristic):
     Level-wide heuristic for science birds.
      1) How many pigs are still alive
      2) blocks in "front" of live pigs
+     3) Optional: blocks under live pigs
     """
     #   2a) glass blocks are "worth" 1/10 of a pig
     #   2b) wood blocks are 1/4 of a pig
@@ -317,10 +329,14 @@ class SBBlockedPigsHeuristic(SBOneBirdHeuristic):
     STONE_FACTOR = 0.04
     UNKNOWN_B_LIFE = WOOD_FACTOR  # I believe this is the running assumption
 
-    def __init__(self):
+    def __init__(self, blocks_under_pig=False):
+        """
+        :param blocks_under_pig: should blocks directly under pigs be considered 'suspicious' (=good targets to aim at).
+        """
         super().__init__()
         self.pig_dead_keys = {}
         self.sus_blocks_keys = []
+        self.blocks_under_pigs = blocks_under_pig
 
     def notify_initial_state(self, node):
         # find keys for all pigs and blocks
@@ -334,8 +350,7 @@ class SBBlockedPigsHeuristic(SBOneBirdHeuristic):
             self.pig_dead_keys[item] = "['pig_dead" + item
         self.sus_blocks_keys = self._check_sus_blocks(node, list(self.pig_x_keys.values()), list(self.targets_x_keys.values()))
 
-    @staticmethod
-    def _check_sus_blocks(node, pig_keys, block_keys):
+    def _check_sus_blocks(self, node, pig_keys, block_keys):
         """
         Checks the given blocks to see if they're "in front of" the given pigs.
         """
@@ -352,6 +367,11 @@ class SBBlockedPigsHeuristic(SBOneBirdHeuristic):
 
                 if block_x < pig_x < block_x + 4 * block_w and \
                         block_y - 5 * block_h < pig_y < block_y + block_h:
+                    sus_blocks.append(b_key)
+
+                if self.blocks_under_pigs \
+                        and block_x + block_w < pig_x < block_x + block_w \
+                        and block_y < pig_y:
                     sus_blocks.append(b_key)
         return sus_blocks
 
@@ -376,5 +396,66 @@ class SBBlockedPigsHeuristic(SBOneBirdHeuristic):
                 h_value += SBBlockedPigsHeuristic.H_MULTIPLIER * SBBlockedPigsHeuristic.UNKNOWN_B_LIFE
         node.h = h_value
         return node.h
+
+class SBHelpfulAngleHeuristic(SBBlockedPigsHeuristic):
+    """
+    Calculates trajectories to pigs\blocks in front of or under pigs as a pre-processing step, and marks states
+    on those trajectories as 'preferred' so that they are tried first.
+    """
+    def __init__(self):
+        SBBlockedPigsHeuristic.__init__(self, blocks_under_pig=True)
+        self.x_0, self.y_0 = 0, 0
+        self.g = 9.81
+        self.deviation = ComparableInterval[-5, 5]  # TODO: find reasonable values
+        self.trajectories = set()  # What are they? a set of lists of states? Just a set of states?
+
+    def notify_initial_state(self, node):
+        SBBlockedPigsHeuristic._generate_keys(self, node)
+        self._calculate_useful_trajectories(node)
+        self.x_0, self.y_0 = 0, 0 #TODO get sling x, y
+        self.g = node.state_vars["['gravity']"]
+        return self.evaluate(node)
+
+    def _calculate_useful_trajectories(self, node):
+        for block_key in self.sus_blocks_keys:
+            # get coords
+            # calculate v_x_0, v_y_0 (get from formula page)
+            pass
+
+    def is_preferred(self, node):
+        # How do I do this even marginally efficiently?
+        # I want to check whether the bird is "close enough" to a trajectory I have.
+        #    Compare to rounded value? rounded which way? towards the trajectory, but how do I do that? That's just within an interval again.
+        #  Supposing the trajectory is a list of states (which means I have to generate them, which is kinda just planning)
+        #    Also, if I'm storing a set of states, just check for each one. But that takes a long time! Some special hashing function? Hierarchical comparison?
+        #    What accuracy level is desired? On the one hand, want an accurate guide =more helpful, on the other hand the planning is not that accurate, don't want to miss the trajectory
+        #  Say it's some type of (other) mathematical object. What type? How?
+        #    I can generate a list of v_x_0, v_y_0 pairs of preferred trajectories, and then a state 'fits' if:
+        #     y_t = (y_0 + x_0 * (v_y_0[i] / v_x_0[i])  - 0.5 * g * x_0^2 * (1 / v_x_0[i] ^ 2))
+        #           + ((v_y_0[i] / v_x_0[i]) + g * (1 / v_x_0[i] ^ 2)) * x_t
+        #           - 0.5 * g * (1 / v_x_0[i] ^ 2)) * x_t^2
+        #    Where y_t, x_t are the state variables for the birds + some margin (as ComparableIntervals?),
+        #     v_x_0[i] and v_y_0[i] are the trajectory value pair, and the other values are constants (need to get
+        #     from initial state).
+        #  ALSO need to check v_x_t, v_y_t, BUT: it is actually enough to test v_0(x, y), and since we have a condition
+        #    on v_tot it is enough to test v_x (which should be constant)
+        def trajectory_trace(x_0: float, y_0: float, v_x_0: float, v_y_0: float, g: float, x_t: ComparableInterval):
+            x_0, y_0, v_x_0, v_y_0, g = round(x_0, 10), round(y_0, 10), round(v_x_0, 10), round(v_y_0, 10), round(g, 10)
+            x_t = round(x_t)
+            y_t = (y_0 + x_0 * (v_y_0 / v_x_0) - 0.5 * g * (x_0 ** 2) * (v_x_0 ** -2)) \
+                  + ((v_y_0 / v_x_0) + g * (v_x_0 ** -2)) * x_t - 0.5 * g * (v_x_0 ** -2) * (x_t ** 2)
+            return y_t
+
+        active_bird_string = self._get_active_bird_string(node)
+        x_t = node.state_vars["['x_bird'" + active_bird_string] + self.deviation
+        y_t = node.state_vars["['y_bird'" + active_bird_string]
+        v_x_t = node.state_vars["['vx_bird'" + active_bird_string]
+        for v_x_0, v_y_0 in self.trajectories:
+            if v_x_0 in v_x_t + self.deviation and y_t in trajectory_trace(self.x_0, self.y_0, v_x_0, v_y_0, self.g, x_t):
+                return True
+        return False
+
+
+
 
 

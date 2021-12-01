@@ -71,7 +71,7 @@ def process_arguments(cl_arguments):
                 print('\nERROR: Unrecognized Heuristic Argument\nCall with -h flag for help')
                 exit(1)
         else:
-            print('\nERROR: Unrecognized Argument\nCall with -h flag for help')
+            print(f'\nERROR: Unrecognized Argument {arg}\nCall with -h flag for help')
             exit(1)
 
 def print_config(dom, prob, pla):
