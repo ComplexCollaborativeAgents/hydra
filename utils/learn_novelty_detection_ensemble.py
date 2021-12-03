@@ -96,7 +96,7 @@ def generate_dataset_from_json():
                     ColumnName.GROUND_TRUTH: ground_truth
                 }
                 dataframe = dataframe.append(line, ignore_index=True)
-    dataframe.to_csv("{}/ensemble_learning_all_levels.csv".format(SB_NOVELTY_DATA_PATH))
+    dataframe.to_csv("{}/ensemble_learning_simple_levels.csv".format(SB_NOVELTY_DATA_PATH))
     return(dataframe)
 
 
