@@ -31,11 +31,9 @@ NON_NOVEL_LEVELS = ["0"]
 RESULTS_PATH = pathlib.Path(settings.ROOT_PATH) / "runners" / "experiments" / "ScienceBirds" / "SB_experiment"
 EXPORT_TRIALS = False   # Export trials xml file
 NUM_TRIALS = 1      # Number of trials to run per known/unknown, novelty level and type
-PER_TRIAL = 1     # Levels per trial
-BEFORE_NOVELTY = 0 # Levels in a trial before novelty is introduced
-NOVELTIES = {"1": ["10"]}  # Novelties to use in the experiment (IE, trials to run)>>>>>>> sm/experiments_sb:runners/novelty_experiment_runner_sb.py
-#NOVELTIES = {"1": ["6", "7", "8", "9", "10"], "2": ["6", "7", "8", "9", "10"], "3": ["6", "7"]}
-
+PER_TRIAL = 2   # Levels per trial
+BEFORE_NOVELTY = 1 # Levels in a trial before novelty is introduced
+NOVELTIES = {"2": ["9"]}  # Novelties to use in the experiment (IE, trials to run)
 
 
 
@@ -113,7 +111,7 @@ class NoveltyExperimentRunnerSB:
         """
         random.seed() # Randomize seed
         
-        levels = list()
+        trial = list()
 
         for index in range(self.levels_per_trial):
             next_level = ""
@@ -123,16 +121,17 @@ class NoveltyExperimentRunnerSB:
             else:   # Collect from novel levels
                 next_level = self.levels[novelty_level][novelty_type].pop()
 
-            levels.append(next_level)
+            trial.append(next_level)
 
-        logger.debug("Created trial: {}".format(["{}\n".format(level) for level in levels]))
+        logger.debug("Created trial: {}".format(["{}\n".format(level) for level in trial]))
 
-        return levels
+        return trial
 
-    def run_trial(self, levels: list, notify: str, trial_num: int, trial_type: str, novelty_level: str, config_file: pathlib.Path = None) -> pandas.DataFrame:
+    def run_trial(self, trial: list, notify: bool, trial_num: int, trial_type: str,  novelty_level: str, config_file: pathlib.Path = None) -> pandas.DataFrame:
         """ Run a trial """
 
         notify_novelty = notify == constants.KNOWN
+        #notify_novelty = notify
 
         if config_file is None:
             # Construct the config file
@@ -143,7 +142,7 @@ class NoveltyExperimentRunnerSB:
                 config = SB_CONFIG_PATH / "trial_config_{}_{}.xml".format(trial_num, date_time_str)
                 logger.debug("Exporting trial to {}".format(config))
 
-            prepare_config(TEMPLATE_PATH, config, levels, notify_novelty)
+            prepare_config(TEMPLATE_PATH, config, trial, notify_novelty)
         else:
             config = config_file
 
@@ -218,6 +217,12 @@ class NoveltyExperimentRunnerSB:
                             num_repairs = agent_stats[episode_num]["repair_calls"]
                         if 'repair_time' in agent_stats[episode_num]:
                             repair_time = agent_stats[episode_num]["repair_time"]
+                        if 'pddl_novelty_likelihood' in agent_stats[episode_num]:
+                            pddl_novelty_likelihood = agent_stats[episode_num]["pddl_novelty_likelihood"]
+                        if 'unknown_object' in agent_stats[episode_num]:
+                            unknown_object = agent_stats[episode_num]['unknown_object']
+                        if 'reward_estimator_likelihood' in agent_stats[episode_num]:
+                            reward_estimator_likelihood = agent_stats[episode_num]['reward_estimator_likelihood']
 
                     novelty_characterization = 0    # TODO: find a use for this?
                     novelty_threshold = 1   # TODO: figure out how to extract this
@@ -236,7 +241,10 @@ class NoveltyExperimentRunnerSB:
                         'performance': [score],
                         'pass': [status],
                         'num_repairs': [num_repairs],
-                        'repair_time': [repair_time]
+                        'repair_time': [repair_time],
+                        'pddl_novelty_likelihood': [pddl_novelty_likelihood],
+                        'unknown_object': [unknown_object],
+                        'reward_estimator_likelihood': [reward_estimator_likelihood]
                     })
 
                     trial = trial.append(result)
@@ -250,7 +258,7 @@ class NoveltyExperimentRunnerSB:
         experiment_results = pandas.DataFrame(columns=['trial_num', 'trial_type', 'novelty_level', 'episode_type',
                                                        'episode_num', 'novelty_probability',
                                                        'novelty_threshold', 'novelty', 'novelty_characterization',
-                                                       'performance', 'pass', 'num_repairs', 'repair_time'])
+                                                       'performance', 'pass', 'num_repairs', 'repair_time', 'pddl_novelty_likelihood', 'unknown_object', 'reward_estimator_likelihood'])
         
         experiment_results_path = os.path.join(self._results_directory_path, "novelty_results.csv")
         with open(experiment_results_path, "w+") as f:
@@ -292,11 +300,15 @@ class NoveltyExperimentRunnerSB:
 
                             if novelty_level in NON_NOVEL_LEVELS:
                                 was_notified = constants.NON_NOVELTY_PERFORMANCE
+                            # if trial_type == constants.UNKNOWN:
+                            #     was_notified = False
+                            # if trial_type == constants.KNOWN:
+                            #     was_notified = True
 
-                            levels = self.construct_trial(novelty_level, novelty_type, self.levels_before_novelty)
+                            trial = self.construct_trial(novelty_level, novelty_type, self.levels_before_novelty)
 
                             # Run the trial
-                            trial_results = self.run_trial(levels, was_notified, trial_num, trial_type, novelty_level)
+                            trial_results = self.run_trial(trial, was_notified, trial_num, trial_type, novelty_level)
                             experiment_results = experiment_results.append(trial_results)
 
                             # Export results to file

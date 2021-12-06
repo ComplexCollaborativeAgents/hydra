@@ -1,10 +1,13 @@
 import datetime
 import time
 
+import pandas
+
 import settings
 from agent.hydra_agent import logger, NN_PROB, PDDL_PROB, NOVELTY_EXISTENCE_NOT_GIVEN, NOVELTY_LIKELIHOOD
 from agent.planning.sb_planner import SBPlanner
 from agent.repair.meta_model_repair import *
+import numpy
 #from state_prediction.anomaly_detector_fc_multichannel import FocusedSBAnomalyDetector
 
 # TODO: Maybe push this to the settings file? then every module just adds a logger
@@ -17,6 +20,7 @@ logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s
 logger = logging.getLogger("hydra_agent")
 
 from agent.reward_estimation.reward_estimator import RewardEstimator
+import pickle
 
 # Flags from ANU
 NOVELTY_EXISTENCE_NOT_GIVEN = -1 # The self.novelty_existance value indicating that novelty detection is not given by the environment
@@ -28,6 +32,8 @@ PDDL_PROB = "pddl_novelty_likelihood"
 NOVELTY_LIKELIHOOD = "novelty_likelihood"
 UNKNOWN_OBJ = "unknown_object"
 UNDEFINED = None
+
+ENSEMBLE_MODEL = "{}/model/ensemble.pkl".format(settings.ROOT_PATH)
 
 
 class SBHydraAgent(HydraAgent):
@@ -78,7 +84,7 @@ class SBHydraAgent(HydraAgent):
 
         self.nn_prob_per_level = []
         self.pddl_prob_per_level = []
-
+        self.num_objects = 0
 
 
     def reinit(self):
@@ -115,6 +121,8 @@ class SBHydraAgent(HydraAgent):
                 raw_state = self.env.get_current_state()
                 self.handle_game_playing(observation, raw_state)
                 if (settings.NOVELTY_POSSIBLE):
+                    self.num_objects = len(raw_state.objects[0]['features'])
+                    #print("number of objects is {}".format(self.num_objects))
                     self._record_novelty_indicators(observation)
             elif raw_state.game_state.value == GameState.WON.value:
                 self.handle_game_won()
@@ -175,7 +183,7 @@ class SBHydraAgent(HydraAgent):
             ids = set([int(object_id_str) for object_id_str in self.novel_objects])
             novelty_description = "Unknown type of objects detected"
         else:
-            ids = {1,2,3}
+            ids = set()
             novelty_description = "Uncharacterized novelty"
         novelty_level = 0
 
@@ -221,7 +229,8 @@ class SBHydraAgent(HydraAgent):
             return
 
         if observation.hasUnknownObj():
-            self.level_novelty_indicators[PDDL_PROB].append(UNDEFINED)
+            #self.level_novelty_indicators[PDDL_PROB].append(UNDEFINED)
+            self.level_novelty_indicators[PDDL_PROB].append(1000) ### add a high value because if there is a new object, the PDDL is highly inconsistent.
             self.level_novelty_indicators[UNKNOWN_OBJ].append(True)
             self.novel_objects = observation.get_novel_object_ids()
         else:
@@ -269,6 +278,56 @@ class SBHydraAgent(HydraAgent):
         is_novel = has_new_object or are_level_observations_divergent or is_level_reward_inconsistent
         return is_novel
 
+    def _detect_level_novelty_with_ensemble(self):
+
+        with open(ENSEMBLE_MODEL, 'rb') as f:
+            rf = pickle.load(f)
+
+        if True in self.level_novelty_indicators[UNKNOWN_OBJ]:
+            has_unknown_object = 1
+        else:
+            has_unknown_object = 0
+
+
+        pddl_list = self.level_novelty_indicators[PDDL_PROB]
+
+        if all(v is None for v in pddl_list):
+            max_pddl_inconsistency = 1000
+            avg_pddl_inconsistency = 1000
+        else:
+            max_pddl_inconsistency = numpy.nanmax(pddl_list)
+            avg_pddl_inconsistency = numpy.nanmean(pddl_list)
+
+
+        if len(self.level_novelty_indicators[REWARD_PROB]) == 0:
+            max_reward_difference = 0
+            avg_reward_difference = 0
+        else:
+            max_reward_difference = numpy.nanmax(self.level_novelty_indicators[REWARD_PROB])
+            avg_reward_difference = numpy.nanmean(self.level_novelty_indicators[REWARD_PROB])
+
+        dataframe = pandas.DataFrame(columns=['ColumnName.HAS_NOVEL_OBJECT',
+                                          'ColumnName.MAX_REWARD_DIFFERENCE',
+                                          'ColumnName.AVG_REWARD_DIFFERENCE',
+                                          'ColumnName.MAX_PDDL_INCONSISTENCY',
+                                          'ColumnName.AVG_PDDL_INCONSISTENCY'])
+
+
+        X=dataframe.append({
+            'ColumnName.HAS_NOVEL_OBJECT': has_unknown_object,
+            'ColumnName.MAX_REWARD_DIFFERENCE': max_reward_difference,
+            'ColumnName.AVG_REWARD_DIFFERENCE': avg_reward_difference,
+            'ColumnName.MAX_PDDL_INCONSISTENCY': max_pddl_inconsistency,
+            'ColumnName.AVG_PDDL_INCONSISTENCY': avg_pddl_inconsistency
+        }, ignore_index=True)
+
+   #     X = numpy.array([self.num_objects, has_unknown_object, max_reward_difference, avg_reward_difference, max_pddl_inconsistency, avg_pddl_inconsistency])
+        is_novel_df = rf.predict(X)
+        if is_novel_df[0] == 0:
+            return False
+        else:
+            return True
+
 
     def _infer_novelty_existence(self):
 
@@ -278,7 +337,8 @@ class SBHydraAgent(HydraAgent):
             return
 
         '''looks at the history of detections in previous levels and returns true when novelty has been detected for 3 contiguous episodes'''
-        self.novelty_detections.append(self._detect_level_novelty())
+        #self.novelty_detections.append(self._detect_level_novelty())
+        self.novelty_detections.append(self._detect_level_novelty_with_ensemble())
         if (not self._new_novelty_likelihood) and len(self.novelty_detections) > 2:
             self._new_novelty_likelihood = self.novelty_detections[-1] and self.novelty_detections[-2] and self.novelty_detections [-3]
 
@@ -286,10 +346,11 @@ class SBHydraAgent(HydraAgent):
         """ This is called when a level has ended, either in a win or a lose our come """
         self.completed_levels.append(success)
         self._infer_novelty_existence()
-        self.stats_for_level[NOVELTY_LIKELIHOOD] = self._new_novelty_likelihood
+        self.stats_for_level[NOVELTY_LIKELIHOOD] = bool(self._new_novelty_likelihood)
         self.stats_for_level[PDDL_PROB] = self.level_novelty_indicators[PDDL_PROB]
         self.stats_for_level[REWARD_PROB] = self.level_novelty_indicators[REWARD_PROB]
         self.stats_for_level[UNKNOWN_OBJ] = self.level_novelty_indicators[UNKNOWN_OBJ]
+        self.stats_for_level['novelty_detection'] = bool(self.novelty_detections[-1])
         logger.info("[hydra_agent_server] :: Level novelty indicators {}".format(self.level_novelty_indicators))
         logger.info("[hydra_agent_server] :: Novelty detections from new code {}".format(self.novelty_detections))
         logger.info("[hydra_agent_server] :: Novelty likelihood from the new code {}".format(self._new_novelty_likelihood))
