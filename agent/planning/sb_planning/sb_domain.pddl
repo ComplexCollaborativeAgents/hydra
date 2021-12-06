@@ -50,8 +50,8 @@
             (> (y_bird ?b) 0)
         )
         :effect (and
-            (decrease (vy_bird ?b) (* #t (* 1.0 (gravity)) ))
             (increase (y_bird ?b) (* #t (* 1.0 (vy_bird ?b))))
+            (decrease (vy_bird ?b) (* #t (* 1.0 (gravity)) ))
             ;(increase (y_bird ?b) (- (* #t (* 1.0 (vy_bird ?b))) (* (* 0.5 (* #t #t)) (* 1.0 (gravity))))) ; analytical solution. Appears to have detrimental effect on winning.
             (increase (x_bird ?b) (* #t (* 1.0 (vx_bird ?b))))
         )
@@ -282,10 +282,10 @@
         :precondition (and
             (= (active_bird) (bird_id ?b))
             (> (v_bird ?b) 0)
-            (<= (x_bird ?b) (+ (x_platform ?pl) (/ (platform_width ?pl) 1.75) ) )
-            (>= (x_bird ?b) (- (x_platform ?pl) (/ (platform_width ?pl) 1.75) ) )
-            (>= (y_bird ?b) (- (y_platform ?pl) (/ (platform_height ?pl) 1.75) ) )
-            (<= (y_bird ?b) (+ (y_platform ?pl) (/ (platform_height ?pl) 1.75) ) )
+            (<= (x_bird ?b) (+ (x_platform ?pl) (/ (platform_width ?pl) 1.25) ) )
+            (>= (x_bird ?b) (- (x_platform ?pl) (/ (platform_width ?pl) 1.25) ) )
+            (>= (y_bird ?b) (- (y_platform ?pl) (/ (platform_height ?pl) 1.25) ) )
+            (<= (y_bird ?b) (+ (y_platform ?pl) (/ (platform_height ?pl) 1.25) ) )
         )
         :effect (and
             (assign (v_bird ?b) 0)
