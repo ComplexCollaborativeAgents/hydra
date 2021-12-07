@@ -355,7 +355,7 @@ class SBHydraAgent(HydraAgent):
         self.stats_for_level[PDDL_PROB] = self.level_novelty_indicators[PDDL_PROB]
         self.stats_for_level[REWARD_PROB] = self.level_novelty_indicators[REWARD_PROB]
         self.stats_for_level[UNKNOWN_OBJ] = self.level_novelty_indicators[UNKNOWN_OBJ]
-        self.stats_for_level['novelty_detection'] = bool(self.novelty_detections[-1])
+        self.stats_for_level['novelty_detections'] = self.novelty_detections
         logger.info("[hydra_agent_server] :: Level novelty indicators {}".format(self.level_novelty_indicators))
         logger.info("[hydra_agent_server] :: Novelty detections from new code {}".format(self.novelty_detections))
         logger.info("[hydra_agent_server] :: Novelty likelihood from the new code {}".format(self._new_novelty_likelihood))
