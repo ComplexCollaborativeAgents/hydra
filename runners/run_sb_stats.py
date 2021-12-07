@@ -42,9 +42,9 @@ NOVELTY = 0
 TYPE = 4
 SAMPLES = 50
 
-AGENT = AgentType.Hydra
+AGENT = AgentType.RepairingHydra
 
-EXPERIMENT_NAME = "ENSEMBLE2"
+EXPERIMENT_NAME = "ENSEMBLE2_yoni_domain"
 
 def extract_levels(source, destination=None):
     ''' Extract ANU levels. '''
@@ -327,8 +327,10 @@ def compute_eval_stats(results_path, agent, agent_stats = list()):
 
 def run_sb_stats(extract=False, seed=None, record_novelty_stats=False):
     ''' Run science birds agent stats. '''
-    novelties = {22: [1], 23: [1], 24: [1], 25: [1], 1: [6, 7, 8, 9, 10], 2: [6, 7, 8, 9, 10], 3: [6, 7]}
-    samples = 50
+    # novelties = {0: [22, 23, 24, 25], 22: [1] 23: [1], 24: [1], 25: [1]}
+    novelties = {23: [1], 24: [1], 25: [1]}
+    # novelties = {23: [1]}
+    samples = 25
     run_performance_stats(novelties, agent_type=AGENT, seed=seed, samples=samples, record_novelty_stats=record_novelty_stats)
 
 
