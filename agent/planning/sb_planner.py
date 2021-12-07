@@ -20,15 +20,15 @@ class SBPlanner(HydraPlanner):
     SB_OFFSET = 1
 
 
-    def __init__(self, meta_model = ScienceBirdsMetaModel()):
+    def __init__(self, meta_model:ScienceBirdsMetaModel = ScienceBirdsMetaModel()):
         super().__init__(meta_model)
         self.current_problem_prefix = None
 
     def make_plan(self,state,prob_complexity=0):
-        '''
+        """
         The plan should be a list of actions that are either executable in the environment
         or invoking the RL agent
-        '''
+        """
         if settings.NO_PLANNING:
             self.current_problem_prefix = datetime.datetime.now().strftime("%y%m%d_%H%M%S") # need a prefix for observations
             return []
@@ -41,8 +41,8 @@ class SBPlanner(HydraPlanner):
             self.write_problem_file(pddl)
         return self.get_plan_actions()
 
-    def execute(self,plan,policy_learner):
-        '''Converts the symbolic action into an environment action'''
+    def execute(self, plan, policy_learner):
+        """Converts the symbolic action into an environment action"""
         assert False
         if isinstance(plan[0],InvokeBasicRL):
             return policy_learner.act_and_learn(plan[0].state)
@@ -66,9 +66,10 @@ class SBPlanner(HydraPlanner):
         plan_actions = []
 
         try:
+            # TODO create NYX object and get stats from it
             nyx.runner("%s/sb_domain.pddl" % str(settings.SB_PLANNING_DOCKER_PATH),
                        "%s/sb_prob.pddl" % str(settings.SB_PLANNING_DOCKER_PATH),
-                       ['-vv', '-to:%s' % str(settings.SB_TIMEOUT), '-noplan', '-search:astar', '-custom_heuristic:5', '-th:10',
+                       ['-vv', '-to:%s' % str(settings.SB_TIMEOUT), '-noplan', '-search:astar', '-custom_heuristic:6', '-th:10',
                         # '-th:%s' % str(self.meta_model.constant_numeric_fluents['time_limit']),
                         '-t:%s' % str(settings.SB_DELTA_T)])
 
@@ -76,8 +77,10 @@ class SBPlanner(HydraPlanner):
                 "%s/plan_sb_prob.pddl" % str(settings.SB_PLANNING_DOCKER_PATH))
 
         except Exception as e_inst:
-            print(e_inst.with_traceback())
-            # raise e_inst
+            import traceback
+            traceback.print_exc()
+            print(e_inst)
+
         # print(plan_actions)
 
         if len(plan_actions) > 0:
@@ -107,16 +110,16 @@ class SBPlanner(HydraPlanner):
                     plan_actions.append(TimedAction(action_angle_time[0], action_angle_time[1]))
 
                 ## TAP UPDATE
-                # if "bird_action" in line:
-                #     action_angle_time = (line.split(':')[1].split('[')[0].replace('(', '').replace(')', '').strip(),
-                #                          float(str(lines_list[i + 1].split('angle:')[1].split(',')[0])),
-                #                          float(line.split(':')[0]))
-                #     plan_actions.append(TimedAction(action_angle_time[0], action_angle_time[2]))
+                if "bird_action" in line:
+                    action_angle_time = (line.split(':')[1].split('[')[0].replace('(', '').replace(')', '').strip(),
+                                         # float(str(lines_list[i + 1].split('angle:')[1].split(',')[0])),
+                                         float(line.split(':')[0]))
+                    plan_actions.append(TimedAction(action_angle_time[0], action_angle_time[1]))
 
                 if "syntax error" in line:
                     plan_actions.append(TimedAction("syntax error", 0.0))
                     break
-        return  plan_actions
+        return plan_actions
 
     def run_val(self):
 
@@ -168,22 +171,23 @@ class SBPlanner(HydraPlanner):
 
 
 
-''' A planner that fires at the given angle. Useful for debugging and testing'''
-class PlannerStub():
+
+class PlannerStub:
+    """ A planner that fires at the given angle. Useful for debugging and testing"""
     def __init__(self, shoot_angle: float, meta_model = ScienceBirdsMetaModel()):
         self.meta_model = meta_model
         self.sb_state = None
         self.shoot_angle = shoot_angle
 
-    def make_plan(self,state,prob_complexity=0):
-        '''
+    def make_plan(self, state, prob_complexity=0):
+        """
         The plan should be a list of actions that are either executable in the environment
         or invoking the RL agent
-        '''
+        """
         self.sb_state = state
         return self.get_plan_actions()
 
-    def get_plan_actions(self,count=0):
+    def get_plan_actions(self, count=0):
         pddl_state =self.meta_model.create_pddl_problem(self.sb_state).get_init_state()
         action_time = self.meta_model.angle_to_action_time(self.shoot_angle, pddl_state)
         action_name = 'pa-twang %s' % pddl_state.get_active_bird()

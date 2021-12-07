@@ -53,17 +53,17 @@ class Plan(list):
                     for happening_tree in [grounded_pddl.events, grounded_pddl.processes]:
                         for hp in happening_tree.get_applicable(current_state):
                             current_state = current_state.apply_happening(hp)
-                            current_state.set_time(time)
+                            current_state.time = time
                             trace.append(current_state)
 
                     if double_events or constants.DOUBLE_EVENT_CHECK:
                         for hp2 in grounded_pddl.events.get_applicable(current_state):
                             current_state = current_state.apply_happening(hp2)
-                            current_state.set_time(time)
+                            current_state.time = time
                             trace.append(current_state)
 
                 current_state = current_state.apply_happening(item.action)
-                current_state.set_time(time)
+                current_state.time = time
                 trace.append(current_state)
             else:
                 break

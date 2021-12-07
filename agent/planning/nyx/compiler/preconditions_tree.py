@@ -21,8 +21,8 @@ class PreconditionsTree:
     def get_applicable(self, state: State) -> List[Happening]:
         return list(self.root.get_applicable(state))
 
-    def iter(self) -> Iterator[Happening]:
-        return self.root.iter()
+    def __iter__(self) -> Iterator[Happening]:
+        yield from self.root
 
 
 class PreconditionsNode:
@@ -64,7 +64,7 @@ class PreconditionsNode:
         for child in self.children:
             yield from child.get_applicable(state)
 
-    def iter(self) -> Iterator[Happening]:
+    def __iter__(self) -> Iterator[Happening]:
         yield from self.objects
         for child in self.children:
-            yield from child.iter()
+            yield from child

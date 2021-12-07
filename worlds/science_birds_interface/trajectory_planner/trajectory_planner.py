@@ -198,7 +198,7 @@ class SimpleTrajectoryPlanner:
          *
         """
 
-        mag = sling.height * 5
+        mag = sling.height * 5 # TODO where did this calculation come from??
         # print('mag ', mag)
         ref = self.get_reference_point(sling)
         # print('ref ', ref)
@@ -208,8 +208,10 @@ class SimpleTrajectoryPlanner:
 
         return release
 
-    ''' The inverse of find_release_point() TODO: SHOULD THIS REPLACE get_release_angle()'''
+
     def find_release_angle(self, sling, release_point):
+        """ The inverse of find_release_point()
+        TODO: SHOULD THIS REPLACE get_release_angle()"""
         mag = sling.height * 5
         ref = self.get_reference_point(sling)
 
