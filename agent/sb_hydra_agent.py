@@ -321,8 +321,16 @@ class SBHydraAgent(HydraAgent):
             'ColumnName.AVG_PDDL_INCONSISTENCY': avg_pddl_inconsistency
         }, ignore_index=True)
 
-   #     X = numpy.array([self.num_objects, has_unknown_object, max_reward_difference, avg_reward_difference, max_pddl_inconsistency, avg_pddl_inconsistency])
-        is_novel_df = rf.predict(X)
+        detection_threshold = settings.SB_LEVEL_NOVELTY_DETECTION_ENSEMBLE_THRESHOLD
+
+        if detection_threshold is None:
+            is_novel_df = rf.predict(X)
+        else:
+            predicted_probabilities = rf.predict_proba(X)
+            print(predicted_probabilities)
+            is_novel_df = (predicted_probabilities[:,1] >= detection_threshold).astype('int')
+            print(is_novel_df)
+
         if is_novel_df[0] == 0:
             return False
         else:
