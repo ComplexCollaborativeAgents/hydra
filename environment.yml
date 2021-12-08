@@ -55,5 +55,6 @@ dependencies:
       - pika==1.1.0
       - astar==0.9
       - blosc==1.10.4
-      - pybullet==3.1.7
+#      - pybullet==3.1.7
+      - pyinterval
       - -e .
