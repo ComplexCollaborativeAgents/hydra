@@ -304,7 +304,7 @@ def get_door_path_to_cell(cell:str, state:PolycraftState)->list:
     if cell_room_door==Polycraft.DUMMY_DOOR:
         door_path = [steve_room_door]
     elif steve_room_door==Polycraft.DUMMY_DOOR:
-        door_path [cell_room_door]
+        door_path = [cell_room_door]
     else:
         door_path = [steve_room_door, cell_room_door]
     return [cell for cell in door_path if cell is not None] # Ignore None cells in the path. Such cells may occur in buggy situtations.
