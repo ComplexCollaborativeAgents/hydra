@@ -2,6 +2,7 @@
 # from tests.test_polycraft import launch_polycraft
 import pytest
 
+import settings
 import worlds.polycraft_world
 from agent.planning.polycraft_planning.fixed_planner import FixedPlanPlanner
 from agent.polycraft_hydra_agent import *
@@ -47,6 +48,24 @@ def test_fixed_planner(launch_polycraft, execution_number):
 
     assert(state.count_items_of_type(ItemType.WOODEN_POGO_STICK.value)>0)
     logger.info("Pogo stick created !!!!")
+
+@pytest.mark.parametrize('execution_number', range(10))
+def test_debug(launch_polycraft, execution_number):
+    env, agent, levels = launch_polycraft
+    test_level = pathlib.Path(settings.POLYCRAFT_DIR) / "pogo_100_PN" / "POGO_L00_T01_S01_X0100_U9999_V0_G00024_I0118_N0.json"
+
+    logger.info(f"Loading level {test_level}...")
+    env.init_selected_level(test_level)
+    agent.start_level(env)  # Collect trades and recipes
+    state = env.get_current_state()
+
+    assert(state.terminal==False)
+    max_iterations = 30
+    state, step_cost = agent.do_batch(max_iterations, state, env, time_limit=600)
+
+    assert(state.count_items_of_type(ItemType.WOODEN_POGO_STICK.value)>0)
+    logger.info("Pogo stick created !!!!")
+
 
 @pytest.mark.parametrize('execution_number', range(100))
 def test_pddl_planner(launch_polycraft, execution_number):

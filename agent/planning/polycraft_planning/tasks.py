@@ -122,6 +122,10 @@ class ExploreDoorTask(CreatePogoTask):
         ''' Checks if the task has been succesfully completed '''
         return is_steve_in_room(self.door_cell, state)
 
+    def is_feasible(self, state:PolycraftState)->bool:
+        ''' Checks if the task can be achived in the current state '''
+        return self.door_cell in state.get_type_to_cells()[BlockType.WOODER_DOOR.value]
+
     def get_relevant_types(self, world_state:PolycraftState, meta_model):
         ''' Returns a list of actions for the agent to use when planning '''
         return [PddlType.cell, PddlType.door_cell]
@@ -176,6 +180,10 @@ class CollectFromSafeTask(CreatePogoTask):
     ''' Task includes obtaining a key if none exists, going to the safe, opening it with the key and collecting what's in'''
     def __init__(self, safe_cell:str):
         self.safe_cell = safe_cell
+
+    def is_feasible(self, state:PolycraftState)->bool:
+        ''' Checks if the task can be achived in the current state '''
+        return self.safe_cell in state.get_type_to_cells()[BlockType.SAFE.value]
 
     def is_done(self, state:PolycraftState)->bool:
         return False # TODO: Mark in some way which safes have been collected

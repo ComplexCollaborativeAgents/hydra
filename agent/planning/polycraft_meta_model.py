@@ -242,6 +242,10 @@ class Task:
     def is_done(self, state:PolycraftState)->bool:
         ''' Checks if the task has been succesfully completed '''
         raise NotImplementedError()
+    def is_feasible(self, state:PolycraftState)->bool:
+        ''' Checks if the task can be achived in the current state '''
+        return True
+
 
 class PddlPolycraftAction(PolycraftAction):
     ''' Wrapper for Polycraft World Action that also stores the grounded pddl action that corresponds to this action '''
