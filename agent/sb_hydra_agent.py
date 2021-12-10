@@ -82,6 +82,7 @@ class SBHydraAgent(HydraAgent):
             UNKNOWN_OBJ: list()
         }
 
+        self.novelty_detections = list()
         self.nn_prob_per_level = []
         self.pddl_prob_per_level = []
         self.num_objects = 0
