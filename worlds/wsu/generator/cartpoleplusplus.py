@@ -101,9 +101,11 @@ class CartPoleBulletEnv(gym.Env):
 
         # based on action decide the x and y forces
         if action == 0:
-            pass
+            fx = 0.0
+            fy = 0.0
         elif action == 1:
             fx = fx
+            fy = fy
         elif action == 2:
             fx = -fx
             fy = - fy
@@ -184,6 +186,7 @@ class CartPoleBulletEnv(gym.Env):
     def generate_world(self):
         # Create bullet physics client
         if self._renders:
+        #if True:
             self._p = bc.BulletClient(connection_mode=p2.GUI)
         else:
             self._p = bc.BulletClient(connection_mode=p2.DIRECT)
@@ -223,7 +226,6 @@ class CartPoleBulletEnv(gym.Env):
             self.cartpole = p.loadURDF(os.path.join(self.path, 'models', 'ground_cart.urdf'))
 
         # This big line sets the spehrical joint on the pole to loose
-
         p.setJointMotorControlMultiDof(self.cartpole, 1, p.POSITION_CONTROL, targetPosition=[0, 0, 0, 1],
                                        targetVelocity=[0, 0, 0], positionGain=0, velocityGain=0.1,
                                        force=[0, 0, 0])
