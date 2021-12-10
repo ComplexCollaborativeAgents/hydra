@@ -86,6 +86,7 @@ class SBHydraAgent(HydraAgent):
         self.nn_prob_per_level = []
         self.pddl_prob_per_level = []
         self.num_objects = 0
+        self._new_novelty_likelihood = False
 
 
     def reinit(self):
