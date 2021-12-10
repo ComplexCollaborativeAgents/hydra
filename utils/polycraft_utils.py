@@ -9,6 +9,9 @@ import os.path
 import re
 import shutil
 
+logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
 def has_new_item(state_diff: dict):
     ''' Check if the state diff dictionary reports on a new item in the inventory '''
     if "inventory" not in state_diff:
@@ -287,18 +290,25 @@ def get_room_door(cell:str, state:PolycraftState):
         for door_cell, door_game_map in state.door_to_room_cells.items():
             if cell in door_game_map:
                 return door_cell
-    assert(False) # No door to the cell
+    logger.error(f"No door known for reaching cell {cell}.")
+    return None # No door to the cell
+
 def get_door_path_to_cell(cell:str, state:PolycraftState)->list:
     ''' Returns a list of door cells we need to cross to get steve in the same room as the given cell '''
     cell_room_door = get_room_door(cell, state)
     steve_room_door = get_room_door(coordinates_to_cell(state.location["pos"]), state)
+
     if cell_room_door==steve_room_door or steve_room_door==cell: # Left hand condition for cases where we teleport to a door
         return []
+    door_path = []
     if cell_room_door==Polycraft.DUMMY_DOOR:
-        return [steve_room_door]
-    if steve_room_door==Polycraft.DUMMY_DOOR:
-        return [cell_room_door]
-    return [steve_room_door, cell_room_door]
+        door_path = [steve_room_door]
+    elif steve_room_door==Polycraft.DUMMY_DOOR:
+        door_path = [cell_room_door]
+    else:
+        door_path = [steve_room_door, cell_room_door]
+    return [cell for cell in door_path if cell is not None] # Ignore None cells in the path. Such cells may occur in buggy situtations.
+
 
 def get_angle_to_adjacent_cell(cell:str, state:PolycraftState):
     ''' Computes the angle between the direction Steve is facing and the given adjacent cell. '''

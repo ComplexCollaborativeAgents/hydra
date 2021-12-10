@@ -181,10 +181,10 @@ class PolycraftHydraAgent(HydraAgent):
     def __init__(self, planner: HydraPlanner = PolycraftPlanner(),
                  meta_model_repair: MetaModelRepair = None):
         super().__init__(planner, meta_model_repair)
+        self.exploration_rate = 10 # Number of failed actions to endure before trying one exploration task
         self.active_plan = None
         self.current_observation = None
         self.current_state = None # Maintains the agent's knowledge about the current state
-        self.exploration_rate = 10 # Number of failed actions to endure before trying one exploration task
         self.failed_actions_in_level = 0 # Count how many actions have failed in a given level
         self.actions_since_planning = 0 # Count how many actions have been performed since we planned last
 
@@ -222,15 +222,15 @@ class PolycraftHydraAgent(HydraAgent):
                     assert(interact_action.success)
                     env.current_trades[entity_id] = interact_action.response['trades']['trades']
 
-        # Initialize the current observation object
+        # Initialize the current observation and active plan objects
         self.current_state = env.get_current_state()
         self.current_observation = PolycraftObservation() # Start a new observation object for this level
         self.current_observation.states.append(current_state)
         self.observations_list.append(self.current_observation)
         self.env = env
-
         self.failed_actions_in_level = 0 # Count how many actions have failed in a given level
         self.actions_since_planning = 0 # Count how many actions have been performed since we planned last
+        self.active_plan = None
 
     def _choose_exploration_task(self, world_state: PolycraftState):
         ''' Choose an exploration task to perform '''
@@ -328,6 +328,9 @@ class PolycraftHydraAgent(HydraAgent):
         # Either decided to explore or failed to find a plan to craft the pogo: explore
         for i in range(settings.POLYCRAFT_MAX_EXPLORATION_PLANNING_ATTEMPTS):
             task = self._choose_exploration_task(world_state)
+            if task.is_feasible(world_state)==False:
+                logger.info(f"Chosen exploration task {task} but it is not feasible in the current state")
+                return None
             plan = self.plan(active_task=task)
             if plan is not None:
                 logger.info(f"Found a plan for exploration task {task}")
@@ -380,7 +383,8 @@ class PolycraftHydraAgent(HydraAgent):
     def do(self, action: PolycraftAction, env : Polycraft):
         ''' Perform the given aciton in the given environment '''
         self.current_observation.actions.append(action)
-
+        if self.meta_model.active_task.is_feasible(self.current_state)==False:
+            logger.error(f"Current task not feasible???")
         next_state, step_cost =  env.act(self.current_state, action)  # Note this returns step cost for the action
 
         if action.success ==False:
