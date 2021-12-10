@@ -2,8 +2,7 @@ import math
 
 from worlds.polycraft_interface.client import *
 from worlds.polycraft_interface.client.polycraft_interface import MoveDir
-from worlds.polycraft_world import PolycraftAction, PolycraftState, Polycraft
-
+from worlds.polycraft_world import *
 
 class PolyNoAction(PolycraftAction):
     """ A no action (do nothing) """
@@ -106,6 +105,13 @@ class PolyBreak(PolycraftAction):
         self.success = self.is_success(result)
         return result
 
+    def can_do(self, state:PolycraftState, env) -> bool:
+        ''' Make sure no entity is occupying the space where we want to place the tree tap'''
+        if state.is_facing_type(BlockType.AIR.value):
+            logger.info(f"Cannot do action {self.name} because facing block of type {state.facing_block}")
+            return False
+        else:
+            return True
 
 class PolyInteract(PolycraftAction):
     """ Similarly to SENSE_RECIPES, this command returns the list of available trades with a particular entity (must be adjacent) """
@@ -189,6 +195,13 @@ class PolyPlaceTreeTap(PolycraftAction):
         self.success = self.is_success(result)
         return result
 
+    def can_do(self, state:PolycraftState, env) -> bool:
+        ''' Make sure no entity is occupying the space where we want to place the tree tap'''
+        if state.is_facing_type(BlockType.AIR.value):
+            return True
+        else:
+            logger.info(f"Cannot do action {self.name} because facing block of type {state.facing_block}")
+            return False
 
 class PolyCollect(PolycraftAction):
     """ Collect item from block in front of actor - use for collecting rubber from a tree tap. """

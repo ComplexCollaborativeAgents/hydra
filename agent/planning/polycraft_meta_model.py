@@ -270,6 +270,9 @@ class PddlPolycraftAction(PolycraftAction):
         self.success = self.poly_action.success
         return result
 
+    def can_do(self, state:PolycraftState, env) -> bool:
+        return self.poly_action.can_do(state, env)
+
 class PddlPolycraftActionGenerator():
     ''' An object that bridges between pddl actions and polycraft actions'''
     def __init__(self, pddl_name):

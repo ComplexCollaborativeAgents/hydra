@@ -125,10 +125,11 @@ class PolycraftState(State):
             if entry == "selectedItem":  # Do not consider the selected item
                 continue
             item_type=entry_attr["item"]
+            quantity = entry_attr['count']
             if item_type not in item_to_count:
-                item_to_count[item_type]=1
+                item_to_count[item_type]=quantity
             else:
-                item_to_count[item_type] = item_to_count[item_type]+1
+                item_to_count[item_type] = item_to_count[item_type]+quantity
         return item_to_count
 
     def get_inventory_entries_of_type(self, item_type: str):
@@ -225,9 +226,27 @@ class PolycraftState(State):
         logger.info(f"No trades found where input={items_to_give} and output={output}")
         return None
 
-    def summary(self):
+    def summary(self) -> str:
         '''returns a summary of state'''
-        return str(self)
+        summary_lines = []
+        # The inventory
+        summary_lines.append("Inventory:")
+        for item, count in self.get_item_to_count().items():
+            summary_lines.append(f"\t {item} : {count}")
+        summary_lines.append(f"Selected item: {self.get_selected_item()}")
+
+        # The available block types
+        summary_lines.append("Map contains cells of type:")
+        for block_type, cells in self.get_type_to_cells().items():
+            summary_lines.append(f"\t {block_type} : {len(cells)}")
+
+        # The location of all entities
+        summary_lines.append(f"Steve is located at {self.location}")
+        summary_lines.append("Entities are located at:")
+        for entity_id, entity_attr in self.entities.items():
+            summary_lines.append(f"\t {entity_id}: type:{entity_attr['type']}, location {entity_attr['pos']}")
+
+        return "\n".join(summary_lines)
 
     def serialize_current_state(self, level_filename: str):
         pickle.dump(self, open(level_filename, 'wb'))
@@ -295,17 +314,33 @@ class PolycraftAction(Action):
         self.success = None
         self.response = None # The result returned by the server for doing this command. Initialized as None.
 
-    def is_success(self, result: dict):
+    def is_success(self, results: dict):
+        # If results are not a nice dictionary
+        if isinstance(results, dict)==False:
+            return False
         try:
-            return result['command_result']['result'] == "SUCCESS"
+            return results['command_result']['result'] == "SUCCESS"
         except KeyError as err:
             return False
+
+    def get_cost(self, results:dict):
+        if isinstance(results, dict)==False:
+            return 0 # TODO: Design choice: what is the cost of an action with a bad response
+        try:
+            return results['command_result']['stepCost']
+        except KeyError as err:
+            return 0 # TODO: Design choice: what is the cost of an action with a bad response
 
     def __str__(self):
         return f"<{self.name} success={self.success}>"
 
     def do(self, state:PolycraftState, env) -> dict:
         raise NotImplementedError("Subclasses of PolycraftAction should implement this")
+
+    def can_do(self, state:PolycraftState, env) -> bool:
+        ''' Checks if this action can be done in the given state at the given environment
+            Useful for adding control measures to be considered during execution '''
+        return True
 
 
 class Polycraft(World):
@@ -562,14 +597,20 @@ class Polycraft(World):
     def act(self, state: PolycraftState, action: PolycraftAction) -> tuple:
         ''' returns the state and step cost / reward '''
         # Match action with low level command in polycraft_interface.py
-        results = dict()
-
+        results = None
         if isinstance(action, PolycraftAction):
             try:
-                results = action.do(state, self)   # Perform each polycraft action's unique do command which uses the Polycraft API
-                self.last_cmd_success = results['command_result']['result'] == "SUCCESS"    # Update if last command was successful or not
-                action.response = results
-                action.success = action.is_success(results)
+                if action.can_do(state, self):
+                    results = action.do(state, self)   # Perform each polycraft action's unique do command which uses the Polycraft API
+                    action.response = results
+                    action.success = action.is_success(results)
+                    self.last_cmd_success = action.success  # Store if last command was successful or not
+                else:
+                    # Environment cannot perform this action at the given state
+                    self.last_cmd_success = False
+                    action.response = f"Agent cannot do action {action} in the current state"
+                    action.success = False
+
                 logger.debug(str(action))
             except (BrokenPipeError, KeyboardInterrupt) as err:
                 logger.error("Polycraft server connection interrupted ({})".format(err))
@@ -580,7 +621,7 @@ class Polycraft(World):
 
         # NOTE: Pulling state every action - incurs extra step cost
 
-        return self.get_current_state(), results['command_result']['stepCost']
+        return self.get_current_state(), action.get_cost(results)
 
     def get_current_state(self) -> PolycraftState:
         """

@@ -71,6 +71,11 @@ class PolycraftPlanner(HydraPlanner):
         self.write_pddl_file(self.pddl_problem, self.pddl_domain)
         nyx_heuristics.active_heuristic = self.meta_model.get_nyx_heuristic(state)
         logger.info(f"Planning to achieve task {self.meta_model.active_task}")
+
+        # For debug purposes, print a summary of the current state
+        logger.info(f"Summary of the current state\n {state.summary()}")
+
+
         try:
             nyx.constants.MAX_GENERATED_NODES = settings.POLYCRAFT_MAX_GENERATED_NODES
             nyx.runner(self.pddl_domain_file,
@@ -259,13 +264,22 @@ class PolycraftHydraAgent(HydraAgent):
         # Open safe
         safe_cells= world_state.get_cells_of_type(BlockType.SAFE.value)
         for safe_cell in safe_cells:
-            exploration_tasks.append(CollectFromSafeTask(safe_cell))
+            safe_ok = True
+            for old_action in self.current_observation.actions:
+                if isinstance(old_action, OpenSafeAndCollect):
+                    if old_action.cell==safe_cell and old_action.safe_opened:
+                        logger.info(f"Safe {safe_cell} has already been opened - no need to re-explore it")
+                        safe_ok=False
+                        break
+            if safe_ok:
+                exploration_tasks.append(CollectFromSafeTask(safe_cell))
 
         # No open door tasks? choose a random exploration task
         return random.choice(exploration_tasks)
 
     def choose_action(self, world_state: PolycraftState):
         ''' Choose which action to perform in the given state '''
+
         if len(self.current_observation.actions)==0:
             if self.active_plan is None or len(self.active_plan)==0:
                 logger.info("Running planner to generate initial plan")
@@ -359,14 +373,14 @@ class PolycraftHydraAgent(HydraAgent):
                              BlockType.TREE_TAP.value,
                              BlockType.WOODER_DOOR.value]
         minable_types = [block_type for block_type in type_to_cells.keys() if block_type not in non_minable_types]
+
         # Find a minable cell type that is accessible
-        while len(minable_types)>0:
-            type_index = random.choice(range(len(minable_types)))
-            type_to_mine = minable_types.pop(type_index)
+        possible_default_actions = [WaitForLogs()]
+        for type_to_mine in minable_types:
             cells = world_state.get_cells_of_type(type_to_mine, only_accessible=True)
             if len(cells)>0:
                 cell = random.choice(cells)
-                return TeleportToBreakAndCollect(cell)
+                possible_default_actions.append(TeleportToBreakAndCollect(cell))
 
         # Try to collect an item
         entity_items = world_state.get_entities_of_type(EntityType.ITEM.value)
@@ -376,18 +390,20 @@ class PolycraftHydraAgent(HydraAgent):
             entity_attr = world_state.entities[entity_to_collect]
             entity_cell = coordinates_to_cell(entity_attr["pos"])
             if world_state.game_map[entity_cell]["isAccessible"]:
-                return PolyEntityTP(entity_to_collect)
+                possible_default_actions.append(PolyEntityTP(entity_to_collect))
+                break
 
-        return PolyNoAction()
+        return random.choice(possible_default_actions)
 
     def do(self, action: PolycraftAction, env : Polycraft):
         ''' Perform the given aciton in the given environment '''
         self.current_observation.actions.append(action)
         if self.meta_model.active_task.is_feasible(self.current_state)==False:
-            logger.error(f"Current task not feasible???")
+            logger.error(f"Current task not feasible - False action") # TODO: Design choice: what to do this in this case
+
         next_state, step_cost =  env.act(self.current_state, action)  # Note this returns step cost for the action
 
-        if action.success ==False:
+        if action.success == False:
             logger.info(f"Action{action} failed: {action.response}")
             self.failed_actions_in_level = self.failed_actions_in_level+1
         else:

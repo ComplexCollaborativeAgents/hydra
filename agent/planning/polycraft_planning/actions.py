@@ -26,16 +26,28 @@ class MacroAction(PolycraftAction):
         i = 0
         while i<self.max_steps:
             next_action = self._get_next_action(state, env)
+            next_state = state
             if next_action is not None:
-                result = next_action.do(state,env)
-                next_action.response = result # Store action result
+                next_state, step_cost = env.act(state, next_action)
+                result = next_action.response
                 self.actions_done.append(next_action)
-
             if self.is_done():
                 return result
             i = i+1
-            state = env.get_current_state() # TODO: Wasteful: requires too many SENSE_ALL calls
+            state = next_state
         return result
+
+
+class WaitForLogs(MacroAction):
+    ''' Wait a predefined number of steps or until we see blocks of type log '''
+    def __init__(self):
+        super().__init__(max_steps = 10)
+        self.action_counter
+
+    def _get_next_action(self, state:PolycraftState, env: Polycraft)->PolycraftAction:
+        if len(state.get_cells_of_type(BlockType.LOG.value, only_accessible=False))>0:
+            self._is_done = True
+        return PolyNoAction()
 
 class BreakAndCollect(MacroAction):
     MAX_COLLECT_RANGE_AFTER_BREAK = 4
@@ -59,6 +71,14 @@ class BreakAndCollect(MacroAction):
         self.success = self.break_action.is_success(break_result)
         if result is not None:
             return break_result
+
+    def can_do(self, state:PolycraftState, env) -> bool:
+        ''' Make sure no entity is occupying the space where we want to place the tree tap'''
+        if state.is_facing_type(BlockType.AIR.value):
+            logger.info(f"Cannot do action {self.name} because facing block of type {state.facing_block}")
+            return False
+        else:
+            return True
 
     def _get_next_action(self, state:PolycraftState, env: Polycraft)->PolycraftAction:
         if self.state_before_break is None:
