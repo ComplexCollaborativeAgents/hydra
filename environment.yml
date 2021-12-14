@@ -56,4 +56,5 @@ dependencies:
       - astar==0.9
       - blosc==1.10.4
       - pybullet==3.1.7
+      - pyinterval==1.2.0
       - -e .

@@ -39,7 +39,7 @@ class AgentType(enum.Enum):
     Eaglewings = 4
 
 NOVELTY = 0
-TYPE = 4
+TYPE = 22
 SAMPLES = 50
 
 AGENT = AgentType.Hydra
@@ -327,7 +327,7 @@ def compute_eval_stats(results_path, agent, agent_stats = list()):
 
 def run_sb_stats(extract=False, seed=None, record_novelty_stats=False):
     ''' Run science birds agent stats. '''
-    novelties = {22: [1], 23: [1], 24: [1], 25: [1], 1: [6, 7, 8, 9, 10], 2: [6, 7, 8, 9, 10], 3: [6, 7]}
+    novelties = {NOVELTY: [TYPE]}
     samples = 50
     run_performance_stats(novelties, agent_type=AGENT, seed=seed, samples=samples, record_novelty_stats=record_novelty_stats)
 
@@ -357,8 +357,8 @@ def run_performance_stats(novelties: dict,
             number_samples = len(levels)
             if samples is not None:
                 number_samples = min(number_samples, samples)
-            #levels = levels[:number_samples]
-            levels = random.sample(levels, number_samples) # TODO: Discuss design: this sampling kills the order of the levels, causing the non-novel levels to appear after the novel ones
+            levels = levels[:number_samples]
+            # levels = random.sample(levels, number_samples) # TODO: Discuss design: this sampling kills the order of the levels, causing the non-novel levels to appear after the novel ones
 
             if level_lookup:
                 levels = [levels_path / l for l in level_lookup[str(novelty)][str(novelty_type)]]

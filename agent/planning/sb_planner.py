@@ -14,11 +14,11 @@ import datetime
 import time
 from agent.hydra_agent import HydraPlanner
 
+
 class SBPlanner(HydraPlanner):
     domain_file = None
     problem = None # current state of the world
     SB_OFFSET = 1
-
 
     def __init__(self, meta_model:ScienceBirdsMetaModel = ScienceBirdsMetaModel()):
         super().__init__(meta_model)
@@ -69,7 +69,7 @@ class SBPlanner(HydraPlanner):
             # TODO create NYX object and get stats from it
             nyx.runner("%s/sb_domain.pddl" % str(settings.SB_PLANNING_DOCKER_PATH),
                        "%s/sb_prob.pddl" % str(settings.SB_PLANNING_DOCKER_PATH),
-                       ['-vv', '-to:%s' % str(settings.SB_TIMEOUT), '-noplan', '-search:astar', '-custom_heuristic:6', '-th:10',
+                       ['-vv', '-to:%s' % str(settings.SB_TIMEOUT), '-noplan', '-search:astar', '-custom_heuristic:11', '-th:10',
                         # '-th:%s' % str(self.meta_model.constant_numeric_fluents['time_limit']),
                         '-t:%s' % str(settings.SB_DELTA_T)])
 

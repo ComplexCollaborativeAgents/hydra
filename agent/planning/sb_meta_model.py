@@ -140,12 +140,12 @@ def estimate_launch_angle(slingshot, targetPoint, meta_model):
 
         distance_between = math.sqrt(x ** 2 + y ** 2)  # ad-hoc patch
 
-        theta_1 = math.acos(cos_theta_1) + distance_between * 0.0001  # compensate the rounding error
+        theta_1 = math.acos(cos_theta_1) # + distance_between * 0.0001  # compensate the rounding error
         # print('theta 1', math.degrees(theta_1))
-        theta_2 = math.acos(cos_theta_2) + distance_between * 0.00005  # compensate the rounding error
+        theta_2 = math.acos(cos_theta_2) # + distance_between * 0.00005  # compensate the rounding error
         # print('theta 2', math.degrees(theta_2))
 
-        return math.floor(math.degrees(theta_1)), math.ceil(math.degrees(theta_2))
+        return math.degrees(theta_1), math.degrees(theta_2)
 
     except:
         return default_min_angle, default_max_angle
@@ -454,7 +454,8 @@ class ScienceBirdsMetaModel(MetaModel):
                                           'meta_wood_multiplier',
                                           'meta_stone_multiplier',
                                           'meta_ice_multiplier',
-                                          'v_bird_multiplier'],
+                                          'v_bird_multiplier',
+                                          'meta_platform_size'],
                          constant_numeric_fluents={
                              'active_bird': 0,
                              'angle_rate': 10,
@@ -471,7 +472,8 @@ class ScienceBirdsMetaModel(MetaModel):
                              'meta_stone_multiplier': 1.0,
                              'meta_ice_multiplier': 1.0,
                              'v_bird_multiplier': 10.0,
-                             'gravity_factor': 9.81},
+                             'gravity_factor': 9.81,
+                            'meta_platform_size': 2},
                          constant_boolean_fluents={
                              'angle_adjusted': False,
                              'pig_killed': False})
@@ -512,7 +514,7 @@ class ScienceBirdsMetaModel(MetaModel):
     @staticmethod
     def action_time_to_angle(action_time: float, state: PddlPlusState):
         """ Converts twang angle to the corresponding action time """
-        return action_time * float(state[('angle_rate',)]) + float(state[('angle',)])
+        return action_time * float(state[('angle_rate',)])  + float(state[('angle',)])
 
 
     @staticmethod
@@ -579,14 +581,15 @@ class ScienceBirdsMetaModel(MetaModel):
 
         # A dictionary with global problem parameters
         problem_params = dict()
-        problem_params["has_platform"]=False
-        problem_params["has_block"]=False
-        problem_params["has_external_agent"]=False
-        problem_params["bird_index"]=0
-        problem_params["slingshot"]=slingshot
+        problem_params["has_platform"] = False
+        problem_params["has_block"] = False
+        problem_params["has_external_agent"] = False
+        problem_params["bird_index"] = 0
+        problem_params["slingshot"] = slingshot
         problem_params["groundOffset"] = self.get_ground_offset(slingshot)
-        problem_params["gravity"] = round(0.48* self.constant_numeric_fluents['gravity_factor'] /
+        problem_params["gravity"] = round(0.48 * self.constant_numeric_fluents['gravity_factor'] /
                                           self.hyper_parameters['scale_factor'] * get_scale(slingshot))
+        problem_params["meta_platform_size"] = self.constant_numeric_fluents['meta_platform_size']
         # Above line redundant since we're storing the slingshot also, but it seems easier to store it also to save computations of the offset everytime we use it.
         problem_params["pigs"] = set()
         problem_params["birds"] = set()
@@ -690,10 +693,10 @@ class ScienceBirdsMetaModel(MetaModel):
 
         # Initial angle value to prune un-promising trajectories which only hit the ground
         closest_obj_x, closest_obj_y = get_closest_object_xy(pddl_problem)
-        min_angle, max_angle = estimate_launch_angle(slingshot, Point2D(closest_obj_x, closest_obj_y), self)
+        # min_angle, max_angle = estimate_launch_angle(slingshot, Point2D(closest_obj_x, closest_obj_y), self)
         problem_params["angle"] = 0.0
         pddl_problem.init.append(['=', ['angle'], problem_params["angle"]])
-        problem_params["max_angle"] = max_angle
+        problem_params["max_angle"] = 90  # max_angle
         pddl_problem.init.append(['=', ['max_angle'], problem_params["max_angle"]])
 
         problem_params["points_score"] = len(problem_params["birds"])

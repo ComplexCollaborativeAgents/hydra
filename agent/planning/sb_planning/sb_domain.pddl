@@ -7,7 +7,7 @@
                 (gravity) (angle_rate) (angle) (active_bird) (ground_damper) (max_angle) (gravity_factor)  (min_angle)
                 (base_life_wood_multiplier) (base_life_ice_multiplier) (base_life_stone_multiplier) (base_life_tnt_multiplier)
                 (base_mass_wood_multiplier) (base_mass_ice_multiplier) (base_mass_stone_multiplier) (base_mass_tnt_multiplier)
-                (meta_wood_multiplier) (meta_stone_multiplier) (meta_ice_multiplier)
+                (meta_wood_multiplier) (meta_stone_multiplier) (meta_ice_multiplier) (meta_platform_size) ; TODO add: meta_block_size tnt_explosion_size bird_explosion_size
                 (v_bird_multiplier)
                 (x_pig ?p - pig) (y_pig ?p - pig) (pig_radius ?p - pig) (m_pig ?p - pig)
                 (x_platform ?pl - platform) (y_platform ?pl - platform) (platform_width ?pl - platform) (platform_height ?pl - platform)
@@ -282,10 +282,10 @@
         :precondition (and
             (= (active_bird) (bird_id ?b))
             (> (v_bird ?b) 0)
-            (<= (x_bird ?b) (+ (x_platform ?pl) (/ (platform_width ?pl) 1.25) ) )
-            (>= (x_bird ?b) (- (x_platform ?pl) (/ (platform_width ?pl) 1.25) ) )
-            (>= (y_bird ?b) (- (y_platform ?pl) (/ (platform_height ?pl) 1.25) ) )
-            (<= (y_bird ?b) (+ (y_platform ?pl) (/ (platform_height ?pl) 1.25) ) )
+            (<= (x_bird ?b) (+ (x_platform ?pl) (/ (platform_width ?pl) (meta_platform_size)) ) )
+            (>= (x_bird ?b) (- (x_platform ?pl) (/ (platform_width ?pl) (meta_platform_size)) ) )
+            (>= (y_bird ?b) (- (y_platform ?pl) (/ (platform_height ?pl) (meta_platform_size)) ) )
+            (<= (y_bird ?b) (+ (y_platform ?pl) (/ (platform_height ?pl) (meta_platform_size)) ) )
         )
         :effect (and
             (assign (v_bird ?b) 0)

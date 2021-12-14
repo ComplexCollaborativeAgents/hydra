@@ -8,8 +8,8 @@ import agent.planning.nyx.semantic_attachments as semantic_attachments
 import agent.planning.nyx.syntax.constants as constants
 from agent.planning.nyx.PDDL import PDDL_Parser
 from agent.planning.nyx.heap_open_lists import HeapPriorityList
-from agent.planning.nyx.heuristic_functions import get_heuristic_function
-from agent.planning.nyx.openlist import BFSList, DFSList
+from agent.planning.nyx.heuristic_functions import get_heuristic_function, SBHelpfulAngleHeuristic
+from agent.planning.nyx.openlist import BFSList, DFSList, PreferredList, AlternatingList, PriorityList
 from agent.planning.nyx.syntax.state import State
 from agent.planning.nyx.syntax.visited_state import VisitedState
 
@@ -35,7 +35,12 @@ class Planner:
         # Parser
         parser = PDDL_Parser(domain, problem)
         grounded_instance = parser.grounded_instance
-        self.heuristic = get_heuristic_function(constants.CUSTOM_HEURISTIC_ID, groundedPPDL=grounded_instance)  # TODO get this parameter in some normal way
+        if constants.SB_W_HELPFUL_ACTIONS:
+            self.heuristic = SBHelpfulAngleHeuristic(blocking_blocks=False)
+            pref_list = PreferredList(PriorityList(), self.heuristic)
+            self.queue = AlternatingList([pref_list, PriorityList()])
+        else:
+            self.heuristic = get_heuristic_function(constants.CUSTOM_HEURISTIC_ID, groundedPPDL=grounded_instance)  # TODO get this parameter in some normal way
         # Parsed data
         state = grounded_instance.init_state
         self.initial_state = grounded_instance.init_state

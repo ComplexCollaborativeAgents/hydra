@@ -1,4 +1,5 @@
 import numpy as np
+from agent.planning.nyx.syntax.state import State
 
 from agent.planning.nyx.abstract_heuristic import AbstractHeuristic, HeuristicSum, ZeroHeuristic
 import agent.planning.nyx.syntax.constants as constants
@@ -323,7 +324,7 @@ class SBBlockedPigsHeuristic(SBOneBirdHeuristic):
     #   2b) wood blocks are 1/4 of a pig
     #   2c) stone blocks are 1/2 of a pig
     # These are totally arbitrary. TODO get life from domain, add some other factor?
-    H_MULTIPLIER = 1000  # This constant allows composition with the single bird heuristic.
+    H_MULTIPLIER = 10000  # This constant allows composition with the single bird heuristic.
     ICE_FACTOR = 0.01
     WOOD_FACTOR = 0.025
     STONE_FACTOR = 0.04
@@ -384,8 +385,8 @@ class SBBlockedPigsHeuristic(SBOneBirdHeuristic):
             if not node.state_vars[pig_dead_key]:
                 live_pigs.append(pig_id)
         h_value += SBBlockedPigsHeuristic.H_MULTIPLIER * len(live_pigs)
-        blocking_blocks = self._check_sus_blocks(node, live_pigs, self.sus_blocks_keys)
-        for b_key in blocking_blocks:
+        self.sus_blocks_keys = self._check_sus_blocks(node, live_pigs, self.sus_blocks_keys)
+        for b_key in self.sus_blocks_keys:
             if b_key[:7] == "', 'ice":
                 h_value += SBBlockedPigsHeuristic.H_MULTIPLIER * SBBlockedPigsHeuristic.ICE_FACTOR
             elif b_key[:8] == "', 'wood":
@@ -397,48 +398,88 @@ class SBBlockedPigsHeuristic(SBOneBirdHeuristic):
         node.h = h_value
         return node.h
 
+
 class SBHelpfulAngleHeuristic(SBBlockedPigsHeuristic):
     """
     Calculates trajectories to pigs\blocks in front of or under pigs as a pre-processing step, and marks states
     on those trajectories as 'preferred' so that they are tried first.
     """
-    def __init__(self):
-        SBBlockedPigsHeuristic.__init__(self, blocks_under_pig=True)
+    def __init__(self, blocking_blocks=False):
+        """
+        param: blocking_blocks: Should the heuristic consider blocks in front of/under pigs good targets?
+            (otherwise, only calculate trajectories to pigs)
+        """
+        SBBlockedPigsHeuristic.__init__(self, blocks_under_pig=blocking_blocks)
         self.x_0, self.y_0 = 0, 0
         self.g = 9.81
         self.deviation = ComparableInterval[-5, 5]  # TODO: find reasonable values
         self.trajectories = set()  # What are they? a set of lists of states? Just a set of states?
 
-    def notify_initial_state(self, node):
+    def notify_initial_state(self, node: State):
         SBBlockedPigsHeuristic._generate_keys(self, node)
-        self._calculate_useful_trajectories(node)
-        self.x_0, self.y_0 = 0, 0 #TODO get sling x, y
+        first_bird = self._get_active_bird_string(node)  # For now, use this as x_0, y_0 (should really be the sling)
+        self.x_0, self.y_0 = node.state_vars["['y_bird'" + first_bird], node.state_vars["['x_bird'" + first_bird]
         self.g = node.state_vars["['gravity']"]
+        initial_velocity = node.state_vars["['v_bird'" + first_bird]
+        self._calculate_useful_trajectories(initial_velocity, node)
         return self.evaluate(node)
 
-    def _calculate_useful_trajectories(self, node):
-        for block_key in self.sus_blocks_keys:
+    def _calculate_useful_trajectories(self, initial_velocity, node):
+        live_pigs = []
+        for pig_id, pig_dead_key in self.pig_dead_keys.items():
+            if not node.state_vars[pig_dead_key]:
+                live_pigs.append(pig_id)
+
+        for p_key in live_pigs:
+            pig_x = node.state_vars["['x_pig" + p_key]
+            pig_y = node.state_vars["['y_pig" + p_key]
             # get coords
-            # calculate v_x_0, v_y_0 (get from formula page)
-            pass
+            min_angle, max_angle = self._get_single_trajectory(self.g, pig_x - self.x_0, pig_y - self.y_0,
+                                                               initial_velocity)
+            self.trajectories.add(
+                (initial_velocity * math.cos(min_angle), initial_velocity * math.sin(min_angle)))
+            self.trajectories.add(
+                (initial_velocity * math.cos(max_angle), initial_velocity * math.sin(max_angle)))
+
+        if self.blocks_under_pigs:
+            self.sus_blocks_keys = self._check_sus_blocks(node, live_pigs, self.sus_blocks_keys)
+            for block_key in self.sus_blocks_keys:
+                block_x = node.state_vars["['x_block" + block_key]
+                block_y = node.state_vars["['y_block" + block_key]
+                # get coords
+                min_angle, max_angle = self._get_single_trajectory(self.g, block_x - self.x_0, block_y - self.y_0,
+                                                                   initial_velocity)
+                self.trajectories.add(
+                    (initial_velocity * math.cos(min_angle), initial_velocity * math.sin(min_angle)))
+                self.trajectories.add(
+                    (initial_velocity * math.cos(max_angle), initial_velocity * math.sin(max_angle)))
+
+
+    @staticmethod
+    def _get_single_trajectory(gravity, delta_x, delta_y, v_0):
+
+        solution_existence_factor = v_0 ** 4 - gravity ** 2 * delta_x ** 2 - 2 * delta_y * gravity * v_0 ** 2
+
+        # the target point cannot be reached
+        if solution_existence_factor < 0:
+            return None, None
+
+        # solve cos theta from projectile equation
+        cos_theta_1 = math.sqrt(
+            (delta_x ** 2 * v_0 ** 2 - delta_x ** 2 * delta_y * gravity
+             + delta_x ** 2 * math.sqrt(solution_existence_factor))
+            / (2 * v_0 ** 2 * (delta_x ** 2 + delta_y ** 2)))
+        cos_theta_2 = math.sqrt(
+            (delta_x ** 2 * v_0 ** 2 - delta_x ** 2 * delta_y * gravity
+             - delta_x ** 2 * math.sqrt(solution_existence_factor))
+            / (2 * v_0 ** 2 * (delta_x ** 2 + delta_y ** 2)))
+
+        theta_1 = math.acos(cos_theta_1)
+        theta_2 = math.acos(cos_theta_2)
+
+        return math.degrees(theta_1), math.degrees(theta_2)
 
     def is_preferred(self, node):
-        # How do I do this even marginally efficiently?
-        # I want to check whether the bird is "close enough" to a trajectory I have.
-        #    Compare to rounded value? rounded which way? towards the trajectory, but how do I do that? That's just within an interval again.
-        #  Supposing the trajectory is a list of states (which means I have to generate them, which is kinda just planning)
-        #    Also, if I'm storing a set of states, just check for each one. But that takes a long time! Some special hashing function? Hierarchical comparison?
-        #    What accuracy level is desired? On the one hand, want an accurate guide =more helpful, on the other hand the planning is not that accurate, don't want to miss the trajectory
-        #  Say it's some type of (other) mathematical object. What type? How?
-        #    I can generate a list of v_x_0, v_y_0 pairs of preferred trajectories, and then a state 'fits' if:
-        #     y_t = (y_0 + x_0 * (v_y_0[i] / v_x_0[i])  - 0.5 * g * x_0^2 * (1 / v_x_0[i] ^ 2))
-        #           + ((v_y_0[i] / v_x_0[i]) + g * (1 / v_x_0[i] ^ 2)) * x_t
-        #           - 0.5 * g * (1 / v_x_0[i] ^ 2)) * x_t^2
-        #    Where y_t, x_t are the state variables for the birds + some margin (as ComparableIntervals?),
-        #     v_x_0[i] and v_y_0[i] are the trajectory value pair, and the other values are constants (need to get
-        #     from initial state).
-        #  ALSO need to check v_x_t, v_y_t, BUT: it is actually enough to test v_0(x, y), and since we have a condition
-        #    on v_tot it is enough to test v_x (which should be constant)
         def trajectory_trace(x_0: float, y_0: float, v_x_0: float, v_y_0: float, g: float, x_t: ComparableInterval):
             x_0, y_0, v_x_0, v_y_0, g = round(x_0, 10), round(y_0, 10), round(v_x_0, 10), round(v_y_0, 10), round(g, 10)
             x_t = round(x_t)
@@ -447,12 +488,13 @@ class SBHelpfulAngleHeuristic(SBBlockedPigsHeuristic):
             return y_t
 
         active_bird_string = self._get_active_bird_string(node)
-        x_t = node.state_vars["['x_bird'" + active_bird_string] + self.deviation
-        y_t = node.state_vars["['y_bird'" + active_bird_string]
-        v_x_t = node.state_vars["['vx_bird'" + active_bird_string]
-        for v_x_0, v_y_0 in self.trajectories:
-            if v_x_0 in v_x_t + self.deviation and y_t in trajectory_trace(self.x_0, self.y_0, v_x_0, v_y_0, self.g, x_t):
-                return True
+        if active_bird_string is not None:
+            x_t = node.state_vars["['x_bird'" + active_bird_string] + self.deviation
+            y_t = node.state_vars["['y_bird'" + active_bird_string]
+            v_x_t = node.state_vars["['vx_bird'" + active_bird_string]
+            for v_x_0, v_y_0 in self.trajectories:
+                if v_x_0 in v_x_t + self.deviation and y_t in trajectory_trace(self.x_0, self.y_0, v_x_0, v_y_0, self.g, x_t):
+                    return True
         return False
 
 
