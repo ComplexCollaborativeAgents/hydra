@@ -3,6 +3,7 @@ import math
 from worlds.polycraft_interface.client import *
 from worlds.polycraft_interface.client.polycraft_interface import MoveDir
 from worlds.polycraft_world import *
+from utils.polycraft_utils import *
 
 class PolyNoAction(PolycraftAction):
     """ A no action (do nothing) """
@@ -197,11 +198,15 @@ class PolyPlaceTreeTap(PolycraftAction):
 
     def can_do(self, state:PolycraftState, env) -> bool:
         ''' Make sure no entity is occupying the space where we want to place the tree tap'''
-        if state.is_facing_type(BlockType.AIR.value):
-            return True
-        else:
+        if is_facing_entity(state):
+            logger.info(f"Cannot do action {self.name} because facing an entity")
+            return False # Bug in polycraft - do not place tree tap on an agent
+
+        if state.is_facing_type(BlockType.AIR.value)==False:
             logger.info(f"Cannot do action {self.name} because facing block of type {state.facing_block}")
             return False
+
+        return True
 
 class PolyCollect(PolycraftAction):
     """ Collect item from block in front of actor - use for collecting rubber from a tree tap. """

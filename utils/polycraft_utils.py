@@ -309,6 +309,20 @@ def get_door_path_to_cell(cell:str, state:PolycraftState)->list:
         door_path = [steve_room_door, cell_room_door]
     return [cell for cell in door_path if cell is not None] # Ignore None cells in the path. Such cells may occur in buggy situtations.
 
+def is_facing_entity(state:PolycraftState, entity_id=None):
+    ''' Returns true if Steve is facing the given entity in the given state '''
+    if entity_id is None:
+        for entity_id, entity_attr in state.entities.items():
+            if is_adjacent_to_steve(coordinates_to_cell(entity_attr['pos']), state) and is_facing_entity(state, entity_id):
+                return True
+    else:
+        if entity_id not in state.entities:
+            logger.info(f"Entity {entity_id} not found in state")
+            return False
+        if get_angle_to_adjacent_cell(coordinates_to_cell(state.entities[entity_id]['pos']), state)==0:
+            return True
+        else:
+            return False
 
 def get_angle_to_adjacent_cell(cell:str, state:PolycraftState):
     ''' Computes the angle between the direction Steve is facing and the given adjacent cell. '''
