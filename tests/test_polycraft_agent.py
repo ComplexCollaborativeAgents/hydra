@@ -52,8 +52,7 @@ def test_fixed_planner(launch_polycraft, execution_number):
 @pytest.mark.parametrize('execution_number', range(10))
 def test_debug(launch_polycraft, execution_number):
     env, agent, levels = launch_polycraft
-    test_level = pathlib.Path(settings.POLYCRAFT_DIR) / "pogo_100_PN" / "POGO_L00_T01_S01_X0100_U9999_V0_G00024_I0118_N0.json"
-
+    test_level = pathlib.Path(settings.POLYCRAFT_DIR) / "pogo_100_PN" / "POGO_L00_T01_S01_X0100_U9999_V0_G00031_I0120_N0.json"
     logger.info(f"Loading level {test_level}...")
     env.init_selected_level(test_level)
     agent.start_level(env)  # Collect trades and recipes
