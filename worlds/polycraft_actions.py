@@ -206,7 +206,13 @@ class PolyPlaceTreeTap(PolycraftAction):
             logger.info(f"Cannot do action {self.name} because facing block of type {state.facing_block}")
             return False
 
-        return True
+        potential_tree_tap_cell = get_facing_cell(state)
+        for cell in get_adjacent_cells(potential_tree_tap_cell):
+            if state.game_map[cell]["name"]==BlockType.LOG.value:
+                return True
+
+        logger.info(f"Tree tap cell {potential_tree_tap_cell} has no log cell adjacent to it.")
+        return False
 
 class PolyCollect(PolycraftAction):
     """ Collect item from block in front of actor - use for collecting rubber from a tree tap. """

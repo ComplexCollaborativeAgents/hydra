@@ -253,6 +253,15 @@ def get_adjacent_cells(cell:str):
         new_coord = [sum(x) for x in zip(coord, delta)]
         yield coordinates_to_cell(new_coord)
 
+def get_facing_cell(state:PolycraftState):
+    ''' Returns the cell that steve is facing in this state '''
+    steve_cell = coordinates_to_cell(state.location['pos'])
+    for cell in get_adjacent_cells(steve_cell):
+        if get_angle_to_adjacent_cell(cell, state)==0:
+            return cell
+    logger.error(f"Bug: steve at cell {steve_cell} but is not facing any cell")
+    assert(False)
+
 def is_adjacent_to_steve(cell:str, state:PolycraftState):
     ''' Checks if the given cell is adjacent ot steve's cell in the given state '''
     steve_cell = coordinates_to_cell(state.location["pos"])
