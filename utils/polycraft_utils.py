@@ -372,30 +372,24 @@ def get_non_novelty_levels_files():
 
 def get_novelty_levels_files():
     ''' Return a list of config files for the non-novelty levels we have for training. '''
-    NOVELTY_FOLDER_RE = re.compile("POGO\_L(..)\_T(..)\_S(..)")
     non_novelty_levels_root = pathlib.Path(settings.POLYCRAFT_NOVELTY_LEVEL_DIR)
     levels = list()
-    for level_dir in os.listdir(non_novelty_levels_root):
-        if os.path.isdir(non_novelty_levels_root / level_dir):
-            pattern = NOVELTY_FOLDER_RE.match(level_dir)
-            if pattern is not None:
-                groups = pattern.groups()
-                assert(len(groups)==3)
-                level = groups[0]
-                type = groups[1]
-                level_set = groups[2]
-                x0100_dir = non_novelty_levels_root / level_dir / "X0100"
-                files_in_x0100 = list(os.listdir(x0100_dir))
-                for file_name in files_in_x0100:
-                    if os.path.isdir(x0100_dir / file_name):
-                        levels_dir = x0100_dir / file_name
-                    elif str(file_name).endswith(".zip"):
-                        dir_name = str(file_name)[:-4]
-                        levels_dir = x0100_dir / dir_name
-                        shutil.unpack_archive(x0100_dir / file_name, levels_dir)
-                    else:
-                        continue # File that is not a dir or a zip file is out of scopre
-                    for f in os.listdir(levels_dir):
-                        if f.endswith(".json"):
-                            levels.append(x0100_dir / levels_dir / f)
+    paths_to_process = [(non_novelty_levels_root, file_name) for file_name in os.listdir(non_novelty_levels_root)]
+
+    for path_to_file, file_name in paths_to_process:
+        full_file_path = path_to_file / file_name
+        if os.path.isdir(full_file_path):
+            #  First, unpack zip files
+            for new_file_name in os.listdir(full_file_path):
+                if str(new_file_name).endswith(".zip"):
+                    unpack_dir_name = str(file_name)[:-4]
+                    shutil.unpack_archive(full_file_path / new_file_name, full_file_path / unpack_dir_name)
+
+            for new_file_name in os.listdir(full_file_path):
+                if os.path.isdir(full_file_path / new_file_name):
+                    paths_to_process.append((full_file_path, new_file_name))
+                elif new_file_name.endswith(".json"):
+                    levels.append(full_file_path / new_file_name)
+                else:
+                    logger.info(f"Ignoring file {new_file_name}")
     return levels
