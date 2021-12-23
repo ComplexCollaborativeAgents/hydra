@@ -90,8 +90,8 @@ def estimate_launch_angle(slingshot, targetPoint, meta_model):
     # calculate relative position of the target (normalised)
     scale_factor = meta_model.hyper_parameters['scale_factor']
     _velocity = 9.5 / scale_factor
-    X_OFFSET = 0.45
-    Y_OFFSET = 0.6
+    X_OFFSET = 0.0
+    Y_OFFSET = 0.0
 
     default_min_angle = 0.0
     default_max_angle = 90.0
@@ -105,7 +105,8 @@ def estimate_launch_angle(slingshot, targetPoint, meta_model):
         # print ('scale ', scale)
         # System.out.println("scale " + scale)
         # ref = Point2D(int(slingshot.X + X_OFFSET * slingshot.width), int(slingshot.Y + Y_OFFSET * slingshot.height))
-        ref = Point2D(int(get_slingshot_x(slingshot) + X_OFFSET * get_width(slingshot)), int(Y_OFFSET * get_height(slingshot)))
+        ref = Point2D(int(get_slingshot_x(slingshot) + X_OFFSET * get_width(slingshot)),
+                      int(get_slingshot_y(ground_offset, slingshot) + Y_OFFSET * get_height(slingshot)))
         # print ('ref point', str(ref))
         x = (targetPoint.X - ref.X)
         y = (targetPoint.Y - ref.Y)
@@ -133,9 +134,11 @@ def estimate_launch_angle(slingshot, targetPoint, meta_model):
         # solve cos theta from projectile equation
 
         cos_theta_1 = math.sqrt(
-            (x ** 2 * v ** 2 - x ** 2 * y * g + x ** 2 * math.sqrt(v ** 4 - g ** 2 * x ** 2 - 2 * y * g * v ** 2)) / (2 * v ** 2 * (x ** 2 + y ** 2)))
+            (x ** 2 * v ** 2 - x ** 2 * y * g + x ** 2 * math.sqrt(solution_existence_factor)) /
+            (2 * v ** 2 * (x ** 2 + y ** 2)))
         cos_theta_2 = math.sqrt(
-            (x ** 2 * v ** 2 - x ** 2 * y * g - x ** 2 * math.sqrt(v ** 4 - g ** 2 * x ** 2 - 2 * y * g * v ** 2)) / (2 * v ** 2 * (x ** 2 + y ** 2)))
+            (x ** 2 * v ** 2 - x ** 2 * y * g - x ** 2 * math.sqrt(solution_existence_factor)) /
+            (2 * v ** 2 * (x ** 2 + y ** 2)))
         #        print ('cos_theta_1 ', cos_theta_1, ' cos_theta_2 ', cos_theta_2)
 
         distance_between = math.sqrt(x ** 2 + y ** 2)  # ad-hoc patch
@@ -144,10 +147,11 @@ def estimate_launch_angle(slingshot, targetPoint, meta_model):
         # print('theta 1', math.degrees(theta_1))
         theta_2 = math.acos(cos_theta_2) # + distance_between * 0.00005  # compensate the rounding error
         # print('theta 2', math.degrees(theta_2))
-
+        print(f'found angle to pig: {theta_1}, {theta_2}')
         return math.degrees(theta_1), math.degrees(theta_2)
 
     except:
+        print('No trajectory to pig!')
         return default_min_angle, default_max_angle
 
 ''' A generator for Pddl Objects '''
@@ -473,7 +477,7 @@ class ScienceBirdsMetaModel(MetaModel):
                              'meta_ice_multiplier': 1.0,
                              'v_bird_multiplier': 10.0,
                              'gravity_factor': 9.81,
-                            'meta_platform_size': 2},
+                             'meta_platform_size': 2},
                          constant_boolean_fluents={
                              'angle_adjusted': False,
                              'pig_killed': False})
@@ -514,7 +518,7 @@ class ScienceBirdsMetaModel(MetaModel):
     @staticmethod
     def action_time_to_angle(action_time: float, state: PddlPlusState):
         """ Converts twang angle to the corresponding action time """
-        return action_time * float(state[('angle_rate',)])  + float(state[('angle',)])
+        return action_time * float(state[('angle_rate',)]) + float(state[('angle',)])
 
 
     @staticmethod
@@ -533,7 +537,7 @@ class ScienceBirdsMetaModel(MetaModel):
         ref_point = tp.get_reference_point(processed_state.sling)
         release_point_from_plan = tp.find_release_point(processed_state.sling, math.radians(angle))
         action = SB.SBShoot(release_point_from_plan.X, release_point_from_plan.Y,
-                            3000, ref_point.X, ref_point.Y)
+                            tap_timing, ref_point.X, ref_point.Y)
         return action
 
     def create_timed_action(self, sb_shoot: SB.SBShoot, sb_state: ProcessedSBState):

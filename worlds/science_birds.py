@@ -10,6 +10,7 @@ import copy
 import math
 
 import func_timeout
+import numpy as np
 
 import settings
 import worlds.science_birds_interface.client.agent_client as ac
@@ -236,7 +237,8 @@ class ScienceBirds(World):
 
                # if len(self.intermediate_states) < 3: # we should get some intermediate states
                #     assert False
-            reward =  self.sb_client.get_current_score() - prev_score
+            bird_trajd = self._get_bird_trajectory(self.intermediate_states)
+            reward = self.sb_client.get_current_score() - prev_score
             self.get_current_state()
             logger.info("Action executed ref_pt ({},{}) action ({},{}) reward {} len(intermediate_states) {}".format(action.ref_x, action.ref_y, action.dx, action.dy,reward,len(self.intermediate_states)))
             return self.cur_state, reward
@@ -247,6 +249,15 @@ class ScienceBirds(World):
         else:
             assert False
 
+    @staticmethod
+    def _get_bird_trajectory(intermediate_states):
+        traj_boxen = []
+        for st in intermediate_states:
+            fts = st.objects[0]['features']
+            for ft in fts:
+                if ft['properties']['id'] == settings.active_bird_id_string:
+                    traj_boxen.append(ft['geometry']['coordinates'][0])
+        return np.average(traj_boxen, 1)
 
 
 #    @func_timeout.func_set_timeout(2)

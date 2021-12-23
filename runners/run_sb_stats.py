@@ -42,7 +42,7 @@ NOVELTY = 0
 TYPE = 22
 SAMPLES = 50
 
-AGENT = AgentType.Hydra
+AGENT = AgentType.RepairingHydra
 
 EXPERIMENT_NAME = "ENSEMBLE2"
 

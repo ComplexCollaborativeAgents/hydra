@@ -1,3 +1,4 @@
+import math
 from math import atan2, acos, sqrt, sin, cos
 
 from PIL import ImageDraw
@@ -198,13 +199,15 @@ class SimpleTrajectoryPlanner:
          *
         """
 
-        mag = sling.height * 5 # TODO where did this calculation come from??
+        mag = sling.height * 5
         # print('mag ', mag)
         ref = self.get_reference_point(sling)
         # print('ref ', ref)
         # print('cos theta ',cos(theta))
-#        print('sin theta ',sin(theta))
-        release = Point2D(int(ref.X - mag * cos(theta)), int(ref.Y + mag * sin(theta)))
+        theta = math.degrees(theta)
+        sin_ap = (((4 * theta) * (180 - theta)) / (40500 - (theta * (180 - theta))))
+        cos_ap = (1 - (((theta * 0.0174533) * (theta * 0.0174533)) / 2))
+        release = Point2D(int(ref.X - mag * cos_ap), int(ref.Y + mag * sin_ap))
 
         return release
 

@@ -117,7 +117,7 @@ class SBHydraAgent(HydraAgent):
             raw_state = self.env.get_current_state()
 
             if raw_state.game_state.value == GameState.PLAYING.value:
-                self.env.sb_client.batch_ground_truth(1, 1)
+                self.env.sb_client.batch_ground_truth(10, 1)
                 raw_state = self.env.get_current_state()
                 self.handle_game_playing(observation, raw_state)
                 if (settings.NOVELTY_POSSIBLE):
@@ -478,6 +478,7 @@ class SBHydraAgent(HydraAgent):
         """ A default action taken by the Hydra agent if planning fails"""
 
         logger.info("[hydra_agent_server] :: __get_default_action")
+        self.stats_for_level['Default action used'] = True
         problem = self.meta_model.create_pddl_problem(state)
         pddl_state = PddlPlusState(problem.init)
         unknown_objs = state.novel_objects()
@@ -506,6 +507,7 @@ class SBHydraAgent(HydraAgent):
         except:
             logger.info("Unable to shoot at a random pig, taking default angle of 20") # TODO carch only appropriate exception
             default_time = self.meta_model.angle_to_action_time(20, pddl_state)
+        logger.info(f'min angle: {min_angle}, max angle: {max_angle}, angle time: {default_time}')
         return TimedAction("pa-twang %s" % active_bird, default_time)
 
     def set_env(self, env):

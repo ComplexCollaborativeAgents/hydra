@@ -3,19 +3,22 @@ import os
 from os import path
 import shortuuid
 
+# Bad global variables for debugging
+active_bird_id_string = ''
+
 # Create your own local_settings.py file in this directory if you want
 # to override this variable and not run headless
-HEADLESS = True
+HEADLESS = False
 SCREENSHOT = False
 DEBUG = False
 NO_PLANNING = False
 NO_REPAIR = False
 NO_PDDL_CONSISTENCY = False
 SB_DEV_MODE = False
-NOVELTY_POSSIBLE = False
+NOVELTY_POSSIBLE = True
 
 SB_PLANNER_MEMORY_LIMIT = 50  # memory limit for UPMurphi (in MB)
-SB_DELTA_T = 0.05  # time discretisation for UPMurphi
+SB_DELTA_T = 0.025  # time discretisation for UPMurphi
 SB_TIMEOUT = 30  # timeout for the planning phase (in seconds)
 SB_DEFAULT_SHOT = 'RANDOM_PIG'
 SB_PLANNER_SIMPLIFICATION_SEQUENCE = [0, 1, 2]  # the order of problem simplications attempted to generate a plan
@@ -33,8 +36,8 @@ SCIENCE_BIRDS_BIN_DIR = path.join(ROOT_PATH,'bin')
 SCIENCE_BIRDS_LEVELS_DIR = path.join(SCIENCE_BIRDS_BIN_DIR, 'linux', 'Levels', 'novelty_level_0', 'type2', 'Levels')
 POLYCRAFT_DIR = path.join(ROOT_PATH, 'bin', 'pal', 'PolycraftAIGym')
 SB_INIT_COLOR_MAP = path.join(ROOT_PATH, 'worlds', 'science_birds_interface', 'demo', 'ColorMap.json')
-SB_SIM_SPEED = 30 # run at real time
-SB_GT_FREQ = int(30/SB_SIM_SPEED)
+SB_SIM_SPEED = 30  # run at real time
+SB_GT_FREQ = 30  # int(30/SB_SIM_SPEED)
 # SB_GT_FREQ = 1
 SB_CLASSIFICATION_THRESHOLD = 0.35
 SB_N_FRAMES = 100

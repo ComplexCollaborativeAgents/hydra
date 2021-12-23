@@ -1,4 +1,6 @@
 import numpy as np
+
+import settings
 from agent.planning.nyx.syntax.state import State
 
 from agent.planning.nyx.abstract_heuristic import AbstractHeuristic, HeuristicSum, ZeroHeuristic
@@ -253,6 +255,7 @@ class SBOneBirdHeuristic(AbstractHeuristic):
             # can't find active bird
             return None
         active_bird_string = active_bird_string[0][10:]
+        settings.active_bird_id_string = active_bird_string[-6:-2]
         return active_bird_string
 
     def _generate_keys(self, node):
