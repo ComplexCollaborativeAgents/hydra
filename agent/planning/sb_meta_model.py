@@ -121,7 +121,7 @@ def estimate_launch_angle(slingshot, targetPoint, meta_model):
         g = 0.48 * meta_model.constant_numeric_fluents['gravity_factor'] / scale_factor * scale
         # print('gravity', g)
         # launch speed
-        v = _velocity * scale
+        v = 182  #_velocity * scale
         # print ('launch speed ', v)
 
         solution_existence_factor = v ** 4 - g ** 2 * x ** 2 - 2 * y * g * v ** 2
@@ -323,7 +323,7 @@ class BirdType(PddlObjectType):
         if "initial_state" in problem_params and problem_params["initial_state"] == True:
             obj_attributes["x_bird"] = slingshot_x
             obj_attributes["y_bird"] = slingshot_y
-            obj_attributes["v_bird"] = round((9.5 / 2.7) * (get_scale(slingshot)) * (self.hyper_parameters["velocity_multiplier"]/10) )
+            obj_attributes["v_bird"] = 182 # round((9.5 / 2.7) * (get_scale(slingshot)) * (self.hyper_parameters["velocity_multiplier"]/10) )
         else:
             obj_attributes["x_bird"] = get_x_coordinate(obj)
             obj_attributes["y_bird"] = get_y_coordinate(obj, ground_offset)
@@ -477,7 +477,7 @@ class ScienceBirdsMetaModel(MetaModel):
                              'meta_ice_multiplier': 1.0,
                              'v_bird_multiplier': 10.0,
                              'gravity_factor': 9.81,
-                             'meta_platform_size': 2},
+                             'meta_platform_size': 1.75},
                          constant_boolean_fluents={
                              'angle_adjusted': False,
                              'pig_killed': False})

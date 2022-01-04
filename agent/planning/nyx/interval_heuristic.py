@@ -38,12 +38,6 @@ class IntervalHeuristic(AbstractHeuristic):
                 self.state_vars['pos_inf'] = ComparableInterval[1, inf]
                 self.state_vars['neg_inf'] = ComparableInterval[-inf, 1]
 
-        # TODO should sub-class happening named Supporters to return interval? will need entirely new JIT, because the
-        #   current one compiles all the effects into a single function body, exactly the way you'd expect for efficiency.
-        #   Should I have a JIT at all? start without and add later if we use this?
-        #   New precondition tree?
-        #  Also need to remove predicate delete effects: not set things to False
-
         def apply_happening(self, happening, from_state=None, create_new_state=True):
             if create_new_state:
                 predecessor = self if from_state is None else from_state
@@ -63,8 +57,6 @@ class IntervalHeuristic(AbstractHeuristic):
         self.supporters = set()
 
     def notify_initial_state(self, node):
-        #  TODO Need to figure out if an effect is numeric
-
         for happening in itertools.chain(self.grounded_domain.actions, self.grounded_domain.events,
                                          self.grounded_domain.processes):
             for effect in happening.effects:

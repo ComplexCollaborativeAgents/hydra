@@ -54,7 +54,7 @@ class PddlObjectType():
             if isinstance(value,  bool):
                 if value==True:
                     pddl_state.boolean_fluents.add(fluent_name)
-                # TODO: Think how to handle booean fluents with False value. Not as trivial as it sounds
+                # TODO: Think how to handle boolean fluents with False value. Not as trivial as it sounds
             else: # Attribute is a number
                 pddl_state.numeric_fluents[fluent_name]=value
 

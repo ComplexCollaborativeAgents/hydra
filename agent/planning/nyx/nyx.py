@@ -2,6 +2,7 @@
 # from agent.planning.nyx.PDDL import PDDL_Parser
 from toolz import cons
 
+import settings
 from agent.planning.nyx.planner import Planner
 import agent.planning.nyx.syntax.constants as constants
 import sys
@@ -188,6 +189,8 @@ def runner(dom_file, prob_file, args_list: []):
 
     for pair in my_plan:
 
+        # print(str(pair[1].state_vars["['x_bird', 'redbird_" + settings.active_bird_id_string + "']"]) + ","
+        #       + str(pair[1].state_vars["['y_bird', 'redbird_" + settings.active_bird_id_string + "']"]))
         if (not (constants.VERBOSE_OUTPUT or constants.VERY_VERBOSE_OUTPUT)) and pair[0] == constants.TIME_PASSING_ACTION:
             continue
 

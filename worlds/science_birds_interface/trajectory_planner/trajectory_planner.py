@@ -199,7 +199,7 @@ class SimpleTrajectoryPlanner:
          *
         """
 
-        mag = sling.height * 5
+        mag = sling.height * 8
         # print('mag ', mag)
         ref = self.get_reference_point(sling)
         # print('ref ', ref)

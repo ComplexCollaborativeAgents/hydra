@@ -237,7 +237,7 @@ class ScienceBirds(World):
 
                # if len(self.intermediate_states) < 3: # we should get some intermediate states
                #     assert False
-            bird_trajd = self._get_bird_trajectory(self.intermediate_states)
+            # bird_trajd = self._get_bird_trajectory(self.intermediate_states)
             reward = self.sb_client.get_current_score() - prev_score
             self.get_current_state()
             logger.info("Action executed ref_pt ({},{}) action ({},{}) reward {} len(intermediate_states) {}".format(action.ref_x, action.ref_y, action.dx, action.dy,reward,len(self.intermediate_states)))
