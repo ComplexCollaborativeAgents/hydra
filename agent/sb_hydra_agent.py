@@ -509,8 +509,18 @@ class SBHydraAgent(HydraAgent):
                 logger.info("invalid setting for SB_DEFAULT_SHOT, taking default angle of 20")
                 default_time = self.meta_model.angle_to_action_time(20, pddl_state)
         except:
-            logger.info("Unable to shoot at a random pig, taking default angle of 20") # TODO carch only appropriate exception
-            default_time = self.meta_model.angle_to_action_time(20, pddl_state)
+            if unknown_objs:
+                logger.info("Unable to shoot at a random pig, shooting at unknown object") # TODO carch only appropriate exception
+                target_x, target_y = get_x_coordinate(unknown_objs[0]), \
+                                     get_y_coordinate(unknown_objs[0],
+                                                      self.meta_model.get_ground_offset(
+                                                          self.meta_model.get_slingshot(state)))
+                min_angle, max_angle = estimate_launch_angle(self.planner.meta_model.get_slingshot(state),
+                                                             Point2D(target_x, target_y), self.meta_model)
+                default_time = self.meta_model.angle_to_action_time(min_angle, pddl_state)
+            else:
+                logger.info("Unable to shoot at a random pig, no unknown objects, shooting at 20 degrees")
+                default_time = self.meta_model.angle_to_action_time(20, pddl_state)
         logger.info(f'min angle: {min_angle}, max angle: {max_angle}, angle time: {default_time}')
         return TimedAction("pa-twang %s" % active_bird, default_time)
 
