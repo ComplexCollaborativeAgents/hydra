@@ -46,16 +46,17 @@ from . import objects
 
 
 class TA2Logic(object):
-    def __init__(self):
-        options = self._get_command_line_options()
-        config_file = options.config
-        printout = options.printout
-        debug = options.debug
-        fulldebug = options.fulldebug
-        logfile = options.logfile
-        no_testing = options.no_testing
-        just_one_trial = options.just_one_trial
-        ignore_secret = options.ignore_secret
+    def __init__(self, config_file: str, printout: bool, debug: bool, fulldebug: bool,
+                 logfile: str, no_testing: bool, just_one_trial: bool, ignore_secret: bool):
+        # options = self._get_command_line_options()
+        # config_file = options.config
+        # printout = options.printout
+        # debug = options.debug
+        # fulldebug = options.fulldebug
+        # logfile = options.logfile
+        # no_testing = options.no_testing
+        # just_one_trial = options.just_one_trial
+        # ignore_secret = options.ignore_secret
         self._agent_name = "TA2"
 
         # First check that the config file exists.

@@ -23,7 +23,7 @@ class CartpolePlusPlusHydraAgent(HydraAgent):
         self.log = logging.getLogger(__name__).getChild('CartpolePlusPlusHydraAgent')
 
         self.observations_list = []
-        self.replan_idx = 20
+        self.replan_idx = 50
 
         self.novelty_likelihood = 0.0
         self.novelty_existence = None
@@ -53,7 +53,7 @@ class CartpolePlusPlusHydraAgent(HydraAgent):
     def choose_action(self, observation: CartPoleObservation) -> \
             dict:
 
-        time.sleep(0.5)
+        # time.sleep(0.5)
 
         if self.plan is None:
             # self.meta_model.constant_numeric_fluents['time_limit'] = 4.0
@@ -71,14 +71,14 @@ class CartpolePlusPlusHydraAgent(HydraAgent):
                 self.plan = new_plan
                 self.plan_idx = 0
 
-        state_values_list = self.planner.extract_state_values_from_trace("%s/plan_cartpole_prob.pddl" % str(settings.CARTPOLEPLUSPLUS_PLANNING_DOCKER_PATH))
-        state_values_list.insert(0, (observation['cart']['x_position'], observation['cart']['y_position'], observation['cart']['x_velocity'], observation['cart']['y_velocity']))
+        # state_values_list = self.planner.extract_state_values_from_trace("%s/plan_cartpole_prob.pddl" % str(settings.CARTPOLEPLUSPLUS_PLANNING_DOCKER_PATH))
+        # state_values_list.insert(0, (observation['cart']['x_position'], observation['cart']['y_position'], observation['cart']['x_velocity'], observation['cart']['y_velocity']))
+        #
+        # if (len(state_values_list) > 1):
+        #     print("cart observation (X,Y,Vx,Vy):\t" + str(observation['cart']['x_position']) + ",\t\t " + str(observation['cart']['y_position']) + ",\t\t " + str(observation['cart']['x_velocity']) + ",\t\t " + str(observation['cart']['y_velocity']))
+        #     print("cart plan val (X,Y,Vx,Vy):\t\t" + str(state_values_list[self.plan_idx][0]) + ",\t\t " + str(state_values_list[self.plan_idx][1]) + ",\t\t " + str(state_values_list[self.plan_idx][2]) + ",\t\t " + str(state_values_list[self.plan_idx][3]))
 
-        if (len(state_values_list) > 1):
-            print("cart observation (X,Y,Vx,Vy):\t" + str(observation['cart']['x_position']) + ",\t\t " + str(observation['cart']['y_position']) + ",\t\t " + str(observation['cart']['x_velocity']) + ",\t\t " + str(observation['cart']['y_velocity']))
-            print("cart plan val (X,Y,Vx,Vy):\t\t" + str(state_values_list[self.plan_idx][0]) + ",\t\t " + str(state_values_list[self.plan_idx][1]) + ",\t\t " + str(state_values_list[self.plan_idx][2]) + ",\t\t " + str(state_values_list[self.plan_idx][3]))
-
-        action = random.randint(0, 1)
+        action = random.randint(0, 4)
         if self.plan_idx < len(self.plan):
             action = 0
             if self.plan[self.plan_idx].action_name == "do_nothing dummy_obj":

@@ -1,20 +1,18 @@
 #!/usr/bin/env python
 # Four spaces as indentation [no tabs]
-import bisect
-import collections
-from hmac import new
 
-from agent.planning.nyx.heuristic_functions import get_heuristic_function
-from agent.planning.nyx.PDDL import PDDL_Parser
-import agent.planning.nyx.syntax.constants as constants
-import time, copy
+import copy
+import time
 
-from agent.planning.nyx.openlist import BFSList, DFSList, PriorityList
-from agent.planning.nyx.syntax.visited_state import VisitedState
-from agent.planning.nyx.syntax.state import State
-
-# (NOT AVAILABLE YET ON MASTER BRANCH)
 import agent.planning.nyx.semantic_attachments as semantic_attachments
+import agent.planning.nyx.syntax.constants as constants
+from agent.planning.nyx.PDDL import PDDL_Parser
+from agent.planning.nyx.heap_open_lists import HeapPriorityList
+from agent.planning.nyx.heuristic_functions import get_heuristic_function
+from agent.planning.nyx.openlist import BFSList, DFSList
+from agent.planning.nyx.syntax.state import State
+from agent.planning.nyx.syntax.visited_state import VisitedState
+
 
 import logging
 logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
@@ -33,6 +31,7 @@ class Planner:
         self.explored_states = 0
         # self.total_visited = 0
         self.visited_hashmap = {}
+        self.queue = self._get_open_list()  # TODO get this parameter in some normal way
         self.heuristic = get_heuristic_function(constants.CUSTOM_HEURISTIC_ID) # TODO get this parameter in some normal way
 
     def solve(self, domain, problem):
@@ -41,9 +40,11 @@ class Planner:
         # Parser
         parser = PDDL_Parser(domain, problem)
         grounded_instance = parser.grounded_instance
+        self.heuristic = get_heuristic_function(constants.CUSTOM_HEURISTIC_ID, groundedPPDL=grounded_instance)  # TODO get this parameter in some normal way
         # Parsed data
         state = grounded_instance.init_state
         self.initial_state = grounded_instance.init_state
+        self.heuristic.notify_initial_state(state)
 
         print("\t* model parse time: " + str("{:5.4f}".format(time.time() - start_solve_time)) + "s")
 
@@ -53,14 +54,9 @@ class Planner:
 
         # Search
         self.visited_hashmap[hash(VisitedState(state))] = VisitedState(state)
-        self.queue = self._get_open_list() # TODO get this parameter in some normal way
-        self.enqueue_state(state)
-
-        expanded_states = 0
+        self.queue.push(state)
         while self.queue:
             state = self.queue.pop()
-            if expanded_states % constants.EXPANDED_STATES_LOGGING_FREQUENCY ==0:
-                logger.info(f"Expanded {expanded_states} nodes, generated {self.explored_states}, best state g={state.g} h={state.h} time passed {time.time() - start_solve_time}.")
             from_state = VisitedState(state)
             time_passed = round(state.time + constants.DELTA_T, constants.NUMBER_PRECISION)
             for aa in grounded_instance.actions.get_applicable(state):
@@ -122,12 +118,7 @@ class Planner:
                 # if constants.PRINT_ALL_STATES:
                 #     print(new_state)
 
-            expanded_states = expanded_states+1
-
-            if (constants.NO_TIMEOUT==False and (time.time() - start_solve_time) >= constants.TIMEOUT)\
-                    or (self.explored_states>=constants.MAX_GENERATED_NODES):
-                logger.info(f"Timeout reached, found {len(self.reached_goal_states)} plans")
-
+            if (time.time() - start_solve_time) >= constants.TIMEOUT:
                 if (constants.ANYTIME):
                     return self.reached_goal_states
                 return None
@@ -144,11 +135,11 @@ class Planner:
 
     def _get_open_list(self):
         if constants.SEARCH_ASTAR:
-            return PriorityList()
+            return HeapPriorityList()
         elif constants.SEARCH_DFS:
             return DFSList()
         elif constants.SEARCH_GBFS:
-            return PriorityList(astar=False)
+            return HeapPriorityList(Astar=False)
         else:
             # defalut to BFS
             return BFSList()

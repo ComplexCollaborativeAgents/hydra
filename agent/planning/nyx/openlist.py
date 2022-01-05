@@ -31,7 +31,7 @@ class OpenList:
         Return the next node in the fringe without removing it.
         """
         assert bool(self), 'Can not get top of empty list!'
-        return self.nodes[-1]
+        return self.nodes[0]
 
     def clear(self):
         """
@@ -61,7 +61,7 @@ class DFSList(OpenList):
 
     def top(self):
         assert bool(self), 'Can not get top of empty list!'
-        return self.nodes[0]
+        return self.nodes[-1]
 
     def clear(self):
         self.nodes.clear()
@@ -106,7 +106,7 @@ class PriorityList(OpenList):
         assert bool(self), 'Can not pop empty list!'
         next_node = self.nodes[self.min_val].pop()
         if not self.nodes[self.min_val]:
-            del self.nodes[self.min_val]  # might be faster to keep it
+            del self.nodes[self.min_val]  # deleting the element takes time, but allows __bool__ to indicate emptiness.
             if self.nodes:
                 self.min_val = min(self.nodes.keys())
             else:

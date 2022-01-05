@@ -1,3 +1,5 @@
+from typing import List
+
 
 class AbstractHeuristic:
     """
@@ -38,6 +40,10 @@ class AbstractHeuristic:
         return False
 
 
+class ZeroHeuristic(AbstractHeuristic):
+    pass
+
+
 class CompositeHeuristic(AbstractHeuristic):
     """
     Uses a fast heuristic when opening (generating) nodes and a slow but more informative one when expanding.
@@ -73,3 +79,25 @@ class DifferenceHeuristic(AbstractHeuristic):
                 heuristic += 1
         node.h = heuristic
         return heuristic
+
+
+class HeuristicSum(AbstractHeuristic):
+    """
+    Returns the sum of several heuristics
+    """
+    def __init__(self, h_list: List[AbstractHeuristic]):
+        self.h_list = h_list
+
+    def notify_initial_state(self, node):
+        for h in self.h_list:
+            h.notify_initial_state(node)
+
+    def notify_expanded(self, node):
+        for h in self.h_list:
+            h.notify_expanded(node)
+
+    def evaluate(self, node):
+        return sum([h.evaluate(node) for h in self.h_list])
+
+    def is_preferred(self, node):
+        return any([h.is_preferred(node) for h in self.h_list])

@@ -58,6 +58,8 @@ dependencies:
       - isodate==0.6.0
       - pika==1.1.0
       - blosc==1.10.4
+#      - pybullet==3.1.7
+      - pyinterval
       - azure-common==1.1.25
       - azure-core==1.5.0
       - azure-cosmosdb-nspkg==2.0.2

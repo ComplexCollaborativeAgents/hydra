@@ -10,9 +10,10 @@ from zipfile import ZipFile
 
 def main(config='all_level_0_novelties.xml'):
     settings.DEBUG=True
-    settings.SB_DEV_MODE=False
+    # settings.SB_DEV_MODE=False
     settings.NO_PLANNING=True
     settings.NO_REPAIR=True
+    settings.SB_COLLECT_PERCEPTION_DATA=True
 
     env = sb.ScienceBirds(None,launch=True,config=config)
     hydra = SBHydraAgent(env)
@@ -41,7 +42,7 @@ def eval_m18_data():
 
 if __name__ == '__main__':
     path_prefix = "Phase2"
-    config_files = ["100_level_3_type_7_novelties.xml"]
+    config_files = ["test_mixed_novelties.xml"]
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-p', type=str, help='path prefix after hydra/data/science_birds/config', default=None, dest='path_prefix')
@@ -56,7 +57,7 @@ if __name__ == '__main__':
         print("Using args config_files: {}".format(args.config_files))
         config_files = args.config_files
 
-    trace_dir = path.join(settings.ROOT_PATH,"agent","consistency","trace")
+    trace_dir = path.join(settings.ROOT_PATH,"agent","consistency","trace","observations")
 
     for config_file in config_files:
         output_dir = path.join(settings.ROOT_PATH, "data", "science_birds", config_file[:-4])
@@ -72,10 +73,10 @@ if __name__ == '__main__':
         shutil.copytree(trace_dir, copy_path_baseline)
         shutil.rmtree(trace_dir)
 
-        settings.SB_DEFAULT_SHOT = 'RANDOM'
-        main(config=path.join(path_prefix, config_file))
+        # settings.SB_DEFAULT_SHOT = 'RANDOM'
+        # main(config=path.join(path_prefix, config_file))
 
-        copy_path_random = path.join(output_dir, "random")
+        # copy_path_random = path.join(output_dir, "random")
 
-        shutil.copytree(trace_dir, copy_path_random)
-        shutil.rmtree(trace_dir)
+        # shutil.copytree(trace_dir, copy_path_random)
+        # shutil.rmtree(trace_dir)

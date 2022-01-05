@@ -24,6 +24,10 @@ from worlds.science_birds import SBState
 import csv
 logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
 
+if settings.SB_COLLECT_PERCEPTION_DATA:
+    # from utils.assess_classification import OBJECT_CLASSES
+    from utils.assess_classification import object_class_convert
+
 class Perception():
     def __init__(self):
         '''Taken from naive_agent_groundtruth'''
@@ -85,12 +89,15 @@ class Perception():
                           'polygon':Polygon(obj['geometry']['coordinates'][0])}
                 new_objs[obj['properties']['id']] = new_obj
             elif obj['geometry'] and obj['geometry']['type'] != 'MultiPoint': #if it is not the ground or a trajectory
-                type = self.classify_obj(obj)
-                new_obj = {'type':type,
+                if settings.SB_COLLECT_PERCEPTION_DATA:
+                    object_type = self.classify_object_for_data_collection(obj)
+                else:
+                    object_type = self.classify_obj(obj)
+                new_obj = {'type':object_type,
                             'polygon':Polygon(obj['geometry']['coordinates'][0])}
-                if type == 'unknown':
+                if object_type == 'unknown':
                     new_obj['colormap']=obj['properties']['colormap']
-                if type == 'platform':
+                if object_type == 'platform':
                     new_obj['id'] = obj['properties']['id']
                     platforms.append(new_obj)
                 else:
@@ -169,6 +176,12 @@ class Perception():
         except TopologicalError:
             logging.info("Ill-formed platform. Returning an empty list for the platforms")
         return ret
+
+    def classify_object_for_data_collection(self, obj_json, translate_to_features=True):
+        object_label = obj_json['properties']['label']
+        # object_class = OBJECT_CLASSES[object_label]
+        object_class = object_class_convert(object_label)
+        return object_class
 
 
     #Translate to features is only false in testing.
