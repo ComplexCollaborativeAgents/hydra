@@ -61,9 +61,10 @@ class SBPlanner(HydraPlanner):
             exporter.to_file(pddl_problem, "{}/trace/problems/{}_problem.pddl".format(settings.SB_PLANNING_DOCKER_PATH,
                                                                                       self.current_problem_prefix))
 
-    def get_plan_actions(self,count=0):
+    def get_plan_actions(self, count=0):
 
         plan_actions = []
+        planning_successful = False
 
         try:
             # TODO create NYX object and get stats from it
@@ -75,6 +76,7 @@ class SBPlanner(HydraPlanner):
 
             plan_actions = self.extract_actions_from_plan_trace(
                 "%s/plan_sb_prob.pddl" % str(settings.SB_PLANNING_DOCKER_PATH))
+            planning_successful = True
 
         except Exception as e_inst:
             import traceback
@@ -85,11 +87,10 @@ class SBPlanner(HydraPlanner):
 
         if len(plan_actions) > 0:
             if (plan_actions[0].action_name == "syntax error") and (count < 1):
-                return self.get_plan_actions(count + 1)
-            else:
-                return plan_actions
+                plan_actions, planning_successful = self.get_plan_actions(count + 1)
         else:
-            return []
+            plan_actions = []
+        return plan_actions, planning_successful
 
     ''' Parses the given plan trace file and outputs the plan '''
     def extract_actions_from_plan_trace(self, plane_trace_file: str):

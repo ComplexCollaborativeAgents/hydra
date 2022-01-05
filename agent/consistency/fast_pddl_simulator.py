@@ -1,19 +1,19 @@
-'''
+"""
     This module provides enhancements to our basic PDDL+ simulator
-'''
+"""
 from agent.consistency.pddl_plus_simulator import *
 from agent.planning.domain_analyzer import DomainAnalyzer
 
 class CachingPddlPlusSimulator(PddlPlusSimulator):
-    ''' A PDDL+ sim that caches calls to evaluate formulaes to gain efficiency  '''
+    """ A PDDL+ sim that caches calls to evaluate formulaes to gain efficiency  """
 
     def __init__(self, allow_cascading_effects=False, apply_domain_refiner=True):
         self.context = dict()
         self.apply_domain_refiner = apply_domain_refiner
         super().__init__(allow_cascading_effects=allow_cascading_effects)
 
-    ''' Simulate running the given plan from the start state '''
     def simulate(self, plan_to_simulate: PddlPlusPlan, problem: PddlPlusProblem, domain: PddlPlusDomain, delta_t:float, max_t:float = 1000, max_iterations: float = 1000):
+        """ Simulate running the given plan from the start state """
         # Remove inapplicable events
 
         if self.apply_domain_refiner:
@@ -28,8 +28,8 @@ class CachingPddlPlusSimulator(PddlPlusSimulator):
         self.context.clear()  # New t value may change the cached values TODO: Smarter caching
         return super()._sim_step(current_state, t)
 
-    ''' Apply the specified effect ont he given state '''
     def apply_effects(self, state, effects, delta_t=-1):
+        """ Apply the specified effect ont he given state """
         self.context.clear() # Effects may change the cached values TODO: Smarter caching
         super().apply_effects(state, effects,delta_t)
 

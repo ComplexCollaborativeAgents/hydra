@@ -132,7 +132,8 @@ class MmoBasedMetaModelRepair(SimulationBasedMetaModelRepair):
 
 
 class FocusedMetaModelRepair(MmoBasedMetaModelRepair):
-    ''' A MetaModelRepair'''
+    """ A MetaModelRepair"""
+
 
     def __init__(self, fluents_to_repair,
                  consistency_estimator,

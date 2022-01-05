@@ -11,8 +11,8 @@ class MetaModel():
                  metric: str,
                  repairable_constants :list,
                  repair_deltas: list = None,
-                 constant_numeric_fluents:dict = {},
-                 constant_boolean_fluents:dict = {}):
+                 constant_numeric_fluents: dict = {},
+                 constant_boolean_fluents: dict = {}):
 
         self.docker_path = docker_path
         self.domain_file_name = domain_file_name

@@ -50,7 +50,7 @@ class ScienceBirdsObservation(HydraObservation):
         self.state = None # An SBState
         self.action = None  # an SBAction
         self.intermediate_states = None # The  sequence of intermediates states observed after doing the action
-        self.reward = 0 # The reward obtained from performing an action
+        self.reward = 0  # The reward obtained from performing an action
 
     def get_initial_state(self):
         return self.state

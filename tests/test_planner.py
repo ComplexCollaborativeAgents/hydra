@@ -15,7 +15,7 @@ def test_planner():
     assert os.stat("%s/sb_prob.pddl" % settings.SB_PLANNING_DOCKER_PATH).st_size > 0
 
     planner = pl.SBPlanner()
-    actions = planner.get_plan_actions()
+    actions, _ = planner.get_plan_actions()
 
     assert os.stat("%s/docker_build_trace.txt" % settings.SB_PLANNING_DOCKER_PATH).st_size > 0
 
@@ -29,5 +29,5 @@ def test_planner():
 
 if __name__ == '__main__':
     planner = pl.SBPlanner()
-    actions = planner.get_plan_actions()
+    actions, _ = planner.get_plan_actions()
     assert len(actions) > 0

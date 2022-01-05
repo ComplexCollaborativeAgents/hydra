@@ -9,16 +9,22 @@ from collections import defaultdict
 '''
 Return a numeric fluent from the list of fluents
 '''
+
+
 def get_numeric_fluent(fluent_list, fluent_name):
     for fluent in fluent_list:
-        if fluent[0]=="=": # Note: I intentionally not added an AND with the next if, to not fall for cases where len(fluent)==1
+        if fluent[
+            0] == "=":  # Note: I intentionally not added an AND with the next if, to not fall for cases where len(fluent)==1
             if fluents_names_equals(fluent[1], fluent_name):
                 return fluent
     raise ValueError("Fluent %s not found in list" % fluent_name)
 
+
 '''
 Return the value of a given numeric fluent name
 '''
+
+
 def get_numeric_fluent_value(fluent):
     return fluent[-1]
 
@@ -27,27 +33,34 @@ def get_numeric_fluent_value(fluent):
 A fluent is defined by a identifier and a set of objects. 
 Two fluent names are equal if these are equal.  
 '''
+
+
 def fluents_names_equals(fluent_name1, fluent_name2):
-    if len(fluent_name1)!=len(fluent_name2):
+    if len(fluent_name1) != len(fluent_name2):
         return False
     for i in range(len(fluent_name1)):
-        if fluent_name1[i]!=fluent_name2[i]:
+        if fluent_name1[i] != fluent_name2[i]:
             return False
     return True
+
 
 class WorldChangeTypes(Enum):
     process = 1
     event = 2
     action = 3
 
+
 ''' A class that represents an event, process, or action'''
+
+
 class PddlPlusWorldChange():
-    def __init__(self, type : WorldChangeTypes):
+    def __init__(self, type: WorldChangeTypes):
         self.name = None
         self.type = type
         self.parameters = list()
         self.preconditions = list()
         self.effects = list()
+
     def __str__(self):
         return str(self.name)
 
@@ -64,9 +77,9 @@ class PddlPlusProblem():
     def __eq__(self, other):
         if isinstance(other, PddlPlusProblem) == False:
             return False
-        if self.name!=other.name:
+        if self.name != other.name:
             return False
-        if self.domain!=other.domain:
+        if self.domain != other.domain:
             return False
         for object in self.objects:
             if object not in other.objects:
@@ -86,13 +99,15 @@ class PddlPlusProblem():
         for goal_item in other.goal:
             if goal_item not in self.goal:
                 return False
-        if self.metric!=other.metric:
+        if self.metric != other.metric:
             return False
         return True
 
     ''' Get the initial state in PDDL+ format'''
+
     def get_init_state(self):
         return PddlPlusState(self.init)
+
 
 class PddlPlusDomain():
     def __init__(self):
@@ -106,21 +121,26 @@ class PddlPlusDomain():
         self.actions = list()
         self.events = list()
 
-    def get_action(self,action_name):
+    def get_action(self, action_name):
         for action in self.actions:
             # print ("COMPARE: ", action.name, " vs ", action_name)
-            if action.name==action_name:
+            if action.name == action_name:
                 return action
-        print ("\nNO MATCHING ACTIONS IN LIST:", self.actions)
+        print("\nNO MATCHING ACTIONS IN LIST:", self.actions)
         return None
+
 
 '''
 A class representing a PDDL+ state. Contains only the fluents and their values. 
 '''
+
+
 class PddlPlusState():
     ''' Creates a PDDL+ state object initialized by a list of fluent given in the PddlPlusProblem format of lists'''
+
     def __init__(self, fluent_list: list = None):
-        self.numeric_fluents = defaultdict(lambda: 0) # Default value of non-existing fluents is zero in current planner.
+        self.numeric_fluents = defaultdict(
+            lambda: 0)  # Default value of non-existing fluents is zero in current planner.
         self.boolean_fluents = set()
         if fluent_list is not None:
             self.load_from_fluent_list(fluent_list)
@@ -131,7 +151,7 @@ class PddlPlusState():
         elif fluent_name in self.boolean_fluents:
             return self.is_true(fluent_name)
         else:
-            return False # For the case of Boolean fluents, this makes sense
+            return False  # For the case of Boolean fluents, this makes sense
 
     def __contains__(self, fluent_name):
         if fluent_name in self.numeric_fluents:
@@ -143,17 +163,20 @@ class PddlPlusState():
     ''' Loads the PddlPlusState object with a list of tuples as imported from PDDL file. 
         A tuple representing a numeric variable is of the form (=, object_list, value). 
         A tuple representing a boolean variable is of the form (object_list) or (not object_list)'''
-    def load_from_fluent_list(self, fluent_list:list):
+
+    def load_from_fluent_list(self, fluent_list: list):
         for fluent in fluent_list:
-            if fluent[0]=="=": # This is a numeric fluent
+            if fluent[0] == "=":  # This is a numeric fluent
                 fluent_name = tuple(fluent[1])
-                self.numeric_fluents[fluent_name]=float(fluent[2]) # Wrapping in tuple to be hashable, converting to float (not string)
-            else: # This is a boolean fluent
-                if fluent[0]!="not":
+                self.numeric_fluents[fluent_name] = float(
+                    fluent[2])  # Wrapping in tuple to be hashable, converting to float (not string)
+            else:  # This is a boolean fluent
+                if fluent[0] != "not":
                     fluent_name = tuple(fluent)
-                    self.boolean_fluents.add(fluent_name) # Wrapping in tuple to be hashable
+                    self.boolean_fluents.add(fluent_name)  # Wrapping in tuple to be hashable
 
     ''' Returns this state as a list of fluents, compatible with PddlProblem'''
+
     def save_as_fluent_list(self):
         fluent_list = []
         for fluent_name in self.numeric_fluents:
@@ -178,11 +201,12 @@ class PddlPlusState():
 
     ''' Returns the set of bird objects alive in this state. 
      Bird is identified by the x_bird fluent. Returns a set of bird names. '''
+
     def get_birds(self):
         birds = set()
         for fluent_name in self.numeric_fluents:
             # We expect every bird has an x coordinate in a fluent of the form (x_bird, birdname)
-            if len(fluent_name)==2 and fluent_name[0]=="x_bird":
+            if len(fluent_name) == 2 and fluent_name[0] == "x_bird":
                 birds.add(fluent_name[1])
         return birds
 
@@ -190,59 +214,64 @@ class PddlPlusState():
         agents = set()
         for fluent_name in self.numeric_fluents:
             # We expect every agent has an x coordinate in a fluent of the form (x_agent, agentname)
-            if len(fluent_name)==2 and fluent_name[0]=="x_agent":
+            if len(fluent_name) == 2 and fluent_name[0] == "x_agent":
                 agents.add(fluent_name[1])
         return agents
 
     ''' Returns the active bird'''
+
     def get_active_bird(self):
         active_bird_id = int(self['active_bird'])
         return self.get_bird(active_bird_id)
 
     ''' Get the bird with the given bird id'''
+
     def get_bird(self, bird_id: int):
-        for bird in self.get_birds(): # TODO: Can change this to be more efficient
+        for bird in self.get_birds():  # TODO: Can change this to be more efficient
             if bird_id == int(self[("bird_id", bird)]):
                 return bird
         raise ValueError("Bird %d not found in state" % bird_id)
 
     ''' Returns the set of bird objects alive in this state. 
      Bird is identified by the x_bird fluent. Returns a set of bird names. '''
+
     def get_pigs(self):
         pigs = set()
         for fluent_name in self.numeric_fluents:
             # We expect every bird has an x coordinate in a fluent of the form (x_bird, birdname)
-            if len(fluent_name)==2 and fluent_name[0]=="x_pig":
+            if len(fluent_name) == 2 and fluent_name[0] == "x_pig":
                 pigs.add(fluent_name[1])
         return pigs
 
     ''' Returns the set of bird objects alive in this state. 
      Bird is identified by the x_bird fluent. Returns a set of bird names. '''
+
     def get_platforms(self):
         platforms = set()
         for fluent_name in self.numeric_fluents:
             # We expect every bird has an x coordinate in a fluent of the form (x_platform, platform_name)
-            if len(fluent_name)==2 and fluent_name[0]=="x_platform":
+            if len(fluent_name) == 2 and fluent_name[0] == "x_platform":
                 platforms.add(fluent_name[1])
         return platforms
 
     ''' Returns the set of block objects present in this state. 
      Block is identified by the x_block fluent. Returns a set of block names. '''
+
     def get_blocks(self):
         blocks = set()
         for fluent_name in self.numeric_fluents:
             # We expect every bird has an x coordinate in a fluent of the form (x_block, block_name)
-            if len(fluent_name)==2 and fluent_name[0]=="x_block":
+            if len(fluent_name) == 2 and fluent_name[0] == "x_block":
                 blocks.add(fluent_name[1])
         return blocks
 
     # Deep compare
     def __eq__(self, other):
-        if isinstance(other, PddlPlusState)==False:
+        if isinstance(other, PddlPlusState) == False:
             return False
-        if self.numeric_fluents!=other.numeric_fluents:
+        if self.numeric_fluents != other.numeric_fluents:
             return False
-        if self.boolean_fluents!=other.boolean_fluents:
+        if self.boolean_fluents != other.boolean_fluents:
             return False
         return True
 
@@ -250,16 +279,17 @@ class PddlPlusState():
     def __str__(self):
         string_buffer = ""
         for fluent_name in self.numeric_fluents:
-            string_buffer = "%s %s=%s\n" %  (string_buffer, str(fluent_name), self.numeric_fluents[fluent_name])
+            string_buffer = "%s %s=%s\n" % (string_buffer, str(fluent_name), self.numeric_fluents[fluent_name])
         for fluent_name in self.boolean_fluents:
             string_buffer = "%s %s\n" % (string_buffer, str(fluent_name))
         return string_buffer
 
     ''' Export as a string in PDDL (lisp) format '''
+
     def to_pddl(self):
         string_buffer = ""
         for fluent_name in self.numeric_fluents:
-            string_buffer = "%s (=%s %s)\n" %  (string_buffer, str(fluent_name), self.numeric_fluents[fluent_name])
+            string_buffer = "%s (=%s %s)\n" % (string_buffer, str(fluent_name), self.numeric_fluents[fluent_name])
         for fluent_name in self.boolean_fluents:
             string_buffer = "%s %s\n" % (string_buffer, str(fluent_name))
         return string_buffer
@@ -271,8 +301,6 @@ class PddlPlusState():
         for fluent_name in self.boolean_fluents:
             print("%s" % str(fluent_name))
 
-
-
     # Deep clone
     def clone(self):
         new_state = PddlPlusState()
@@ -283,14 +311,15 @@ class PddlPlusState():
         return new_state
 
 
-
-
 ''' Class responsible for all groundings'''
+
+
 class PddlPlusGrounder():
-    def __init__(self, no_dummy_objects = False):
+    def __init__(self, no_dummy_objects=False):
         self.no_dummy_objects = no_dummy_objects
 
     ''' Recursively ground the given element with the given binding '''
+
     def ground_element(self, element, binding):
         if isinstance(element, list):
             grounded_element = list()
@@ -319,15 +348,16 @@ class PddlPlusGrounder():
         return grounded_world_change
 
     ''' Created a grounded version of this domain '''
-    def ground_domain(self, domain: PddlPlusDomain, problem : PddlPlusProblem):
+
+    def ground_domain(self, domain: PddlPlusDomain, problem: PddlPlusProblem):
 
         grounded_domain = PddlPlusDomain()
         grounded_domain.name = domain.name
-        grounded_domain.types = domain.types # TODO: Probably unnecessary
+        grounded_domain.types = domain.types  # TODO: Probably unnecessary
 
         for predicate in domain.predicates:
             predicate_parameters = self.__get_predicate_parameters(predicate)
-            if len(predicate_parameters)==0:
+            if len(predicate_parameters) == 0:
                 grounded_domain.predicates.append(predicate)
             else:
                 all_bindings = self.__get_possible_bindings(predicate_parameters, problem)
@@ -341,10 +371,11 @@ class PddlPlusGrounder():
         return grounded_domain
 
     ''' Ground a list of world_change objects to the given problem '''
+
     def __ground_world_change_lists(self, world_change_list, problem):
         grounded_world_change_list = list()
         for world_change in world_change_list:
-            assert len(world_change.parameters)==1
+            assert len(world_change.parameters) == 1
             world_change_parameters = world_change.parameters[0]
             process_parameters = self.__get_typed_parameter_list(world_change_parameters)
             all_bindings = self.__get_possible_bindings(process_parameters, problem)
@@ -354,6 +385,7 @@ class PddlPlusGrounder():
 
     ''' Extracts from a raw list of the form [?x - typex y? - type?] a list of the form [(?x typex)(?y typey)] 
     TODO: Think about where this really should go '''
+
     def __get_typed_parameter_list(self, element: list):
         i = 0
         typed_parameters = list()
@@ -365,53 +397,67 @@ class PddlPlusGrounder():
         return typed_parameters
 
     ''' Extract the list of typed parameters of the given predict'''
+
     def __get_predicate_parameters(self, predicate):
         parameter_list = predicate[1:]
         return self.__get_typed_parameter_list(parameter_list)
 
     ''' Enumerate all possible bindings of the given parameters to the given problem '''
-    def __get_possible_bindings(self, parameters, problem : PddlPlusProblem):
+
+    def __get_possible_bindings(self, parameters, problem: PddlPlusProblem):
         all_bindings = list()
         self.__recursive_get_possible_bindings(parameters, problem, dict(), all_bindings)
         return all_bindings
 
     ''' Recursive method to find all bindings '''
+
     def __recursive_get_possible_bindings(self, parameters, problem, binding, bindings):
         for object in problem.objects:
-            if len(object)>1 and self.no_dummy_objects and "dummy" in object[0]:
+            if len(object) > 1 and self.no_dummy_objects and "dummy" in object[0]:
                 continue
             if self.__can_bind(parameters[0], object):
                 assert parameters[0][0].startswith("?")
 
-                binding[parameters[0][0]]=object[0]
+                binding[parameters[0][0]] = object[0]
                 if len(parameters) == 1:
                     bindings.append(binding.copy())
                 else:
                     self.__recursive_get_possible_bindings(parameters[1:], problem, binding, bindings)
 
     ''' Checks if one can bound the given parameter to the given object '''
+
     def __can_bind(self, parameter, object):
-        return object[-1]==parameter[-1]
+        return object[-1] == parameter[-1]
+
 
 ''' An action with a time stamp saying when it should start'''
+
+
 class TimedAction():
-    def __init__(self, action_name: str, start_at : float):
+    def __init__(self, action_name: str, start_at: float):
         self.action_name = action_name
         self.start_at = round(start_at, 8)
 
     def __str__(self):
         return "t=%s, %s" % (self.start_at, self.action_name)
 
+
 ''' Just a list of timed actions '''
+
+
 class PddlPlusPlan(list):
     def __init__(self, actions: list = list()):
         for action in actions:
-            if isinstance(action, TimedAction)==False:
-                raise ValueError("Action %s is not a TimedAction or a [action,time] pair" % action) # This check should probably be removed at some stage
+            if isinstance(action, TimedAction) == False:
+                raise ValueError(
+                    "Action %s is not a TimedAction or a [action,time] pair" % action)  # This check should probably be removed at some stage
             self.append(action)
 
+
 ''' Check if a given string is a float. TODO: Replace this with a more elegant python way of doing this.'''
-def is_float( text :str ):
+
+
+def is_float(text: str):
     try:
         float(text)
         return True
@@ -420,6 +466,8 @@ def is_float( text :str ):
 
 
 ''' Check if the given string is one of the supported mathematical operations '''
+
+
 def is_op(op_name: str):
     if op_name in ("+-/*=><"):
         return True

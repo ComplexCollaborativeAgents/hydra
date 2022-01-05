@@ -10,7 +10,6 @@
                 (meta_wood_multiplier) (meta_stone_multiplier) (meta_ice_multiplier) (meta_platform_size) ; TODO add: meta_block_size tnt_explosion_size bird_explosion_size
                 (v_bird_multiplier)
                 (x_pig ?p - pig) (y_pig ?p - pig) (pig_radius ?p - pig) (m_pig ?p - pig)
-                (pig_life ?p - pig) (fall_damage) (explosion_damage)
                 (x_platform ?pl - platform) (y_platform ?pl - platform) (platform_width ?pl - platform) (platform_height ?pl - platform)
                 (x_block ?bl - block) (y_block ?bl - block) (block_width ?bl - block) (block_height ?bl - block) (block_life ?bl - block) (block_mass ?bl - block) (block_stability ?bl - block)
                 (points_score)
@@ -74,19 +73,6 @@
         )
     )
 
-    (:event pig_death
-        :parameters (?p - pig)
-        :precondition (and
-            (not (pig_dead ?p))
-            (<= (pig_life ?p) 0)
-        )
-        :effect (and
-            (pig_dead ?p)
-            (pig_killed)
-            (increase (points_score) 5000)
-            )
-    )
-
     (:event collision_ground
         :parameters (?b - bird)
         :precondition (and
@@ -122,7 +108,7 @@
         )
     )
 
-    (:event collision_pig_kill
+    (:event collision_pig
         :parameters (?b - bird ?p - pig)
         :precondition (and
             (= (active_bird) (bird_id ?b))
@@ -132,9 +118,9 @@
             (>= (y_bird ?b) (- (y_pig ?p) (pig_radius ?p)) )
             (<= (y_bird ?b) (+ (y_pig ?p) (pig_radius ?p)) )
             (not (pig_dead ?p))
-            (<= (pig_life ?p) (v_bird ?b))
         )
         :effect (and
+            (pig_dead ?p)
             (assign (vx_bird ?b) (- (vx_bird ?b) (* (/ (* 2 (m_pig ?p)) (+ (m_bird ?b) (m_pig ?p))) (*
                 (/
                     (+ (+ (- (- (- (- (+ (* (vx_bird ?b) (x_bird ?b)) (* (vy_bird ?b) (y_bird ?b))) (* (vx_bird ?b) (x_pig ?p))) (* (vy_bird ?b) (y_pig ?p))) (* 0 (x_bird ?b))) (* 0 (y_bird ?b))) (* 0 (x_pig ?p))) (* 0 (y_pig ?p)))
@@ -150,43 +136,10 @@
                 )
                 (- (y_pig ?p) (y_bird ?b)) )
             )  ) )
+
             (assign (bounce_count ?b) (+ (bounce_count ?b) 1))
-            (pig_dead ?p)
             (pig_killed)
             (increase (points_score) 5000)
-        )
-    )
-
-    (:event collision_pig_wound
-        :parameters (?b - bird ?p - pig)
-        :precondition (and
-            (= (active_bird) (bird_id ?b))
-            (> (v_bird ?b) 0)
-            (>= (x_bird ?b) (- (x_pig ?p) (pig_radius ?p)) )
-            (<= (x_bird ?b) (+ (x_pig ?p) (pig_radius ?p)) )
-            (>= (y_bird ?b) (- (y_pig ?p) (pig_radius ?p)) )
-            (<= (y_bird ?b) (+ (y_pig ?p) (pig_radius ?p)) )
-            (not (pig_dead ?p))
-            (> (pig_life ?p) (v_bird ?b))
-        )
-        :effect (and
-            (decrease (pig_life ?p) (v_bird ?b))
-            (assign (vx_bird ?b) (- (vx_bird ?b) (* (/ (* 2 (m_pig ?p)) (+ (m_bird ?b) (m_pig ?p))) (*
-                (/
-                    (+ (+ (- (- (- (- (+ (* (vx_bird ?b) (x_bird ?b)) (* (vy_bird ?b) (y_bird ?b))) (* (vx_bird ?b) (x_pig ?p))) (* (vy_bird ?b) (y_pig ?p))) (* 0 (x_bird ?b))) (* 0 (y_bird ?b))) (* 0 (x_pig ?p))) (* 0 (y_pig ?p)))
-                    (+ (+ (- (- (- (- (+ (* (x_pig ?p) (x_pig ?p)) (* (y_pig ?p) (y_pig ?p))) (* (x_pig ?p) (x_bird ?b))) (* (y_pig ?p) (y_bird ?b))) (* (x_bird ?b) (x_pig ?p))) (* (y_bird ?b) (y_pig ?p))) (* (x_bird ?b) (x_bird ?b))) (* (y_bird ?b) (y_bird ?b)))
-                )
-                (- (x_pig ?p) (x_bird ?b)) )
-            )  ) )
-
-            (assign (vy_bird ?b) (- (vy_bird ?b) (* (/ (* 2 (m_pig ?p)) (+ (m_bird ?b) (m_pig ?p))) (*
-                (/
-                    (+ (+ (- (- (- (- (+ (* (vx_bird ?b) (x_bird ?b)) (* (vy_bird ?b) (y_bird ?b))) (* (vx_bird ?b) (x_pig ?p))) (* (vy_bird ?b) (y_pig ?p))) (* 0 (x_bird ?b))) (* 0 (y_bird ?b))) (* 0 (x_pig ?p))) (* 0 (y_pig ?p)))
-                    (+ (+ (- (- (- (- (+ (* (x_pig ?p) (x_pig ?p)) (* (y_pig ?p) (y_pig ?p))) (* (x_pig ?p) (x_bird ?b))) (* (y_pig ?p) (y_bird ?b))) (* (x_bird ?b) (x_pig ?p))) (* (y_bird ?b) (y_pig ?p))) (* (x_bird ?b) (x_bird ?b))) (* (y_bird ?b) (y_bird ?b)))
-                )
-                (- (y_pig ?p) (y_bird ?b)) )
-            )  ) )
-            (assign (bounce_count ?b) (+ (bounce_count ?b) 1))
         )
     )
 
@@ -204,14 +157,13 @@
             (> (block_life ?bl) (v_bird ?b) )
         )
         :effect (and
-
+            (assign (block_stability ?bl) (- (block_stability ?bl) (v_bird ?b)) )
             (assign (block_life ?bl) (- (block_life ?bl) (v_bird ?b)) )
             (assign (x_bird ?b) (- (x_block ?bl) (+ (/ (block_width ?bl) 2) 1) ) )
             (assign (y_bird ?b) (+ (y_block ?bl) (+ (/ (block_height ?bl) 2) 1) ) )
             (assign (vy_bird ?b) (* (vy_bird ?b) (/ (v_bird ?b) (block_stability ?bl)) ))
             (assign (vx_bird ?b) (- 0 (* (vx_bird ?b) (/ (v_bird ?b) (block_stability ?bl))) ))
-            (assign (block_stability ?bl) (- (block_stability ?bl) (v_bird ?b)) )
-            (assign (v_bird ?b) (/ (v_bird ?b) 2))  ; This is an approximation, because the original values of block stability and life have already been lost.
+            (assign (v_bird ?b) (* (v_bird ?b) (/ (v_bird ?b) (block_stability ?bl)) ))
             (assign (bounce_count ?b) (+ (bounce_count ?b) 1))
         )
     )
@@ -235,9 +187,9 @@
         :effect (and
             (assign (block_stability ?bl) (- (block_stability ?bl) (v_bird ?b)) )
             (assign (block_life ?bl) (- (block_life ?bl) (v_bird ?b)) )
-            (decrease (vy_bird ?b) (block_stability ?bl))
-            (decrease (vx_bird ?b) (block_stability ?bl))
-            (decrease (v_bird ?b) (block_stability ?bl))
+            (decrease (vy_bird ?b) (block_life ?bl))
+            (decrease (vx_bird ?b) (block_life ?bl))
+            (decrease (v_bird ?b) (block_life ?bl))
             (assign (bounce_count ?b) (+ (bounce_count ?b) 1))
             ;(increase (points_score) 500)
         )
@@ -319,7 +271,8 @@
             (<= (y_pig ?p) (+ (y_block ?bl_bottom) (+ (block_height ?bl_bottom) (pig_radius ?p))) )
         )
         :effect (and
-            (decrease (pig_life ?p) (fall_damage))
+            (pig_dead ?p)
+            (pig_killed)
             (increase (points_score) 5000)
         )
     )
@@ -430,7 +383,9 @@
             (>= (- (y_bird ?b) (y_pig ?p)) -50 )
         )
         :effect (and
-            (decrease (pig_life ?p) (explosion_damage))
+            (pig_dead ?p)
+            (pig_killed)
+            (increase (points_score) 5000)
         )
     )
 

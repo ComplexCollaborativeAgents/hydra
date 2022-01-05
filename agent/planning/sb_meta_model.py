@@ -17,30 +17,48 @@ logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s
 logger = logging.getLogger("sb_meta_model")
 
 ''' Utility functions '''
+
+
 def get_x_coordinate(obj):
     return round(abs(obj[1]['polygon'].bounds[2] + obj[1]['polygon'].bounds[0]) / 2)
-def get_y_coordinate(obj, groundOffset):
-    return abs(round(abs(obj[1]['polygon'].bounds[1] + obj[1]['polygon'].bounds[3]) / 2) - groundOffset)
+
+
+def get_y_coordinate(obj, ground_offset):
+    return abs(round(abs(obj[1]['polygon'].bounds[1] + obj[1]['polygon'].bounds[3]) / 2) - ground_offset)
+
 
 # TODO: See how to merge the two functions below with the two above
 def get_slingshot_x(slingshot):
-    return round((slingshot[1]['polygon'].bounds[0] + slingshot[1]['polygon'].bounds[2]) / 2) - 0 # TODO: Why this minus zero
-def get_slingshot_y(groundOffset, slingshot):
-    return round(abs(((slingshot[1]['polygon'].bounds[1] + slingshot[1]['polygon'].bounds[3]) / 2) - groundOffset) - 0)
+    return round(
+        (slingshot[1]['polygon'].bounds[0] + slingshot[1]['polygon'].bounds[2]) / 2) - 0  # TODO: Why this minus zero
+
+
+def get_slingshot_y(ground_offset, slingshot):
+    return round(abs(((slingshot[1]['polygon'].bounds[1] + slingshot[1]['polygon'].bounds[3]) / 2) - ground_offset) - 0)
+
+
 def get_scale(slingshot):
     # sling.width + sling.height
-    return abs(round(slingshot[1]['polygon'].bounds[0] - slingshot[1]['polygon'].bounds[2])) + round(abs(slingshot[1]['polygon'].bounds[1] - slingshot[1]['polygon'].bounds[3]))
+    return abs(round(slingshot[1]['polygon'].bounds[0] - slingshot[1]['polygon'].bounds[2])) + round(
+        abs(slingshot[1]['polygon'].bounds[1] - slingshot[1]['polygon'].bounds[3]))
+
 
 def get_radius(obj):
     return round((abs(obj[1]['polygon'].bounds[2] - obj[1]['polygon'].bounds[0]) / 2) * 0.9)
+
+
 def get_height(obj):
     return abs(obj[1]['polygon'].bounds[3] - obj[1]['polygon'].bounds[1])
+
+
 def get_width(obj):
     return abs(obj[1]['polygon'].bounds[2] - obj[1]['polygon'].bounds[0])
 
 
 ''' Returns the location of the closest object to aim for '''
-def get_random_pig_xy(pddl_problem : PddlPlusProblem):
+
+
+def get_random_pig_xy(pddl_problem: PddlPlusProblem):
     state = PddlPlusState(pddl_problem.init)
     target_pigs = list(state.get_pigs())
 
@@ -50,17 +68,20 @@ def get_random_pig_xy(pddl_problem : PddlPlusProblem):
 
     return random_pig_x, random_pig_y
 
+
 ''' Returns the location of the closest object to aim for '''
-def get_closest_object_xy(pddl_problem : PddlPlusProblem):
+
+
+def get_closest_object_xy(pddl_problem: PddlPlusProblem):
     state = PddlPlusState(pddl_problem.init)
     target_pigs = state.get_pigs()
     closest_obj_x = None
     closest_obj_y = None
-    #assert len(target_pigs) > 0
+    # assert len(target_pigs) > 0
     for pig in target_pigs:
         x_pig = state[('x_pig', pig)]
         y_pig = state[('y_pig', pig)]
-        if (closest_obj_x == None) or (
+        if (closest_obj_x is None) or (
                 math.sqrt(x_pig ** 2 + y_pig ** 2) < math.sqrt(closest_obj_x ** 2 + closest_obj_y ** 2)):
             closest_obj_x = x_pig
             closest_obj_y = y_pig
@@ -70,7 +91,7 @@ def get_closest_object_xy(pddl_problem : PddlPlusProblem):
         y_plat = state[('y_platform', plat)]
         if (y_plat - ((state[('y_height', plat)]) / 2)) >= 10.0:
             y_plat = 0
-        if (closest_obj_x == None) or (
+        if (closest_obj_x is None) or (
                 math.sqrt(x_plat ** 2 + y_plat ** 2) < math.sqrt(closest_obj_x ** 2 + closest_obj_y ** 2)):
             closest_obj_x = x_plat
             closest_obj_y = y_plat
@@ -78,20 +99,23 @@ def get_closest_object_xy(pddl_problem : PddlPlusProblem):
     for blo in state.get_blocks():
         x_blo = state[('x_block', blo)]
         y_blo = state[('y_block', blo)]
-        if (closest_obj_x == None) or (
+        if (closest_obj_x is None) or (
                 math.sqrt(x_blo ** 2 + y_blo ** 2) < math.sqrt(closest_obj_x ** 2 + closest_obj_y ** 2)):
             closest_obj_x = x_blo
             closest_obj_y = y_blo
             # print("\n\nNEW CLOSEST TARGET: " + blo + "(" + str(closest_obj_x) + ", " + str(closest_obj_y) + ")\n")
     return closest_obj_x, closest_obj_y
 
+
 ''' Returns a min/max launch angle to hit the given target point '''
+
+
 def estimate_launch_angle(slingshot, targetPoint, meta_model):
     # calculate relative position of the target (normalised)
     scale_factor = meta_model.hyper_parameters['scale_factor']
     _velocity = 9.5 / scale_factor
-    X_OFFSET = 0.0
-    Y_OFFSET = 0.0
+    x_offset = 0.0
+    y_offset = 0.0
 
     default_min_angle = 0.0
     default_max_angle = 90.0
@@ -105,8 +129,8 @@ def estimate_launch_angle(slingshot, targetPoint, meta_model):
         # print ('scale ', scale)
         # System.out.println("scale " + scale)
         # ref = Point2D(int(slingshot.X + X_OFFSET * slingshot.width), int(slingshot.Y + Y_OFFSET * slingshot.height))
-        ref = Point2D(int(get_slingshot_x(slingshot) + X_OFFSET * get_width(slingshot)),
-                      int(get_slingshot_y(ground_offset, slingshot) + Y_OFFSET * get_height(slingshot)))
+        ref = Point2D(int(get_slingshot_x(slingshot) + x_offset * get_width(slingshot)),
+                      int(get_slingshot_y(ground_offset, slingshot) + y_offset * get_height(slingshot)))
         # print ('ref point', str(ref))
         x = (targetPoint.X - ref.X)
         y = (targetPoint.Y - ref.Y)
@@ -121,7 +145,7 @@ def estimate_launch_angle(slingshot, targetPoint, meta_model):
         g = 0.48 * meta_model.constant_numeric_fluents['gravity_factor'] / scale_factor * scale
         # print('gravity', g)
         # launch speed
-        v = 182  #_velocity * scale
+        v = 182  # _velocity * scale
         # print ('launch speed ', v)
 
         solution_existence_factor = v ** 4 - g ** 2 * x ** 2 - 2 * y * g * v ** 2
@@ -143,9 +167,9 @@ def estimate_launch_angle(slingshot, targetPoint, meta_model):
 
         distance_between = math.sqrt(x ** 2 + y ** 2)  # ad-hoc patch
 
-        theta_1 = math.acos(cos_theta_1) # + distance_between * 0.0001  # compensate the rounding error
+        theta_1 = math.acos(cos_theta_1)  # + distance_between * 0.0001  # compensate the rounding error
         # print('theta 1', math.degrees(theta_1))
-        theta_2 = math.acos(cos_theta_2) # + distance_between * 0.00005  # compensate the rounding error
+        theta_2 = math.acos(cos_theta_2)  # + distance_between * 0.00005  # compensate the rounding error
         # print('theta 2', math.degrees(theta_2))
         print(f'found angle to pig: {theta_1}, {theta_2}')
         return math.degrees(theta_1), math.degrees(theta_2)
@@ -154,82 +178,100 @@ def estimate_launch_angle(slingshot, targetPoint, meta_model):
         print('No trajectory to pig!')
         return default_min_angle, default_max_angle
 
+
 ''' A generator for Pddl Objects '''
-class PddlObjectType():
-    ''' Accepts an object from SBState.objects '''
+
+
+class PddlObjectType:
+    """ Accepts an object from SBState.objects """
+
     def __init__(self):
         self.hyper_parameters = dict()
-        self.pddl_type="object" # This the PDDL+ type of this object.
+        self.pddl_type = "object"  # This the PDDL+ type of this object.
 
     ''' Subclasses should override this setting all attributes of that object '''
-    def _compute_obj_attributes(self, obj, problem_params:dict):
+
+    def _compute_obj_attributes(self, obj, problem_params: dict):
         return dict()
 
-    ''' Subclasses should override this settign all attributes of that object that can be observed'''
-    def _compute_observable_obj_attributes(self, obj, problem_params:dict):
+    ''' Subclasses should override this setting all attributes of that object that can be observed'''
+
+    def _compute_observable_obj_attributes(self, obj, problem_params: dict):
         return dict()
 
     ''' Populate a PDDL+ problem with details about this object '''
-    def add_object_to_problem(self, prob: PddlPlusProblem, obj, problem_params:dict):
+
+    def add_object_to_problem(self, prob: PddlPlusProblem, obj, problem_params: dict):
         name = self._get_name(obj)
         prob.objects.append([name, self.pddl_type])
         attributes = self._compute_obj_attributes(obj, problem_params)
         for attribute in attributes:
             value = attributes[attribute]
             # If attribute is Boolean no need for an "=" sign
-            if isinstance(value,  bool):
-                if value==True:
+            if isinstance(value, bool):
+                if value:
                     prob.init.append([attribute, name])
-                else: # value == False
+                else:  # value == False
                     prob.init.append(['not', [attribute, name]])
-            else: # Attribute is a number
+            else:  # Attribute is a number
                 prob.init.append(['=', [attribute, name], value])
 
     ''' Populate a PDDL+ state with details about this object '''
-    def add_object_to_state(self, pddl_state: PddlPlusState, obj, state_params:dict):
+
+    def add_object_to_state(self, pddl_state: PddlPlusState, obj, state_params: dict):
         name = self._get_name(obj)
         attributes = self._compute_observable_obj_attributes(obj, state_params)
         for attribute in attributes:
             value = attributes[attribute]
             fluent_name = (attribute, name)
             # If attribute is Boolean no need for an "=" sign
-            if isinstance(value,  bool):
-                if value==True:
+            if isinstance(value, bool):
+                if value:
                     pddl_state.boolean_fluents.add(fluent_name)
                 # TODO: Think how to handle booean fluents with False value. Not as trivial as it sounds
-            else: # Attribute is a number
-                pddl_state.numeric_fluents[fluent_name]=value
+            else:  # Attribute is a number
+                pddl_state.numeric_fluents[fluent_name] = value
 
     def _get_name(self, obj):
-        type = obj[1]['type']
-        return '{}_{}'.format(type, obj[0])
+        obj_type = obj[1]['type']
+        return '{}_{}'.format(obj_type, obj[0])
 
 
 ''' The slingshot is currently not directly modeled in our model, so its object is currently ignored. 
 TODO: Reconsider this design choice. '''
+
+
 class SlingshotType:
-    ''' Populate a PDDL+ problem with details about this object '''
-    def add_object_to_problem(self, prob: PddlPlusProblem, obj, problem_params:dict):
-        return # Do nothing, slingshot is currently not directly modeled as an object
+    """ Populate a PDDL+ problem with details about this object """
+
+    def add_object_to_problem(self, prob: PddlPlusProblem, obj, problem_params: dict):
+        return  # Do nothing, slingshot is currently not directly modeled as an object
 
     ''' Populate a PDDL+ state with details about this object '''
-    def add_object_to_state(self, pddl_state: PddlPlusState, obj, state_params:dict):
-        return # Do nothing, slingshot is currently not directly modeled as an object
+
+    def add_object_to_state(self, pddl_state: PddlPlusState, obj, state_params: dict):
+        return  # Do nothing, slingshot is currently not directly modeled as an object
+
 
 class PigType(PddlObjectType):
-    def __init__(self):
-        super(PigType,self).__init__()
+    def __init__(self, life_multiplier=1.0):
+        super(PigType, self).__init__()
         self.pddl_type = "pig"
-        self.hyper_parameters["m_pig"]=1
-        self.hyper_parameters["pddl_type"]="pig"
+        self.hyper_parameters["m_pig"] = 1
+        self.hyper_parameters["pddl_type"] = "pig"
+        self.hyper_parameters["pig_life_multiplier"] = life_multiplier
 
-    def _compute_obj_attributes(self, obj, problem_params:dict):
+    def _compute_obj_attributes(self, obj, problem_params: dict):
         obj_attributes = self._compute_observable_obj_attributes(obj, problem_params)
         obj_attributes["m_pig"] = self.hyper_parameters["m_pig"]
 
+        obj_attributes["pig_life"] = self.__compute_pig_life()
         return obj_attributes
 
-    def _compute_observable_obj_attributes(self, obj, problem_params:dict):
+    def __compute_pig_life(self):
+        return str(math.ceil(10 * self.hyper_parameters["pig_life_multiplier"]))
+
+    def _compute_observable_obj_attributes(self, obj, problem_params: dict):
         obj_attributes = dict()
         obj_attributes["x_pig"] = get_x_coordinate(obj)
         obj_attributes["y_pig"] = get_y_coordinate(obj, problem_params["groundOffset"])
@@ -240,12 +282,14 @@ class PigType(PddlObjectType):
 
         return obj_attributes
 
+
 class AgentType(PddlObjectType):
     def __init__(self):
-        super(AgentType,self).__init__()
+        super(AgentType, self).__init__()
         self.pddl_type = "external_agent"
         self.hyper_parameters["agent_types"] = {'magician': 0, 'wizard': 1, 'butterfly': 2, 'worm': 3, 'unknown': 4}
-        self.hyper_parameters["agent_velocities"] = {'magician': [10.4,0], 'wizard': [10.4,10.4], 'butterfly': [0,0], 'worm': [10.4,0], 'unknown': [0,0]}
+        self.hyper_parameters["agent_velocities"] = {'magician': [10.4, 0], 'wizard': [10.4, 10.4], 'butterfly': [0, 0],
+                                                     'worm': [10.4, 0], 'unknown': [0, 0]}
         self.hyper_parameters["vx_agent"] = 0
         self.hyper_parameters["vy_agent"] = 0
         self.hyper_parameters["timing_agent"] = 0
@@ -256,7 +300,7 @@ class AgentType(PddlObjectType):
         self.hyper_parameters["y_max_border"] = 600
         self.hyper_parameters["y_min_border"] = -10
 
-    def _compute_obj_attributes(self, obj, problem_params:dict):
+    def _compute_obj_attributes(self, obj, problem_params: dict):
         obj_attributes = self._compute_observable_obj_attributes(obj, problem_params)
         obj_attributes["timing_agent"] = self.hyper_parameters["timing_agent"]
         obj_attributes["agent_dead"] = self.hyper_parameters["agent_dead"]
@@ -264,7 +308,7 @@ class AgentType(PddlObjectType):
 
         return obj_attributes
 
-    def _compute_observable_obj_attributes(self, obj, problem_params:dict):
+    def _compute_observable_obj_attributes(self, obj, problem_params: dict):
         problem_params["has_external_agent"] = True
         obj_attributes = dict()
         obj_attributes["agent_type"] = self.hyper_parameters["agent_types"][obj[1]['type'].lower()]
@@ -284,6 +328,7 @@ class AgentType(PddlObjectType):
 
         return obj_attributes
 
+
 class BirdType(PddlObjectType):
     def __init__(self):
         super(BirdType, self).__init__()
@@ -291,7 +336,8 @@ class BirdType(PddlObjectType):
         # self.hyper_parameters["v_bird"] = 270
         self.hyper_parameters["vx_bird"] = 0
         self.hyper_parameters["vy_bird"] = 0
-        self.hyper_parameters["m_bird"] = {'red': 1, 'yellow': 0.75, 'black': 1.5, 'white': 0.4, 'blue': 0.1} # {"red"= 0, "yellow"= 1, "black"= 2, "white"= 3, "blue"= 4}
+        self.hyper_parameters["m_bird"] = {'red': 1, 'yellow': 0.75, 'black': 1.5, 'white': 0.4,
+                                           'blue': 0.1}  # {"red"= 0, "yellow"= 1, "black"= 2, "white"= 3, "blue"= 4}
         self.hyper_parameters["bounce_count"] = 0
         self.hyper_parameters["bird_released"] = False
         ## TAP UPDATE
@@ -323,7 +369,8 @@ class BirdType(PddlObjectType):
         if "initial_state" in problem_params and problem_params["initial_state"] == True:
             obj_attributes["x_bird"] = slingshot_x
             obj_attributes["y_bird"] = slingshot_y
-            obj_attributes["v_bird"] = 182 # round((9.5 / 2.7) * (get_scale(slingshot)) * (self.hyper_parameters["velocity_multiplier"]/10) )
+            obj_attributes[
+                "v_bird"] = 182  # round((9.5 / 2.7) * (get_scale(slingshot)) * (self.hyper_parameters["velocity_multiplier"]/10) )
         else:
             obj_attributes["x_bird"] = get_x_coordinate(obj)
             obj_attributes["y_bird"] = get_y_coordinate(obj, ground_offset)
@@ -335,14 +382,14 @@ class BirdType(PddlObjectType):
                 obj_attributes["x_bird"] = slingshot_x
                 obj_attributes["y_bird"] = slingshot_y
 
-        ## TAP UPDATE
+        # TAP UPDATE
         # Encode bird type/colour in the PDDL+ model
         obj_attributes["bird_type"] = 0
         bird_map = {"red": 0, "yellow": 1, "black": 2, "white": 3, "blue": 4}
         for key in bird_map:
             if key in self._get_name(obj).lower():
                 obj_attributes["bird_type"] = bird_map[key]
-        ## Encode bird type/colour in the PDDL+ model
+        # Encode bird type/colour in the PDDL+ model
         for key in bird_map:
             if key in self._get_name(obj).lower():
                 obj_attributes["bird_type"] = bird_map[key]
@@ -355,12 +402,13 @@ class BirdType(PddlObjectType):
 
         return obj_attributes
 
+
 class PlatformType(PddlObjectType):
     def __init__(self):
         super(PlatformType, self).__init__()
-        self.pddl_type ="platform"
+        self.pddl_type = "platform"
 
-    def _compute_observable_obj_attributes(self, obj, problem_params:dict):
+    def _compute_observable_obj_attributes(self, obj, problem_params: dict):
         problem_params["has_platform"] = True
 
         obj_attributes = dict()
@@ -368,22 +416,23 @@ class PlatformType(PddlObjectType):
         obj_attributes["x_platform"] = get_x_coordinate(obj)
         obj_attributes["y_platform"] = get_y_coordinate(obj, problem_params["groundOffset"])
 
-        obj_attributes["platform_height"] = get_height(obj) # Previous versions had a 10% dialation
+        obj_attributes["platform_height"] = get_height(obj)  # Previous versions had a 10% dialation
         obj_attributes["platform_width"] = get_width(obj)
         return obj_attributes
 
     def _compute_obj_attributes(self, obj, problem_params: dict):
         return self._compute_observable_obj_attributes(obj, problem_params)
 
+
 class BlockType(PddlObjectType):
-    def __init__(self,block_life_multiplier = 1.0, block_mass_coeff=1.0):
+    def __init__(self, block_life_multiplier=1.0, block_mass_coeff=1.0):
         super(BlockType, self).__init__()
         self.pddl_type = "block"
 
         self.hyper_parameters["block_life_multiplier"] = block_life_multiplier
         self.hyper_parameters["block_mass_coeff"] = block_mass_coeff
 
-    def _compute_observable_obj_attributes(self, obj, problem_params:dict):
+    def _compute_observable_obj_attributes(self, obj, problem_params: dict):
         problem_params["has_block"] = True
 
         obj_attributes = dict()
@@ -409,25 +458,30 @@ class BlockType(PddlObjectType):
 
     def __compute_block_life(self):
         return str(math.ceil(265 * self.hyper_parameters["block_life_multiplier"]))
+
     def __compute_block_mass(self):
         return str(self.hyper_parameters["block_mass_coeff"])
+
     def __compute_stability(self, bl_width, bl_height, bl_y, ground_offset):
         return round(265 * (bl_width / (bl_height + 1)) \
-               * (1 - (bl_y / (ground_offset + 1))) \
-               * self.hyper_parameters["block_mass_coeff"])
+                     * (1 - (bl_y / (ground_offset + 1))) \
+                     * self.hyper_parameters["block_mass_coeff"])
 
 
 class WoodType(BlockType):
     def __init__(self):
         super(WoodType, self).__init__(1.0, 0.375 * 1.3)
 
+
 class IceType(BlockType):
     def __init__(self):
-        super(IceType, self).__init__(0.5, 0.125*2)
+        super(IceType, self).__init__(0.5, 0.125 * 2)
+
 
 class StoneType(BlockType):
     def __init__(self):
         super(StoneType, self).__init__(2.0, 1.2)
+
 
 class TNTType(BlockType):
     def __init__(self):
@@ -438,28 +492,37 @@ class TNTType(BlockType):
         obj_attributes["block_explosive"] = True
         return obj_attributes
 
+
 ''' Assumption: unknown types are assumed to be blocks '''
+
+
 class UnknownType(BlockType):
     def __init__(self):
         super().__init__()
 
 
-
 class ScienceBirdsMetaModel(MetaModel):
-    TWANG_ACTION = "pa-twang" # Default action type
+    TWANG_ACTION = "pa-twang"  # Default action type
 
     ''' Sets the default meta-model'''
+
     def __init__(self):
         super().__init__(docker_path=settings.SB_PLANNING_DOCKER_PATH,
                          domain_file_name="sb_domain.pddl",
                          delta_t=settings.SB_DELTA_T,
-                         metric = 'minimize(total-time)',
-                         repairable_constants=['gravity_factor',
-                                          'meta_wood_multiplier',
-                                          'meta_stone_multiplier',
-                                          'meta_ice_multiplier',
-                                          'v_bird_multiplier',
-                                          'meta_platform_size'],
+                         metric='minimize(total-time)',
+                         repairable_constants=[
+                             'meta_wood_multiplier',
+                             'meta_stone_multiplier',
+                             'meta_ice_multiplier',
+                             'v_bird_multiplier',
+                             'meta_platform_size',
+                             'base_life_pig_multiplier',
+                             'fall_damage',
+                             'explosion_damage'],
+                         repair_deltas=[
+                             1, 1, 1, 1, 0.1, 10, 10, 10
+                         ],
                          constant_numeric_fluents={
                              'active_bird': 0,
                              'angle_rate': 10,
@@ -477,19 +540,22 @@ class ScienceBirdsMetaModel(MetaModel):
                              'meta_ice_multiplier': 1.0,
                              'v_bird_multiplier': 10.0,
                              'gravity_factor': 9.81,
-                             'meta_platform_size': 1.75},
+                             'meta_platform_size': 1.75,
+                             'base_life_pig_multiplier': 1.0,
+                             'fall_damage': 50,
+                             'explosion_damage': 100},
                          constant_boolean_fluents={
                              'angle_adjusted': False,
                              'pig_killed': False})
 
-        self.hyper_parameters['scale_factor']= 2.7
+        self.hyper_parameters['scale_factor'] = 2.7
 
         # Mapping of type to Pddl object. All objects of this type will be clones of this pddl object
         self.object_types = dict()
-        self.object_types["pig"]=PigType()
-        self.object_types["bird"]=BirdType()
-        self.object_types["block"]=BlockType()
-        self.object_types["wood"]=WoodType()
+        self.object_types["pig"] = PigType()
+        self.object_types["bird"] = BirdType()
+        self.object_types["block"] = BlockType()
+        self.object_types["wood"] = WoodType()
         self.object_types["ice"] = IceType()
         self.object_types["stone"] = StoneType()
         self.object_types["TNT"] = TNTType()
@@ -508,7 +574,8 @@ class ScienceBirdsMetaModel(MetaModel):
         self.object_types["unknown"] = UnknownType()
 
     ''' Get the slingshot object '''
-    def get_slingshot(self, sb_state :ProcessedSBState):
+
+    def get_slingshot(self, sb_state: ProcessedSBState):
         sling = None
         for o in sb_state.objects.items():
             if o[1]['type'] == 'slingshot':
@@ -520,11 +587,10 @@ class ScienceBirdsMetaModel(MetaModel):
         """ Converts twang angle to the corresponding action time """
         return action_time * float(state[('angle_rate',)]) + float(state[('angle',)])
 
-
     @staticmethod
     def angle_to_action_time(angle: float, state: PddlPlusState):
         """ Converts a twang angle to the time of the twang action. """
-        return (angle - float(state[('angle',)]))/float(state[('angle_rate',)])
+        return (angle - float(state[('angle',)])) / float(state[('angle_rate',)])
 
     def create_sb_action(self, timed_action: TimedAction, processed_state: ProcessedSBState, tap_timing=3000):
         """ Creates an SB action from a PDDL action_angle_time triple outputted by the planner """
@@ -548,7 +614,7 @@ class ScienceBirdsMetaModel(MetaModel):
         release_y = ref_y + sb_shoot.dy
         sling = sb_state.sling
 
-        mag = sling.height * 5.0
+        mag = sling.height * 8.0
         theta_from_x = math.acos((release_x - ref_x) / (-mag))
         theta_from_y = math.asin((release_y - ref_y) / mag)
         assert abs(theta_from_x - theta_from_y) < 1  # Precision TODO: Discuss this, the number 1 is arbitrary
@@ -564,7 +630,8 @@ class ScienceBirdsMetaModel(MetaModel):
 
     ''' Translate the initial SBState, as observed, to a PddlPlusProblem object. 
     Note that in the initial state, we ignore the location of the bird and assume it is on the slingshot. '''
-    def create_pddl_problem(self, sb_state : ProcessedSBState):
+
+    def create_pddl_problem(self, sb_state: ProcessedSBState):
         # There is an annoying disconnect in representations.
         # 'x_pig[pig_4]:450' vs. (= (x_pig pig4) 450)
         # 'pig_dead[pig_4]:False vs. (not (pig_dead pig_4))
@@ -580,7 +647,7 @@ class ScienceBirdsMetaModel(MetaModel):
         pddl_problem.init = []
         pddl_problem.goal = []
 
-        #we should probably use the self.sling on the object
+        # we should probably use the self.sling on the object
         slingshot = self.get_slingshot(sb_state)
 
         # A dictionary with global problem parameters
@@ -593,24 +660,53 @@ class ScienceBirdsMetaModel(MetaModel):
         problem_params["groundOffset"] = self.get_ground_offset(slingshot)
         problem_params["gravity"] = round(0.48 * self.constant_numeric_fluents['gravity_factor'] /
                                           self.hyper_parameters['scale_factor'] * get_scale(slingshot))
-        problem_params["meta_platform_size"] = self.constant_numeric_fluents['meta_platform_size']
         # Above line redundant since we're storing the slingshot also, but it seems easier to store it also to save computations of the offset everytime we use it.
+        problem_params["meta_platform_size"] = self.constant_numeric_fluents['meta_platform_size']
+        problem_params["base_life_pig_multiplier"] = self.constant_numeric_fluents['base_life_pig_multiplier']
+        problem_params["fall_damage"] = self.constant_numeric_fluents['fall_damage']
+        problem_params["explosion_damage"] = self.constant_numeric_fluents['explosion_damage']
+
         problem_params["pigs"] = set()
         problem_params["birds"] = set()
         problem_params["external_agents"] = set()
-        problem_params["initial_state"]=True # This marks that SBState describes the initial state. Used for setting the bird's location in the slingshot's location. TODO: Reconsider this design choice
+        problem_params[
+            "initial_state"] = True  # This marks that SBState describes the initial state. Used for setting the bird's location in the slingshot's location. TODO: Reconsider this design choice
 
-        self.object_types["wood"].hyper_parameters["block_life_multiplier"] = self.constant_numeric_fluents["base_life_wood_multiplier"] * self.constant_numeric_fluents["meta_wood_multiplier"]
-        self.object_types["stone"].hyper_parameters["block_life_multiplier"] = self.constant_numeric_fluents["base_life_stone_multiplier"] * self.constant_numeric_fluents["meta_stone_multiplier"]
-        self.object_types["ice"].hyper_parameters["block_life_multiplier"] = self.constant_numeric_fluents["base_life_ice_multiplier"] * self.constant_numeric_fluents["meta_ice_multiplier"]
-        self.object_types["TNT"].hyper_parameters["block_life_multiplier"] = self.constant_numeric_fluents["base_life_tnt_multiplier"]
+        self.object_types["wood"].hyper_parameters["block_life_multiplier"] = self.constant_numeric_fluents[
+                                                                                  "base_life_wood_multiplier"] * \
+                                                                              self.constant_numeric_fluents[
+                                                                                  "meta_wood_multiplier"]
+        self.object_types["stone"].hyper_parameters["block_life_multiplier"] = self.constant_numeric_fluents[
+                                                                                   "base_life_stone_multiplier"] * \
+                                                                               self.constant_numeric_fluents[
+                                                                                   "meta_stone_multiplier"]
+        self.object_types["ice"].hyper_parameters["block_life_multiplier"] = self.constant_numeric_fluents[
+                                                                                 "base_life_ice_multiplier"] * \
+                                                                             self.constant_numeric_fluents[
+                                                                                 "meta_ice_multiplier"]
+        self.object_types["TNT"].hyper_parameters["block_life_multiplier"] = self.constant_numeric_fluents[
+            "base_life_tnt_multiplier"]
 
-        self.object_types["wood"].hyper_parameters["block_mass_coeff"] = self.constant_numeric_fluents["base_mass_wood_multiplier"] * self.constant_numeric_fluents["meta_wood_multiplier"]
-        self.object_types["stone"].hyper_parameters["block_mass_coeff"] = self.constant_numeric_fluents["base_mass_stone_multiplier"] * self.constant_numeric_fluents["meta_stone_multiplier"]
-        self.object_types["ice"].hyper_parameters["block_mass_coeff"] = self.constant_numeric_fluents["base_mass_ice_multiplier"] * self.constant_numeric_fluents["meta_ice_multiplier"]
-        self.object_types["TNT"].hyper_parameters["block_mass_coeff"] = self.constant_numeric_fluents["base_mass_tnt_multiplier"]
+        self.object_types["wood"].hyper_parameters["block_mass_coeff"] = self.constant_numeric_fluents[
+                                                                             "base_mass_wood_multiplier"] * \
+                                                                         self.constant_numeric_fluents[
+                                                                             "meta_wood_multiplier"]
+        self.object_types["stone"].hyper_parameters["block_mass_coeff"] = self.constant_numeric_fluents[
+                                                                              "base_mass_stone_multiplier"] * \
+                                                                          self.constant_numeric_fluents[
+                                                                              "meta_stone_multiplier"]
+        self.object_types["ice"].hyper_parameters["block_mass_coeff"] = self.constant_numeric_fluents[
+                                                                            "base_mass_ice_multiplier"] * \
+                                                                        self.constant_numeric_fluents[
+                                                                            "meta_ice_multiplier"]
+        self.object_types["TNT"].hyper_parameters["block_mass_coeff"] = self.constant_numeric_fluents[
+            "base_mass_tnt_multiplier"]
 
-        self.object_types["bird"].hyper_parameters["velocity_multiplier"] = self.constant_numeric_fluents["v_bird_multiplier"]
+        self.object_types["pig"].hyper_parameters["pig_life_multiplier"] = self.constant_numeric_fluents[
+            "base_life_pig_multiplier"]
+
+        self.object_types["bird"].hyper_parameters["velocity_multiplier"] = self.constant_numeric_fluents[
+            "v_bird_multiplier"]
 
         logger.debug("\n\n")
         ex_agent_types = {'magician', 'wizard', 'butterfly', 'worm'}
@@ -621,12 +717,13 @@ class ScienceBirdsMetaModel(MetaModel):
 
         just_in_case_platforms = []
         for objj in sb_state.objects.items():
-            if 'bird' not in objj[1]['type'] and (get_x_coordinate(objj) > get_slingshot_x(slingshot)) and not 'slingshot' in objj[1]['type']:
+            if 'bird' not in objj[1]['type'] and (
+                    get_x_coordinate(objj) > get_slingshot_x(slingshot)) and not 'slingshot' in objj[1]['type']:
                 if objj[1]['type'] not in ex_agent_types:
-                    x_max_blocks = max(get_x_coordinate(objj),x_max_blocks)
+                    x_max_blocks = max(get_x_coordinate(objj), x_max_blocks)
                     x_min_blocks = min(get_x_coordinate(objj), x_min_blocks)
-                    y_max_blocks = max(get_y_coordinate(objj,problem_params["groundOffset"]), y_max_blocks)
-                    y_min_blocks = min(get_y_coordinate(objj,problem_params["groundOffset"]), y_min_blocks)
+                    y_max_blocks = max(get_y_coordinate(objj, problem_params["groundOffset"]), y_max_blocks)
+                    y_min_blocks = min(get_y_coordinate(objj, problem_params["groundOffset"]), y_min_blocks)
                 if objj[1]['type'] == 'platform':
                     # while iterating through all objects store platforms so they can be used to define borders for the worm agent (in the subsequent loop through level objects)
                     just_in_case_platforms.append(objj)
@@ -636,7 +733,8 @@ class ScienceBirdsMetaModel(MetaModel):
             # Get type
             type_str = obj[1]['type']
 
-            if 'bird' in type_str.lower() or (get_x_coordinate(obj) <= get_slingshot_x(slingshot) and not 'slingshot' in type_str):
+            if 'bird' in type_str.lower() or (
+                    get_x_coordinate(obj) <= get_slingshot_x(slingshot) and not 'slingshot' in type_str):
                 obj_type = self.object_types["bird"]
             else:
                 if type_str in self.object_types:
@@ -649,27 +747,36 @@ class ScienceBirdsMetaModel(MetaModel):
             if type_str in ex_agent_types:
                 # print("(create pddl problem) Object_type: " + str(type_str) +"/" + str(type) + " [" + str(get_x_coordinate(obj)) + ", " + str(get_y_coordinate(obj, problem_params["groundOffset"])) + "] ")
 
-                if type_str=='magician':
-                    obj_type.hyper_parameters["x_min_border"]= x_max_blocks if get_x_coordinate(obj) >= x_max_blocks else get_slingshot_x(slingshot)
-                    obj_type.hyper_parameters["x_max_border"] = x_min_blocks if get_x_coordinate(obj) <= x_min_blocks else 800 #800px=rightmost edge of window
-                if type_str=='wizard':
+                if type_str == 'magician':
+                    obj_type.hyper_parameters["x_min_border"] = x_max_blocks if get_x_coordinate(
+                        obj) >= x_max_blocks else get_slingshot_x(slingshot)
+                    obj_type.hyper_parameters["x_max_border"] = x_min_blocks if get_x_coordinate(
+                        obj) <= x_min_blocks else 800  # 800px=rightmost edge of window
+                if type_str == 'wizard':
                     obj_type.hyper_parameters["x_min_border"] = get_slingshot_x(slingshot)
                     obj_type.hyper_parameters["x_max_border"] = 800  # 800px=rightmost edge of window
                     # obj_type.hyper_parameters["y_min_border"] = y_max_blocks
-                    obj_type.hyper_parameters["y_min_border"] = 0 # TODO: the wizard can be at any height in the level. Currently, blocks are ignored, will update with exclusion zones soon
+                    obj_type.hyper_parameters[
+                        "y_min_border"] = 0  # TODO: the wizard can be at any height in the level. Currently, blocks are ignored, will update with exclusion zones soon
                     obj_type.hyper_parameters["y_max_border"] = 600  # 600px=top edge of window
-                if type_str=='butterfly':
+                if type_str == 'butterfly':
                     obj_type.hyper_parameters["x_min_border"] = x_min_blocks * 0.75
                     obj_type.hyper_parameters["x_max_border"] = x_max_blocks * 1.25
                     obj_type.hyper_parameters["y_min_border"] = 0
                     obj_type.hyper_parameters["y_max_border"] = y_max_blocks * 1.25  # 600px=top edge of window
-                if type_str=='worm':
+                if type_str == 'worm':
                     for pl in just_in_case_platforms:
-                        if (abs(get_x_coordinate(obj)-get_x_coordinate(pl)) <= (get_width(pl)/2)) and (abs(get_y_coordinate(obj,problem_params["groundOffset"])-get_y_coordinate(pl,problem_params["groundOffset"])) <= (get_height(pl)/2)):
-                            obj_type.hyper_parameters["x_min_border"] = get_x_coordinate(pl) - (get_width(pl)/2)
-                            obj_type.hyper_parameters["x_max_border"] = get_x_coordinate(pl) + (get_width(pl)/2)
-                            obj_type.hyper_parameters["y_min_border"] = get_y_coordinate(pl,problem_params["groundOffset"]) - (get_height(pl)/2)
-                            obj_type.hyper_parameters["y_max_border"] = get_y_coordinate(pl,problem_params["groundOffset"]) + (get_height(pl)/2)
+                        if (abs(get_x_coordinate(obj) - get_x_coordinate(pl)) <= (get_width(pl) / 2)) and (
+                                abs(get_y_coordinate(obj, problem_params["groundOffset"]) - get_y_coordinate(pl,
+                                                                                                             problem_params[
+                                                                                                                 "groundOffset"])) <= (
+                                        get_height(pl) / 2)):
+                            obj_type.hyper_parameters["x_min_border"] = get_x_coordinate(pl) - (get_width(pl) / 2)
+                            obj_type.hyper_parameters["x_max_border"] = get_x_coordinate(pl) + (get_width(pl) / 2)
+                            obj_type.hyper_parameters["y_min_border"] = get_y_coordinate(pl, problem_params[
+                                "groundOffset"]) - (get_height(pl) / 2)
+                            obj_type.hyper_parameters["y_max_border"] = get_y_coordinate(pl, problem_params[
+                                "groundOffset"]) + (get_height(pl) / 2)
                             break
 
             # Add object of this type to the problem
@@ -677,11 +784,11 @@ class ScienceBirdsMetaModel(MetaModel):
 
         # Add dummy platform and block if none exists TODO: Why do we need this?
         if not problem_params["has_platform"]:
-            pddl_problem.objects.append(['dummy_platform','platform'])
+            pddl_problem.objects.append(['dummy_platform', 'platform'])
         if not problem_params["has_block"]:
-            pddl_problem.objects.append(['dummy_block','block'])
-        if problem_params["has_external_agent"]==False:
-            pddl_problem.objects.append(['dummy_agent','external_agent'])
+            pddl_problem.objects.append(['dummy_block', 'block'])
+        if not problem_params["has_external_agent"]:
+            pddl_problem.objects.append(['dummy_agent', 'external_agent'])
             pddl_problem.init.append(['agent_dead', 'dummy_agent'])
 
         # Add constants fluents
@@ -691,9 +798,8 @@ class ScienceBirdsMetaModel(MetaModel):
             if self.constant_boolean_fluents[boolean_fluent]:
                 pddl_problem.init.append([boolean_fluent])
             else:
-                pddl_problem.init.append(['not',[boolean_fluent]])
+                pddl_problem.init.append(['not', [boolean_fluent]])
         pddl_problem.init.append(['=', ['gravity'], problem_params["gravity"]])
-
 
         # Initial angle value to prune un-promising trajectories which only hit the ground
         closest_obj_x, closest_obj_y = get_closest_object_xy(pddl_problem)
@@ -708,7 +814,7 @@ class ScienceBirdsMetaModel(MetaModel):
 
         # Add goal
         pigs = problem_params["pigs"]
-        if len(pigs)==0:
+        if len(pigs) == 0:
             logger.info("No pigs found, taking default shot.")
             pddl_problem.goal.append(['pig_dead'])
         else:
@@ -716,13 +822,13 @@ class ScienceBirdsMetaModel(MetaModel):
                 pddl_problem.goal.append(['pig_dead', pig])
         return pddl_problem
 
-
     def get_ground_offset(self, slingshot):
         """ Get the ground offset """
         return slingshot[1]['polygon'].bounds[3]
 
     ''' Translate the given observed SBState to a PddlPlusState object. 
     This is designed to handle intermediate state observed during execution '''
+
     def create_pddl_state(self, sb_state: ProcessedSBState):
         pddl_state = PddlPlusState()
 
@@ -733,7 +839,7 @@ class ScienceBirdsMetaModel(MetaModel):
         state_params = dict()
         state_params["has_platform"] = False
         state_params["has_block"] = False
-        state_params["has_external_agent"]=False
+        state_params["has_external_agent"] = False
         state_params["bird_index"] = 0
         state_params["slingshot"] = slingshot
         state_params["groundOffset"] = self.get_ground_offset(slingshot)
@@ -741,13 +847,15 @@ class ScienceBirdsMetaModel(MetaModel):
         state_params["pigs"] = set()
         state_params["birds"] = set()
         state_params["external_agents"] = set()
-        state_params["initial_state"] = False  # This marks that SBState describes the initial state. Used for setting the bird's location in the slingshot's location. TODO: Reconsider this design choice
+        state_params[
+            "initial_state"] = False  # This marks that SBState describes the initial state. Used for setting the bird's location in the slingshot's location. TODO: Reconsider this design choice
 
         # Add objects to problem
         for obj in sb_state.objects.items():
             # Get type
             type_str = obj[1]['type']
-            if 'bird' in type_str.lower() or (get_x_coordinate(obj) <= get_slingshot_x(slingshot) and not 'slingshot' in type_str):
+            if 'bird' in type_str.lower() or (
+                    get_x_coordinate(obj) <= get_slingshot_x(slingshot) and not 'slingshot' in type_str):
                 obj_type = self.object_types["bird"]
             else:
                 if type_str in self.object_types:
@@ -763,8 +871,7 @@ class ScienceBirdsMetaModel(MetaModel):
 
         return pddl_state
 
-
-    def create_simplified_problem(self, prob : PddlPlusProblem):
+    def create_simplified_problem(self, prob: PddlPlusProblem):
         """ Create a simplified version of the given problem, to help the planner plan
          TODO: Move this to planner"""
         prob_simplified = PddlPlusProblem()
@@ -793,8 +900,7 @@ class ScienceBirdsMetaModel(MetaModel):
         prob_simplified.goal.append(['pig_killed'])
         return prob_simplified
 
-
-    def create_super_simplified_problem(self, prob :PddlPlusProblem):
+    def create_super_simplified_problem(self, prob: PddlPlusProblem):
         """ Created an even more simplified version of the problem to speed up planner ?"""
         prob_super_simplified = PddlPlusProblem()
         prob_super_simplified.name = copy.copy(prob.name)

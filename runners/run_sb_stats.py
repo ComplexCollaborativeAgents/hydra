@@ -38,8 +38,8 @@ class AgentType(enum.Enum):
     Datalab = 3
     Eaglewings = 4
 
-NOVELTY = 0
-TYPE = 22
+NOVELTY = 24
+TYPE = 1
 SAMPLES = 50
 
 AGENT = AgentType.RepairingHydra

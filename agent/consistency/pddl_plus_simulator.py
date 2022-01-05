@@ -44,12 +44,13 @@ class PddlPlusSimulator():
         return output
 
     ''' Simulate running the given plan from the start state '''
-    def simulate(self, plan_to_simulate: PddlPlusPlan, problem: PddlPlusProblem, domain: PddlPlusDomain, delta_t:float, max_t:float = 1000, max_iterations: float = 1000):
+    def simulate(self, plan_to_simulate: PddlPlusPlan, problem: PddlPlusProblem, domain: PddlPlusDomain, delta_t: float,
+                 max_t: float = 1000, max_iterations: float = 1000):
         self.problem = problem
         self.domain = domain
         self.trace = []
-        self.plan = PddlPlusPlan(plan_to_simulate) # Clone the given plan
-        if len(self.plan)==0:
+        self.plan = PddlPlusPlan(plan_to_simulate)  # Clone the given plan
+        if len(self.plan) == 0:
             self.next_timed_action = None
         else:
             self.next_timed_action = self.plan.pop(0)
@@ -63,13 +64,13 @@ class PddlPlusSimulator():
         # Create the first trace_item
         trace_item = [None, None, None]
         self.trace.append(trace_item)
-        trace_item[TI_STATE]=current_state.clone() # TODO: Maybe this close is redundant
+        trace_item[TI_STATE] = current_state.clone()  # TODO: Maybe this clone is redundant
         trace_item[TI_T] = t
         world_changes_at_t = []
         trace_item[TI_WORLD_CHANGES] = world_changes_at_t
 
         still_active = True
-        while still_active and t<max_t and t/self.delta_t<max_iterations:
+        while still_active and t < max_t and t / self.delta_t < max_iterations:
             still_active, t = self._sim_step(current_state, t)
 
         return current_state, t, self.trace

@@ -6,20 +6,24 @@ logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s
 logger = logging.getLogger("sb_repair")
 
 
-
-''' Checks consistency by considering the location of the birds '''
 class BirdLocationConsistencyEstimator(MetaModelBasedConsistencyEstimator):
-    def __init__(self, unique_prefix_size = 100,discount_factor=0.9, consistency_threshold = 20):
-        self.unique_prefix_size=unique_prefix_size
+    """
+    Checks consistency by considering the location of the birds 
+    """
+
+    def __init__(self, unique_prefix_size=100, discount_factor=0.9, consistency_threshold=20):
+        self.unique_prefix_size = unique_prefix_size
         self.discount_factor = discount_factor
         self.consistency_threshold = consistency_threshold
 
-    ''' Estimate consitency by considering the location of the birds in the observed state seq '''
     def estimate_consistency(self, simulation_trace: list, state_seq: list, delta_t: float = DEFAULT_DELTA_T):
+        """
+        Estimate consistency by considering the location of the birds in the observed state seq
+        """
         # Get birds
         birds = set()
-        for [state, _,_] in simulation_trace:
-            if len(birds)==0: # TODO: Discuss how to make this work. Currently a new bird suddenly appears
+        for [state, _, _] in simulation_trace:
+            if len(birds) == 0:  # TODO: Discuss how to make this work. Currently a new bird suddenly appears
                 birds = state.get_birds()
             else:
                 break
@@ -31,18 +35,45 @@ class BirdLocationConsistencyEstimator(MetaModelBasedConsistencyEstimator):
 
         consistency_checker = NumericFluentsConsistencyEstimator(fluent_names, self.unique_prefix_size,
                                                                  self.discount_factor,
-                                                                 consistency_threshold = self.consistency_threshold)
+                                                                 consistency_threshold=self.consistency_threshold)
         return consistency_checker.estimate_consistency(simulation_trace, state_seq, delta_t)
 
-''' Checks consistency by considering which blocks are alive '''
+
+class PigDeadConsistencyEstimator(MetaModelBasedConsistencyEstimator):
+    """
+    Are the pigs we expected to be dead actually dead?
+    """
+
+    def estimate_consistency(self, simulation_trace: list, state_seq: list, delta_t: float):
+        """
+        simulation_trace: list of (state, time, actions) lists in simulation (expected plan)
+        state_seq: observations (what actually happened)
+        delta_t: time step for simulation (useful, innit?)
+        """
+        live_pigs = 0
+        last_state_in_obs = state_seq[-1]
+        live_pigs_in_obs = last_state_in_obs.get_pigs()
+        last_state_in_sim = simulation_trace[-1][0]
+        pigs_in_sim = last_state_in_sim.get_pigs()
+        for pig in pigs_in_sim:
+            if last_state_in_sim.is_true(('pig_dead', pig)) and pig in live_pigs_in_obs:
+                live_pigs += 3
+        return live_pigs
+
+
 class BlockNotDeadConsistencyEstimator(MetaModelBasedConsistencyEstimator):
+    """
+    Checks consistency by considering which blocks are alive
+    """
     MIN_BLOCK_NOT_DEAD = 50
     MAX_INCREMENT = 50
 
-    ''' Estimate consitency by considering the location of the birds in the observed state seq '''
     def estimate_consistency(self, simulation_trace: list, state_seq: list, delta_t: float = DEFAULT_DELTA_T):
+        """
+        Estimate consistency by considering the location of the birds in the observed state seq
+        """
         # TODO: Next "if" statement should never be called but it is: check out why
-        if len(state_seq)==0:
+        if len(state_seq) == 0:
             return 0
         last_state_in_obs = state_seq[-1]
         live_blocks_in_obs = last_state_in_obs.get_blocks()
@@ -57,29 +88,33 @@ class BlockNotDeadConsistencyEstimator(MetaModelBasedConsistencyEstimator):
             if life_value <= 0:
                 if block in live_blocks_in_obs:
                     logger.debug("Block %s is alive but sim. thinks it is dead (life value=%.2f)" % (block, life_value))
-                    blocks_not_dead=blocks_not_dead+1
+                    blocks_not_dead = blocks_not_dead + 1
 
         # Rationale: having more blocks make the life of a block less predictable
-        if blocks_not_dead>0:
+        if blocks_not_dead > 0:
             return BlockNotDeadConsistencyEstimator.MIN_BLOCK_NOT_DEAD \
-               + blocks_not_dead/len(blocks_in_sim)*BlockNotDeadConsistencyEstimator.MAX_INCREMENT
+                   + blocks_not_dead / len(blocks_in_sim) * BlockNotDeadConsistencyEstimator.MAX_INCREMENT
 
         # TODO: Consider checking also the reverse condition
         return 0
 
 
-''' Checks consistency by considering the location of the birds '''
 class ExternalAgentLocationConsistencyEstimator(MetaModelBasedConsistencyEstimator):
-    def __init__(self, unique_prefix_size = 200,discount_factor=0.1, consistency_threshold = 100):
-        self.unique_prefix_size=unique_prefix_size
+    """
+    Checks consistency by considering the location of the birds
+    """
+
+    def __init__(self, unique_prefix_size=200, discount_factor=0.1, consistency_threshold=100):
+        self.unique_prefix_size = unique_prefix_size
         self.discount_factor = discount_factor
         self.consistency_threshold = consistency_threshold
 
-    ''' Estimate consitency by considering the location of the birds in the observed state seq '''
+    ''' Estimate consistency by considering the location of the birds in the observed state seq '''
+
     def estimate_consistency(self, simulation_trace: list, state_seq: list, delta_t: float = DEFAULT_DELTA_T):
         # Get birds
         agents = set()
-        for [state, _,_] in simulation_trace:
+        for [state, _, _] in simulation_trace:
             if len(agents) == 0:  # TODO: Discuss how to make this work. Currently a new bird suddenly appears
                 agents = state.get_agents()
             else:
@@ -92,22 +127,30 @@ class ExternalAgentLocationConsistencyEstimator(MetaModelBasedConsistencyEstimat
 
         consistency_checker = NumericFluentsConsistencyEstimator(fluent_names, self.unique_prefix_size,
                                                                  self.discount_factor,
-                                                                 consistency_threshold = self.consistency_threshold)
+                                                                 consistency_threshold=self.consistency_threshold)
         return consistency_checker.estimate_consistency(simulation_trace, state_seq, delta_t)
 
 
-''' Checks consistency for SB '''
 class ScienceBirdsConsistencyEstimator(MetaModelBasedConsistencyEstimator):
+    """
+    Checks consistency for SB
+    """
+
     def __init__(self, use_simplified_problems=True,
-                 consistency_estimators = [BirdLocationConsistencyEstimator(), BlockNotDeadConsistencyEstimator()]): # ExternalAgentLocationConsistencyEstimator()
+                 consistency_estimators=None):
+        # BirdLocationConsistencyEstimator()ExternalAgentLocationConsistencyEstimator()
+        if consistency_estimators is None:
+            consistency_estimators = [BlockNotDeadConsistencyEstimator(), PigDeadConsistencyEstimator()]
         self.consistency_estimators = list()
         self.use_simplified_problems = use_simplified_problems
         self.consistency_estimators.extend(consistency_estimators)
 
-    def compute_consistency(self, observation, meta_model : ScienceBirdsMetaModel, simulator : PddlPlusSimulator, delta_t):
-        ''' Computes the consistency of a given observation w.r.t the given meta model using the given simulator
+    def compute_consistency(self, observation, meta_model: ScienceBirdsMetaModel, simulator: PddlPlusSimulator,
+                            delta_t):
+        """
+        Computes the consistency of a given observation w.r.t the given meta model using the given simulator
         NOTICE: Using here the simplified problem due to SB domain's complexity
-        '''
+        """
         try:
             problem = meta_model.create_pddl_problem(observation.get_initial_state())
             if self.use_simplified_problems:
@@ -119,9 +162,10 @@ class ScienceBirdsConsistencyEstimator(MetaModelBasedConsistencyEstimator):
 
             observed_seq = observation.get_pddl_states_in_trace(meta_model)
             consistency = self.estimate_consistency(expected_trace, observed_seq, delta_t)
-        except InconsistentPlanError: # Sometimes the repair makes the executed plan be inconsistent, e.g., its preconditions are not satisfied
+        except InconsistentPlanError as e:  # Sometimes the repair makes the executed plan be inconsistent, e.g., its preconditions are not satisfied
             consistency = MetaModelBasedConsistencyEstimator.PLAN_FAILED_CONSISTENCY_VALUE
-        return  consistency
+            logger.info(f'Could not compute consistency! {str(e)}')
+        return consistency
 
     def estimate_consistency(self, simulation_trace: list, state_seq: list, delta_t: float = DEFAULT_DELTA_T):
         max_inconsistency = 0
@@ -132,10 +176,11 @@ class ScienceBirdsConsistencyEstimator(MetaModelBasedConsistencyEstimator):
 
         return max_inconsistency
 
-class ScienceBirdsMetaModelRepair(GreedyBestFirstSearchMetaModelRepair):
-    ''' The meta model repair used for ScienceBirds. '''
 
-    def __init__(self, meta_model = ScienceBirdsMetaModel(),
+class ScienceBirdsMetaModelRepair(GreedyBestFirstSearchMetaModelRepair):
+    """ The meta model repair used for ScienceBirds. """
+
+    def __init__(self, meta_model=ScienceBirdsMetaModel(),
                  consistency_threshold=settings.SB_CONSISTENCY_THRESHOLD,
                  time_limit=settings.SB_REPAIR_TIMEOUT,
                  max_iterations=settings.SB_REPAIR_MAX_ITERATIONS):
@@ -149,7 +194,7 @@ class ScienceBirdsMetaModelRepair(GreedyBestFirstSearchMetaModelRepair):
 
 
 class ScienceBirdsFocusedMetaModelRepair(FocusedMetaModelRepair):
-    def __init__(self, meta_model = ScienceBirdsMetaModel(),
+    def __init__(self, meta_model=ScienceBirdsMetaModel(),
                  consistency_threshold=settings.SB_CONSISTENCY_THRESHOLD,
                  time_limit=settings.SB_REPAIR_TIMEOUT,
                  max_iterations=settings.SB_REPAIR_MAX_ITERATIONS):
