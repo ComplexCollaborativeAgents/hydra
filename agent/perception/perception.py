@@ -33,7 +33,7 @@ class Perception():
         '''Taken from naive_agent_groundtruth'''
         self.model = np.loadtxt("{}/data/science_birds/perception/model".format(settings.ROOT_PATH), delimiter=",")
         self.target_class = list(map(lambda x: x.replace("\n", ""), open('{}/data/science_birds/perception/target_class'.format(settings.ROOT_PATH)).readlines()))
-        self.logreg = pickle.load(open('{}/data/science_birds/perception/logreg_pII.p'.format(settings.ROOT_PATH),'rb'))
+        self.logreg = pickle.load(open('{}/data/science_birds/perception/logreg_pII_v2.p'.format(settings.ROOT_PATH),'rb'))
         self.threshold = settings.SB_CLASSIFICATION_THRESHOLD
         self.new_level = True
         self.writer = csv.DictWriter(open('object_class.csv','w'), fieldnames=classification_cols())

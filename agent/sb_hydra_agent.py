@@ -33,7 +33,7 @@ NOVELTY_LIKELIHOOD = "novelty_likelihood"
 UNKNOWN_OBJ = "unknown_object"
 UNDEFINED = None
 
-ENSEMBLE_MODEL = "{}/model/ensemble.pkl".format(settings.ROOT_PATH)
+ENSEMBLE_MODEL = "{}/model/ensemble_simple_22_25.pkl".format(settings.ROOT_PATH)
 
 
 class SBHydraAgent(HydraAgent):
