@@ -43,9 +43,9 @@ class PddlPlusSimulator():
             output.append((values,t))
         return output
 
-    ''' Simulate running the given plan from the start state '''
     def simulate(self, plan_to_simulate: PddlPlusPlan, problem: PddlPlusProblem, domain: PddlPlusDomain, delta_t: float,
                  max_t: float = 1000, max_iterations: float = 1000):
+        """ Simulate running the given plan from the start state """
         self.problem = problem
         self.domain = domain
         self.trace = []
@@ -97,11 +97,14 @@ class PddlPlusSimulator():
             fired_events = self.handle_events(current_state)
             for event in fired_events:
                 world_changes_at_t.append(event)
+
         # Compute delta t
-        if self.next_timed_action is None or self.next_timed_action.start_at > t + self.delta_t:  # Next action should not start before t+delta_t
-            current_delta_t = self.delta_t
-        else:  # Next action should start before t+delta_t, we don't want to miss it
-            current_delta_t = self.next_timed_action.start_at - t
+        # if self.next_timed_action is None or self.next_timed_action.start_at >= t + self.delta_t - 0.00001:  # Next action should not start before t+delta_t
+        #     current_delta_t = self.delta_t
+        # else:  # Next action should start before t+delta_t, we don't want to miss it
+        #     current_delta_t = round(self.next_timed_action.start_at - t, 10)
+        current_delta_t = self.delta_t
+
         # Advance process and apply events
         active_processes = self.handle_processes(current_state, current_delta_t)  # Advance processes
         for process in active_processes:
@@ -109,7 +112,7 @@ class PddlPlusSimulator():
         fired_events = self.handle_events(current_state)  # Apply events to the resulting state
         for event in fired_events:
             world_changes_at_t.append(event)
-        t = t + current_delta_t  # Advance time
+
         # Add new trace item, which will be completed by the next iteration of this while
         trace_item = [None, None, None]
         trace_item[TI_STATE] = current_state.clone()
@@ -124,9 +127,10 @@ class PddlPlusSimulator():
         elif self.next_timed_action is not None:
             # In this case, everything is waiting for the next timed action, so we can just "jump ahead" to get to do that action.
             still_active = True
-            t = self.next_timed_action.start_at
+            # t = self.next_timed_action.start_at
         else:
             still_active = False
+        t = round(t + current_delta_t, 10)  # Advance time
         return still_active, t
 
     ''' Simulate the trace of a given action in a given state according to the given meta model'''
@@ -177,7 +181,7 @@ class PddlPlusSimulator():
             for event in available_events:
                 if self.preconditions_hold(state, event.preconditions):
                     events_to_fire.append(event)
-            if len(events_to_fire)==0:
+            if len(events_to_fire) == 0:
                 break
 
             for event in events_to_fire:
@@ -185,7 +189,7 @@ class PddlPlusSimulator():
                 available_events.remove(event)
                 fired_events.append(event)
             self.apply_effects(state, effects_list)
-            if len(available_events)==0:
+            if len(available_events) == 0:
                 break
 
             if self.allow_cascading_effects == False:
@@ -365,10 +369,10 @@ class PddlPlusSimulator():
                 # return float(state.numeric_fluents[element])  # A fluent
 
     ''' Simulate the observed action in the observed state according to the given meta model '''
-    def get_expected_trace(self, observation, meta_model, delta_t = 0.05):
+    def get_expected_trace(self, observation, meta_model, delta_t=0.05):
         problem = meta_model.create_pddl_problem(observation.get_initial_state())
         domain = meta_model.create_pddl_domain(observation.get_initial_state())
-        domain = PddlPlusGrounder().ground_domain(domain,problem) # Simulator accepts only grounded domains
+        domain = PddlPlusGrounder().ground_domain(domain, problem)  # Simulator accepts only grounded domains
 
         # act_start_idx = 0
         # if meta_model.constant_numeric_fluents['time_limit']/settings.CP_DELTA_T < 200:

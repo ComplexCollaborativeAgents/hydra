@@ -269,7 +269,7 @@ class PigType(PddlObjectType):
         return obj_attributes
 
     def __compute_pig_life(self):
-        return str(math.ceil(10 * self.hyper_parameters["pig_life_multiplier"]))
+        return str(math.ceil(10 + self.hyper_parameters["pig_life_multiplier"]))
 
     def _compute_observable_obj_attributes(self, obj, problem_params: dict):
         obj_attributes = dict()
@@ -512,16 +512,16 @@ class ScienceBirdsMetaModel(MetaModel):
                          delta_t=settings.SB_DELTA_T,
                          metric='minimize(total-time)',
                          repairable_constants=[
-                             'meta_wood_multiplier',
-                             'meta_stone_multiplier',
-                             'meta_ice_multiplier',
-                             'v_bird_multiplier',
-                             'meta_platform_size',
+                             # 'meta_wood_multiplier',
+                             # 'meta_stone_multiplier',
+                             # 'meta_ice_multiplier',
+                             # 'v_bird_multiplier',
+                             # 'meta_platform_size',
                              'base_life_pig_multiplier',
-                             'fall_damage',
-                             'explosion_damage'],
+                             'explosion_damage',
+                             'fall_damage'],
                          repair_deltas=[
-                             1, 1, 1, 1, 0.1, 10, 10, 10
+                             50, 50, 10
                          ],
                          constant_numeric_fluents={
                              'active_bird': 0,
@@ -541,7 +541,7 @@ class ScienceBirdsMetaModel(MetaModel):
                              'v_bird_multiplier': 10.0,
                              'gravity_factor': 9.81,
                              'meta_platform_size': 1.75,
-                             'base_life_pig_multiplier': 1.0,
+                             'base_life_pig_multiplier': 0.0,
                              'fall_damage': 50,
                              'explosion_damage': 100},
                          constant_boolean_fluents={
@@ -573,9 +573,10 @@ class ScienceBirdsMetaModel(MetaModel):
         self.object_types["slingshot"] = SlingshotType()
         self.object_types["unknown"] = UnknownType()
 
-    ''' Get the slingshot object '''
+
 
     def get_slingshot(self, sb_state: ProcessedSBState):
+        ''' Get the slingshot object '''
         sling = None
         for o in sb_state.objects.items():
             if o[1]['type'] == 'slingshot':
@@ -608,20 +609,17 @@ class ScienceBirdsMetaModel(MetaModel):
 
     def create_timed_action(self, sb_shoot: SB.SBShoot, sb_state: ProcessedSBState):
         """ Create a PDDL+ TimedAction object from an SB action and state """
-        ref_x = sb_shoot.ref_x
-        ref_y = sb_shoot.ref_y
-        release_x = ref_x + sb_shoot.dx
-        release_y = ref_y + sb_shoot.dy
-        sling = sb_state.sling
 
-        mag = sling.height * 8.0
-        theta_from_x = math.acos((release_x - ref_x) / (-mag))
-        theta_from_y = math.asin((release_y - ref_y) / mag)
+        mag = math.sqrt(sum((px - qx) ** 2.0 for px, qx in zip((0, 0), (sb_shoot.dx, sb_shoot.dy))))
+        theta_from_x = math.acos(sb_shoot.dx / (-mag))
+        theta_from_y = math.asin(sb_shoot.dy / mag)
         assert abs(theta_from_x - theta_from_y) < 1  # Precision TODO: Discuss this, the number 1 is arbitrary
         action_angle = math.degrees(theta_from_x)
 
         pddl_state = PddlPlusState(self.create_pddl_problem(sb_state).init)
         action_time = self.angle_to_action_time(action_angle, pddl_state)
+
+        action_time = settings.SB_DELTA_T * round(action_time / settings.SB_DELTA_T)
 
         active_bird = pddl_state.get_active_bird()
         action_name = "%s %s" % (ScienceBirdsMetaModel.TWANG_ACTION, active_bird)

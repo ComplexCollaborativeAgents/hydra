@@ -138,7 +138,7 @@ class ScienceBirdsConsistencyEstimator(MetaModelBasedConsistencyEstimator):
 
     def __init__(self, use_simplified_problems=True,
                  consistency_estimators=None):
-        # BirdLocationConsistencyEstimator()ExternalAgentLocationConsistencyEstimator()
+        # BirdLocationConsistencyEstimator()ExternalAgentLocationConsistencyEstimator(), BirdLocationConsistencyEstimator()
         if consistency_estimators is None:
             consistency_estimators = [BlockNotDeadConsistencyEstimator(), PigDeadConsistencyEstimator()]
         self.consistency_estimators = list()

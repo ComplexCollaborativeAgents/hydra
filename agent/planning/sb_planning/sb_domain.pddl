@@ -171,21 +171,9 @@
         )
         :effect (and
             (decrease (pig_life ?p) (v_bird ?b))
-            (assign (vx_bird ?b) (- (vx_bird ?b) (* (/ (* 2 (m_pig ?p)) (+ (m_bird ?b) (m_pig ?p))) (*
-                (/
-                    (+ (+ (- (- (- (- (+ (* (vx_bird ?b) (x_bird ?b)) (* (vy_bird ?b) (y_bird ?b))) (* (vx_bird ?b) (x_pig ?p))) (* (vy_bird ?b) (y_pig ?p))) (* 0 (x_bird ?b))) (* 0 (y_bird ?b))) (* 0 (x_pig ?p))) (* 0 (y_pig ?p)))
-                    (+ (+ (- (- (- (- (+ (* (x_pig ?p) (x_pig ?p)) (* (y_pig ?p) (y_pig ?p))) (* (x_pig ?p) (x_bird ?b))) (* (y_pig ?p) (y_bird ?b))) (* (x_bird ?b) (x_pig ?p))) (* (y_bird ?b) (y_pig ?p))) (* (x_bird ?b) (x_bird ?b))) (* (y_bird ?b) (y_bird ?b)))
-                )
-                (- (x_pig ?p) (x_bird ?b)) )
-            )  ) )
-
-            (assign (vy_bird ?b) (- (vy_bird ?b) (* (/ (* 2 (m_pig ?p)) (+ (m_bird ?b) (m_pig ?p))) (*
-                (/
-                    (+ (+ (- (- (- (- (+ (* (vx_bird ?b) (x_bird ?b)) (* (vy_bird ?b) (y_bird ?b))) (* (vx_bird ?b) (x_pig ?p))) (* (vy_bird ?b) (y_pig ?p))) (* 0 (x_bird ?b))) (* 0 (y_bird ?b))) (* 0 (x_pig ?p))) (* 0 (y_pig ?p)))
-                    (+ (+ (- (- (- (- (+ (* (x_pig ?p) (x_pig ?p)) (* (y_pig ?p) (y_pig ?p))) (* (x_pig ?p) (x_bird ?b))) (* (y_pig ?p) (y_bird ?b))) (* (x_bird ?b) (x_pig ?p))) (* (y_bird ?b) (y_pig ?p))) (* (x_bird ?b) (x_bird ?b))) (* (y_bird ?b) (y_bird ?b)))
-                )
-                (- (y_pig ?p) (y_bird ?b)) )
-            )  ) )
+            (assign (v_bird ?b) 0)
+            (assign (vx_bird ?b) 0)
+            (assign (vy_bird ?b) 0)
             (assign (bounce_count ?b) (+ (bounce_count ?b) 1))
         )
     )
@@ -208,8 +196,8 @@
             (assign (block_life ?bl) (- (block_life ?bl) (v_bird ?b)) )
             (assign (x_bird ?b) (- (x_block ?bl) (+ (/ (block_width ?bl) 2) 1) ) )
             (assign (y_bird ?b) (+ (y_block ?bl) (+ (/ (block_height ?bl) 2) 1) ) )
-            (assign (vy_bird ?b) (* (vy_bird ?b) (/ (v_bird ?b) (block_stability ?bl)) ))
-            (assign (vx_bird ?b) (- 0 (* (vx_bird ?b) (/ (v_bird ?b) (block_stability ?bl))) ))
+            (assign (vy_bird ?b) (* (vy_bird ?b) (/ (v_bird ?b) (block_life ?bl)) ))
+            (assign (vx_bird ?b) (- 0 (* (vx_bird ?b) (/ (v_bird ?b) (block_life ?bl))) ))
             (assign (block_stability ?bl) (- (block_stability ?bl) (v_bird ?b)) )
             (assign (v_bird ?b) (/ (v_bird ?b) 2))  ; This is an approximation, because the original values of block stability and life have already been lost.
             (assign (bounce_count ?b) (+ (bounce_count ?b) 1))
@@ -337,6 +325,7 @@
         :effect (and
             (assign (v_bird ?b) 0)
             (assign (vx_bird ?b) 0)
+            (assign (vy_bird ?b) 0)
             (assign (bounce_count ?b) 3)
         )
     )
