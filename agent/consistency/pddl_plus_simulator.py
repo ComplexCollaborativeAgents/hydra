@@ -1,34 +1,35 @@
-'''
-    This module provides very basic capabilities for simulating PDDL+ domain behavior, 
+"""
+    This module provides very basic capabilities for simulating PDDL+ domain behavior,
     including actions, events, and processes.
-'''
+"""
 import settings
 from agent.planning.meta_model import *
 from agent.consistency.observation import *
 from agent.planning.pddl_plus import is_op
 
 # Constants
-TI_STATE = 0 # Index in a trace_item for the state
-TI_T = 1 # Index in a trace_item for the time
-TI_WORLD_CHANGES = 2 # Index in a trace_item for the list of actions, processes, and events
+TI_STATE = 0  # Index in a trace_item for the state
+TI_T = 1  # Index in a trace_item for the time
+TI_WORLD_CHANGES = 2  # Index in a trace_item for the list of actions, processes, and events
 
 
-''' Error thrown when the simulator tries to simulate a plan that is inconsistent (e.g., try to perform an action without its preconditions satisfied)'''
 class InconsistentPlanError(ValueError):
-    def __init__(self, error_msg:str):
+    """ Error thrown when the simulator tries to simulate a plan that is inconsistent
+    (e.g., try to perform an action without its preconditions satisfied)"""
+
+    def __init__(self, error_msg: str):
         super().__init__(error_msg)
 
 
-''' A simplistic, probably not complete and sound, simulator for PDDL+ processes
- TODO: Replace this with a call to VAL. '''
 class PddlPlusSimulator():
-
+    """ A simplistic, probably not complete and sound, simulator for PDDL+ processes
+     TODO: Replace this with a call to VAL. """
     def __init__(self, allow_cascading_effects=True):
         self.allow_cascading_effects = allow_cascading_effects
 
-    ''' Return a list of (values_dict,t) pairs, where value_dict is a dictionary
-     with the values of the fluents at time t, according to the given trace '''
-    def trace_fluents(self, trace : list, fluent_names:list):
+    def trace_fluents(self, trace: list, fluent_names: list):
+        """ Return a list of (values_dict,t) pairs, where value_dict is a dictionary
+            with the values of the fluents at time t, according to the given trace """
         output = list()
         for (state, t) in trace:
             values = dict()
@@ -39,8 +40,8 @@ class PddlPlusSimulator():
                     fluent_value = True
                 else:
                     fluent_value = False
-                values[fluent_name]=fluent_value
-            output.append((values,t))
+                values[fluent_name] = fluent_value
+            output.append((values, t))
         return output
 
     def simulate(self, plan_to_simulate: PddlPlusPlan, problem: PddlPlusProblem, domain: PddlPlusDomain, delta_t: float,
@@ -75,8 +76,8 @@ class PddlPlusSimulator():
 
         return current_state, t, self.trace
 
-    ''' Simulate a single step '''
     def _sim_step(self, current_state, t):
+        """ Simulate a single step """
         world_changes_at_t = []
 
         # If we reached the time in which the next action should be applied, apply it
@@ -117,7 +118,8 @@ class PddlPlusSimulator():
         trace_item = [None, None, None]
         trace_item[TI_STATE] = current_state.clone()
         trace_item[TI_T] = t
-        trace_item[TI_WORLD_CHANGES] = world_changes_at_t  # Actions, events, and process, performed in this (state,time) pair
+        trace_item[
+            TI_WORLD_CHANGES] = world_changes_at_t  # Actions, events, and process, performed in this (state,time) pair
         self.trace.append(trace_item)
         # Stopping condition
         if len(active_processes) > 0:
@@ -133,23 +135,23 @@ class PddlPlusSimulator():
         t = round(t + current_delta_t, 10)  # Advance time
         return still_active, t
 
-    ''' Simulate the trace of a given action in a given state according to the given meta model'''
-    def simulate_observed_action(self, game_state, game_action, game_meta_model, delta_t : float=  None):
+    def simulate_observed_action(self, game_state, game_action, game_meta_model, delta_t: float = None):
+        """ Simulate the trace of a given action in a given state according to the given meta model"""
         if delta_t is None:
             delta_t = game_meta_model.delta_t
         problem = game_meta_model.create_pddl_problem(game_state)
         domain = game_meta_model.create_pddl_domain(game_state)
-        domain = PddlPlusGrounder().ground_domain(domain,problem) # Simulator accepts only grounded domains
+        domain = PddlPlusGrounder().ground_domain(domain, problem)  # Simulator accepts only grounded domains
         plan = PddlPlusPlan()
         plan.append(game_meta_model.create_timed_action(game_action, game_state))
         (_, _, trace) = self.simulate(plan, problem, domain, delta_t)
         return trace
 
-    ''' Simulate the trace of a given action in a given state according to the given meta model'''
-    def simulate_observed_plan(self, game_states, game_actions, game_meta_model, delta_t : float):
+    def simulate_observed_plan(self, game_states, game_actions, game_meta_model, delta_t: float):
+        """ Simulate the trace of a given action in a given state according to the given meta model"""
         problem = game_meta_model.create_pddl_problem(game_states[0])
         domain = game_meta_model.create_pddl_domain(game_states[0])
-        domain = PddlPlusGrounder().ground_domain(domain,problem) # Simulator accepts only grounded domains
+        domain = PddlPlusGrounder().ground_domain(domain, problem)  # Simulator accepts only grounded domains
 
         plan = PddlPlusPlan()
         for ix in enumerate(game_actions):
@@ -157,8 +159,8 @@ class PddlPlusSimulator():
         (_, _, trace) = self.simulate(plan, problem, domain, delta_t)
         return trace
 
-    ''' Advanced all process in the givne state by the given delta t'''
     def handle_processes(self, state, delta_t):
+        """  Advanced all process in the given state by the given delta t"""
         effects_list = list()
         active_processes = list()
         for process in self.domain.processes:
@@ -170,8 +172,8 @@ class PddlPlusSimulator():
         self.apply_effects(state, effects_list)
         return active_processes
 
-    ''' Processes the events and modify the current state accordingly'''
     def handle_events(self, state: PddlPlusState):
+        """ Processes the events and modify the current state accordingly"""
         events_to_fire = []
         effects_list = []
         available_events = list(self.domain.events)
@@ -192,130 +194,139 @@ class PddlPlusSimulator():
             if len(available_events) == 0:
                 break
 
-            if self.allow_cascading_effects == False:
+            if not self.allow_cascading_effects:
                 break
 
         return fired_events
 
-    ''' Apply an action on the given state. If binding is not None, we first ground the action with the binding'''
-    def apply_action(self, state: PddlPlusState, action : PddlPlusWorldChange, binding: dict = None):
+    def apply_action(self, state: PddlPlusState, action: PddlPlusWorldChange, binding: dict = None):
+        """ Apply an action on the given state. If binding is not None, we first ground the action with the binding"""
         if binding is not None:
             action = action.ground(binding)
 
-        if self.preconditions_hold(state,action.preconditions)==False:
-            raise InconsistentPlanError("Action preconditions are not satisfied") # No effects if preconditions do not hold
+        if not self.preconditions_hold(state, action.preconditions):
+            raise InconsistentPlanError(
+                "Action preconditions are not satisfied")  # No effects if preconditions do not hold
         self.apply_effects(state, action.effects)
 
-    ''' Fire a given event at the given state. If binding is not None, we first ground the action with the binding'''
-    def fire_event(self, state: PddlPlusState, event : PddlPlusWorldChange, binding: dict = None):
+    def fire_event(self, state: PddlPlusState, event: PddlPlusWorldChange, binding: dict = None):
+        """ Fire a given event at the given state.
+        If binding is not None, we first ground the action with the binding"""
         if binding is not None:
             event = event.ground(binding)
 
-        if self.preconditions_hold(state,event.preconditions)==False:
-            raise ValueError("Event preconditions are not satisfied") # No effects if preconditions do not hold
+        if not self.preconditions_hold(state, event.preconditions):
+            raise ValueError("Event preconditions are not satisfied")  # No effects if preconditions do not hold
         self.apply_effects(state, event.effects)
 
-    ''' Advances the process by the given delta_t time step. If binding is not None, we first ground the action with the binding'''
     def advance_process(self, state: PddlPlusState, process: PddlPlusWorldChange, delta_t: int, binding: dict = None):
+        """ Advances the process by the given delta_t time step.
+         If binding is not None, we first ground the action with the binding"""
         if binding is not None:
             process = process.ground(binding)
-        if self.preconditions_hold(state, process.preconditions)==False:
-            raise ValueError("Process preconditions are not satisfied") # No effects if preconditions do not hold
+        if not self.preconditions_hold(state, process.preconditions):
+            raise ValueError("Process preconditions are not satisfied")  # No effects if preconditions do not hold
 
-    ''' Compute the impact of applying an action on the given state. If binding is not None, we first ground the action with the binding'''
     def compute_apply_action(self, state: PddlPlusState, action: PddlPlusWorldChange, binding: dict = None):
+        """ Compute the impact of applying an action on the given state.
+        If binding is not None, we first ground the action with the binding"""
         if binding is not None:
             action = action.ground(binding)
 
-        if self.preconditions_hold(state, action.preconditions) == False:
-            raise InconsistentPlanError("Action %s preconditions are not satisfied" % action.name)  # No effects if preconditions do not hold
+        if not self.preconditions_hold(state, action.preconditions):
+            raise InconsistentPlanError(
+                "Action %s preconditions are not satisfied" % action.name)  # No effects if preconditions do not hold
         return self.compute_effects(state, action.effects)
 
-    ''' Compute the impact of firing a given event at the given state. If binding is not None, we first ground the action with the binding'''
     def compute_fire_event(self, state: PddlPlusState, event: PddlPlusWorldChange, binding: dict = None):
+        """ Compute the impact of firing a given event at the given state. If binding is not None,
+        we first ground the action with the binding"""
         if binding is not None:
             event = event.ground(binding)
 
-        if self.preconditions_hold(state, event.preconditions) == False:
+        if not self.preconditions_hold(state, event.preconditions):
             raise ValueError("Event preconditions are not satisfied")  # No effects if preconditions do not hold
         return self.compute_effects(state, event.effects)
 
-    ''' Compute the impact of advancing the process by the given delta_t time step. If binding is not None, we first ground the action with the binding'''
     def compute_advance_process(self, state: PddlPlusState, process: PddlPlusWorldChange, delta_t: int,
-                        binding: dict = None):
+                                binding: dict = None):
+        """ Compute the impact of advancing the process by the given delta_t time step. If binding is not None,
+        we first ground the action with the binding"""
         if binding is not None:
             process = process.ground(binding)
-        if self.preconditions_hold(state, process.preconditions) == False:
+        if not self.preconditions_hold(state, process.preconditions):
             raise ValueError("Process preconditions are not satisfied")  # No effects if preconditions do not hold
 
         return self.compute_effects(state, process.effects, delta_t)
 
-    ''' Checks if a set of preconditions hold in the given state'''
     def preconditions_hold(self, state, preconditions):
+        """ Checks if a set of preconditions hold in the given state"""
         for precondition in preconditions:
-            if self.__precondition_hold(state, precondition)==False:
+            if not self.__precondition_hold(state, precondition):
                 return False
         return True
 
     ''' Checks if a single precondition hold in the given state'''
-    def __precondition_hold(self, state : PddlPlusState, single_precondition):
-        if single_precondition[0]=="not":
+
+    def __precondition_hold(self, state: PddlPlusState, single_precondition):
+        if single_precondition[0] == "not":
             return not self.__precondition_hold(state, single_precondition[1])
-        if single_precondition[0]=="or":
+        if single_precondition[0] == "or":
             for precondition in single_precondition[1:]:
-                if self.__precondition_hold(state, precondition)==True:
+                if self.__precondition_hold(state, precondition) == True:
                     return True
             return False
         return self._eval(single_precondition, state)
 
     ''' Apply the specified effect ont he given state '''
+
     def apply_effects(self, state, effects, delta_t=-1):
         for effect in effects:
-            effect_type = effect[0] # increase or decrease
+            effect_type = effect[0]  # increase or decrease
             if effect_type in ("increase", "decrease", "assign"):
                 # Numeric fluent
                 fluent_name = tuple(effect[1])
                 old_value = float(state.numeric_fluents[fluent_name])
                 delta = self._eval(effect[2], state, delta_t)
-                if effect_type=="increase":
-                    new_value = old_value+delta
-                elif effect_type=="decrease":
-                    new_value = old_value-delta
-                elif effect_type=="assign":
+                if effect_type == "increase":
+                    new_value = old_value + delta
+                elif effect_type == "decrease":
+                    new_value = old_value - delta
+                elif effect_type == "assign":
                     new_value = delta
                 else:
                     raise NotImplementedError("Currently not supporting %s" % effect_type)
 
-                state.numeric_fluents[fluent_name]=new_value # TODO: What if two effects affect the same fluent?
-            else: # Boolean effects
-                if effect[0]=="not": # remove a fact
+                state.numeric_fluents[fluent_name] = new_value  # TODO: What if two effects affect the same fluent?
+            else:  # Boolean effects
+                if effect[0] == "not":  # remove a fact
                     fluent_name = tuple(effect[1])
                     if fluent_name in state.boolean_fluents:
                         state.boolean_fluents.remove(fluent_name)
-                else: # add a fact
+                else:  # add a fact
                     fluent_name = tuple(effect)
                     state.boolean_fluents.add(fluent_name)
 
-    ''' Outputs a list of computed effects that should be applied. All effects are already computed. '''
     def compute_effects(self, state, effects, delta_t=-1):
+        """ Outputs a list of computed effects that should be applied. All effects are already computed. """
         effect_list = list()
 
         for effect in effects:
-            effect_type = effect[0] # increase or decrease
+            effect_type = effect[0]  # increase or decrease
             if effect_type in ("increase", "decrease", "assign"):
                 # Numeric fluent
                 fluent_name = tuple(effect[1])
                 delta = self._eval(effect[2], state, delta_t)
                 effect_list.append([effect_type, fluent_name, delta])
-            else: # Boolean effects
+            else:  # Boolean effects
                 effect_list.append(effect)
 
         return effect_list
 
-    ''' Evaluates a given expression using the fluents in the given state, and delta f, if needed'''
     def _eval(self, element, state: PddlPlusState, delta_t: float = -1):
+        """ Evaluates a given expression using the fluents in the given state, and delta f, if needed"""
         if isinstance(element, list):
-            if is_op(element[0]): # If element is an operator
+            if is_op(element[0]):  # If element is an operator
                 assert len(element) == 3
 
                 op_name = element[0]
@@ -348,9 +359,9 @@ class PddlPlusSimulator():
                     result = eval("%s%s%s" % (str(value1), op_name, str(value2)))
                 return result
 
-            else: # Else element is a fluent value
-                if len(element)==1: # This is a fluent
-                    fluent_name = (element[0],) # Todo: understand why this hack is needed
+            else:  # Else element is a fluent value
+                if len(element) == 1:  # This is a fluent
+                    fluent_name = (element[0],)  # Todo: understand why this hack is needed
                 else:
                     fluent_name = tuple(element)
                 if fluent_name in state.numeric_fluents:
@@ -359,17 +370,17 @@ class PddlPlusSimulator():
                     return fluent_name in state.boolean_fluents
         else:
             if is_float(element):
-                return float(element) # A constant
-            elif element=="#t":
-                if delta_t==-1:
+                return float(element)  # A constant
+            elif element == "#t":
+                if delta_t == -1:
                     raise ValueError("Delta t not set, but needed for evaluation")
                 return delta_t
             else:
                 return element
                 # return float(state.numeric_fluents[element])  # A fluent
 
-    ''' Simulate the observed action in the observed state according to the given meta model '''
     def get_expected_trace(self, observation, meta_model, delta_t=0.05):
+        """ Simulate the observed action in the observed state according to the given meta model """
         problem = meta_model.create_pddl_problem(observation.get_initial_state())
         domain = meta_model.create_pddl_domain(observation.get_initial_state())
         domain = PddlPlusGrounder().ground_domain(domain, problem)  # Simulator accepts only grounded domains
@@ -380,10 +391,12 @@ class PddlPlusSimulator():
 
         plan = observation.get_pddl_plan(meta_model)
 
-        (_,_,trace,) = self.simulate(plan, problem, domain, delta_t=delta_t)
+        (_, _, trace,) = self.simulate(plan, problem, domain, delta_t=delta_t)
         return trace, plan
 
-''' Helper function: simulate the given plan, on the given problem and domain.  '''
-def simulate_plan_trace(plan: PddlPlusPlan, problem:PddlPlusProblem, domain: PddlPlusDomain, delta_t:float = 0.05, simulator = PddlPlusSimulator()):
-    (_, _, trace) =  simulator.simulate(plan, problem, domain, delta_t)
+
+def simulate_plan_trace(plan: PddlPlusPlan, problem: PddlPlusProblem, domain: PddlPlusDomain, delta_t: float = 0.05,
+                        simulator=PddlPlusSimulator()):
+    """ Helper function: simulate the given plan, on the given problem and domain.  """
+    (_, _, trace) = simulator.simulate(plan, problem, domain, delta_t)
     return trace

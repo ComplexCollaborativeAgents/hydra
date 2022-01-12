@@ -55,10 +55,8 @@ def get_width(obj):
     return abs(obj[1]['polygon'].bounds[2] - obj[1]['polygon'].bounds[0])
 
 
-''' Returns the location of the closest object to aim for '''
-
-
 def get_random_pig_xy(pddl_problem: PddlPlusProblem):
+    """ Returns the location of the closest object to aim for """
     state = PddlPlusState(pddl_problem.init)
     target_pigs = list(state.get_pigs())
 
@@ -69,10 +67,8 @@ def get_random_pig_xy(pddl_problem: PddlPlusProblem):
     return random_pig_x, random_pig_y
 
 
-''' Returns the location of the closest object to aim for '''
-
-
 def get_closest_object_xy(pddl_problem: PddlPlusProblem):
+    """ Returns the location of the closest object to aim for """
     state = PddlPlusState(pddl_problem.init)
     target_pigs = state.get_pigs()
     closest_obj_x = None
@@ -189,19 +185,16 @@ class PddlObjectType:
         self.hyper_parameters = dict()
         self.pddl_type = "object"  # This the PDDL+ type of this object.
 
-    ''' Subclasses should override this setting all attributes of that object '''
-
     def _compute_obj_attributes(self, obj, problem_params: dict):
+        """ Subclasses should override this setting all attributes of that object """
         return dict()
-
-    ''' Subclasses should override this setting all attributes of that object that can be observed'''
 
     def _compute_observable_obj_attributes(self, obj, problem_params: dict):
+        """ Subclasses should override this setting all attributes of that object that can be observed"""
         return dict()
 
-    ''' Populate a PDDL+ problem with details about this object '''
-
     def add_object_to_problem(self, prob: PddlPlusProblem, obj, problem_params: dict):
+        """ Populate a PDDL+ problem with details about this object """
         name = self._get_name(obj)
         prob.objects.append([name, self.pddl_type])
         attributes = self._compute_obj_attributes(obj, problem_params)
@@ -216,9 +209,8 @@ class PddlObjectType:
             else:  # Attribute is a number
                 prob.init.append(['=', [attribute, name], value])
 
-    ''' Populate a PDDL+ state with details about this object '''
-
     def add_object_to_state(self, pddl_state: PddlPlusState, obj, state_params: dict):
+        """ Populate a PDDL+ state with details about this object """
         name = self._get_name(obj)
         attributes = self._compute_observable_obj_attributes(obj, state_params)
         for attribute in attributes:
@@ -602,27 +594,28 @@ class ScienceBirdsMetaModel(MetaModel):
         ref_point = tp.get_reference_point(processed_state.sling)
         release_point_from_plan = tp.find_release_point(processed_state.sling, math.radians(angle))
         action = SB.SBShoot(release_point_from_plan.X, release_point_from_plan.Y,
-                            tap_timing, ref_point.X, ref_point.Y)
+                            tap_timing, ref_point.X, ref_point.Y, timed_action)
         return action
 
     def create_timed_action(self, sb_shoot: SB.SBShoot, sb_state: ProcessedSBState):
         """ Create a PDDL+ TimedAction object from an SB action and state """
-
-        mag = math.sqrt(sum((px - qx) ** 2.0 for px, qx in zip((0, 0), (sb_shoot.dx, sb_shoot.dy))))
-        theta_from_x = math.acos(sb_shoot.dx / (-mag))
-        theta_from_y = math.asin(sb_shoot.dy / mag)
-        assert abs(theta_from_x - theta_from_y) < 1  # Precision TODO: Discuss this, the number 1 is arbitrary
-        action_angle = math.degrees(theta_from_x)
-
-        pddl_state = PddlPlusState(self.create_pddl_problem(sb_state).init)
-        action_time = self.angle_to_action_time(action_angle, pddl_state)
-
-        action_time = settings.SB_DELTA_T * round(action_time / settings.SB_DELTA_T)
-
-        active_bird = pddl_state.get_active_bird()
-        action_name = "%s %s" % (ScienceBirdsMetaModel.TWANG_ACTION, active_bird)
-
-        return TimedAction(action_name, action_time)
+        #
+        # mag = math.sqrt(sum((px - qx) ** 2.0 for px, qx in zip((0, 0), (sb_shoot.dx, sb_shoot.dy))))
+        # theta_from_x = math.acos(sb_shoot.dx / (-mag))
+        # theta_from_y = math.asin(sb_shoot.dy / mag)
+        # assert abs(theta_from_x - theta_from_y) < 1  # Precision TODO: Discuss this, the number 1 is arbitrary
+        # action_angle = math.degrees(theta_from_x)
+        #
+        # pddl_state = PddlPlusState(self.create_pddl_problem(sb_state).init)
+        # action_time = self.angle_to_action_time(action_angle, pddl_state)
+        #
+        # action_time = settings.SB_DELTA_T * round(action_time / settings.SB_DELTA_T)
+        #
+        # active_bird = pddl_state.get_active_bird()
+        # action_name = "%s %s" % (ScienceBirdsMetaModel.TWANG_ACTION, active_bird)
+        #
+        # return TimedAction(action_name, action_time)
+        return sb_shoot.timed_action
 
     ''' Translate the initial SBState, as observed, to a PddlPlusProblem object. 
     Note that in the initial state, we ignore the location of the bird and assume it is on the slingshot. '''

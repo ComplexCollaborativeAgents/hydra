@@ -72,9 +72,10 @@ class SimulationBasedMetaModelRepair(MetaModelRepair):
         self.current_meta_model = None
         self.time_limit = time_limit  # Allows setting a timeout for the repair
 
-    ''' Computes the consistency score for the given delta state'''
+
 
     def _compute_consistency(self, repair: list, observation: ScienceBirdsObservation):
+        """ Computes the consistency score for the given delta state"""
         # Apply change
         self._do_change(repair)
 

@@ -86,6 +86,9 @@ class SBHydraAgent(HydraAgent):
         self.pddl_prob_per_level = []
         self.num_objects = 0
 
+        # record latest angle for repair module
+        self.latest_angle = None
+
         # fields collected from random functions:
         self.training_level_backup = 0
 
@@ -481,8 +484,6 @@ class SBHydraAgent(HydraAgent):
             else:
                 sb_action = self.meta_model.create_sb_action(timed_action, processed_state)
 
-            # logger.info("[hydra_agent_server] :: Taking action: {}".format(str(timed_action.action_name)))
-            # sb_action = self.meta_model.create_sb_action(timed_action, processed_state)
             raw_state, reward = self.env.act(sb_action)
             observation.reward = reward
             if self.stats_for_level.get('rewards_per_shot'):
@@ -503,6 +504,8 @@ class SBHydraAgent(HydraAgent):
             plan = PddlPlusPlan()
             plan.append(self.__get_default_action(processed_state))
             sb_action = self.meta_model.create_sb_action(plan[0], processed_state)
+            pddl_state = self.meta_model.create_pddl_problem(processed_state).get_init_state()
+            self.latest_angle = self.meta_model.action_time_to_angle(plan[0].start_at, pddl_state)
             raw_state, reward = self.env.act(sb_action)
             logger.info("[hydra_agent_server] :: Reward {} Game State {}".format(reward, raw_state.game_state))
 

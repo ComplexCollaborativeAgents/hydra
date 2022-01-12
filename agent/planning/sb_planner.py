@@ -41,15 +41,14 @@ class SBPlanner(HydraPlanner):
             self.write_problem_file(pddl)
         return self.get_plan_actions()
 
-    def execute(self,plan,policy_learner):
-        '''Converts the symbolic action into an environment action'''
+    def execute(self, plan, policy_learner):
+        """Converts the symbolic action into an environment action"""
         # TODO: RONI: I THINK THIS IS DEPRECATED AND SHOULD BE REMOVED
         assert False
         if isinstance(plan[0],InvokeBasicRL):
             return policy_learner.act_and_learn(plan[0].state)
         if isinstance(plan[0],SBShoot):
             return None
-
 
     def write_problem_file(self, pddl_problem):
         pddl_problem_file = "%s/sb_prob.pddl" % str(settings.SB_PLANNING_DOCKER_PATH)
@@ -61,9 +60,7 @@ class SBPlanner(HydraPlanner):
             subprocess.run(cmd, shell=True)
             exporter.to_file(pddl_problem, "{}/trace/problems/{}_problem.pddl".format(settings.SB_PLANNING_DOCKER_PATH,
                                                                                       self.current_problem_prefix))
-
     def get_plan_actions(self, count=0):
-
         plan_actions = []
         planning_successful = False
 

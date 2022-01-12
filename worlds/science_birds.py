@@ -64,13 +64,14 @@ class SBLoadLevel(SBAction):
 
 class SBShoot(SBAction):
     """fires a bird, x,y position of first tap,and then the time of the second tap"""
-    def __init__(self, x, y, tap, ref_x, ref_y):
+    def __init__(self, x, y, tap, ref_x, ref_y, timed_action=None):
         super().__init__()
-        self.dx =  int(x - ref_x)
-        self.dy =  int(y - ref_y)
+        self.dx = int(x - ref_x)
+        self.dy = int(y - ref_y)
         self.tap = tap
         self.ref_x = ref_x
         self.ref_y = ref_y
+        self.timed_action = timed_action
 
     def get_rl_id(self):
         return self.to_id

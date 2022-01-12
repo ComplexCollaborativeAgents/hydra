@@ -20,7 +20,7 @@ TIME_HORIZON = 1000
 NO_TIMEOUT = True
 TIMEOUT = 1800
 
-MAX_GENERATED_NODES = 100000 # Stops planning after generating this many nodes
+MAX_GENERATED_NODES = 100000  # Stops planning after generating this many nodes
 
 NUMBER_PRECISION = 10
 PRINT_INFO = 10000

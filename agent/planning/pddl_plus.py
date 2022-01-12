@@ -109,7 +109,7 @@ class PddlPlusProblem():
         return PddlPlusState(self.init)
 
 
-class PddlPlusDomain():
+class PddlPlusDomain:
     def __init__(self):
         self.name = None
         self.requirements = list()
@@ -124,21 +124,19 @@ class PddlPlusDomain():
     def get_action(self, action_name):
         for action in self.actions:
             # print ("COMPARE: ", action.name, " vs ", action_name)
-            if action.name == action_name:
+            if action.name.lower() == action_name.lower():
                 return action
         print("\nNO MATCHING ACTIONS IN LIST:", self.actions)
         return None
 
 
-'''
-A class representing a PDDL+ state. Contains only the fluents and their values. 
-'''
-
-
-class PddlPlusState():
-    ''' Creates a PDDL+ state object initialized by a list of fluent given in the PddlPlusProblem format of lists'''
+class PddlPlusState:
+    """
+    A class representing a PDDL+ state. Contains only the fluents and their values.
+    """
 
     def __init__(self, fluent_list: list = None):
+        """ Creates a PDDL+ state object initialized by a list of fluent given in the PddlPlusProblem format of lists"""
         self.numeric_fluents = defaultdict(
             lambda: 0)  # Default value of non-existing fluents is zero in current planner.
         self.boolean_fluents = set()
