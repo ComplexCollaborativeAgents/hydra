@@ -525,7 +525,7 @@ class ScienceBirdsMetaModel(MetaModel):
                          ],
                          constant_numeric_fluents={
                              'active_bird': 0,
-                             'angle_rate': 10,
+                              'angle_rate': 20,
                              'ground_damper': 0.3,
                              'base_life_wood_multiplier': 1.0,
                              'base_life_ice_multiplier': 0.5,

@@ -44,7 +44,7 @@ SAMPLES = 50
 
 AGENT = AgentType.RepairingHydra
 
-EXPERIMENT_NAME = "ENSEMBLE2"
+EXPERIMENT_NAME = "ENSEMBLE2_yoni_domain"
 
 def extract_levels(source, destination=None):
     ''' Extract ANU levels. '''

@@ -160,11 +160,11 @@ def train_classifier(file=os.path.join(settings.ROOT_PATH,'data/science_birds/pe
     logreg = lm.LogisticRegression(max_iter=500000, multi_class='ovr')
     if not on_full_data:
         x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.1)
-        logreg.fit(x_train, y_train)
+        logreg.fit(x_train.values, y_train)
         predictions = logreg.predict(x_test)
         print(classification_report(y_test, predictions))
     else:
-        logreg.fit(x,y)
+        logreg.fit(x.values,y)
     return logreg
 # probably need some preprocessing
 
@@ -203,17 +203,17 @@ if __name__ == '__main__':
 
     #### train/load
     logreg = train_classifier(on_full_data=True)
-    #pickle.dump(logreg, open('{}/data/science_birds/perception/logreg_pII.p'.format(settings.ROOT_PATH), 'wb'))
+    pickle.dump(logreg, open('{}/data/science_birds/perception/logreg_pII_v2.p'.format(settings.ROOT_PATH), 'wb'))
 
 
     ### test
     #logreg = pickle.load(open('{}/data/science_birds/perception/logreg_pII.p'.format(settings.ROOT_PATH), 'rb'))
-    performance = test_classifier(logreg, file=os.path.join(settings.ROOT_PATH,'data/science_birds/perception/pII/novel_objects_level1_type_9_10.csv'))
+    #performance = test_classifier(logreg, file=os.path.join(settings.ROOT_PATH,'data/science_birds/perception/pII/novel_objects_level1_type_9_10.csv'))
     #performance= test_classifier(logreg, file=os.path.join(settings.ROOT_PATH,'data/science_birds/perception/pII/object_class.csv'))
     #performance = test_classifier(logreg, file=os.path.join(settings.ROOT_PATH,'data/science_birds/perception/pII/non_novel_objects.csv'))
 
-    for item in performance:
-        print(item)
+    # for item in performance:
+    #     print(item)
 
 
 #    pickle.dump(logreg,open('{}/data/science_birds/perception/logreg.p'.format(settings.ROOT_PATH), 'wb'))
