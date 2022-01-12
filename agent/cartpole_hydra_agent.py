@@ -4,7 +4,7 @@ import random
 import numpy as np
 
 from agent.consistency.observation import CartPoleObservation
-from agent.planning.cartpole_pddl_meta_model import CartPoleMetaModel
+from agent.planning.cartpole_meta_model import CartPoleMetaModel
 from agent.planning.cartpole_planner import CartPolePlanner
 from agent.repair.cartpole_repair import CartpoleRepair
 from agent.consistency.focused_anomaly_detector import FocusedAnomalyDetector

@@ -7,7 +7,7 @@ from agent.planning.meta_model import *
 fh = logging.FileHandler("cartpole_hydra.log",mode='w')
 formatter = logging.Formatter('%(asctime)-15s %(name)s - %(levelname)s - %(message)s')
 fh.setFormatter(formatter)
-logger = logging.getLogger("cartpole_pddl_meta_model")
+logger = logging.getLogger("cartpole_meta_model")
 logger.setLevel(logging.INFO)
 logger.addHandler(fh)
 
@@ -54,7 +54,7 @@ class PddlObjectType():
             if isinstance(value,  bool):
                 if value==True:
                     pddl_state.boolean_fluents.add(fluent_name)
-                # TODO: Think how to handle boolean fluents with False value. Not as trivial as it sounds
+                # TODO: Think how to handle booean fluents with False value. Not as trivial as it sounds
             else: # Attribute is a number
                 pddl_state.numeric_fluents[fluent_name]=value
 

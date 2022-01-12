@@ -14,6 +14,11 @@ from agent.planning.nyx.syntax.state import State
 from agent.planning.nyx.syntax.visited_state import VisitedState
 
 
+import logging
+logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger("Polycraft")
+logger.setLevel(logging.INFO)
+
 class Planner:
 
     #-----------------------------------------------
@@ -26,8 +31,8 @@ class Planner:
         self.explored_states = 0
         # self.total_visited = 0
         self.visited_hashmap = {}
-        self.heuristic = None
         self.queue = self._get_open_list()  # TODO get this parameter in some normal way
+        self.heuristic = get_heuristic_function(constants.CUSTOM_HEURISTIC_ID) # TODO get this parameter in some normal way
 
     def solve(self, domain, problem):
 
@@ -123,6 +128,7 @@ class Planner:
                     return self.reached_goal_states
                 return None
 
+        logger.info(f"Open list exhausted. Found {len(self.reached_goal_states)} plans")
         return None
 
     def enqueue_state(self, n_state):

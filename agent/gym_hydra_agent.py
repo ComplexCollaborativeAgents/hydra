@@ -1,5 +1,5 @@
 from agent.planning.cartpole_planner import CartPolePlanner
-from agent.planning.cartpole_pddl_meta_model import *
+from agent.planning.cartpole_meta_model import *
 from agent.consistency.observation import CartPoleObservation
 import time
 import copy

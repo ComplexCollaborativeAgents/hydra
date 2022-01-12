@@ -1,32 +1,69 @@
+import pathlib
 
 from worlds.polycraft_world import *
 from agent.hydra_agent import HydraAgent
+from agent.polycraft_hydra_agent import PolycraftHydraAgent
 
 
 class PolycraftDispatcher():
-    def __init__(self, agent: HydraAgent):
+    def __init__(self, agent: PolycraftHydraAgent):
         self.env = None
         self.agent = agent
 
-        self.results = []
+        self.trials = {}
 
-    def experiment_start(self, config: dict):
+        self.results = {}
+
+    def experiment_start(self, trials: list = [], standalone=False):
+        ''' 
+        Start the experiment.  
+        standalone: boolean flag that signals to run without launching Polycraft.  Requires a running Polycraft instance before startup
+        trials: a list that contains string paths towards each trial directory
+        '''
 
         # Load polycarft world
-        self.env = Polycraft(launch=True, server_config=config)
+        mode = ServerMode.CLIENT
+        if standalone:
+            mode = ServerMode.SERVER
+        self.env = Polycraft(polycraft_mode=mode)
+        self.trials = {}
 
-    def trial_start(self, trial_number: int, novelty_description: dict):
+        if len(trials) > 0:
+            # Setup trials
+            self.setup_trials(trials)
+
+    def setup_trials(self, trials: list):
+
+        # TODO: create a mix and match trial generator that has pre novelty and post novelty
+        for trial in trials:
+            # collect all trial filenames
+            self.trials[trial] = []
+            for level in os.listdir(trial): # Make sure to only add the .json files
+                suffix = pathlib.Path(level).suffix
+                if suffix == ".json":
+                    self.trials[trial].append(os.path.join(trial, level))
+
+    def run_trials(self):
+        ''' Run trials setup in "setup_trials" '''
+
+        trial_num = 0
+        for trial_path, trial_levels in self.trials.items():
+            self.trial_start(trial_num, {}, trial_levels)
+            self.trial_end()
+
+    def trial_start(self, trial_number: int, novelty_description: dict, levels: list):
         ''' Run multiple levels '''
 
         novelty_description = None
-        levels = [] # TODO Populate me
 
-        trial_results = []
+        self.results[trial_number] = []
 
         for level_num, level in enumerate(levels):
             self.env.init_selected_level(level)
             
-            trial_results.append(self.episode_start(level_num, novelty_description))
+            result = self.episode_start(level_num, trial_number, novelty_description)
+
+            self.results[trial_number].append(result)
             
             self.episode_end()
 
@@ -34,6 +71,7 @@ class PolycraftDispatcher():
         ''' Run the agent in a single level until done '''
 
         current_state = self.env.get_current_state()
+        self.agent.start_level(self.env) # Agent performing exploratory actions
         while True:
             novelty = 0
 
@@ -48,11 +86,9 @@ class PolycraftDispatcher():
                     'novelty_description': novelty_description
                 }
 
-            # Agent chooses an action
+            # Agent chooses an action and performs it
             action = self.agent.choose_action(current_state)
-
-            # Perform the action
-            next_state, step_cost = self.env.act(action)    # Note this returns step cost for the action
+            next_state, step_cost = self.agent.do(action, self.env)
 
             current_state = next_state
 
@@ -71,10 +107,10 @@ class PolycraftDispatcher():
     def experiment_end(self):
         # Cleanup
 
+        print(self.results)
+
+        self.trials = {}
+
         if self.env is not None:
             self.env.kill()
             self.env = None
-
-
-if __name__ == '__main__':
-    dispatcher = PolycraftDispatcher()

@@ -2,11 +2,17 @@
 This module runs a set of experiments to evaluate the performance of our cartpole agent
 '''
 
+import logging
 from os import path
 
 import gym
 import os.path as path
+import settings
 from agent.cartpole_hydra_agent import CartpoleHydraAgentObserver, RepairingCartpoleHydraAgent, CartpoleHydraAgent
+from agent.planning.cartpole_meta_model import CartPoleMetaModel
+from agent.repairing_hydra_agent import RepairingGymHydraAgent
+import time
+from agent.planning.cartpole_meta_model import *
 from agent.gym_hydra_agent import *
 from agent.gym_hydra_agent import logger
 from worlds.gym_cartpole_dispatcher import GymCartpoleDispatcher

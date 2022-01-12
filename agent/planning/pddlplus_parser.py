@@ -6,34 +6,6 @@ Using code from https://norvig.com/lispy.html by Peter Norvig
 from enum import Enum
 from agent.planning.pddl_plus import *
 
-class WorldChangeTypes(Enum):
-    process = 1
-    event = 2
-    action = 3
-
-''' Processes, events, and actions are all things that change the state of the world'''
-class PddlPlusWorldChange():
-    def __init__(self, type : WorldChangeTypes):
-        self.name = None
-        self.type = type
-        self.parameters = list()
-        self.preconditions = list()
-        self.effects = list()
-
-    def print_info(self):
-        print ("\n\nNAME:", self.name)
-        print ("TYPE:", self.type)
-        print ("\tPARAMS: ", end=" ")
-        for par in self.parameters:
-            print ("(", par, ")", end=" ")
-        print ("\n\tPRECOND: ", end=" ")
-        for prec in self.preconditions:
-            print ("(", prec, ")", end=" ")
-        print ("\n\tEFFECTS: ", end=" ")
-        for eff in self.effects:
-            print ("(", eff, ")", end=" ")
-
-
 '''
 A class with utility function to help parse PDDL files.
 '''
@@ -112,8 +84,7 @@ class PddlDomainExporter():
     def to_file(self, pddl_domain:PddlPlusDomain, output_file_name):
         out_file = open(output_file_name, "w")
         out_file.write("(define(domain %s)\n" % pddl_domain.name)
-        out_file.write(
-            "\t(:requirements :typing :durative-actions :duration-inequalities :fluents :time :negative-preconditions :timed-initial-literals)\n")
+        out_file.write(f"\t(:requirements {' '.join(pddl_domain.requirements)})\n")
         out_file.write("\t(:types %s)\n" % " ".join(pddl_domain.types))
 
         # Print predicates

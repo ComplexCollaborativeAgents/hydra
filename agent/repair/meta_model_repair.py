@@ -137,7 +137,7 @@ class GreedyBestFirstSearchMetaModelRepair(SimulationBasedMetaModelRepair):
         return consistency + change_cardinality
 
     def repair(self,
-               pddl_meta_model: ScienceBirdsMetaModel,
+               pddl_meta_model: MetaModelRepair,
                observation, delta_t=1.0):
         """ Repair the given domain and plan such that the given plan's expected outcome matches the observed outcome"""
 

@@ -16,9 +16,9 @@ from agent.hydra_agent import HydraPlanner
 
 
 class SBPlanner(HydraPlanner):
-    domain_file = None
-    problem = None # current state of the world
-    SB_OFFSET = 1
+    domain_file = None     # TODO: RONI: IS THIS DEPRECATED?
+    problem = None # current state of the world     # TODO: RONI: IS THIS DEPRECATED?
+    SB_OFFSET = 1     # TODO: RONI: IS THIS DEPRECATED?
 
     def __init__(self, meta_model:ScienceBirdsMetaModel = ScienceBirdsMetaModel()):
         super().__init__(meta_model)
@@ -41,8 +41,9 @@ class SBPlanner(HydraPlanner):
             self.write_problem_file(pddl)
         return self.get_plan_actions()
 
-    def execute(self, plan, policy_learner):
-        """Converts the symbolic action into an environment action"""
+    def execute(self,plan,policy_learner):
+        '''Converts the symbolic action into an environment action'''
+        # TODO: RONI: I THINK THIS IS DEPRECATED AND SHOULD BE REMOVED
         assert False
         if isinstance(plan[0],InvokeBasicRL):
             return policy_learner.act_and_learn(plan[0].state)

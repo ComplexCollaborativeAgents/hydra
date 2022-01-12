@@ -6,10 +6,11 @@ from agent.planning.nyx.syntax.state import State
 from agent.planning.nyx.abstract_heuristic import AbstractHeuristic, HeuristicSum, ZeroHeuristic
 import agent.planning.nyx.syntax.constants as constants
 import math
-
+def get_heuristic_function(heuristic = constants.CUSTOM_HEURISTIC_ID):
 from utils.comparable_interval import ComparableInterval
 from agent.planning.nyx.interval_heuristic import IntervalHeuristic
 
+active_heuristic = None  # A mechanism for setting the heuristic externally
 
 def get_heuristic_function(heuristic=constants.CUSTOM_HEURISTIC_ID, **kwargs):
     if heuristic == 1:
@@ -17,7 +18,7 @@ def get_heuristic_function(heuristic=constants.CUSTOM_HEURISTIC_ID, **kwargs):
     elif heuristic == 2:
         return BadSBHeuristic()
     elif heuristic == 3:
-        return PolyCraftHeuristic()
+        return active_heuristic
     elif heuristic == 4:
         return CartpoltHeuristic()
     elif heuristic == 5:
@@ -67,10 +68,6 @@ class BadSBHeuristic(AbstractHeuristic):
         return node.h
 
         # return 0
-
-
-PolyCraftHeuristic = ZeroHeuristic
-
 
 class CartpoltHeuristic(AbstractHeuristic):
     # CARTPOLE HEURISTIC
