@@ -90,6 +90,7 @@ class SBHydraAgent(HydraAgent):
         self.training_level_backup = 0
 
         # Simple repair tracker
+        self._need_to_repair = False
         self.made_plan = False
 
     def initialize_processing_state_variables(self):
@@ -377,7 +378,7 @@ class SBHydraAgent(HydraAgent):
 
     def _handle_end_of_level(self, success):
         """ This is called when a level has ended, either in a win or a lose our come """
-        self._need_to_repair = self.made_plan != success
+        self._need_to_repair = self.made_plan and not success
         self.completed_levels.append(success)
         self._infer_novelty_existence()
         self.stats_for_level[NOVELTY_LIKELIHOOD] = bool(self._new_novelty_likelihood)
@@ -468,6 +469,7 @@ class SBHydraAgent(HydraAgent):
             if len(plan) == 0 or plan[0].action_name == "out of memory":  # TODO FIX THIS
                 plan = []
                 plan.append(self.__get_default_action(processed_state))
+                self.made_plan = False
             timed_action = plan[0]
 
             ## TAP UPDATE
@@ -646,7 +648,7 @@ class RepairingSBHydraAgent(SBHydraAgent):
         logger.info("Initiating repair number {}".format(self.revision_attempts))
         start_repair_time = time.time()
         try:
-            repair, consistency = self.meta_model_repair.repair(self.meta_model, last_obs)
+            repair, consistency = self.meta_model_repair.repair(self.meta_model, last_obs, delta_t=settings.SB_DELTA_T)
             repair_description = ["Repair %s, %.2f" % (fluent, repair[i])
                                   for i, fluent in enumerate(self.meta_model_repair.fluents_to_repair)]
             logger.info(

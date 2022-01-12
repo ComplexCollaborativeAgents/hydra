@@ -19,7 +19,6 @@ from agent.sb_hydra_agent import SBHydraAgent, RepairingSBHydraAgent
 import settings
 import logging
 
-
 logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("run_sb_states")
 
@@ -30,7 +29,6 @@ ANU_LEVELS_PATH = SB_DATA_PATH / 'ANU_Levels.tar.gz'
 STATS_BASE_PATH = pathlib.Path(__file__).parent.absolute()
 
 
-
 class AgentType(enum.Enum):
     RepairingHydra = 0
     Hydra = 1
@@ -38,16 +36,18 @@ class AgentType(enum.Enum):
     Datalab = 3
     Eaglewings = 4
 
+
 NOVELTY = 24
 TYPE = 1
-SAMPLES = 50
+SAMPLES = 5
 
 AGENT = AgentType.RepairingHydra
 
 EXPERIMENT_NAME = "ENSEMBLE2_yoni_domain"
 
+
 def extract_levels(source, destination=None):
-    ''' Extract ANU levels. '''
+    """ Extract ANU levels. """
 
     if destination is None:
         destination = source.parent / os.path.splitext(source.stem)[0]
@@ -61,7 +61,7 @@ def extract_levels(source, destination=None):
 
 
 def prepare_config(config_template, config_path, levels, notify_novelty):
-    ''' Prepare a configuration file from a config template and a set of level paths. '''
+    """ Prepare a configuration file from a config template and a set of level paths. """
 
     tree = ET.parse(config_template)
 
@@ -86,12 +86,12 @@ def prepare_config(config_template, config_path, levels, notify_novelty):
 
 
 def glob_directories(base_path, pattern='*'):
-    ''' List directories from base path which conform to pattern. '''
+    """ List directories from base path which conform to pattern. """
     return list(p for p in base_path.glob(pattern) if p.is_dir())
 
 
 def diff_directories(a, b):
-    ''' Return the difference between two lists of directories. '''
+    """ Return the difference between two lists of directories. """
     if b is None:
         return None
 
@@ -105,7 +105,7 @@ def diff_directories(a, b):
 
 @contextlib.contextmanager
 def run_agent(config, agent, agent_stats=list()):
-    ''' Run science birds and the hydra agent. '''
+    """ Run science birds and the hydra agent. """
     try:
         env = sb.ScienceBirds(None, launch=True, config=config)
         yield env
@@ -128,6 +128,7 @@ def run_agent(config, agent, agent_stats=list()):
     finally:
         env.kill()
 
+
 def get_object_count(level_path="{}/Levels/novelty_level_0/type2/Levels/00501_0_0_4_0.xml".format(SB_BIN_PATH)):
     with open(level_path, 'rb') as fp:
         content = fp.read()
@@ -139,18 +140,18 @@ def get_object_count(level_path="{}/Levels/novelty_level_0/type2/Levels/00501_0_
         lines = content.splitlines()
         n = 0
         for line in lines:
-            #print(line)
+            # print(line)
             if '<GameObjects>' in line:
                 start = n
             if '</GameObjects>' in line:
                 stop = n
-            n = n+1
+            n = n + 1
         num_game_objects = stop - start
         return num_game_objects
 
 
 def get_bird_count(level_path):
-    ''' Given the path to a level XML, return a dictionary with bird count per type of bird. '''
+    """ Given the path to a level XML, return a dictionary with bird count per type of bird. """
     birds = collections.defaultdict(int)
     birds_section = ''
     with open(level_path, 'rb') as f:
@@ -161,7 +162,7 @@ def get_bird_count(level_path):
             content = content.decode('utf-16-le')
         start = content.find('<Birds>')
         end = content.find('</Birds>')
-        birds_section = content[start:end+8]
+        birds_section = content[start:end + 8]
 
     try:
         tree = ET.fromstring(birds_section)
@@ -174,8 +175,9 @@ def get_bird_count(level_path):
         pass
     return birds
 
-def compute_stats(results_path, agent, agent_stats = list()):
-    ''' Inspect evaluation directory from science birds and generate a stats dict. '''
+
+def compute_stats(results_path, agent, agent_stats=list()):
+    """ Inspect evaluation directory from science birds and generate a stats dict. """
     stats = {'levels': [], 'overall': None}
 
     passed = 0
@@ -218,10 +220,10 @@ def compute_stats(results_path, agent, agent_stats = list()):
                                'birds': birds}
 
                 # Get agent stats
-                if i<len(agent_stats):
+                if i < len(agent_stats):
                     agent_stats_for_level = agent_stats[i]
                     for key in agent_stats_for_level:
-                        level_stats[key]= agent_stats_for_level[key]
+                        level_stats[key] = agent_stats_for_level[key]
 
                 stats['levels'].append(level_stats)
 
@@ -232,8 +234,9 @@ def compute_stats(results_path, agent, agent_stats = list()):
 
     return stats
 
-def compute_eval_stats(results_path, agent, agent_stats = list()):
-    ''' Inspect evaluation directory from science birds and generate a stats dict. (2021 Eval) '''
+
+def compute_eval_stats(results_path, agent, agent_stats=list()):
+    """ Inspect evaluation directory from science birds and generate a stats dict. (2021 Eval) """
     stats = {'levels': [], 'overall': None}
 
     passed = 0
@@ -244,7 +247,6 @@ def compute_eval_stats(results_path, agent, agent_stats = list()):
     true_positives = 0
     scores = []
     bird_scores = collections.defaultdict(lambda: {"passed": 0, "failed": 0})
-
 
     evaluation_data = list(results_path.glob('*_EvaluationData.csv'))
     if len(evaluation_data) == 1:
@@ -267,7 +269,7 @@ def compute_eval_stats(results_path, agent, agent_stats = list()):
 
                 score = float(row['Score'])
                 scores.append(score)
-                
+
                 # output if this level actually contained novelty TODO
 
                 level_stats = {'level': level_path,
@@ -282,23 +284,25 @@ def compute_eval_stats(results_path, agent, agent_stats = list()):
                 # print("STATS: agent stats {}".format(agent_stats))
 
                 # Get agent stats
-                if i<len(agent_stats):
+                if i < len(agent_stats):
                     agent_stats_for_level = agent_stats[i]
                     for key in agent_stats_for_level:
-                        level_stats[key]= agent_stats_for_level[key]   # Novelty probability should be passed through here
+                        level_stats[key] = agent_stats_for_level[
+                            key]  # Novelty probability should be passed through here
 
                 # Categorize novelty detection result
-                if 'novelty_level_0' in level_path: # Is not novel - TODO: find a better way to determine non novel levels
+                if 'novelty_level_0' in level_path:  # Is not novel - TODO: find a better way to determine non novel levels
                     if 'novelty_likelihood' not in level_stats:
-                        true_negatives+=1
+                        true_negatives += 1
                     else:
-                        if level_stats['novelty_likelihood'] == 1:  # Detected novelty when there is none - false_positive
+                        if level_stats[
+                            'novelty_likelihood'] == 1:  # Detected novelty when there is none - false_positive
                             false_positives += 1
                         else:
                             true_negatives += 1
-                else:   # This is a novel level
+                else:  # This is a novel level
                     if 'novelty_likelihood' not in level_stats:
-                        false_negatives+=1
+                        false_negatives += 1
                     else:
                         if level_stats['novelty_likelihood'] == 1:
                             true_positives += 1
@@ -309,14 +313,14 @@ def compute_eval_stats(results_path, agent, agent_stats = list()):
                 stats['levels'].append(level_stats)
 
     stats['overall'] = {
-        'passed': passed, 
+        'passed': passed,
         'failed': failed,
         'avg_score': 0 if len(scores) == 0 else numpy.average(scores),
         'agent': agent.name,
         'birds': bird_scores,
         'false_negatives': false_negatives,
         'false_positives': false_positives,
-        'true_negatives': true_negatives, 
+        'true_negatives': true_negatives,
         'true_positives': true_positives
     }
 
@@ -326,10 +330,11 @@ def compute_eval_stats(results_path, agent, agent_stats = list()):
 
 
 def run_sb_stats(extract=False, seed=None, record_novelty_stats=False):
-    ''' Run science birds agent stats. '''
+    """ Run science birds agent stats. """
     novelties = {NOVELTY: [TYPE]}
     samples = 50
-    run_performance_stats(novelties, agent_type=AGENT, seed=seed, samples=samples, record_novelty_stats=record_novelty_stats)
+    run_performance_stats(novelties, agent_type=AGENT, seed=seed, samples=samples,
+                          record_novelty_stats=record_novelty_stats)
 
 
 def run_performance_stats(novelties: dict,
@@ -344,8 +349,8 @@ def run_performance_stats(novelties: dict,
                           template: pathlib.Path = SB_CONFIG_PATH / 'test_config.xml',
                           config: pathlib.Path = SB_CONFIG_PATH / 'stats_config.xml',
                           level_lookup: Optional[dict] = None,
-                          record_novelty_stats = False):
-    ''' Run science birds agent stats. '''
+                          record_novelty_stats=False):
+    """ Run science birds agent stats. """
     if seed is not None:
         random.seed(seed)
 
@@ -368,7 +373,7 @@ def run_performance_stats(novelties: dict,
             post_directories = None
 
             agent_stats = list()
-            with run_agent(config.name, agent_type, agent_stats) as env: # TODO: Typo?
+            with run_agent(config.name, agent_type, agent_stats) as env:  # TODO: Typo?
                 post_directories = glob_directories(SB_BIN_PATH, 'Agent*')
 
             results_directory = diff_directories(pre_directories, post_directories)
@@ -379,7 +384,8 @@ def run_performance_stats(novelties: dict,
 
             if results_directory is not None:
                 stats = compute_stats(results_directory, agent_type, agent_stats)
-                filename = "stats_{}_novelty{}_type{}_agent{}".format(EXPERIMENT_NAME, novelty, novelty_type, agent_type.name)
+                filename = "stats_{}_novelty{}_type{}_agent{}".format(EXPERIMENT_NAME, novelty, novelty_type,
+                                                                      agent_type.name)
                 if suffix is None or len(suffix) == 0:
                     current_suffix = ''
                 else:
@@ -387,6 +393,7 @@ def run_performance_stats(novelties: dict,
                 filename = "{}{}.json".format(filename, current_suffix)
                 with open(stats_base_path / filename, 'w') as f:
                     json.dump(stats, f, sort_keys=True, indent=4)
+
 
 # def do_record_novelty_stats(novelty, novelty_type, config, agent_stats):
 #
@@ -399,19 +406,20 @@ def run_performance_stats(novelties: dict,
 #     file.write(line)
 #     file.close()
 
+
 def run_eval_stats(novelties: dict,
-                          agent_type: AgentType,
-                          seed: Optional[int] = None,
-                          samples: Optional[int] = None,
-                          notify_novelty: Optional[bool] = None,
-                          suffix: Optional[str] = None,
-                          bin_path: pathlib.Path = SB_BIN_PATH,
-                          levels_path: pathlib.Path = SB_BIN_PATH,
-                          stats_base_path: pathlib.Path = STATS_BASE_PATH,
-                          template: pathlib.Path = SB_CONFIG_PATH / 'test_config.xml',
-                          config: pathlib.Path = SB_CONFIG_PATH / 'stats_config.xml',
-                          level_lookup: Optional[dict] = None):
-    ''' Run science birds agent stats. '''
+                   agent_type: AgentType,
+                   seed: Optional[int] = None,
+                   samples: Optional[int] = None,
+                   notify_novelty: Optional[bool] = None,
+                   suffix: Optional[str] = None,
+                   bin_path: pathlib.Path = SB_BIN_PATH,
+                   levels_path: pathlib.Path = SB_BIN_PATH,
+                   stats_base_path: pathlib.Path = STATS_BASE_PATH,
+                   template: pathlib.Path = SB_CONFIG_PATH / 'test_config.xml',
+                   config: pathlib.Path = SB_CONFIG_PATH / 'stats_config.xml',
+                   level_lookup: Optional[dict] = None):
+    """ Run science birds agent stats. """
     if seed is not None:
         random.seed(seed)
 
@@ -432,13 +440,12 @@ def run_eval_stats(novelties: dict,
             sampled_levels = levels[:number_samples]
             # sampled_levels = random.sample(levels,number_samples)  TODO: Discuss design: this sampling kills the order of the levels, causing the non-novel levels to appear after the novel ones
 
-
             prepare_config(template, config, sampled_levels, notify_novelty)
             pre_directories = glob_directories(bin_path, 'Agent*')
             post_directories = None
 
             agent_stats = list()
-            with run_agent(config.name, agent_type, agent_stats=agent_stats) as env: # TODO: Typo?
+            with run_agent(config.name, agent_type, agent_stats=agent_stats) as env:  # TODO: Typo?
                 post_directories = glob_directories(SB_BIN_PATH, 'Agent*')
 
             results_directory = diff_directories(pre_directories, post_directories)
@@ -453,7 +460,8 @@ def run_eval_stats(novelties: dict,
                 # Write intermediate results to file
                 results_filename = "eval_novelty{}_type{}_agent{}".format(novelty, novelty_type, agent_type.name)
                 with open(results_filename, "w+") as f:
-                    logger.info("Writing results for novelty {} type {} to {}".format(novelty, novelty_type, results_filename))
+                    logger.info(
+                        "Writing results for novelty {} type {} to {}".format(novelty, novelty_type, results_filename))
                     json.dump(results_for_novelty_type, f, indent=3)
 
                 results.append(results_for_novelty_type)
@@ -477,7 +485,7 @@ def run_eval_stats(novelties: dict,
 
 
 def _compute_stats(results, file_suffix):
-    ''' Compute the evaluation metrics for the given results. '''
+    """ Compute the evaluation metrics for the given results. """
 
     stat_results = {}
     # M1: avg number of False Negatives among CDTs
@@ -522,7 +530,5 @@ def _compute_stats(results, file_suffix):
 
 
 if __name__ == '__main__':
-    #run_sb_stats(seed=0, record_novelty_stats=True)
+    # run_sb_stats(seed=0, record_novelty_stats=True)
     run_sb_stats(record_novelty_stats=True)
-
-

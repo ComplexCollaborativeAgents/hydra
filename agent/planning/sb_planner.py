@@ -24,7 +24,7 @@ class SBPlanner(HydraPlanner):
         super().__init__(meta_model)
         self.current_problem_prefix = None
 
-    def make_plan(self,state,prob_complexity=0):
+    def make_plan(self, state, prob_complexity=0):
         """
         The plan should be a list of actions that are either executable in the environment
         or invoking the RL agent
@@ -33,9 +33,9 @@ class SBPlanner(HydraPlanner):
             self.current_problem_prefix = datetime.datetime.now().strftime("%y%m%d_%H%M%S") # need a prefix for observations
             return []
         pddl = self.meta_model.create_pddl_problem(state)
-        if prob_complexity==1:
+        if prob_complexity == 1:
             self.write_problem_file(self.meta_model.create_simplified_problem(pddl))
-        elif prob_complexity==2:
+        elif prob_complexity == 2:
             self.write_problem_file(self.meta_model.create_super_simplified_problem(pddl))
         else:
             self.write_problem_file(pddl)
@@ -169,9 +169,6 @@ class SBPlanner(HydraPlanner):
             out_file.write(str.encode("\n Stderr: \n"))
             out_file.write(completed_process.stderr)
         out_file.close()
-
-
-
 
 
 class PlannerStub:

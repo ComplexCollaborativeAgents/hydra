@@ -35,7 +35,7 @@
             (= (active_bird) (bird_id ?b))
             (not (bird_released ?b))
             (not (angle_adjusted))
-            (< (angle) (max_angle))
+            (< (angle) 90)
             (>= (angle) 0)
         )
         :effect (and

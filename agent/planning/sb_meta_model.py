@@ -573,8 +573,6 @@ class ScienceBirdsMetaModel(MetaModel):
         self.object_types["slingshot"] = SlingshotType()
         self.object_types["unknown"] = UnknownType()
 
-
-
     def get_slingshot(self, sb_state: ProcessedSBState):
         ''' Get the slingshot object '''
         sling = None

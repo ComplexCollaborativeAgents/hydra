@@ -6,7 +6,6 @@ from agent.planning.nyx.syntax.state import State
 from agent.planning.nyx.abstract_heuristic import AbstractHeuristic, HeuristicSum, ZeroHeuristic
 import agent.planning.nyx.syntax.constants as constants
 import math
-def get_heuristic_function(heuristic = constants.CUSTOM_HEURISTIC_ID):
 from utils.comparable_interval import ComparableInterval
 from agent.planning.nyx.interval_heuristic import IntervalHeuristic
 
@@ -304,6 +303,8 @@ class SBOneBirdHeuristic(AbstractHeuristic):
         vec_in_direction = (targets_xy[closest_ind][0] - bird_coords[0]) ** 2 / dists[closest_ind], \
                            (targets_xy[closest_ind][1] - bird_coords[1]) ** 2 / dists[closest_ind]
         speed_in_direction = bird_coords[2] * vec_in_direction[0] + bird_coords[3] * vec_in_direction[1]
+        if speed_in_direction == 0.0:
+            return np.inf
         value = max(0, math.sqrt(dists[closest_ind]) / (speed_in_direction * constants.DELTA_T))
         return int(value)
 
@@ -454,7 +455,6 @@ class SBHelpfulAngleHeuristic(SBBlockedPigsHeuristic):
                 self.trajectories.add(
                     (initial_velocity * math.cos(max_angle), initial_velocity * math.sin(max_angle)))
 
-
     @staticmethod
     def _get_single_trajectory(gravity, delta_x, delta_y, v_0):
 
@@ -496,8 +496,3 @@ class SBHelpfulAngleHeuristic(SBBlockedPigsHeuristic):
                 if v_x_0 in v_x_t + self.deviation and y_t in trajectory_trace(self.x_0, self.y_0, v_x_0, v_y_0, self.g, x_t):
                     return True
         return False
-
-
-
-
-

@@ -10,9 +10,8 @@ PLAN_FAILED_CONSISTENCY_VALUE = 1000  # A constant representing the inconsistenc
 ''' An abstract class intended to repair a given PDDL+ meta model until it matches the observed behavior '''
 
 
-class MetaModelRepair():  # TODO: Remove this class
-
-    ''' Repair the given domain and plan such that the given plan's expected outcome matches the observed outcome'''
+class MetaModelRepair:  # TODO: Remove this class
+    """ Repair the given domain and plan such that the given plan's expected outcome matches the observed outcome"""
 
     def repair(self,
                pddl_meta_model,
@@ -53,16 +52,14 @@ class MetaModelRepair():  # TODO: Remove this class
         raise NotImplemented("Not yet")
 
 
-''' A repair algorithm that is based on simulating the action and checking consistency with the observation '''
-
-
 class SimulationBasedMetaModelRepair(MetaModelRepair):
+    """ A repair algorithm that is based on simulating the action and checking consistency with the observation """
     def __init__(self, fluents_to_repair,
                  consistency_estimator,
                  deltas,
                  consistency_threshold=2,
                  max_iteration=1000,
-                 time_limit=10000):
+                 time_limit=1000000):
         self.consistency_estimator = consistency_estimator
         self.fluents_to_repair = fluents_to_repair
         self.deltas = deltas
@@ -166,16 +163,13 @@ class GreedyBestFirstSearchMetaModelRepair(SimulationBasedMetaModelRepair):
                          and np.any(
                     incumbent_repair)):  # Last condition is designed to prevent returning an empty repair
             [_, repair] = heapq.heappop(open_list)
-            repair_description = ["Repair %s, %.2f" % (fluent, repair[i])
-                                  for i, fluent in enumerate(self.fluents_to_repair)]
-            logger.info('Current repair: ' + "\n".join(repair_description))
             new_repairs = self.expand(repair)
             for new_repair in new_repairs:
 
                 # Check if reached the timeout
-                if time.time() - start_time > self.time_limit:
-                    timeout = True
-                    break
+                # if time.time() - start_time > self.time_limit:
+                #     timeout = True
+                #     break
 
                 new_repair_tuple = tuple(new_repair)
                 if new_repair_tuple not in generated_repairs:  # If  this is a new repair
