@@ -1,7 +1,7 @@
 import math
 import sys
 from collections import namedtuple
-from typing import TextIO, Iterator
+from typing import TextIO, Iterator, Optional
 
 from agent.planning.nyx.PDDL import GroundedPDDLInstance
 from agent.planning.nyx.syntax import constants
@@ -39,28 +39,39 @@ class Plan(list):
                 start_time = round(current_time + (a * time_passing.duration), constants.NUMBER_PRECISION)
                 self.append(self.TrajectoryElement(time_passing, start_time))
 
-    def simulate(self, init: State, grounded_pddl: GroundedPDDLInstance, double_events: bool = False) -> Trace:
+    def simulate(self,
+                 init: State,
+                 grounded_pddl: GroundedPDDLInstance,
+                 double_events: bool = False,
+                 max_iterations: Optional[int] = None,
+                 check_fired: bool = False) -> Trace:
         current_state = init
         trace = Trace(current_state)
 
-        for item in self:
+        for idx, item in enumerate(self._simulation_iter(max_iterations=max_iterations, wait=check_fired)):
             if item.action.preconditions_func(current_state, constants):
                 time = item.time
 
                 if item.action.duration > 0:
                     time = round(time + item.action.duration, constants.NUMBER_PRECISION)
+                    happenings_fired = False
 
                     for happening_tree in [grounded_pddl.events, grounded_pddl.processes]:
                         for hp in happening_tree.get_applicable(current_state):
+                            happenings_fired |= True
                             current_state = current_state.apply_happening(hp)
                             current_state.time = time
                             trace.append(current_state)
 
                     if double_events or constants.DOUBLE_EVENT_CHECK:
                         for hp2 in grounded_pddl.events.get_applicable(current_state):
+                            happenings_fired |= True
                             current_state = current_state.apply_happening(hp2)
                             current_state.time = time
                             trace.append(current_state)
+
+                    if idx >= len(self) and not happenings_fired:
+                        break
 
                 current_state = current_state.apply_happening(item.action)
                 current_state.time = time
@@ -71,6 +82,24 @@ class Plan(list):
             trace.finished = True
 
         return trace
+
+    def _simulation_iter(self, max_iterations: Optional[int] = None, wait: bool = False):
+        iteration = 0
+        time = 0
+        for item in self:
+            time = round(item.time + item.action.duration, constants.NUMBER_PRECISION)
+            iteration += 1
+            if max_iterations is not None and iteration > max_iterations:
+                return
+            yield item
+
+        wait_action = constants.TIME_PASSING_ACTION
+        while wait:
+            iteration += 1
+            if max_iterations is not None and iteration > max_iterations:
+                return
+            yield self.TrajectoryElement(wait_action, time)
+            time = round(time + wait_action.duration, constants.NUMBER_PRECISION)
 
     def print(self, ignore_time_passing: bool = False, out: TextIO = sys.stdout):
         for item in self.iter(ignore_time_passing=ignore_time_passing):
