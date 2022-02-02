@@ -22,6 +22,7 @@ logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s
 logger = logging.getLogger("Polycraft")
 logger.setLevel(logging.DEBUG)
 
+
 # Useful constants
 
 class ServerMode(enum.Enum):
@@ -43,6 +44,7 @@ class BlockType(enum.Enum):
     WOODER_DOOR = "minecraft:wooden_door"
     SAFE = "polycraft:safe"
 
+
 class ItemType(enum.Enum):
     BLOCK_OF_PLATINUM = "polycraft:block_of_platinum"
     BLOCK_OF_TITANIUM = "polycraft:block_of_titanium"
@@ -59,6 +61,7 @@ class ItemType(enum.Enum):
     TREE_TAP = "polycraft:tree_tap"
     WOODEN_POGO_STICK = "polycraft:wooden_pogo_stick"
 
+
 class EntityType(enum.Enum):
     POGOIST = "EntityPogoist"
     TRADER = "EntityTrader"
@@ -70,7 +73,7 @@ class PolycraftState(State):
 
     def __init__(self, step_num: int, facing_block: str, location: dict, game_map: dict,
                  entities: dict, inventory: dict, current_item: str,
-                 recipes: list, trades: list, door_to_room_cells:dict, terminal: bool, step_cost:int = -1):
+                 recipes: list, trades: list, door_to_room_cells: dict, terminal: bool, step_cost: int = -1):
         super().__init__()
 
         self.step_num = step_num
@@ -81,17 +84,17 @@ class PolycraftState(State):
         self.inventory = inventory  # Formatted as {SLOT_NUM:{ATTRIBUTES}, "selectedItem":{ATTRIBUTES}}
         self.current_item = current_item
         self.terminal = terminal
-        self.step_cost = step_cost # TODO Remove this
+        self.step_cost = step_cost  # TODO Remove this
         self.door_to_room_cells = door_to_room_cells  # Maps a room id to the door through which to enter to it
         self.recipes = recipes
         self.trades = trades
 
-    def get_known_cells(self)->dict:
+    def get_known_cells(self) -> dict:
         ''' Returns a game-map-like dictionary containing all the cells from all the rooms '''
         cell_to_attr = dict()
         for door, room_cells in self.door_to_room_cells.items():
             for cell, cell_attr in room_cells.items():
-                cell_to_attr[cell]=cell_attr
+                cell_to_attr[cell] = cell_attr
         return cell_to_attr
 
     def get_cells_of_type(self, item_type: str, only_accessible=False):
@@ -124,12 +127,12 @@ class PolycraftState(State):
         for entry, entry_attr in self.inventory.items():
             if entry == "selectedItem":  # Do not consider the selected item
                 continue
-            item_type=entry_attr["item"]
+            item_type = entry_attr["item"]
             quantity = entry_attr['count']
             if item_type not in item_to_count:
-                item_to_count[item_type]=quantity
+                item_to_count[item_type] = quantity
             else:
-                item_to_count[item_type] = item_to_count[item_type]+quantity
+                item_to_count[item_type] = item_to_count[item_type] + quantity
         return item_to_count
 
     def get_inventory_entries_of_type(self, item_type: str):
@@ -306,45 +309,46 @@ class PolycraftState(State):
 
         return diff_dict
 
+
 class PolycraftAction(Action):
     ''' Polycraft World Action '''
 
     def __init__(self):
         self.name = type(self).__name__
         self.success = None
-        self.response = None # The result returned by the server for doing this command. Initialized as None.
+        self.response = None  # The result returned by the server for doing this command. Initialized as None.
 
     def is_success(self, results: dict):
         # If results are not a nice dictionary
-        if isinstance(results, dict)==False:
+        if isinstance(results, dict) == False:
             return False
         try:
             return results['command_result']['result'] == "SUCCESS"
         except KeyError as err:
             return False
 
-    def get_cost(self, results:dict):
-        if isinstance(results, dict)==False:
-            return 0 # TODO: Design choice: what is the cost of an action with a bad response
+    def get_cost(self, results: dict):
+        if isinstance(results, dict) == False:
+            return 0  # TODO: Design choice: what is the cost of an action with a bad response
         try:
             return results['command_result']['stepCost']
         except KeyError as err:
-            return 0 # TODO: Design choice: what is the cost of an action with a bad response
+            return 0  # TODO: Design choice: what is the cost of an action with a bad response
 
     def __str__(self):
         return f"<{self.name} success={self.success}>"
 
-    def do(self, state:PolycraftState, env) -> dict:
+    def do(self, state: PolycraftState, env) -> dict:
         raise NotImplementedError("Subclasses of PolycraftAction should implement this")
 
-    def can_do(self, state:PolycraftState, env) -> bool:
+    def can_do(self, state: PolycraftState, env) -> bool:
         ''' Checks if this action can be done in the given state at the given environment
             Useful for adding control measures to be considered during execution '''
         return True
 
 
 class Polycraft(World):
-    DUMMY_DOOR = "-1,-1,-1" # This marks the "door cell" for the main room, for the self.door_to_cells dict.
+    DUMMY_DOOR = "-1,-1,-1"  # This marks the "door cell" for the main room, for the self.door_to_cells dict.
 
     """
     Polycraft interface supplied by UTD
@@ -352,18 +356,18 @@ class Polycraft(World):
     We will make calls through the Polycraft runtime
     """
 
-    def __init__(self, client_config: str = None, polycraft_mode:ServerMode = ServerMode.CLIENT):
+    def __init__(self, client_config: str = None, polycraft_mode: ServerMode = ServerMode.SERVER):
         self.id = 2229
         self.world_mode = polycraft_mode
-        self.poly_server_process = None     # Subprocess running the polycraft instance
-        self.poly_client = None     # polycraft client interface (see polycraft_interface.py)
-        self.poly_listener = None   # Listener thread to the polycraft application
-        self.poly_output_queue = queue.Queue()   # Queue that collects output from polycraft application subprocess
+        self.poly_server_process = None  # Subprocess running the polycraft instance
+        self.poly_client = None  # polycraft client interface (see polycraft_interface.py)
+        self.poly_listener = None  # Listener thread to the polycraft application
+        self.poly_output_queue = queue.Queue()  # Queue that collects output from polycraft application subprocess
 
         # State information
         self.init_state_information()
 
-        if self.world_mode==ServerMode.SERVER:
+        if self.world_mode == ServerMode.SERVER:
             logger.info("Launching Polycraft instance")
             self.launch_polycraft()
         else:
@@ -371,7 +375,8 @@ class Polycraft(World):
 
         # Path to polycraft client interface config file (host name/port, buffer size, etc.)
         if client_config is None:
-            client_config = str(path.join(settings.ROOT_PATH, 'worlds', 'polycraft_interface', 'client', 'server_client_config.json'))
+            client_config = str(
+                path.join(settings.ROOT_PATH, 'worlds', 'polycraft_interface', 'client', 'server_client_config.json'))
 
         self.create_interface(client_config)
 
@@ -381,7 +386,7 @@ class Polycraft(World):
         # Represent the current knowledge of the world. TODO: Think about moving this to the agent.
         self.current_recipes = list()
         self.current_trades = dict()  # Maps entity id to its trades
-        self.door_to_room_cells = dict() # Maps door cell to dict of gamemap cell in the room of that door
+        self.door_to_room_cells = dict()  # Maps door cell to dict of gamemap cell in the room of that door
 
         # Store information
         self.last_cmd_success = True
@@ -389,14 +394,14 @@ class Polycraft(World):
 
     def _read_polycraft_output(self, pipe, queue):
         """ Worker function for a separate daemon thread to listen to polycraft output.  Can be used for debugging. """
-        
+
         logger.info("Entered Polycraft listener thread...")
 
         listening = True
         while listening and not pipe.stdout.closed:
             try:
                 line = pipe.stdout.readline()
-                if len(line)>0:
+                if len(line) > 0:
                     logger.debug(line)
                 queue.put(line)
                 sys.stdout.flush()
@@ -423,7 +428,8 @@ class Polycraft(World):
 
         try:
             next_line = str(self.poly_output_queue.get(False, timeout=0.025))
-            logger.debug(next_line)   # Turn off logging for now, the output from polycraft is large, and consists mostly of response messaging
+            logger.debug(
+                next_line)  # Turn off logging for now, the output from polycraft is large, and consists mostly of response messaging
             sys.stdout.flush()
             sys.stderr.flush()
         except queue.Empty:
@@ -490,16 +496,16 @@ class Polycraft(World):
 
         self.poly_server_process = subprocess.Popen(cmd,
                                                     cwd=settings.POLYCRAFT_DIR,
-                                                    stdout=subprocess.PIPE, 
-                                                    stderr=subprocess.STDOUT, 
+                                                    stdout=subprocess.PIPE,
+                                                    stderr=subprocess.STDOUT,
                                                     shell=True,
                                                     bufsize=1,
                                                     universal_newlines=True,
                                                     start_new_session=True)
-        
+
         logger.info("Starting Polycraft process listener thread...")
 
-        self.poly_listener = threading.Thread(target=self._read_polycraft_output, 
+        self.poly_listener = threading.Thread(target=self._read_polycraft_output,
                                               args=(self.poly_server_process, self.poly_output_queue))
         self.poly_listener.daemon = True
         self.poly_listener.start()
@@ -507,7 +513,8 @@ class Polycraft(World):
         if self.poly_server_process.poll() is None:
             logger.debug('Launched Polycraft with pid: {}'.format(str(self.poly_server_process.pid)))
         else:
-            logger.error('Could not launch Polycraft server - check the "polycraft_interface.log" located in the bin/pal folder')
+            logger.error(
+                'Could not launch Polycraft server - check the "polycraft_interface.log" located in the bin/pal folder')
             self.kill(exit_program=True)
 
         logger.info("Waiting for polycraft process to fully start up before sending commands...")
@@ -523,8 +530,9 @@ class Polycraft(World):
 
     def load_hosts(self, server_host: Host, observer_host: Host):
         """ Holdover from ScienceBirds world - intention is to use Docker to run as if agent were being evaluated"""
-        
-        with open(str(path.join(settings.ROOT_PATH, 'worlds', 'polycraft_interface', 'client', 'server_client_config.json')), 'r') as config:
+
+        with open(str(path.join(settings.ROOT_PATH, 'worlds', 'polycraft_interface', 'client',
+                                'server_client_config.json')), 'r') as config:
             sc_json_config = json.load(config)
 
         server = Host(sc_json_config[0]['host'], sc_json_config[0]['port'])
@@ -534,7 +542,8 @@ class Polycraft(World):
             server.hostname = server_host.hostname
             server.port = server_host.port
 
-        with open(str(path.join(settings.ROOT_PATH, 'worlds', 'science_birds_interface', 'client', 'server_observer_client_config.json')), 'r') as observer_config:
+        with open(str(path.join(settings.ROOT_PATH, 'worlds', 'science_birds_interface', 'client',
+                                'server_observer_client_config.json')), 'r') as observer_config:
             observer_sc_json_config = json.load(observer_config)
 
         observer = Host(observer_sc_json_config[0]['host'], observer_sc_json_config[0]['port'])
@@ -549,20 +558,19 @@ class Polycraft(World):
         Create polycraft interface - connect to server (server should be started first)
         """
         logger.info("Creating polycraft interface")
-        
+
         try:
             self.poly_client = poly.PolycraftInterface(settings_path, logger=logger)
 
             # LaunchTournament.py automatically calls START, do not do so if running without it!
-            if self.world_mode!=ServerMode.TOURNAMENT:
-                self.poly_client.START() # Send START command - will not perform any further actions unless done so
+            if self.world_mode != ServerMode.TOURNAMENT:
+                self.poly_client.START()  # Send START command - will not perform any further actions unless done so
 
-            self.poly_client.CHECK_COST()   # Give time for the polycraft instance to clear its buffer?
+            self.poly_client.CHECK_COST()  # Give time for the polycraft instance to clear its buffer?
 
         except (ConnectionRefusedError, BrokenPipeError) as err:
             logger.error("Failed to connect to Polycraft server - shutting down.")
             self.kill(exit_program=True)
-
 
     def init_selected_level(self, s_level: str):
         """
@@ -578,17 +586,17 @@ class Polycraft(World):
 
         try:
             self.poly_client.RESET(self.current_level)
-            
+
             # Wait for level to load fully (if not loaded fully, SENSE_ALL will return nothing and other undefined behavior) TODO: make consistent with RunTournament.py
-            if self.world_mode==ServerMode.SERVER:
+            if self.world_mode == ServerMode.SERVER:
                 logger.info("Telling Polycraft to load a new level: {}".format(self.current_level))
                 while True:
                     if "[EXP] game initialization completed" in self._get_polycraft_output():
                         self.ready_for_cmds = True
                         break
-            else: # Detached server, using a heuristic of waiting a bit for it to load TODO: Is this bad?
+            else:  # Detached server, using a heuristic of waiting a bit for it to load TODO: Is this bad?
                 logger.info("Waiting for level to initialize...")
-                time.sleep(5) # Assumes 5 sec. is enough to load a level.
+                time.sleep(5)  # Assumes 5 sec. is enough to load a level.
 
         except (BrokenPipeError, KeyboardInterrupt) as err:
             logger.error("Polycraft server connection interrupted ({})".format(err))
@@ -601,7 +609,8 @@ class Polycraft(World):
         if isinstance(action, PolycraftAction):
             try:
                 if action.can_do(state, self):
-                    results = action.do(state, self)   # Perform each polycraft action's unique do command which uses the Polycraft API
+                    results = action.do(state,
+                                        self)  # Perform each polycraft action's unique do command which uses the Polycraft API
                     action.response = results
                     action.success = action.is_success(results)
                     self.last_cmd_success = action.success  # Store if last command was successful or not
@@ -614,7 +623,7 @@ class Polycraft(World):
                 logger.debug(str(action))
             except (BrokenPipeError, KeyboardInterrupt) as err:
                 logger.error("Polycraft server connection interrupted ({})".format(err))
-                self.kill()                
+                self.kill()
                 raise err
         else:
             raise ValueError("Invalid action requested: {}".format(str(type(action))))
@@ -649,7 +658,7 @@ class Polycraft(World):
             if 'goal' in sensed:
                 terminal = sensed['gameOver'] or sensed['goal']['goalAchieved']
             entities = sensed['entities']
-            state = PolycraftState(id, facing_block, pos, sensed_game_map, entities, inventory,currently_selected,
+            state = PolycraftState(id, facing_block, pos, sensed_game_map, entities, inventory, currently_selected,
                                    copy.deepcopy(self.current_recipes),
                                    copy.deepcopy(self.current_trades),
                                    copy.deepcopy(self.door_to_room_cells),
@@ -669,28 +678,27 @@ class Polycraft(World):
         Query polycraft instance to obtain the relevant recipes
         """
         response = self.poly_client.SENSE_RECIPES()
-        assert(response['command_result']['result']=='SUCCESS')
+        assert (response['command_result']['result'] == 'SUCCESS')
         self.current_recipes = response['recipes']
 
     def populate_door_to_room_cells(self):
         # Initialize door to cells dictionary, mapping door cell to a gamemap-like dictionary of the room that door is pointing to
         response = self.poly_client.SENSE_ALL()
-        assert(response['command_result']['result']=='SUCCESS')
+        assert (response['command_result']['result'] == 'SUCCESS')
         game_map = response['map']
         self.door_to_room_cells[Polycraft.DUMMY_DOOR] = dict()
         for cell_id, cell_attr in game_map.items():
-            if cell_attr["name"]==BlockType.WOODER_DOOR.value:
-                self.door_to_room_cells[cell_id]=dict()
-                self.door_to_room_cells[cell_id][cell_id]=cell_attr
+            if cell_attr["name"] == BlockType.WOODER_DOOR.value:
+                self.door_to_room_cells[cell_id] = dict()
+                self.door_to_room_cells[cell_id][cell_id] = cell_attr
             self.door_to_room_cells[Polycraft.DUMMY_DOOR][cell_id] = cell_attr
-
 
     def get_level_total_step_cost(self) -> float:
         try:
             cost_dict = self.poly_client.CHECK_COST()
         except KeyboardInterrupt as err:
             self.kill(exit_program=True)
-        
+
         try:
             msg = cost_dict['command_result']['message']
         except KeyError as err:
@@ -700,7 +708,7 @@ class Polycraft(World):
         # extract numbers from message (as of 8/25/21, message has format "Total Cost Incurred: <cost>")
         try:
             parts = msg.split(': ')
-            cost = float(parts[-1]) # extract the total cost
+            cost = float(parts[-1])  # extract the total cost
         except ValueError as err:
             logger.error("Could not parse CHECK_COST message for total cost: {}".format(msg))
             raise err

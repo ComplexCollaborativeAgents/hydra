@@ -32,6 +32,7 @@ REWARD_PROB = "reward_estimator_likelihood"
 PDDL_PROB = "pddl_novelty_likelihood"
 NOVELTY_LIKELIHOOD = "novelty_likelihood"
 UNKNOWN_OBJ = "unknown_object"
+PLAN = "plan"
 UNDEFINED = None
 
 ENSEMBLE_MODEL = "{}/model/ensemble_simple_22_25.pkl".format(settings.ROOT_PATH)
@@ -79,7 +80,8 @@ class SBHydraAgent(HydraAgent):
         self.level_novelty_indicators = {
             REWARD_PROB: list(),
             PDDL_PROB: list(),
-            UNKNOWN_OBJ: list()
+            UNKNOWN_OBJ: list(),
+            PLAN: list()
         }
 
         self.nn_prob_per_level = []
@@ -112,7 +114,8 @@ class SBHydraAgent(HydraAgent):
         self.level_novelty_indicators = {
             REWARD_PROB: list(),
             PDDL_PROB: list(),
-            UNKNOWN_OBJ: list()
+            UNKNOWN_OBJ: list(),
+            PLAN: list()
         }
 
         self.novelty_detections = list()
@@ -380,10 +383,10 @@ class SBHydraAgent(HydraAgent):
                                            self.novelty_detections[-3]
 
     def _handle_end_of_level(self, success):
-        """ This is called when a level has ended, either in a win or a lose our come """
+        """ This is called when a level has ended, either in a win or a loss outcome """
         self._need_to_repair = self.made_plan and not success
         self.completed_levels.append(success)
-        self._infer_novelty_existence()
+        # self._infer_novelty_existence()  TODO: this is the novelty detection, turn back on when done with video
         self.stats_for_level[NOVELTY_LIKELIHOOD] = bool(self._new_novelty_likelihood)
         self.stats_for_level[PDDL_PROB] = self.level_novelty_indicators[PDDL_PROB]
         self.stats_for_level[REWARD_PROB] = self.level_novelty_indicators[REWARD_PROB]
@@ -413,7 +416,8 @@ class SBHydraAgent(HydraAgent):
         self.level_novelty_indicators = {
             PDDL_PROB: list(),
             UNKNOWN_OBJ: list(),
-            REWARD_PROB: list()
+            REWARD_PROB: list(),
+            PLAN: list()
         }
         # time.sleep(1)
         self.novelty_existence = self.env.sb_client.get_novelty_info()
@@ -425,25 +429,6 @@ class SBHydraAgent(HydraAgent):
 
         processed_state = self.perception.process_state(raw_state)
         observation.state = processed_state
-
-        # # Track movement of external agents in comparison with birds (flat shot: v_bird ~= vx_bird)
-        # problem = self.meta_model.create_pddl_problem(processed_state)
-        # pddl_state = PddlPlusState(problem.init)
-        # default_time = self.meta_model.angle_to_action_time(10, pddl_state)
-        # tim_act = TimedAction("pa-twang blueBird_-336", default_time)
-        # sb1_action = self.meta_model.create_sb_action(tim_act, processed_state)
-        # st = time.time()
-        # self.env.sb_client.fast_shoot(sb1_action.ref_x+sb1_action.dx, sb1_action.ref_y+sb1_action.dy, 0, sb1_action.tap, settings.SB_GT_FREQ)
-        # interstates = self.env.sb_client.batch_ground_truth(1, 100)
-        # en = time.time() - st
-        # magi_coords = []
-        # blu_coords = []
-        # for ob in interstates:
-        #     magi0_polygon = copy.deepcopy(self.perception.process_state(SBState(ob, None, None)).objects['-2738']['polygon'])
-        #     blu0_polygon = copy.deepcopy(self.perception.process_state(SBState(ob, None, None)).objects['-336']['polygon'])
-        #     magi_coords.append(round(abs(magi0_polygon.bounds[2] + magi0_polygon.bounds[0]) / 2))
-        #     blu_coords.append(round(abs(blu0_polygon.bounds[2] + blu0_polygon.bounds[0]) / 2))
-
         self.choose_action(observation)
 
     def choose_action(self, observation: ScienceBirdsObservation):
@@ -473,6 +458,7 @@ class SBHydraAgent(HydraAgent):
                 plan = []
                 plan.append(self.__get_default_action(processed_state))
                 self.made_plan = False
+            self.level_novelty_indicators[PLAN].append(plan)
             timed_action = plan[0]
 
             ## TAP UPDATE

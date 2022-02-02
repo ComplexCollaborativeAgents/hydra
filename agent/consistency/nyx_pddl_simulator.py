@@ -26,7 +26,7 @@ SimulationOutput = Tuple[Optional[PddlPlusState], Optional[float], Optional[Trac
 
 class NyxPddlPlusSimulator(PddlPlusSimulator):
 
-    def __init__(self, allow_cascading_effects: bool = True):
+    def __init__(self, allow_cascading_effects: bool = False):
         super().__init__(allow_cascading_effects=allow_cascading_effects)
 
     def get_expected_trace(self,
@@ -126,10 +126,10 @@ class NyxPddlPlusSimulator(PddlPlusSimulator):
                   expand_time_passing: bool = True,
                   max_t: Optional[float] = None) -> NyxPlan:
         nyx_plan = NyxPlan()
-        action_lookup = {action.grounded_name: action for action in grounded_pddl.actions.iter()}
+        action_lookup = {action.grounded_name.lower(): action for action in grounded_pddl.actions}
 
         for action in plan:
-            nyx_action = action_lookup.get(action.action_name)
+            nyx_action = action_lookup.get(action.action_name.lower())
             start_time = math.floor(action.start_at / delta_t) * delta_t
             nyx_plan.append_action(nyx_action, start_time, expand_time_passing=expand_time_passing)
 

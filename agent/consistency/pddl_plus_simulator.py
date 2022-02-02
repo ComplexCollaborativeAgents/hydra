@@ -21,10 +21,16 @@ class InconsistentPlanError(ValueError):
         super().__init__(error_msg)
 
 
-class PddlPlusSimulator():
+class PddlPlusSimulator:
     """ A simplistic, probably not complete and sound, simulator for PDDL+ processes
      TODO: Replace this with a call to VAL. """
-    def __init__(self, allow_cascading_effects=True):
+    def __init__(self, allow_cascading_effects=False):
+        self.delta_t = None
+        self.next_timed_action = None
+        self.plan = None
+        self.trace = None
+        self.domain = None
+        self.problem = None
         self.allow_cascading_effects = allow_cascading_effects
 
     def trace_fluents(self, trace: list, fluent_names: list):

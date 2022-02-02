@@ -1,4 +1,6 @@
 import matplotlib
+
+from agent.consistency.nyx_pddl_simulator import NyxPddlPlusSimulator
 from agent.consistency.pddl_plus_simulator import *
 from agent.perception.perception import *
 from tests import test_utils
@@ -210,7 +212,7 @@ def diff_pddl_states(state1, state2):
 def check_obs_consistency(observation,
                           meta_model,
                           consistency_checker: MetaModelBasedConsistencyEstimator,
-                          simulator: PddlPlusSimulator = CachingPddlPlusSimulator(),
+                          simulator: PddlPlusSimulator = NyxPddlPlusSimulator(),
                           plot_obs_vs_exp=DEFAULT_PLOT_OBS_VS_EXP,
                           speedup_factor=1.0):
     """

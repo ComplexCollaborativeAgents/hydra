@@ -212,7 +212,7 @@ class SimpleTrajectoryPlanner:
         return release
 
 
-    def find_release_angle(self, sling, release_point):
+    def find_release_angle(self, sling, theta):
         """ The inverse of find_release_point()
         TODO: SHOULD THIS REPLACE get_release_angle()"""
         mag = sling.height * 5

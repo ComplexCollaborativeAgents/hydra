@@ -1,3 +1,5 @@
+import itertools
+
 import numpy as np
 
 import settings
@@ -444,7 +446,8 @@ class SBHelpfulAngleHeuristic(SBBlockedPigsHeuristic):
 
         if self.blocks_under_pigs:
             self.sus_blocks_keys = self._check_sus_blocks(node, live_pigs, self.sus_blocks_keys)
-            for block_key in self.sus_blocks_keys:
+            explosive_blocks = [obj_id for _, obj_id in self.targets_x_keys.items() if node.state_vars["['block_explosive" + obj_id]]
+            for block_key in itertools.chain(self.sus_blocks_keys, explosive_blocks):
                 block_x = node.state_vars["['x_block" + block_key]
                 block_y = node.state_vars["['y_block" + block_key]
                 # get coords

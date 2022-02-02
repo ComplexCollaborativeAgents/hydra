@@ -167,7 +167,7 @@ def estimate_launch_angle(slingshot, targetPoint, meta_model):
         # print('theta 1', math.degrees(theta_1))
         theta_2 = math.acos(cos_theta_2)  # + distance_between * 0.00005  # compensate the rounding error
         # print('theta 2', math.degrees(theta_2))
-        print(f'found angle to pig: {theta_1}, {theta_2}')
+        print(f'found angle to pig: {math.degrees(theta_1)}, {math.degrees(theta_2)}')
         return math.degrees(theta_1), math.degrees(theta_2)
 
     except:
@@ -510,10 +510,11 @@ class ScienceBirdsMetaModel(MetaModel):
                              # 'v_bird_multiplier',
                              # 'meta_platform_size',
                              'base_life_pig_multiplier',
-                             'explosion_damage',
-                             'fall_damage'],
+                             # 'explosion_damage',
+                             # 'fall_damage'
+                         ],
                          repair_deltas=[
-                             50, 50, 10
+                             50,  # 50, 10
                          ],
                          constant_numeric_fluents={
                              'active_bird': 0,

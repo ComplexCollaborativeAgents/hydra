@@ -65,7 +65,7 @@ class SimulationBasedMetaModelRepair(MetaModelRepair):
         self.deltas = deltas
         self.consistency_threshold = consistency_threshold
         self.max_iterations = max_iteration
-        self.simulator = CachingPddlPlusSimulator()
+        self.simulator = NyxPddlPlusSimulator()
 
         # Init other fields
         self.current_delta_t = None

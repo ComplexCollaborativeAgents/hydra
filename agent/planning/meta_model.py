@@ -1,8 +1,8 @@
 
 from agent.planning.pddlplus_parser import *
 
-class MetaModel():
-    ''' A meta-model used to generated PDDL+ domains and problems from observations '''
+class MetaModel:
+    """ A meta-model used to generated PDDL+ domains and problems from observations """
 
     def __init__(self,
                  docker_path: str,

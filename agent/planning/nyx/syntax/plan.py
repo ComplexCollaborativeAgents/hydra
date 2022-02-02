@@ -31,7 +31,7 @@ class Plan(list):
             delta = (time - current_time) / time_passing.duration
             num_actions = round(delta)
 
-            if not math.isclose(delta, num_actions):
+            if not math.isclose(delta, num_actions, abs_tol=1):
                 raise RuntimeError('Could not expand plan with time-passing actions between t={} and t={}'.
                                    format(current_time, time))
 
