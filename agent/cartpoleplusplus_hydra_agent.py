@@ -205,7 +205,7 @@ class CartpolePlusPlusHydraAgentObserver(WSUObserver):
         super().testing_episode_end(performance, feedback)
         return self.agent.episode_end(performance, feedback)
 
-    def testing_instance(self, feature_vector: dict, novelty_indicator: bool = None) -> \
+    def testing_instance(self, feature_vector: dict, novelty_indicator: bool = None, novelty_info=None) -> \
             dict:
         super().testing_instance(feature_vector, novelty_indicator)
 

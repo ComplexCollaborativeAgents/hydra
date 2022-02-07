@@ -26,6 +26,7 @@ class CartpoleHydraAgent(HydraAgent):
 
         self.novelty_likelihood = 0.0
         self.novelty_existence = None
+        self.novelty_info=None # Allowing the dispatcher to add additional info about the novelty (to distinguish M3/4)
 
         self.novelty_type = 0
         self.novelty_characterization = {}
@@ -137,6 +138,15 @@ class RepairingCartpoleHydraAgent(CartpoleHydraAgent):
         ''' Repair the meta model based on the last observation '''
 
         try:
+            # If novelty info exists, this provides hints for what the repair should be
+            if self.novelty_info is not None:
+                self.log.info(f"Identified novelty info {self.novelty_info} - adapt meta-model repair accordingly")
+                self.meta_model.repairable_constants = list(self.novelty_info.keys())
+                for i, parameter in enumerate(self.meta_model.repairable_constants):
+                    value = self.novelty_info[parameter]
+                    if value is not None:
+                        self.meta_model.repairable_constants[i]=value
+
             repair, consistency = self.meta_model_repair.repair(self.meta_model, last_observation,
                                                            delta_t=settings.CP_DELTA_T)
             self.log.info("Repaired meta model (repair string: %s)" % repair)
@@ -169,11 +179,13 @@ class CartpoleHydraAgentObserver(WSUObserver):
         super().testing_episode_end(performance, feedback)
         return self.agent.episode_end(performance, feedback)
 
-    def testing_instance(self, feature_vector: dict, novelty_indicator: bool = None) -> \
+    def testing_instance(self, feature_vector: dict, novelty_indicator: bool = None, novelty_info=None) -> \
             dict:
         super().testing_instance(feature_vector, novelty_indicator)
 
         self.agent.novelty_existence = novelty_indicator
+        if "novelty_info" in dir(self.agent):
+            self.agent.novelty_info = novelty_info
 
         observation = self.agent.feature_vector_to_observation(feature_vector)
 

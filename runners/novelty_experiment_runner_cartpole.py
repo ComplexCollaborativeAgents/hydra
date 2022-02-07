@@ -54,8 +54,9 @@ class NoveltyExperimentGymCartpoleDispatcher(GymCartpoleDispatcher):
         for param in novelties:
             self._env_params[param] = novelties[param]
 
-    def set_is_known(self, is_known=None):
+    def set_is_known(self, is_known=None, fluent_to_change:dict=None):
         self._is_known = is_known
+        self._fluent_to_change = fluent_to_change
 
     def _make_environment(self):
         environment = gym.make(self.model_id)
