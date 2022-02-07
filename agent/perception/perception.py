@@ -99,12 +99,12 @@ class Perception():
                     new_obj['colormap']=obj['properties']['colormap']
                 if object_type == 'platform':
                     new_obj['id'] = obj['properties']['id']
-                    platforms.append(new_obj)
+                    new_objs[obj['properties']['id']] = new_obj
                 else:
                     new_objs[obj['properties']['id']] = new_obj
 
-        for platform in self.merge_platforms(platforms):
-            new_objs[platform['id']] = platform
+        # for platform in self.merge_platforms(platforms):
+        #     new_objs[platform['id']] = platform
 
         # bird_types = []
         # for type, objs in vision.allObj.items():
