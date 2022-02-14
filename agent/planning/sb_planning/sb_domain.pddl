@@ -418,7 +418,33 @@
             (>= (- (y_bird ?b) (y_pig ?p)) -50 )
         )
         :effect (and
-            (decrease (pig_life ?p) (explosion_damage))
+            (pig_dead ?p)
+            (pig_killed)
+            (increase (points_score) 5000)
+        )
+    )
+
+
+    (:event explode_pig_from_egg
+        :parameters (?b - bird ?p - pig)
+        :precondition (and
+        	(= (active_bird) (bird_id ?b))
+        	; (or
+      		(= (bird_type ?b) 3)
+      		(> (bounce_count ?b) 0)
+      			; (and (= (bird_type ?b) 3) (= (bounce_count ?b) 1) (bird_tapped ?b) )
+  			; )
+            (not (pig_dead ?p))
+            (<= (- (x_bird ?b) (x_pig ?p)) 30 )
+            (>= (- (x_bird ?b) (x_pig ?p)) -30 )
+            (<= (- (y_bird ?b) (y_pig ?p)) 30 )
+            (>= (- (y_bird ?b) (y_pig ?p)) -30 )
+            (bird_tapped ?b)
+        )
+        :effect (and
+            (pig_dead ?p)
+            (pig_killed)
+            (increase (points_score) 5000)
         )
     )
 

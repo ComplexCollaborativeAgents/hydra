@@ -147,7 +147,7 @@ class PddlPlusSimulator:
             delta_t = game_meta_model.delta_t
         problem = game_meta_model.create_pddl_problem(game_state)
         domain = game_meta_model.create_pddl_domain(game_state)
-        domain = PddlPlusGrounder().ground_domain(domain, problem)  # Simulator accepts only grounded domains
+        # domain = PddlPlusGrounder().ground_domain(domain, problem)  # Simulator accepts only grounded domains
         plan = PddlPlusPlan()
         plan.append(game_meta_model.create_timed_action(game_action, game_state))
         (_, _, trace) = self.simulate(plan, problem, domain, delta_t)

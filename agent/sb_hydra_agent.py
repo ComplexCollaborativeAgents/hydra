@@ -1,3 +1,4 @@
+from agent.consistency.trace_visualizer import plot_expected_trace_for_obs
 from agent.reward_estimation.reward_estimator import RewardEstimator
 import pickle
 import datetime
@@ -470,13 +471,16 @@ class SBHydraAgent(HydraAgent):
             else:
                 sb_action = self.meta_model.create_sb_action(timed_action, processed_state)
 
+            observation.action = sb_action
+            # plot_expected_trace_for_obs(self.meta_model, observation, settings.SB_DELTA_T)
+
             raw_state, reward = self.env.act(sb_action)
             observation.reward = reward
             if self.stats_for_level.get('rewards_per_shot'):
                 self.stats_for_level['rewards_per_shot'].append(reward)
             else:
                 self.stats_for_level['rewards_per_shot'] = [reward]
-            observation.action = sb_action
+
             observation.intermediate_states = list(self.env.intermediate_states)
             self.perception.process_observation(observation)
             if settings.DEBUG:

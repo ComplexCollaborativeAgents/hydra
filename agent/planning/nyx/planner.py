@@ -41,15 +41,19 @@ class Planner:
         parser = PDDL_Parser(domain, problem)
         grounded_instance = parser.grounded_instance
         if constants.SB_W_HELPFUL_ACTIONS:
-            self.heuristic = SBOneBirdHeuristic()
-            pref_list = PreferredList(PriorityList(), SBHelpfulAngleHeuristic(blocking_blocks=False))
+            self.heuristic = [SBOneBirdHeuristic(), SBHelpfulAngleHeuristic(blocking_blocks=False)]
+            pref_list = PreferredList(PriorityList(), self.heuristic[1])
             self.queue = AlternatingList([pref_list, PriorityList()])
         else:
             self.heuristic = get_heuristic_function(constants.CUSTOM_HEURISTIC_ID, groundedPPDL=grounded_instance)  # TODO get this parameter in some normal way
         # Parsed data
         state = grounded_instance.init_state
         self.initial_state = grounded_instance.init_state
-        self.heuristic.notify_initial_state(state)
+        if type(self.heuristic) is list:
+            for h in self.heuristic:
+                h.notify_initial_state(state)
+        else:
+            self.heuristic.notify_initial_state(state)
 
         print("\t* model parse time: " + str("{:5.4f}".format(time.time() - start_solve_time)) + "s")
 
@@ -132,7 +136,11 @@ class Planner:
         return None
 
     def enqueue_state(self, n_state):
-        self.heuristic.evaluate(n_state)
+        if type(self.heuristic) is list:
+            for h in self.heuristic:
+                h.evaluate(n_state)
+        else:
+            self.heuristic.evaluate(n_state)
         self.queue.push(n_state)
 
         if constants.PRINT_ALL_STATES:

@@ -3,6 +3,7 @@ import time
 from matplotlib import pyplot as plt, patches as patches
 
 from agent.consistency.fast_pddl_simulator import CachingPddlPlusSimulator
+from agent.consistency.nyx_pddl_simulator import NyxPddlPlusSimulator
 from agent.planning.pddl_plus import PddlPlusState
 import matplotlib
 import matplotlib.animation as animation
@@ -119,10 +120,10 @@ def plot_pigs_and_birds(modified_birds, modified_pigs, pddl_state : PddlPlusStat
 ''' Simulate the given action in the given state using the given meta model'''
 def plot_expected_trace_for_obs(meta_model: MetaModel,
                                 observation: ScienceBirdsObservation,
-                                delta_t = 0.05,
+                                delta_t=0.05,
                                 ax=None):
     # Repair angle
-    expected_trace = PddlPlusSimulator().simulate_observed_action(observation.state, observation.action, meta_model, delta_t)
+    expected_trace = NyxPddlPlusSimulator().simulate_observed_action(observation.state, observation.action, meta_model, delta_t)
     state_sequence = [timed_state[0] for timed_state in expected_trace]
     global BIRD_MARKER
     BIRD_MARKER = ".b"

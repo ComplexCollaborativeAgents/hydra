@@ -212,9 +212,9 @@ class SBOneBirdHeuristic(AbstractHeuristic):
                 max_y = max(y_top, y_enter, y_exit)
                 min_y = min(y_enter, y_exit)
 
-                if bird_type == BIRD_BLUE:
-                    min_y -= min_y * 0.2
-                    max_y += max_y * 0.2
+                # if bird_type == BIRD_BLUE:
+                min_y -= min_y * 0.1
+                max_y += max_y * 0.1
 
                 if min_y > bbox_maxy or max_y < bbox_miny:
                     # I expect that the entire shot passing under the lowest object is unlikely, but it's very easy to
@@ -227,8 +227,8 @@ class SBOneBirdHeuristic(AbstractHeuristic):
                 hit_ground_time = (- v_y_0 + np.sqrt(np.power(v_y_0, 2) + 2 * gravity * y_0)) / (2 * gravity)
                 hit_ground_x = x_0 + v_x * hit_ground_time
 
-                if bird_type == BIRD_BLUE:
-                    hit_ground_x += hit_ground_x * 0.2
+                # if bird_type == BIRD_BLUE:
+                hit_ground_x += hit_ground_x * 0.1
 
                 # This prevents shots that hit the ground before reaching any targets, though some levels might need it?
                 if hit_ground_x < bbox_minx:
@@ -415,7 +415,7 @@ class SBHelpfulAngleHeuristic(SBBlockedPigsHeuristic):
         SBBlockedPigsHeuristic.__init__(self, blocks_under_pig=blocking_blocks)
         self.x_0, self.y_0 = 0, 0
         self.g = 9.81
-        self.deviation = ComparableInterval[-5, 5]  # TODO: find reasonable values
+        self.deviation = ComparableInterval[-2, 2]  # TODO: find reasonable values
         self.trajectories = set()  # What are they? a set of lists of states? Just a set of states?
 
     def notify_initial_state(self, node: State):

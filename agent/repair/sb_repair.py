@@ -156,7 +156,7 @@ class ScienceBirdsConsistencyEstimator(MetaModelBasedConsistencyEstimator):
             if self.use_simplified_problems:
                 problem = meta_model.create_simplified_problem(problem)
             domain = meta_model.create_pddl_domain(observation.get_initial_state())
-            domain = PddlPlusGrounder().ground_domain(domain, problem)  # Simulator accepts only grounded domains
+            # domain = PddlPlusGrounder().ground_domain(domain, problem)  # Simulator accepts only grounded domains
             plan = observation.get_pddl_plan(meta_model)
             (_, _, expected_trace,) = simulator.simulate(plan, problem, domain, delta_t=delta_t)
 
