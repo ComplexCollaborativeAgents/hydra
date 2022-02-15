@@ -378,15 +378,34 @@
         :effect (and
       	    (assign (vx_bird ?b) 0)
       	    (bird_tapped ?b)
+
   	    )
     )
+
+    (:action black_bird_action
+        :parameters (?b - bird)
+        :precondition (and
+            (= (active_bird) (bird_id ?b))
+            (bird_released ?b)
+      	    (not (bird_tapped ?b))
+      	    (< (bounce_count ?b) 3)
+            (< (x_bird ?b) 800)
+            (= (bird_type ?b) 2)
+        )
+        :effect (and
+            (bird_tapped ?b)
+            (assign (bounce_count ?b) 3)
+        )
+    )
+
 
     (:event explode_block_from_bird
         :parameters (?b - bird ?bl_near - block)
         :precondition (and
         	(= (active_bird) (bird_id ?b))
         	; (or
-      			(= (bird_type ?b) 2) (> (bounce_count ?b) 0)
+      		(= (bird_type ?b) 2)
+      		(> (bounce_count ?b) 0)
       			; (and (= (bird_type ?b) 3) (= (bounce_count ?b) 1) (bird_tapped ?b) )
   			; )
             (> (block_stability ?bl_near) 0)
@@ -408,7 +427,7 @@
         	(= (active_bird) (bird_id ?b))
         	; (or
       		(= (bird_type ?b) 2)
-      		(> (bounce_count ?b) 0)
+      		(= (bounce_count ?b) 3)
       			; (and (= (bird_type ?b) 3) (= (bounce_count ?b) 1) (bird_tapped ?b) )
   			; )
             (not (pig_dead ?p))
@@ -435,10 +454,10 @@
       			; (and (= (bird_type ?b) 3) (= (bounce_count ?b) 1) (bird_tapped ?b) )
   			; )
             (not (pig_dead ?p))
-            (<= (- (x_bird ?b) (x_pig ?p)) 30 )
-            (>= (- (x_bird ?b) (x_pig ?p)) -30 )
-            (<= (- (y_bird ?b) (y_pig ?p)) 30 )
-            (>= (- (y_bird ?b) (y_pig ?p)) -30 )
+            (<= (- (x_bird ?b) (x_pig ?p)) 40 )
+            (>= (- (x_bird ?b) (x_pig ?p)) -40 )
+            (<= (- (y_bird ?b) (y_pig ?p)) 40 )
+            (>= (- (y_bird ?b) (y_pig ?p)) -40 )
             (bird_tapped ?b)
         )
         :effect (and

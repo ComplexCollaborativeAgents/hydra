@@ -108,6 +108,7 @@ class ScienceBirds(World):
             logger.info("Killing process groups: {}".format(self.SB_server_process.pid))
             try:
                 os.killpg(self.SB_server_process.pid,9)
+                self.SB_server_process = None
             except:
                 logger.info("Error during process terminatio6n")
                 pass

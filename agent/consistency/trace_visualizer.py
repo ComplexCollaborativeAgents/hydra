@@ -56,10 +56,7 @@ def plot_state_sequence(pddl_state_seq : list, pddl_state: PddlPlusState, ax= No
     for intermediate_pddl_state in pddl_state_seq[1:]:
         # plot_intermediate_state(intermediate_pddl_state, previous_state, ax)
         plot_pddl_state(intermediate_pddl_state, ax)
-        time.sleep(10)
         previous_state = intermediate_pddl_state
-
-
         plt.show()
 
     #

@@ -38,7 +38,7 @@ class AgentType(enum.Enum):
 
 
 NOVELTY = 0
-TYPE = [226]  # [222, 225, 226, 236, 243, 224, 245, 246, 247, 252, 253, 254, 255, 256, 257]
+TYPE = [222, 225, 226, 236, 243, 224, 245, 246, 247, 252, 253, 254, 255, 256, 257]
 SAMPLES = 50
 
 AGENT = AgentType.RepairingHydra
@@ -393,6 +393,7 @@ def run_performance_stats(novelties: dict,
                 filename = "{}{}.json".format(filename, current_suffix)
                 with open(stats_base_path / filename, 'w') as f:
                     json.dump(stats, f, sort_keys=True, indent=4)
+            env.kill()
 
 
 # def do_record_novelty_stats(novelty, novelty_type, config, agent_stats):

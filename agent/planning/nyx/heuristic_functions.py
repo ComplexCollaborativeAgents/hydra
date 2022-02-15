@@ -339,7 +339,7 @@ class SBBlockedPigsHeuristic(SBOneBirdHeuristic):
         """
         super().__init__()
         self.pig_dead_keys = {}
-        self.sus_blocks_keys = []
+        self.sus_blocks_keys = set()
         self.blocks_under_pigs = blocks_under_pig
 
     def notify_initial_state(self, node):
@@ -358,7 +358,7 @@ class SBBlockedPigsHeuristic(SBOneBirdHeuristic):
         """
         Checks the given blocks to see if they're "in front of" the given pigs.
         """
-        sus_blocks = []
+        sus_blocks = set()
         for p_key in pig_keys:
             pig_x = node.state_vars["['x_pig" + p_key]
             pig_y = node.state_vars["['y_pig" + p_key]
@@ -371,12 +371,12 @@ class SBBlockedPigsHeuristic(SBOneBirdHeuristic):
 
                 if block_x < pig_x < block_x + 4 * block_w and \
                         block_y - 5 * block_h < pig_y < block_y + block_h:
-                    sus_blocks.append(b_key)
+                    sus_blocks.add(b_key)
 
                 if self.blocks_under_pigs \
                         and block_x + block_w < pig_x < block_x + block_w \
                         and block_y < pig_y:
-                    sus_blocks.append(b_key)
+                    sus_blocks.add(b_key)
         return sus_blocks
 
     def evaluate(self, node):
@@ -415,8 +415,10 @@ class SBHelpfulAngleHeuristic(SBBlockedPigsHeuristic):
         SBBlockedPigsHeuristic.__init__(self, blocks_under_pig=blocking_blocks)
         self.x_0, self.y_0 = 0, 0
         self.g = 9.81
-        self.deviation = ComparableInterval[-2, 2]  # TODO: find reasonable values
+        self.deviation = ComparableInterval[-5, 5]  # TODO: find reasonable values
         self.trajectories = set()  # What are they? a set of lists of states? Just a set of states?
+
+    evaluate = SBOneBirdHeuristic.evaluate
 
     def notify_initial_state(self, node: State):
         SBBlockedPigsHeuristic._generate_keys(self, node)
@@ -480,7 +482,7 @@ class SBHelpfulAngleHeuristic(SBBlockedPigsHeuristic):
         theta_1 = math.acos(cos_theta_1)
         theta_2 = math.acos(cos_theta_2)
 
-        return math.degrees(theta_1), math.degrees(theta_2)
+        return theta_1, theta_2
 
     def is_preferred(self, node):
         def trajectory_trace(x_0: float, y_0: float, v_x_0: float, v_y_0: float, g: float, x_t: ComparableInterval):
