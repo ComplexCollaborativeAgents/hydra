@@ -233,6 +233,7 @@ def runner(dom_file, prob_file, args_list: []):
 
     del my_plnr
     gc.collect()
+    return my_plan
 
 #-----------------------------------------------
 # Main

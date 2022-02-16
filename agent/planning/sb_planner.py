@@ -23,6 +23,7 @@ class SBPlanner(HydraPlanner):
     def __init__(self, meta_model:ScienceBirdsMetaModel = ScienceBirdsMetaModel()):
         super().__init__(meta_model)
         self.current_problem_prefix = None
+        self.plan = None
 
     def make_plan(self, state, prob_complexity=0):
         """
@@ -64,28 +65,30 @@ class SBPlanner(HydraPlanner):
         plan_actions = []
         planning_successful = False
 
-        try:
-            # TODO create NYX object and get stats from it
-            nyx.runner("%s/sb_domain.pddl" % str(settings.SB_PLANNING_DOCKER_PATH),
-                       "%s/sb_prob.pddl" % str(settings.SB_PLANNING_DOCKER_PATH),
-                       ['-vv', '-to:%s' % str(settings.SB_TIMEOUT), '-noplan', '-search:astar', '-custom_heuristic:5', '-th:10',
-                        # '-th:%s' % str(self.meta_model.constant_numeric_fluents['time_limit']),
-                        '-t:%s' % str(settings.SB_DELTA_T)])
+        # try:
+        # TODO create NYX object and get stats from it
+        self.plan = nyx.runner("%s/sb_domain.pddl" % str(settings.SB_PLANNING_DOCKER_PATH),
+                               "%s/sb_prob.pddl" % str(settings.SB_PLANNING_DOCKER_PATH),
+                               ['-vv', '-to:%s' % str(settings.SB_TIMEOUT), '-noplan', '-search:bfs',
+                                '-custom_heuristic:2', '-th:10',
+                                # '-th:%s' % str(self.meta_model.constant_numeric_fluents['time_limit']),
+                                '-t:%s' % str(settings.SB_DELTA_T)])
 
-            plan_actions = self.extract_actions_from_plan_trace(
-                "%s/plan_sb_prob.pddl" % str(settings.SB_PLANNING_DOCKER_PATH))
-            planning_successful = True
+        plan_actions = self.extract_actions_from_plan_trace(
+            "%s/plan_sb_prob.pddl" % str(settings.SB_PLANNING_DOCKER_PATH))
 
-        except Exception as e_inst:
-            import traceback
-            traceback.print_exc()
-            print(e_inst)
+        # except Exception as e_inst:
+        #     import traceback
+        #     traceback.print_exc()
+        #     print(e_inst)
 
         # print(plan_actions)
 
         if len(plan_actions) > 0:
             if (plan_actions[0].action_name == "syntax error") and (count < 1):
                 plan_actions, planning_successful = self.get_plan_actions(count + 1)
+            else:
+                planning_successful = True
         else:
             plan_actions = []
         return plan_actions, planning_successful

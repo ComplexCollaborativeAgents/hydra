@@ -64,6 +64,9 @@ class BadSBHeuristic(AbstractHeuristic):
     Score heuristic for science birds - only useful for GBFS, and not very good even then.
     """
 
+    def notify_initial_state(self, node):
+        return self.evaluate(node)
+
     def evaluate(self, node):
         node.h = 50000 - node.state_vars["['points_score']"]
         return node.h

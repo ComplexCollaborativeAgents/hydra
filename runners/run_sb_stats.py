@@ -38,7 +38,7 @@ class AgentType(enum.Enum):
 
 
 NOVELTY = 0
-TYPE = [222, 225, 226, 236, 243, 224, 245, 246, 247, 252, 253, 254, 255, 256, 257]
+TYPE = [2, 4, 5, 6, 7, 222, 224, 225, 226, 236, 243, 245, 246, 247, 252, 253, 254, 255, 256, 257]
 SAMPLES = 50
 
 AGENT = AgentType.RepairingHydra

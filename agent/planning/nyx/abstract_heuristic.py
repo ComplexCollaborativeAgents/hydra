@@ -11,7 +11,7 @@ class AbstractHeuristic:
         Sets up heuristic, also evaluates the initial state and returns it's value. If the heuristic wants to do any
         preprocessing, this is the place.
         """
-        return cls.evaluate(node)
+        return 0
 
     @classmethod
     def notify_expanded(cls, node):

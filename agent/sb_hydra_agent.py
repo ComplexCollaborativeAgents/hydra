@@ -1,4 +1,5 @@
 from agent.consistency.trace_visualizer import plot_expected_trace_for_obs
+from agent.planning.nyx.syntax import constants
 from agent.reward_estimation.reward_estimator import RewardEstimator
 import pickle
 import datetime
@@ -158,7 +159,7 @@ class SBHydraAgent(HydraAgent):
                 if settings.NOVELTY_POSSIBLE:
                     self.num_objects = len(raw_state.objects[0]['features'])
                     # print("number of objects is {}".format(self.num_objects))
-                    self._record_novelty_indicators(observation)
+                    # self._record_novelty_indicators(observation)
             elif raw_state.game_state.value == GameState.WON.value:
                 self.handle_game_won()
             elif raw_state.game_state.value == GameState.LOST.value:
@@ -441,19 +442,32 @@ class SBHydraAgent(HydraAgent):
             simplifications = settings.SB_PLANNER_SIMPLIFICATION_SEQUENCE.copy()
             simplifications.reverse()
             plan = []
-            try:
-                while len(simplifications) > 0 and (len(plan) == 0 or plan[0].action_name == "out of memory"):
-                    simplification = simplifications.pop()
-                    start_time = time.perf_counter()
-                    plan, self.made_plan = self.planner.make_plan(processed_state, simplification)
-                    plan_time = (time.perf_counter() - start_time)
-                    self.stats_for_level[f'simplification level time {simplification}'] = plan_time
-                    self.cumulative_plan_time += plan_time
-                    logger.info(
-                        "[hydra_agent_server] :: Problem simplification {} planning time: {}".format(simplification,
+            # try:
+            while len(simplifications) > 0 and (len(plan) == 0 or plan[0].action_name == "out of memory"):
+                simplification = simplifications.pop()
+                start_time = time.perf_counter()
+                plan, self.made_plan = self.planner.make_plan(processed_state, simplification)
+                #### Additional statistics
+                if self.made_plan:
+                    if not self.stats_for_level.get('Plan action count'):
+                        self.stats_for_level['Plan action count'] = []
+                    plan_actions = 0
+                    for act in self.planner.plan:
+                        if not act[0] == constants.TIME_PASSING_ACTION:
+                            plan_actions += 1
+                    self.stats_for_level['Plan action count'].append(plan_actions)
+                    if not self.stats_for_level.get('Plan total time'):
+                        self.stats_for_level['Plan total time'] = []
+                    self.stats_for_level['Plan total time'].append(self.planner.plan[-1][1].time)
+                ###
+                plan_time = (time.perf_counter() - start_time)
+                self.stats_for_level[f'simplification level time {simplification}'] = plan_time
+                self.cumulative_plan_time += plan_time
+                logger.info(
+                    "[hydra_agent_server] :: Problem simplification {} planning time: {}".format(simplification,
                                                                                                      str(plan_time)))
-            except Exception as e:
-                logger.error("Planner threw an exception. Exception details:\n {}".format(e))
+            # except Exception as e:
+            #     logger.error("Planner threw an exception. Exception details:\n {}".format(e))
 
             if len(plan) == 0 or plan[0].action_name == "out of memory":  # TODO FIX THIS
                 plan = []
