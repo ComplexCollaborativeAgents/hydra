@@ -22,6 +22,7 @@ class SBPlanner(HydraPlanner):
 
     def __init__(self, meta_model:ScienceBirdsMetaModel = ScienceBirdsMetaModel()):
         super().__init__(meta_model)
+        self.explored_states = -1
         self.current_problem_prefix = None
         self.plan = None
 
@@ -67,9 +68,9 @@ class SBPlanner(HydraPlanner):
 
         # try:
         # TODO create NYX object and get stats from it
-        self.plan = nyx.runner("%s/sb_domain.pddl" % str(settings.SB_PLANNING_DOCKER_PATH),
+        self.plan, self.explored_states = nyx.runner("%s/sb_domain.pddl" % str(settings.SB_PLANNING_DOCKER_PATH),
                                "%s/sb_prob.pddl" % str(settings.SB_PLANNING_DOCKER_PATH),
-                               ['-vv', '-to:%s' % str(settings.SB_TIMEOUT), '-noplan', '-search:bfs',
+                               ['-vv', '-to:%s' % str(settings.SB_TIMEOUT), '-noplan', '-search:gbfs',
                                 '-custom_heuristic:2', '-th:10',
                                 # '-th:%s' % str(self.meta_model.constant_numeric_fluents['time_limit']),
                                 '-t:%s' % str(settings.SB_DELTA_T)])

@@ -38,7 +38,7 @@ class AgentType(enum.Enum):
 
 
 NOVELTY = 0
-TYPE = [2, 4, 5, 6, 7, 222, 224, 225, 226, 236, 243, 245, 246, 247, 252, 253, 254, 255, 256, 257]
+TYPE = [555, 222, 225, 226, 236, 243, 245, 246,  252, 253, 254, 257] #
 SAMPLES = 50
 
 AGENT = AgentType.RepairingHydra
@@ -108,7 +108,6 @@ def run_agent(config, agent, agent_stats=list()):
     """ Run science birds and the hydra agent. """
     try:
         env = sb.ScienceBirds(None, launch=True, config=config)
-        yield env
 
         if agent == AgentType.Hydra:
             hydra = SBHydraAgent(env, agent_stats)
@@ -362,8 +361,8 @@ def run_performance_stats(novelties: dict,
             number_samples = len(levels)
             if samples is not None:
                 number_samples = min(number_samples, samples)
-            # levels = levels[:number_samples]
-            levels = random.sample(levels, number_samples)
+            levels = levels[:number_samples]
+            # levels = random.sample(levels, number_samples)
 
             if level_lookup:
                 levels = [levels_path / l for l in level_lookup[str(novelty)][str(novelty_type)]]
@@ -373,8 +372,8 @@ def run_performance_stats(novelties: dict,
             post_directories = None
 
             agent_stats = list()
-            with run_agent(config.name, agent_type, agent_stats) as env:  # TODO: Typo?
-                post_directories = glob_directories(SB_BIN_PATH, 'Agent*')
+            run_agent(config.name, agent_type, agent_stats)  # TODO: Typo?
+            post_directories = glob_directories(SB_BIN_PATH, 'Agent*')
 
             results_directory = diff_directories(pre_directories, post_directories)
 
@@ -393,7 +392,6 @@ def run_performance_stats(novelties: dict,
                 filename = "{}{}.json".format(filename, current_suffix)
                 with open(stats_base_path / filename, 'w') as f:
                     json.dump(stats, f, sort_keys=True, indent=4)
-            env.kill()
 
 
 # def do_record_novelty_stats(novelty, novelty_type, config, agent_stats):

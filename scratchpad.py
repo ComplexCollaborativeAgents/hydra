@@ -1,54 +1,62 @@
+import json
+import pathlib
+import matplotlib.pyplot as plt
+
+import settings
 from agent.planning.nyx.nyx import runner
 
-prob_path = '/mnt/c/Users/yonsher/PycharmProjects/hydra/r01.pddl'
-dom_path = '/mnt/c/Users/yonsher/PycharmProjects/hydra/cartpole.pddl'
+# prob_path = '/mnt/c/Users/yonsher/PycharmProjects/hydra/r01.pddl'
+# dom_path = '/mnt/c/Users/yonsher/PycharmProjects/hydra/cartpole.pddl'
 
-runner(dom_path, prob_path, ['-vv', '-to:300', '-noplan', '-search:astar', '-custom_heuristic:7', '-th:4', '-t:0.02'])
 # runner(dom_path, prob_path, ['-vv', '-to:300', '-noplan', '-search:astar', '-custom_heuristic:7', '-th:4', '-t:0.02'])
+# runner(dom_path, prob_path, ['-vv', '-to:300', '-noplan', '-search:astar', '-custom_heuristic:7', '-th:4', '-t:0.02'])
+from runners.run_sb_stats import EXPERIMENT_NAME, AgentType
 
-# ===== NYX Planning Configuration ================ 4 seconds? Cartpole heuristic
-#
-# 	* domain: /mnt/c/Users/yonsher/PycharmProjects/hydra/cartpole.pddl
-# 	* problem: /mnt/c/Users/yonsher/PycharmProjects/hydra/r01.pddl
-# 	* plan: /mnt/c/Users/yonsher/PycharmProjects/hydra/plan_r01.pddl
-# 	* search algorithm: GBFS
-# 	* time discretisation: 0.02
-# 	* time horizon: 4.0
-#
-# 	* model parse time: 0.0024s
-# [  0.96] ==> states explored: 10000
-# 			10414.47 states/sec
-#
-# ===== Solution Info =============================
-#
-# 	* time: 1.044
-# 	* explored states: 10917
-# 	* plan length: 6 (105)
-# 	* plan duration: 1.98
-#
-# =================================================
+folder = 'runners/2.16 GBFS'
+
+NOVELTY = 0
+TYPE = [222, 225, 226, 236, 243, 245, 246,  252, 253, 254, 257, 555]
+
+novelties = {NOVELTY: TYPE}
+
+overall_stats = dict()
+
+for novelty, types in novelties.items():
+    for novelty_type in types:
+
+        filename = "stats_{}_novelty{}_type{}_agent{}".format(EXPERIMENT_NAME, novelty, novelty_type,
+                                                              AgentType.RepairingHydra.name)
+        filename = "{}/{}.json".format(folder, filename)
+        with open(filename, 'r') as jf:
+            stats = json.load(jf)
+            stats_per_level = {'won': stats['overall']['passed'], 'lost': stats['overall']['failed'], 'default shot': 0}
+            sum_time = 0
+            sum_nodes = 0
+            for entry in stats['levels']:
+                if entry.get('Default action used'):
+                    stats_per_level['default shot'] += 1
+                if entry.get('planning times'):
+                    sum_time += sum(entry['planning times']) / sum(entry['birds'].values())
+                    sum_nodes += sum(entry['expanded nodes']) / sum(entry['birds'].values())
+            stats_per_level['avg planning time'] = sum_time / len(stats['levels'])
+            stats_per_level['avg nodes per second'] = sum_nodes / len(stats['levels'])
+            overall_stats[novelty_type] = stats_per_level
+
+plt.plot([str(t) for t in TYPE], [overall_stats[i]['won']/50 for i in TYPE], 'b*',
+         [str(t) for t in TYPE], [overall_stats[i]['avg planning time']/30 for i in TYPE], 'y.',
+         [str(t) for t in TYPE], [overall_stats[i]['default shot']/50 for i in TYPE], 'g^')
+ax = plt.gca()
+ax.set_xlabel('level type')
+ax.set_ylabel('percent of max value')
+ax.legend(['won%', 'planning time%', 'default shot %'])
+# plt.figure()
+# plt.plot(
+#          [str(t) for t in TYPE], [overall_stats[i]['won']/50 for i in TYPE], 'r*')
+# plt.figure()
+# plt.plot([str(t) for t in TYPE], [overall_stats[i]['avg nodes per second'] for i in TYPE], '.')
+plt.show()
 
 
 
-# ===== NYX Planning Configuration ================ 1.5 seconds, interval heuristic
-#
-# 	* domain: /mnt/c/Users/yonsher/PycharmProjects/hydra/cartpole.pddl
-# 	* problem: /mnt/c/Users/yonsher/PycharmProjects/hydra/r01.pddl
-# 	* plan: /mnt/c/Users/yonsher/PycharmProjects/hydra/plan_r01.pddl
-# 	* search algorithm: A* (BGFS is same)
-# 	* time discretisation: 0.02
-# 	* time horizon: 4.0
-#
-# 	* model parse time: 0.0028s
-# [ 12.04] ==> states explored: 10000
-# 			830.71 states/sec
-#
-# ===== Solution Info =============================
-#
-# 	* time: 17.947
-# 	* explored states: 14627
-# 	* plan length: 54 (128)
-# 	* plan duration: 1.48
-#
-# =================================================
-#
+
+

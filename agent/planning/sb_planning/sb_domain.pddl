@@ -295,4 +295,216 @@
         )
     )
 
+    ;; BIRD TYPES: RED=0, YELLOW=1, BLACK=2, WHITE=3, BLUE=4 ;;
+
+    (:action yellow_bird_action
+        :parameters (?b - bird)
+        :precondition (and
+        	(= (active_bird) (bird_id ?b))
+      	    (bird_released ?b)
+            (not (bird_tapped ?b))
+            (= (bounce_count ?b) 0)
+            (< (x_bird ?b) 800)
+            (= (bird_type ?b) 1)
+        )
+        :effect (and
+        	(assign (vx_bird ?b) (* (vx_bird ?b) 2))
+        	(assign (vy_bird ?b) (* (vy_bird ?b) 2))
+      	    (assign (v_bird ?b) (* (v_bird ?b) 2))
+      	    (bird_tapped ?b)
+  	    )
+    )
+
+    ; (:action black_bird_action
+    ;   :parameters (?b - bird)
+    ;   :precondition (and
+    ;   	(= (active_bird) (bird_id ?b))
+    ;   	(= (bird_type ?b) 2)
+    ;   	(bird_released ?b)
+    ;     (= (bounce_count ?b) 0)
+    ;     (< (x_bird ?b) 800)
+    ;     (not (bird_tapped ?b))
+    ;   )
+    ;   :effect (and
+    ;   	(assign (vx_bird ?b) 0)
+    ;   	(assign (vy_bird ?b) 0)
+    ;   	(bird_tapped ?b)
+  	 ;  )
+    ; )
+
+    (:action white_bird_action
+        :parameters (?b - bird)
+        :precondition (and
+      	    (= (active_bird) (bird_id ?b))
+      	    (bird_released ?b)
+      	    (not (bird_tapped ?b))
+      	    (= (bounce_count ?b) 0)
+            (< (x_bird ?b) 800)
+            (= (bird_type ?b) 3)
+        )
+        :effect (and
+      	    (assign (vx_bird ?b) 0)
+      	    (bird_tapped ?b)
+
+  	    )
+    )
+
+    (:action black_bird_action
+        :parameters (?b - bird)
+        :precondition (and
+            (= (active_bird) (bird_id ?b))
+            (bird_released ?b)
+      	    (not (bird_tapped ?b))
+      	    (< (bounce_count ?b) 3)
+            (< (x_bird ?b) 800)
+            (= (bird_type ?b) 2)
+        )
+        :effect (and
+            (bird_tapped ?b)
+            (assign (bounce_count ?b) 3)
+        )
+    )
+
+
+    (:event explode_block_from_bird
+        :parameters (?b - bird ?bl_near - block)
+        :precondition (and
+        	(= (active_bird) (bird_id ?b))
+        	; (or
+      		(= (bird_type ?b) 2)
+      		(> (bounce_count ?b) 0)
+      			; (and (= (bird_type ?b) 3) (= (bounce_count ?b) 1) (bird_tapped ?b) )
+  			; )
+            (> (block_stability ?bl_near) 0)
+            (> (block_life ?bl_near) 0)
+            (<= (- (x_bird ?b) (x_block ?bl_near)) 50 )
+            (>= (- (x_bird ?b) (x_block ?bl_near)) -50 )
+            (<= (- (y_bird ?b) (y_block ?bl_near)) 50 )
+            (>= (- (y_bird ?b) (y_block ?bl_near)) -50 )
+        )
+        :effect (and
+            (assign (block_life ?bl_near) 0)
+            (assign (block_stability ?bl_near) 0)
+        )
+    )
+
+    (:event explode_pig_from_bird
+        :parameters (?b - bird ?p - pig)
+        :precondition (and
+        	(= (active_bird) (bird_id ?b))
+        	; (or
+      		(= (bird_type ?b) 2)
+      		(= (bounce_count ?b) 3)
+      			; (and (= (bird_type ?b) 3) (= (bounce_count ?b) 1) (bird_tapped ?b) )
+  			; )
+            (not (pig_dead ?p))
+            (<= (- (x_bird ?b) (x_pig ?p)) 50 )
+            (>= (- (x_bird ?b) (x_pig ?p)) -50 )
+            (<= (- (y_bird ?b) (y_pig ?p)) 50 )
+            (>= (- (y_bird ?b) (y_pig ?p)) -50 )
+        )
+        :effect (and
+            (pig_dead ?p)
+            (pig_killed)
+            (increase (points_score) 5000)
+        )
+    )
+
+
+    (:event explode_pig_from_egg
+        :parameters (?b - bird ?p - pig)
+        :precondition (and
+        	(= (active_bird) (bird_id ?b))
+        	; (or
+      		(= (bird_type ?b) 3)
+      		(> (bounce_count ?b) 0)
+      			; (and (= (bird_type ?b) 3) (= (bounce_count ?b) 1) (bird_tapped ?b) )
+  			; )
+            (not (pig_dead ?p))
+            (<= (- (x_bird ?b) (x_pig ?p)) 40 )
+            (>= (- (x_bird ?b) (x_pig ?p)) -40 )
+            (<= (- (y_bird ?b) (y_pig ?p)) 40 )
+            (>= (- (y_bird ?b) (y_pig ?p)) -40 )
+            (bird_tapped ?b)
+        )
+        :effect (and
+            (pig_dead ?p)
+            (pig_killed)
+            (increase (points_score) 5000)
+        )
+    )
+
+    ;; EXTERNAL AGENT EVENTS
+    ;; AGENT TYPES: MAGICIAN=0, WIZARD=1, BUTTERFLY=2, WORM=3
+
+    (:process agent_movement
+        :parameters (?ea - external_agent)
+        :precondition (and
+            (not (agent_dead ?ea))
+        )
+        :effect (and
+            (increase (x_agent ?ea) (* #t (* 1.0 (vx_agent ?ea))))
+            (increase (y_agent ?ea) (* #t (* 1.0 (vy_agent ?ea))))
+            (increase (timing_agent ?ea) (* #t 200))
+        )
+    )
+
+    (:event agent_1_timed_change_direction
+        :parameters (?ea - external_agent)
+        :precondition (and
+            (not (agent_dead ?ea))
+            (= (agent_type ?ea) 1)
+            (>= (timing_agent ?ea) 1000)
+        )
+        :effect (and
+            (assign (vx_agent ?ea) (* (vx_agent ?ea) -1))
+            (assign (vy_agent ?ea) (* (vy_agent ?ea) -1))
+        )
+    )
+
+    (:event agent_x_border_change_direction
+        :parameters (?ea - external_agent)
+        :precondition (and
+            (not (agent_dead ?ea))
+            (or
+                (and (> (vx_agent ?ea) 0) (>= (+ (x_agent ?ea) (/ (agent_width ?ea) 2)) (x_max_border ?ea)) )
+                (and (< (vx_agent ?ea) 0) (<= (- (x_agent ?ea) (/ (agent_width ?ea) 2)) (x_min_border ?ea)) )
+            )
+        )
+        :effect (and
+            (assign (vx_agent ?ea) (* (vx_agent ?ea) -1))
+        )
+    )
+
+    (:event agent_y_border_change_direction
+        :parameters (?ea - external_agent)
+        :precondition (and
+            (not (agent_dead ?ea))
+            (or
+                (and (> (vy_agent ?ea) 0) (>= (+ (y_agent ?ea) (/ (agent_height ?ea) 2)) (y_max_border ?ea)) )
+                (and (< (vy_agent ?ea) 0) (<= (- (y_agent ?ea) (/ (agent_height ?ea) 2)) (y_min_border ?ea)) )
+            )
+        )
+        :effect (and
+            (assign (vy_agent ?ea) (* (vy_agent ?ea) -1))
+        )
+    )
+
+    (:event collision_agent
+        :parameters (?b - bird ?ea - external_agent)
+        :precondition (and
+            (= (active_bird) (bird_id ?b))
+            (> (v_bird ?b) 0)
+            (<= (x_bird ?b) (+ (x_agent ?ea) (/ (agent_width ?ea) 1.75) ) )
+            (>= (x_bird ?b) (- (x_agent ?ea) (/ (agent_width ?ea) 1.75) ) )
+            (>= (y_bird ?b) (- (y_agent ?ea) (/ (agent_height ?ea) 1.75) ) )
+            (<= (y_bird ?b) (+ (y_agent ?ea) (/ (agent_height ?ea) 1.75) ) )
+        )
+        :effect (and
+            (assign (v_bird ?b) 0)
+            (assign (vx_bird ?b) 0)
+            (assign (bounce_count ?b) 3)
+        )
+    )
+
 )

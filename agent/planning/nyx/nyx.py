@@ -230,10 +230,10 @@ def runner(dom_file, prob_file, args_list: []):
     #                                     "['control_valve_opening', 'control_valve_15']","['control_valve_opening', 'control_valve_16']",
     #                                     "['pump_setting', 'pump_reference_1']", "['pump_setting', 'pump_reference_2']"], 'time(s)', 'setting')
 
-
+    explored_states = my_plnr.explored_states
     del my_plnr
     gc.collect()
-    return my_plan
+    return my_plan, explored_states
 
 #-----------------------------------------------
 # Main

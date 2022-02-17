@@ -79,6 +79,8 @@ class SBHydraAgent(HydraAgent):
         self.trial_timestamp = datetime.datetime.now().strftime("%y%m%d%H%M%S")
 
         self.stats_for_level = dict()
+        self.stats_for_level['planning times'] = []
+        self.stats_for_level['expanded nodes'] = []
         self.level_novelty_indicators = {
             REWARD_PROB: list(),
             PDDL_PROB: list(),
@@ -113,6 +115,8 @@ class SBHydraAgent(HydraAgent):
         self.trial_timestamp = datetime.datetime.now().strftime("%y%m%d%H%M%S")
 
         self.stats_for_level = dict()
+        self.stats_for_level['planning times'] = []
+        self.stats_for_level['expanded nodes'] = []
         self.level_novelty_indicators = {
             REWARD_PROB: list(),
             PDDL_PROB: list(),
@@ -415,6 +419,8 @@ class SBHydraAgent(HydraAgent):
         self.shot_num = 0
 
         self.stats_for_level = dict()
+        self.stats_for_level['planning times'] = []
+        self.stats_for_level['expanded nodes'] = []
         self.level_novelty_indicators = {
             PDDL_PROB: list(),
             UNKNOWN_OBJ: list(),
@@ -459,9 +465,11 @@ class SBHydraAgent(HydraAgent):
                     if not self.stats_for_level.get('Plan total time'):
                         self.stats_for_level['Plan total time'] = []
                     self.stats_for_level['Plan total time'].append(self.planner.plan[-1][1].time)
+
                 ###
                 plan_time = (time.perf_counter() - start_time)
-                self.stats_for_level[f'simplification level time {simplification}'] = plan_time
+                self.stats_for_level['planning times'].append(plan_time)
+                self.stats_for_level['expanded nodes'].append(self.planner.explored_states)
                 self.cumulative_plan_time += plan_time
                 logger.info(
                     "[hydra_agent_server] :: Problem simplification {} planning time: {}".format(simplification,
@@ -560,6 +568,7 @@ class SBHydraAgent(HydraAgent):
             else:
                 logger.info("Unable to shoot at a random pig, no unknown objects, shooting at 20 degrees")
                 default_time = self.meta_model.angle_to_action_time(20, pddl_state)
+        logger.info(f"pa-twang {active_bird}, {default_time * float(pddl_state[('angle_rate',)])}")
         return TimedAction("pa-twang %s" % active_bird, default_time)
 
     def set_env(self, env):

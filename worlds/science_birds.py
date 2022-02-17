@@ -104,7 +104,7 @@ class ScienceBirds(World):
 
 
     def kill(self):
-        if self.SB_server_process:
+        if self.SB_server_process is not None:
             logger.info("Killing process groups: {}".format(self.SB_server_process.pid))
             try:
                 os.killpg(self.SB_server_process.pid,9)
