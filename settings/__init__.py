@@ -17,6 +17,10 @@ NO_PDDL_CONSISTENCY = False
 SB_DEV_MODE = False
 NOVELTY_POSSIBLE = True
 
+
+SB_ALGO_STRING = 'gbfs'
+SB_HEURISTIC_STRING = '11'
+
 SB_PLANNER_MEMORY_LIMIT = 50  # memory limit for UPMurphi (in MB)
 SB_DELTA_T = 0.025  # time discretisation for UPMurphi
 SB_TIMEOUT = 30  # timeout for the planning phase (in seconds)

@@ -18,6 +18,7 @@ import worlds.science_birds as sb
 from agent.sb_hydra_agent import SBHydraAgent, RepairingSBHydraAgent
 import settings
 import logging
+from agent.planning.nyx.syntax import constants
 
 logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("run_sb_states")
@@ -106,26 +107,26 @@ def diff_directories(a, b):
 @contextlib.contextmanager
 def run_agent(config, agent, agent_stats=list()):
     """ Run science birds and the hydra agent. """
-    try:
-        env = sb.ScienceBirds(None, launch=True, config=config)
+    # try:
+    env = sb.ScienceBirds(None, launch=True, config=config)
 
-        if agent == AgentType.Hydra:
-            hydra = SBHydraAgent(env, agent_stats)
-            hydra.main_loop(max_actions=10000)
-        elif agent == AgentType.RepairingHydra:
-            hydra = RepairingSBHydraAgent(env, agent_stats)
-            hydra.main_loop(max_actions=10000)
-        elif agent == AgentType.Baseline:
-            ground_truth = ClientNaiveAgent(env.id, env.sb_client)
-            ground_truth.run()
-        elif agent == AgentType.Datalab:
-            datalab = sb.DatalabAgent()
-            datalab.run()
-        elif agent == AgentType.Eaglewings:
-            eaglewings = sb.EaglewingsAgent()
-            eaglewings.run()
-    finally:
-        env.kill()
+    if agent == AgentType.Hydra:
+        hydra = SBHydraAgent(env, agent_stats)
+        hydra.main_loop(max_actions=10000)
+    elif agent == AgentType.RepairingHydra:
+        hydra = RepairingSBHydraAgent(env, agent_stats)
+        hydra.main_loop(max_actions=10000)
+    elif agent == AgentType.Baseline:
+        ground_truth = ClientNaiveAgent(env.id, env.sb_client)
+        ground_truth.run()
+    elif agent == AgentType.Datalab:
+        datalab = sb.DatalabAgent()
+        datalab.run()
+    elif agent == AgentType.Eaglewings:
+        eaglewings = sb.EaglewingsAgent()
+        eaglewings.run()
+    # finally:
+    env.kill()
 
 
 def get_object_count(level_path="{}/Levels/novelty_level_0/type2/Levels/00501_0_0_4_0.xml".format(SB_BIN_PATH)):
@@ -361,8 +362,8 @@ def run_performance_stats(novelties: dict,
             number_samples = len(levels)
             if samples is not None:
                 number_samples = min(number_samples, samples)
-            levels = levels[:number_samples]
-            # levels = random.sample(levels, number_samples)
+            # levels = levels[:number_samples]
+            levels = random.sample(levels, number_samples)
 
             if level_lookup:
                 levels = [levels_path / l for l in level_lookup[str(novelty)][str(novelty_type)]]
@@ -530,4 +531,22 @@ def _compute_stats(results, file_suffix):
 
 if __name__ == '__main__':
     # run_sb_stats(seed=0, record_novelty_stats=True)
+    ICAPS_benchmarks = [
+        # ('bfs', '2'),
+        # ('dfs', '2'),
+        # ('gbfs', '2'),
+        # ('gbfs', '5'),
+        # ('gbfs', '11')
+    ]
+
+    constants.SB_W_HELPFUL_ACTIONS = True
+    for alg, heuristic in ICAPS_benchmarks:
+        settings.SB_ALGO_STRING = alg
+        settings.SB_HEURISTIC_STRING = heuristic
+        EXPERIMENT_NAME = alg+heuristic
+        run_sb_stats(record_novelty_stats=True)
+
+    constants.SB_W_HELPFUL_ACTIONS = True
+    settings.SB_ALGO_STRING = 'gbfs'
+    EXPERIMENT_NAME = 'helpful_actions'
     run_sb_stats(record_novelty_stats=True)

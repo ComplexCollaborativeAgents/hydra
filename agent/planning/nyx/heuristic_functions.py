@@ -444,10 +444,11 @@ class SBHelpfulAngleHeuristic(SBBlockedPigsHeuristic):
             # get coords
             min_angle, max_angle = self._get_single_trajectory(self.g, pig_x - self.x_0, pig_y - self.y_0,
                                                                initial_velocity)
-            self.trajectories.add(
-                (initial_velocity * math.cos(min_angle), initial_velocity * math.sin(min_angle)))
-            self.trajectories.add(
-                (initial_velocity * math.cos(max_angle), initial_velocity * math.sin(max_angle)))
+            if min_angle is not None:
+                self.trajectories.add(
+                    (initial_velocity * math.cos(min_angle), initial_velocity * math.sin(min_angle)))
+                self.trajectories.add(
+                    (initial_velocity * math.cos(max_angle), initial_velocity * math.sin(max_angle)))
 
         if self.blocks_under_pigs:
             self.sus_blocks_keys = self._check_sus_blocks(node, live_pigs, self.sus_blocks_keys)
@@ -458,10 +459,11 @@ class SBHelpfulAngleHeuristic(SBBlockedPigsHeuristic):
                 # get coords
                 min_angle, max_angle = self._get_single_trajectory(self.g, block_x - self.x_0, block_y - self.y_0,
                                                                    initial_velocity)
-                self.trajectories.add(
-                    (initial_velocity * math.cos(min_angle), initial_velocity * math.sin(min_angle)))
-                self.trajectories.add(
-                    (initial_velocity * math.cos(max_angle), initial_velocity * math.sin(max_angle)))
+                if min_angle is not None:
+                    self.trajectories.add(
+                        (initial_velocity * math.cos(min_angle), initial_velocity * math.sin(min_angle)))
+                    self.trajectories.add(
+                        (initial_velocity * math.cos(max_angle), initial_velocity * math.sin(max_angle)))
 
     @staticmethod
     def _get_single_trajectory(gravity, delta_x, delta_y, v_0):
