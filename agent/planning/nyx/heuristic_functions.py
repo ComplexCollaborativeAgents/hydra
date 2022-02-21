@@ -14,7 +14,9 @@ from agent.planning.nyx.interval_heuristic import IntervalHeuristic
 active_heuristic = None  # A mechanism for setting the heuristic externally
 
 def get_heuristic_function(heuristic=constants.CUSTOM_HEURISTIC_ID, **kwargs):
-    if heuristic == 1:
+    if heuristic == 0:
+        return ZeroHeuristic()
+    elif heuristic == 1:
         return CartpolePlusPlusHeuristic()
     elif heuristic == 2:
         return BadSBHeuristic()

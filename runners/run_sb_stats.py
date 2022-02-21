@@ -40,7 +40,7 @@ class AgentType(enum.Enum):
 
 NOVELTY = 0
 TYPE = [555, 222, 225, 226, 236, 243, 245, 246,  252, 253, 254, 257] #
-SAMPLES = 50
+SAMPLES = 10
 
 AGENT = AgentType.RepairingHydra
 
@@ -532,11 +532,11 @@ def _compute_stats(results, file_suffix):
 if __name__ == '__main__':
     # run_sb_stats(seed=0, record_novelty_stats=True)
     ICAPS_benchmarks = [
-        # ('bfs', '2'),
-        # ('dfs', '2'),
-        # ('gbfs', '2'),
-        # ('gbfs', '5'),
-        # ('gbfs', '11')
+        ('bfs', '0'),
+        ('dfs', '0'),
+        ('gbfs', '2'),
+        ('gbfs', '5'),
+        ('gbfs', '11')
     ]
 
     constants.SB_W_HELPFUL_ACTIONS = True
