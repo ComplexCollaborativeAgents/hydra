@@ -12,9 +12,9 @@ from agent.planning.nyx.nyx import runner
 # runner(dom_path, prob_path, ['-vv', '-to:300', '-noplan', '-search:astar', '-custom_heuristic:7', '-th:4', '-t:0.02'])
 from runners.run_sb_stats import EXPERIMENT_NAME, AgentType
 
-experiment_names = ['dfs0', 'bfs0', 'bfs1', 'gbfs2', 'gbfs5', 'gbfs11', 'helpful_actions']
+experiment_names = ['dfs0', 'bfs0', 'gbfs2', 'gbfs5', 'gbfs11', 'helpful_actions']
 
-folder = 'runners/latest_data'
+folder = 'runners/latest_data/'
 
 NOVELTY = 0
 level_nums = [222, 225, 226, 236, 243, 245, 246, 252, 253, 254, 257, 555]
@@ -56,7 +56,7 @@ for novelty, types in novelties.items():
                     stats_per_level['avg nodes per second'] = 0
                 overall_stats[experiment_name][novelty_type] = stats_per_level
 
-plt.title('Levels passed')
+plt.title('Levels passed - fixed')
 print(',' + str(level_nums))
 for experiment_name in experiment_names:
     passed = [overall_stats[experiment_name][i]['passed'] for i in level_nums]
@@ -69,7 +69,7 @@ plt.show()
 
 
 plt.figure()
-plt.title('Levels solved')
+plt.title('Levels solved - fixed')
 print(',' + str(level_nums))
 for experiment_name in experiment_names:
     solved = [overall_stats[experiment_name][i]['solved'] for i in level_nums]

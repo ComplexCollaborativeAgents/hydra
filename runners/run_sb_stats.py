@@ -362,8 +362,8 @@ def run_performance_stats(novelties: dict,
             number_samples = len(levels)
             if samples is not None:
                 number_samples = min(number_samples, samples)
-            # levels = levels[:number_samples]
-            levels = random.sample(levels, number_samples)
+            levels = levels[10:10 + number_samples]
+            # levels = random.sample(levels, number_samples)
 
             if level_lookup:
                 levels = [levels_path / l for l in level_lookup[str(novelty)][str(novelty_type)]]
