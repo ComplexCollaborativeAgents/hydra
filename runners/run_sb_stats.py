@@ -39,7 +39,7 @@ class AgentType(enum.Enum):
 
 
 NOVELTY = 0
-TYPE = [555, 222, 225, 226, 236, 243, 245, 246,  252, 253, 254, 257] #
+TYPE = [ 225, 226,236,  243,245, 246, 252,253, 254]  # 555,222,, 257
 SAMPLES = 10
 
 AGENT = AgentType.RepairingHydra
@@ -362,7 +362,7 @@ def run_performance_stats(novelties: dict,
             number_samples = len(levels)
             if samples is not None:
                 number_samples = min(number_samples, samples)
-            levels = levels[10:10 + number_samples]
+            levels = levels[20:20 + number_samples]
             # levels = random.sample(levels, number_samples)
 
             if level_lookup:
@@ -533,9 +533,9 @@ if __name__ == '__main__':
     # run_sb_stats(seed=0, record_novelty_stats=True)
     ICAPS_benchmarks = [
         ('bfs', '0'),
-        ('dfs', '0'),
-        ('gbfs', '2'),
-        ('gbfs', '5'),
+        # ('dfs', '0'),
+        # ('gbfs', '2'),
+        # ('gbfs', '5'),
         ('gbfs', '11')
     ]
 

@@ -13,6 +13,8 @@ from agent.planning.nyx.interval_heuristic import IntervalHeuristic
 
 active_heuristic = None  # A mechanism for setting the heuristic externally
 
+
+
 def get_heuristic_function(heuristic=constants.CUSTOM_HEURISTIC_ID, **kwargs):
     if heuristic == 0:
         return ZeroHeuristic()
@@ -447,8 +449,8 @@ class SBHelpfulAngleHeuristic(SBBlockedPigsHeuristic):
             min_angle, max_angle = self._get_single_trajectory(self.g, pig_x - self.x_0, pig_y - self.y_0,
                                                                initial_velocity)
             if min_angle is not None:
-                self.trajectories.add(
-                    (initial_velocity * math.cos(min_angle), initial_velocity * math.sin(min_angle)))
+                # self.trajectories.add(
+                #     (initial_velocity * math.cos(min_angle), initial_velocity * math.sin(min_angle)))
                 self.trajectories.add(
                     (initial_velocity * math.cos(max_angle), initial_velocity * math.sin(max_angle)))
 
@@ -462,8 +464,8 @@ class SBHelpfulAngleHeuristic(SBBlockedPigsHeuristic):
                 min_angle, max_angle = self._get_single_trajectory(self.g, block_x - self.x_0, block_y - self.y_0,
                                                                    initial_velocity)
                 if min_angle is not None:
-                    self.trajectories.add(
-                        (initial_velocity * math.cos(min_angle), initial_velocity * math.sin(min_angle)))
+                    # self.trajectories.add(
+                    #     (initial_velocity * math.cos(min_angle), initial_velocity * math.sin(min_angle)))
                     self.trajectories.add(
                         (initial_velocity * math.cos(max_angle), initial_velocity * math.sin(max_angle)))
 
@@ -508,3 +510,12 @@ class SBHelpfulAngleHeuristic(SBBlockedPigsHeuristic):
                 if v_x_0 in v_x_t + self.deviation and y_t in trajectory_trace(self.x_0, self.y_0, v_x_0, v_y_0, self.g, x_t):
                     return True
         return False
+
+
+h_list = [ZeroHeuristic(), CartpolePlusPlusHeuristic(), BadSBHeuristic(), active_heuristic, CartpoltHeuristic(),
+          SBOneBirdHeuristic(), SBBlockedPigsHeuristic(), None, None, None,
+          HeuristicSum([SBOneBirdHeuristic(), SBBlockedPigsHeuristic()])]
+
+
+def heuristic_function(state):
+    return h_list[constants.CUSTOM_HEURISTIC_ID].evaluate(state)

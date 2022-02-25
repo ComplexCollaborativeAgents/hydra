@@ -2,6 +2,7 @@
 # Four spaces as indentation [no tabs]
 
 import copy
+import math
 
 import agent.planning.nyx.syntax.constants as constants
 from agent.planning.nyx.syntax.visited_state import VisitedState
@@ -26,12 +27,16 @@ class State:
             self._time = round(predecessor.time,constants.NUMBER_PRECISION)
             self._h = h
             self._g = (predecessor.g+1) if constants.TRACK_G else 0.0
+            self.metric = math.inf
+            self.depth = predecessor.depth + 1
             self.state_vars = copy.copy(predecessor.state_vars)
             self.predecessor_action = predecessor_action
         else:
             self._time = round(t,constants.NUMBER_PRECISION)
             self._h = h
             self._g = g
+            self.metric = math.inf
+            self.depth = 0
             self.state_vars = state_vars
             self.predecessor_hashed = None
             self.predecessor_action = None
@@ -45,6 +50,7 @@ class State:
                '\n\t  time: ' + str(self.time) + \
                '\n\t  h: ' + str(self.h) + \
                '\n\t  g: ' + str(self.g) + \
+               '\n\t  depth: ' + str(self.depth) + \
                '\n\t  state vars: ' + str([list(i) for i in self.state_vars.items()])
 
     # -----------------------------------------------

@@ -47,6 +47,8 @@ class GroundedPDDLInstance:
         self._objects = None
         self._initialize_state()
         self._goals_code, self.goals = JIT.compile_expression(self.problem.goals, name='goals')
+        if self.problem.metric != ['total-time'] and self.problem.metric != ['total-actions'] and self.problem.metric is not None:
+            self._metric_code, self.metric = JIT.compile_expression([self.problem.metric], name='metric')
         self.processes = self._groundify_happenings(self.domain.processes)
         self.events = self._groundify_happenings(self.domain.events)
         self.actions = self._groundify_happenings(self.domain.actions)
