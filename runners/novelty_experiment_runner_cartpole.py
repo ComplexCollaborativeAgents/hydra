@@ -43,6 +43,7 @@ class NoveltyExperimentGymCartpoleDispatcher(GymCartpoleDispatcher):
                      'performance'])
         self._is_known = None
         self._train_with_reward = train_with_reward
+        self._novelty_info = None
 
         self._log_details = log_details
         self._details_directory = details_directory
@@ -54,9 +55,11 @@ class NoveltyExperimentGymCartpoleDispatcher(GymCartpoleDispatcher):
         for param in novelties:
             self._env_params[param] = novelties[param]
 
-    def set_is_known(self, is_known=None, fluent_to_change:dict=None):
+    def set_is_known(self, is_known=None, novelty_info=None):
         self._is_known = is_known
-        self._fluent_to_change = fluent_to_change
+        if novelty_info and 'config' in novelty_info.keys():
+            self._novelty_info = novelty_info['config']
+
 
     def _make_environment(self):
         environment = gym.make(self.model_id)
@@ -91,9 +94,10 @@ class NoveltyExperimentGymCartpoleDispatcher(GymCartpoleDispatcher):
                     env.render()
                     time.sleep(0.05)
                 if self._train_with_reward:
-                    label = self.delegate.testing_instance(feature_vector=features, novelty_indicator=self._is_known, reward=reward, done=done)
+                    label = self.delegate.testing_instance(feature_vector=features, novelty_indicator=self._is_known, reward=reward, done=done, novelty_info=None)
                 else:
-                    label = self.delegate.testing_instance(feature_vector=features, novelty_indicator=self._is_known)
+                    print("Novelty info is {}".format(self._novelty_info))
+                    label = self.delegate.testing_instance(feature_vector=features, novelty_indicator=self._is_known, novelty_info=self._novelty_info)
                 self.log.debug("Received label={}".format(label))
                 action = self.label_to_action(label)
                 if done:
@@ -149,6 +153,8 @@ class NoveltyExperimentRunnerCartpole:
         self._non_novelty_performance_trial_length = int(options.l_performance)
         self._novelty_trial_length = int(options.l_novelty)
         self._agent_type = options.agent
+        self._experiment_type = options.experiment_type
+        self._novelty_config = options.novelty_config
 
         self._results_directory_path = os.path.join(settings.ROOT_PATH, "runners", "experiments", "cartpole", options.name, options.agent)
         if not os.path.exists(self._results_directory_path):
@@ -178,14 +184,20 @@ class NoveltyExperimentRunnerCartpole:
         assert observer is not None
         logger.info("Running agent type {}".format(self._agent_type))
         env_dispatcher = NoveltyExperimentGymCartpoleDispatcher(observer, render=False, train_with_reward=(self._agent_type == 'dqn'), log_details = self._log_episode_details, details_directory=os.path.join(self._results_details_directory_path, trial_type, str(trial_num)))
+        print("experiment type {}".format(self._experiment_type))
         if trial_type == constants.UNKNOWN:
-            env_dispatcher.set_is_known(None)
+            env_dispatcher.set_is_known(None, None)
         else:
             if episode_type == constants.NOVELTY:
-                env_dispatcher.set_is_known(True)
+                print("episode type {}".format(constants.NOVELTY))
+                if self._experiment_type == 2:
+                    print("detected {}".format(True))
+                    env_dispatcher.set_is_known(True, novelty)
+                else:
+                    env_dispatcher.set_is_known(True, None)
             else:
                 if episode_type == constants.NON_NOVELTY_PERFORMANCE:
-                    env_dispatcher.set_is_known(False)
+                    env_dispatcher.set_is_known(False, None)
 
         if episode_type == constants.NOVELTY:
             env_dispatcher.set_novelty(novelty['config'])
@@ -209,7 +221,8 @@ class NoveltyExperimentRunnerCartpole:
             results_file_handle = open(os.path.join(self._results_directory_path, "novelty_{}.csv".format(novelty['uid'])), "a")
             results_dataframe = pandas.DataFrame(columns=['episode_num','novelty_probability','novelty_threshold','novelty','novelty_characterization','performance','trial_num','novelty_id','trial_type','episode_type','level','env_config'])
             results_dataframe.to_csv(results_file_handle, index=False)
-            for trial_type in [constants.UNKNOWN, constants.KNOWN]:
+            #for trial_type in [constants.UNKNOWN, constants.KNOWN]:
+            for trial_type in [constants.KNOWN]:
                 for trial in range(0, self._number_of_experiment_trials):
                     episode_num = 0
                     subtrial_result = self.run_experiment_subtrial(
@@ -336,7 +349,7 @@ if __name__ == '__main__':
     parser.add_option("--num_trials",
                       dest='num_trials',
                       help="Number of full trials to be run. Each trial is several subtrials",
-                      default=5)
+                      default=1)
     parser.add_option("--learning_subtrial",
                       dest='l_learning',
                       help='number of episodes in the learning subtrial',
@@ -344,11 +357,11 @@ if __name__ == '__main__':
     parser.add_option("--performance-subtrial",
                       dest='l_performance',
                       help='number of episodes in the non-novelty performance subtrial',
-                      default=7)
+                      default=0)
     parser.add_option("--novelty-subtrial",
                       dest='l_novelty',
                       help='number of episodes in the novelty subtrial',
-                      default=200)
+                      default=1)
     parser.add_option("--log-episode-details",
                       dest='log_episode_details',
                       help='if we want to record states, action, cnn_likelihood, consistency_scores',
@@ -357,6 +370,10 @@ if __name__ == '__main__':
                       dest='novelty_config',
                       help='a dict of novelty configurations',
                       default={'uid': 'length_1point1_gravity_12', 'level': 1, 'config': {constants.LENGTH: 1.1, constants.GRAVITY: 12}})
+    parser.add_option("--experiment_type",
+                     dest='experiment_type',
+                     help='a numeral representing if to run 1: m3/m4 or 2: m3.1/m4.1',
+                     default=2)
 
 
     (options, args) = parser.parse_args()
