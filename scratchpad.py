@@ -1,6 +1,7 @@
 import json
 import pathlib
 import matplotlib.pyplot as plt
+import numpy as np
 
 import settings
 from agent.planning.nyx.nyx import runner
@@ -10,14 +11,15 @@ from agent.planning.nyx.nyx import runner
 
 # runner(dom_path, prob_path, ['-vv', '-to:300', '-noplan', '-search:astar', '-custom_heuristic:7', '-th:4', '-t:0.02'])
 # runner(dom_path, prob_path, ['-vv', '-to:300', '-noplan', '-search:astar', '-custom_heuristic:7', '-th:4', '-t:0.02'])
-from runners.run_sb_stats import EXPERIMENT_NAME, AgentType
+from runners.run_sb_stats import AgentType
+from settings import EXPERIMENT_NAME
 
-experiment_names = ['bfs0', 'gbfs11', 'helpful_actions'] #'dfs0','gbfs2', 'gbfs5' ]
+experiment_names = ['bfs0', 'dfs0', 'gbfs2', 'gbfs5', 'gbfs11'] # , 'helpful_actions']
 
-folder = 'runners/' #latest_data/25 levels/'
+folder = 'runners/latest_data/working heuristic' #25 levels'
 
 NOVELTY = 0
-level_nums = [225,  226, 236, 243,245, 246, 253,  252,254,]  #222,  257, 555
+level_nums = [222, 225, 236, 245, 246, 253, 254, 257, 555]  # 226,243, 252,
 
 novelties = {NOVELTY: level_nums}
 
@@ -38,7 +40,7 @@ for novelty, types in novelties.items():
                 stats = json.load(jf)
                 stats_per_level = {'passed': 0, 'solved': 0, 'default shot': 0}
                 sum_time = 0
-                sum_nodes = 0
+                nodes_opened = []
                 for entry in stats['levels']:
                     if entry.get('Default action used'):
                         stats_per_level['default shot'] += 1
@@ -48,17 +50,17 @@ for novelty, types in novelties.items():
                             stats_per_level['passed'] += 1
                     if entry.get('planning times'):
                         sum_time += sum(entry['planning times']) / sum(entry['birds'].values())
-                        sum_nodes += sum(entry['expanded nodes']) / sum(entry['birds'].values())
+                        nodes_opened.append(sum(entry['expanded nodes']) / sum(entry['birds'].values()))
                 # stats_per_level['avg planning time'] = sum_time / len(stats['levels'])
                 if sum_time != 0:
-                    stats_per_level['expanded nodes'] = sum_nodes
-                    stats_per_level['avg nodes per second'] = sum_nodes / sum_time
+                    stats_per_level['median expanded nodes'] = np.median(nodes_opened)
+                    stats_per_level['avg nodes per second'] = sum(nodes_opened) / sum_time
                 else:
                     stats_per_level['expanded nodes'] = 0
                     stats_per_level['avg nodes per second'] = 0
                 overall_stats[experiment_name][novelty_type] = stats_per_level
 
-plt.title('Levels passed - fixed')
+plt.title('Levels solved and passed ')
 print('passed that were also solved\n, ' + ','.join(str(lev) for lev in level_nums))
 for experiment_name in experiment_names:
     passed = [overall_stats[experiment_name][i]['passed'] for i in level_nums]
@@ -71,7 +73,7 @@ plt.show()
 
 
 plt.figure()
-plt.title('Levels solved - fixed')
+plt.title('Levels solved')
 print('\nsolved\n, ' + ','.join(str(lev) for lev in level_nums))
 for experiment_name in experiment_names:
     solved = [overall_stats[experiment_name][i]['solved'] for i in level_nums]
@@ -84,10 +86,10 @@ plt.show()
 
 
 plt.figure()
-plt.title('Nodes expanded')
-print('\ntotal nodes expanded\n, ' + ','.join(str(lev) for lev in level_nums))
+plt.title('Median nodes expanded')
+print('\nmedian nodes expanded\n, ' + ','.join(str(lev) for lev in level_nums))
 for experiment_name in experiment_names:
-    expanded = [overall_stats[experiment_name][i]['expanded nodes'] for i in level_nums]
+    expanded = [overall_stats[experiment_name][i]['median expanded nodes'] for i in level_nums]
     print(experiment_name + ', ' + ','.join(str(lev) for lev in expanded))
     plt.plot([str(t) for t in level_nums], [expanded[i] for i in range(len(expanded))], '*')
 ax = plt.gca()

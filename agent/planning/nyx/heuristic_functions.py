@@ -88,6 +88,22 @@ class CartpoltHeuristic(AbstractHeuristic):
         return node.h
 
 
+def get_active_bird_string(node):
+    """
+    Find active bird ID.
+    :return The key string for the active bird, or None if not found.
+    """
+    active_bird_string = [key for key in node.state_vars.keys()
+                          if (key.startswith("['bird_id',")
+                              and node.state_vars[key] == node.state_vars["['active_bird']"])]
+    if len(active_bird_string) < 1:
+        # can't find active bird
+        return None
+    active_bird_string = active_bird_string[0][10:]
+    settings.active_bird_id_string = active_bird_string[-6:-2]
+    return active_bird_string
+
+
 class SBOneBirdHeuristic(AbstractHeuristic):
     """
     Heuristic for guiding a single bird in science birds.
@@ -99,6 +115,7 @@ class SBOneBirdHeuristic(AbstractHeuristic):
     LARGE_VALUE = 999999
 
     def __init__(self):
+        self.initialized = False
         self.targets_x_keys = {}
         self.targets_x = {}
         self.pig_x_keys = {}
@@ -116,6 +133,7 @@ class SBOneBirdHeuristic(AbstractHeuristic):
 
     def notify_initial_state(self, node):
         self._generate_keys(node)
+        self.initialized = True
         return self.evaluate(node)
 
     def evaluate(self, node):
@@ -125,8 +143,9 @@ class SBOneBirdHeuristic(AbstractHeuristic):
         # white: modeled as "shoots straight down when tapped". Remove "passes over everything" check.
         # Blue: adding a 20% margin to the bounding box is probably pretty good. TODO: Some experimentation can narrow
         #                                                                           that to a more accurate number.
-
-        active_bird_string = self._get_active_bird_string(node)
+        if not self.initialized:
+            self.notify_initial_state(node)
+        active_bird_string = get_active_bird_string(node)
         if active_bird_string is None:
             # This heuristic doesn't know what do to without a birb
             node.h = self._backup_heuristic()
@@ -159,7 +178,7 @@ class SBOneBirdHeuristic(AbstractHeuristic):
             v_y = node.state_vars["['vy_bird'" + active_bird_string]
             # Step 1: discourage tapping before we reach the bounding box
             if node.state_vars["['bird_tapped'" + active_bird_string]:
-                if x_0 < bbox_minx:
+                if x_0 < bbox_minx - bbox_minx * 0.1:
                     node.h = SBOneBirdHeuristic.LARGE_VALUE
                     return node.h
                 else:
@@ -171,6 +190,7 @@ class SBOneBirdHeuristic(AbstractHeuristic):
             node.h = self.time_to_pig((x_0, y_0, v_x, v_y), self.pigs_x, self.pigs_y)
             return node.h
         else:
+            return 0
             # Find type of bird
             bird_type = node.state_vars["['bird_type'" + active_bird_string]
             BIRD_RED = 0
@@ -248,27 +268,26 @@ class SBOneBirdHeuristic(AbstractHeuristic):
                 pass
         return node.h
 
-    def _get_active_bird_string(self, node):
-        """
-        Find active bird ID.
-        :return The key string for the active bird, or None if not found.
-        """
-        active_bird_string = [key for key in node.state_vars.keys()
-                              if (key.startswith("['bird_id',")
-                                  and node.state_vars[key] == node.state_vars["['active_bird']"])]
-        if len(active_bird_string) < 1:
-            # can't find active bird
-            return None
-        active_bird_string = active_bird_string[0][10:]
-        settings.active_bird_id_string = active_bird_string[-6:-2]
-        return active_bird_string
-
     def _generate_keys(self, node):
         """
         Generates key strings into the state_vars dictionary, and stores them in lookup tables for speed.
         """
         # Important note: Python best practices explicitly recommend using str.startswith(x) instead of
         #   str[:len(x)] == x for readability reasons, but it's faster so I'm using it anyway.
+        self.targets_x_keys = {}
+        self.targets_x = {}
+        self.pig_x_keys = {}
+        self.pigs_x = {}
+        self.targets_w_keys = {}
+        self.targets_w = {}
+        self.targets_y_keys = {}
+        self.targets_y = {}
+        self.pig_y_keys = {}
+        self.pigs_y = {}
+        self.targets_h_keys = {}
+        self.targets_h = {}
+        self.pig_radii_keys = {}
+        self.pig_radii = {}
         for key in node.state_vars.keys():
             if key[:9] == "['x_block":  # x_block
                 self.targets_x_keys[key] = key[9:]
@@ -349,14 +368,10 @@ class SBBlockedPigsHeuristic(SBOneBirdHeuristic):
         self.sus_blocks_keys = set()
         self.blocks_under_pigs = blocks_under_pig
 
-    def notify_initial_state(self, node):
-        # find keys for all pigs and blocks
-        # find blocks "blocking" pigs and save in list
-        self._generate_keys(node)
-        return self.evaluate(node)
-
     def _generate_keys(self, node):
         super()._generate_keys(node)
+        self.pig_dead_keys = {}
+        self.sus_blocks_keys = set()
         for key, item in self.pig_x_keys.items():
             self.pig_dead_keys[item] = "['pig_dead" + item
         self.sus_blocks_keys = self._check_sus_blocks(node, list(self.pig_x_keys.values()), list(self.targets_x_keys.values()))
@@ -389,6 +404,8 @@ class SBBlockedPigsHeuristic(SBOneBirdHeuristic):
     def evaluate(self, node):
         # find which pigs are still alive
         # go through list of suspicious blocks and sum ones that are still sus
+        if not self.initialized:
+            self.notify_initial_state(node)
         h_value = 0
         live_pigs = []
         for pig_id, pig_dead_key in self.pig_dead_keys.items():
@@ -422,14 +439,14 @@ class SBHelpfulAngleHeuristic(SBBlockedPigsHeuristic):
         SBBlockedPigsHeuristic.__init__(self, blocks_under_pig=blocking_blocks)
         self.x_0, self.y_0 = 0, 0
         self.g = 9.81
-        self.deviation = ComparableInterval[-5, 5]  # TODO: find reasonable values
+        self.deviation = ComparableInterval[-7, 7]  # TODO: find reasonable values
         self.trajectories = set()  # What are they? a set of lists of states? Just a set of states?
 
     evaluate = SBOneBirdHeuristic.evaluate
 
     def notify_initial_state(self, node: State):
         SBBlockedPigsHeuristic._generate_keys(self, node)
-        first_bird = self._get_active_bird_string(node)  # For now, use this as x_0, y_0 (should really be the sling)
+        first_bird = get_active_bird_string(node)  # For now, use this as x_0, y_0 (should really be the sling)
         self.x_0, self.y_0 = node.state_vars["['y_bird'" + first_bird], node.state_vars["['x_bird'" + first_bird]
         self.g = node.state_vars["['gravity']"]
         initial_velocity = node.state_vars["['v_bird'" + first_bird]
@@ -449,8 +466,8 @@ class SBHelpfulAngleHeuristic(SBBlockedPigsHeuristic):
             min_angle, max_angle = self._get_single_trajectory(self.g, pig_x - self.x_0, pig_y - self.y_0,
                                                                initial_velocity)
             if min_angle is not None:
-                # self.trajectories.add(
-                #     (initial_velocity * math.cos(min_angle), initial_velocity * math.sin(min_angle)))
+                self.trajectories.add(
+                    (initial_velocity * math.cos(min_angle), initial_velocity * math.sin(min_angle)))
                 self.trajectories.add(
                     (initial_velocity * math.cos(max_angle), initial_velocity * math.sin(max_angle)))
 
@@ -501,19 +518,20 @@ class SBHelpfulAngleHeuristic(SBBlockedPigsHeuristic):
                   + ((v_y_0 / v_x_0) + g * (v_x_0 ** -2)) * x_t - 0.5 * g * (v_x_0 ** -2) * (x_t ** 2)
             return y_t
 
-        active_bird_string = self._get_active_bird_string(node)
+        active_bird_string = get_active_bird_string(node)
         if active_bird_string is not None:
             x_t = node.state_vars["['x_bird'" + active_bird_string] + self.deviation
             y_t = node.state_vars["['y_bird'" + active_bird_string]
             v_x_t = node.state_vars["['vx_bird'" + active_bird_string]
             for v_x_0, v_y_0 in self.trajectories:
                 if v_x_0 in v_x_t + self.deviation and y_t in trajectory_trace(self.x_0, self.y_0, v_x_0, v_y_0, self.g, x_t):
+                    print('preferred state found!')
                     return True
         return False
 
 
 h_list = [ZeroHeuristic(), CartpolePlusPlusHeuristic(), BadSBHeuristic(), active_heuristic, CartpoltHeuristic(),
-          SBOneBirdHeuristic(), SBBlockedPigsHeuristic(), None, None, None,
+          SBOneBirdHeuristic(), SBBlockedPigsHeuristic(), None, None, None, None,
           HeuristicSum([SBOneBirdHeuristic(), SBBlockedPigsHeuristic()])]
 
 

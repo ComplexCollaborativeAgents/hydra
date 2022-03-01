@@ -75,11 +75,11 @@ class PriorityList(OpenList):
     Sorts open list by heuristic value. Parameter 'astar' controls Best-first vs A* search
     """
 
-    def __init__(self, astar=True):
+    def __init__(self, Astar=True):
         OpenList.__init__(self)
         self.nodes = dict()
         self.min_val = float("inf")
-        self.astar = astar
+        self.astar = Astar
         # Keep track of min value so we don't have to search for it each time we want the next node.
         # self.nodes will be dict of fifos.
 

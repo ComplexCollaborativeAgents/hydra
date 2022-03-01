@@ -97,7 +97,8 @@ class HeuristicSum(AbstractHeuristic):
             h.notify_expanded(node)
 
     def evaluate(self, node):
-        return sum([h.evaluate(node) for h in self.h_list])
+        node.h = sum([h.evaluate(node) for h in self.h_list])
+        return node.h
 
     def is_preferred(self, node):
         return any([h.is_preferred(node) for h in self.h_list])

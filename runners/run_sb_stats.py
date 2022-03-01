@@ -6,12 +6,13 @@ import contextlib
 import csv
 import json
 import enum
-import time
 import collections
 import xml.etree.ElementTree as ET
 from typing import Optional
 
 import numpy
+
+from settings import EXPERIMENT_NAME
 from worlds.science_birds_interface.demo.naive_agent_groundtruth import ClientNaiveAgent
 
 import worlds.science_birds as sb
@@ -39,12 +40,10 @@ class AgentType(enum.Enum):
 
 
 NOVELTY = 0
-TYPE = [ 225, 226,236,  243,245, 246, 252,253, 254]  # 555,222,, 257
+TYPE = [222]  #,[, 225, 236, 245, 246, 253, 254, 257 ]  # 555, 222, 225, 226, 236, 243, 252,  , 257
 SAMPLES = 10
 
 AGENT = AgentType.RepairingHydra
-
-EXPERIMENT_NAME = "ENSEMBLE2_yoni_domain"
 
 
 def extract_levels(source, destination=None):
@@ -356,6 +355,7 @@ def run_performance_stats(novelties: dict,
 
     for novelty, types in novelties.items():
         for novelty_type in types:
+            settings.NOVELTY_TYPE = novelty_type
             pattern = 'Levels/novelty_level_{}/type{}/Levels/*.xml'.format(novelty, novelty_type)
             levels = list(levels_path.glob(pattern))
 
@@ -384,7 +384,7 @@ def run_performance_stats(novelties: dict,
 
             if results_directory is not None:
                 stats = compute_stats(results_directory, agent_type, agent_stats)
-                filename = "stats_{}_novelty{}_type{}_agent{}".format(EXPERIMENT_NAME, novelty, novelty_type,
+                filename = "stats_{}_novelty{}_type{}_agent{}".format(settings.EXPERIMENT_NAME, novelty, novelty_type,
                                                                       agent_type.name)
                 if suffix is None or len(suffix) == 0:
                     current_suffix = ''
@@ -535,18 +535,18 @@ if __name__ == '__main__':
         ('bfs', '0'),
         # ('dfs', '0'),
         # ('gbfs', '2'),
-        # ('gbfs', '5'),
-        ('gbfs', '11')
+        ('gbfs', '5'),
+        # ('gbfs', '11')
     ]
 
-    constants.SB_W_HELPFUL_ACTIONS = True
+    constants.SB_W_HELPFUL_ACTIONS = False
     for alg, heuristic in ICAPS_benchmarks:
         settings.SB_ALGO_STRING = alg
         settings.SB_HEURISTIC_STRING = heuristic
-        EXPERIMENT_NAME = alg+heuristic
+        settings.EXPERIMENT_NAME = alg + heuristic
         run_sb_stats(record_novelty_stats=True)
 
-    constants.SB_W_HELPFUL_ACTIONS = True
-    settings.SB_ALGO_STRING = 'gbfs'
-    EXPERIMENT_NAME = 'helpful_actions'
-    run_sb_stats(record_novelty_stats=True)
+    # constants.SB_W_HELPFUL_ACTIONS = True
+    # settings.SB_ALGO_STRING = 'gbfs'
+    # settings.EXPERIMENT_NAME = 'helpful_actions'
+    # run_sb_stats(record_novelty_stats=True)

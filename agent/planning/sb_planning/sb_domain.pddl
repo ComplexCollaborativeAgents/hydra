@@ -35,7 +35,7 @@
             (= (active_bird) (bird_id ?b))
             (not (bird_released ?b))
             (not (angle_adjusted))
-            (< (angle) 90)
+            (< (angle) 81.5)
             (>= (angle) 0)
         )
         :effect (and
@@ -64,6 +64,7 @@
             (= (active_bird) (bird_id ?b))
             (not (bird_released ?b))
             (not (angle_adjusted))
+            (< (angle) 81.5)
         )
         :effect (and
             (assign (vy_bird ?b) (* (v_bird ?b) (/ (* (* 4 (angle)) (- 180 (angle))) (- 40500 (* (angle) (- 180 (angle)))) )  ) )
@@ -185,8 +186,8 @@
         	)
         )
         :effect (and
-            (decrease (vy_bird ?b) (block_stability ?bl))
-            (decrease (vx_bird ?b) (block_stability ?bl))
+            (decrease (vy_bird ?b) (/ (vy_bird ?b) 2))
+            (decrease (vx_bird ?b) (/ (vy_bird ?b) 2))
             (decrease (block_stability ?bl) (v_bird ?b) )
             (assign (block_life ?bl) (- (block_life ?bl) (v_bird ?b)) )
             (assign (v_bird ?b) (/ (v_bird ?b) 2))

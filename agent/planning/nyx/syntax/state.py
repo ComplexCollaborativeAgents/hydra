@@ -86,8 +86,7 @@ class State:
         """
         Update heuristic value, but only if it dominates the one we already have.
         """
-        if value > self._h:
-            self._h = value
+        self._h = value
 
     # -----------------------------------------------
     # Traversed Depth

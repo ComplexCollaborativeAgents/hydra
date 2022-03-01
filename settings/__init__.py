@@ -92,3 +92,7 @@ try:
 except ImportError:
     print('import error!!!!')
     pass
+
+
+EXPERIMENT_NAME = "ENSEMBLE2_yoni_domain"
+NOVELTY_TYPE = ''

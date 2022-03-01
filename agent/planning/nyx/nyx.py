@@ -52,9 +52,12 @@ def process_arguments(cl_arguments):
             constants.DELTA_T = round(float(arg_list[1]), constants.NUMBER_PRECISION)
             constants.TIME_PASSING_ACTION.duration = round(constants.DELTA_T, constants.NUMBER_PRECISION)
         elif arg_list[0] == '-custom_heuristic':
-            constants.CUSTOM_HEURISTIC_ID = float(arg_list[1])
+            constants.CUSTOM_HEURISTIC_ID = int(arg_list[1])
         elif arg_list[0] == '-search':
             constants.SEARCH_BFS = False
+            constants.SEARCH_DFS = False
+            constants.SEARCH_GBFS = False
+            constants.SEARCH_ASTAR = False
             if arg_list[1] == 'bfs':
                 constants.SEARCH_BFS = True
                 constants.SEARCH_ALGO_TXT = "BFS"
