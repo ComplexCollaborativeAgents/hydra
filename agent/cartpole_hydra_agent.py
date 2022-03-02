@@ -107,10 +107,9 @@ class RepairingCartpoleHydraAgent(CartpoleHydraAgent):
             (float, float, int, dict):
         super().episode_end(performance) # Update
 
-        novelty_likelihood, novelty_characterization, has_repaired = self.novelty_detection()
+        novelty_likelihood, novelty_characterization = self.novelty_detection()
         self.novelty_likelihood = novelty_likelihood
         self.novelty_characterization = novelty_characterization
-        self.has_repaired = has_repaired
 
         self.recorded_novelty_likelihoods.append(self.novelty_likelihood)
 
@@ -136,7 +135,7 @@ class RepairingCartpoleHydraAgent(CartpoleHydraAgent):
 
     def repair_meta_model(self, last_observation):
         ''' Repair the meta model based on the last observation '''
-
+        novelty_characterization = dict()
         try:
             # If novelty info exists, this provides hints for what the repair should be
             if self.novelty_info is not None:
