@@ -441,6 +441,7 @@
     (:process agent_movement
         :parameters (?ea - external_agent)
         :precondition (and
+            (angle_adjusted)
             (not (agent_dead ?ea))
         )
         :effect (and
@@ -453,6 +454,7 @@
     (:event agent_1_timed_change_direction
         :parameters (?ea - external_agent)
         :precondition (and
+            (angle_adjusted)
             (not (agent_dead ?ea))
             (= (agent_type ?ea) 1)
             (>= (timing_agent ?ea) 1000)
@@ -466,6 +468,7 @@
     (:event agent_x_border_change_direction
         :parameters (?ea - external_agent)
         :precondition (and
+            (angle_adjusted)
             (not (agent_dead ?ea))
             (or
                 (and (> (vx_agent ?ea) 0) (>= (+ (x_agent ?ea) (/ (agent_width ?ea) 2)) (x_max_border ?ea)) )
@@ -480,6 +483,7 @@
     (:event agent_y_border_change_direction
         :parameters (?ea - external_agent)
         :precondition (and
+            (angle_adjusted)
             (not (agent_dead ?ea))
             (or
                 (and (> (vy_agent ?ea) 0) (>= (+ (y_agent ?ea) (/ (agent_height ?ea) 2)) (y_max_border ?ea)) )

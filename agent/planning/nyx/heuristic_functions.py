@@ -147,6 +147,10 @@ class SBOneBirdHeuristic(AbstractHeuristic):
             self.notify_initial_state(node)
         active_bird_string = get_active_bird_string(node)
         if active_bird_string is None:
+            if node.predecessor_action == constants.TIME_PASSING_ACTION:
+                if node.predecessor.state_vars == node.state_vars: # TODO this also doesn't work?
+                    node.h = SBOneBirdHeuristic.LARGE_VALUE
+                    return node.h
             # This heuristic doesn't know what do to without a birb
             node.h = self._backup_heuristic()
             return node.h

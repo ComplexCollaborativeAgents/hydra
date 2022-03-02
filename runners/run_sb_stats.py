@@ -40,8 +40,8 @@ class AgentType(enum.Enum):
 
 
 NOVELTY = 0
-TYPE = [222]  #,[, 225, 236, 245, 246, 253, 254, 257 ]  # 555, 222, 225, 226, 236, 243, 252,  , 257
-SAMPLES = 10
+TYPE = [222, 225, 236, 245, 246, 253, 254, 257, 555]  # 555, 222, 225, 226, 236, 243, 252,  , 257
+SAMPLES = 25
 
 AGENT = AgentType.RepairingHydra
 
@@ -373,6 +373,7 @@ def run_performance_stats(novelties: dict,
             post_directories = None
 
             agent_stats = list()
+            print('running agent!')
             run_agent(config.name, agent_type, agent_stats)  # TODO: Typo?
             post_directories = glob_directories(SB_BIN_PATH, 'Agent*')
 
@@ -531,14 +532,23 @@ def _compute_stats(results, file_suffix):
 
 if __name__ == '__main__':
     # run_sb_stats(seed=0, record_novelty_stats=True)
+
+    # baseline_agents = [AgentType.Datalab, AgentType.Eaglewings] # AgentType.Baseline,
+    # for agent in baseline_agents:
+    #     AGENT = agent
+    #     settings.EXPERIMENT_NAME = agent.name
+    #     run_sb_stats(record_novelty_stats=True)
+
+    #
     ICAPS_benchmarks = [
         ('bfs', '0'),
-        # ('dfs', '0'),
-        # ('gbfs', '2'),
+        ('dfs', '0'),
+        ('gbfs', '2'),
         ('gbfs', '5'),
-        # ('gbfs', '11')
+        ('gbfs', '11')
     ]
 
+    AGENT = AgentType.RepairingHydra
     constants.SB_W_HELPFUL_ACTIONS = False
     for alg, heuristic in ICAPS_benchmarks:
         settings.SB_ALGO_STRING = alg

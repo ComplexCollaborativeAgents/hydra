@@ -40,6 +40,7 @@ class State:
             self.state_vars = state_vars
             self.predecessor_hashed = None
             self.predecessor_action = None
+        self.predecessor = predecessor
 
     # -----------------------------------------------
     # to String

@@ -14,12 +14,12 @@ from agent.planning.nyx.nyx import runner
 from runners.run_sb_stats import AgentType
 from settings import EXPERIMENT_NAME
 
-experiment_names = ['bfs0', 'dfs0', 'gbfs2', 'gbfs5', 'gbfs11'] # , 'helpful_actions']
+experiment_names = ['bfs0', 'gbfs5'] #  'dfs0', 'gbfs2', , 'gbfs11', 'helpful_actions']
 
-folder = 'runners/latest_data/working heuristic' #25 levels'
+folder = 'runners/' #latest_data/working heuristic/25 levels'
 
 NOVELTY = 0
-level_nums = [222, 225, 236, 245, 246, 253, 254, 257, 555]  # 226,243, 252,
+level_nums = [222, 225, 236, 245, 246, 253, 254, 257] #, 555]  # 226,243, 252,
 
 novelties = {NOVELTY: level_nums}
 
@@ -52,12 +52,10 @@ for novelty, types in novelties.items():
                         sum_time += sum(entry['planning times']) / sum(entry['birds'].values())
                         nodes_opened.append(sum(entry['expanded nodes']) / sum(entry['birds'].values()))
                 # stats_per_level['avg planning time'] = sum_time / len(stats['levels'])
-                if sum_time != 0:
-                    stats_per_level['median expanded nodes'] = np.median(nodes_opened)
-                    stats_per_level['avg nodes per second'] = sum(nodes_opened) / sum_time
-                else:
-                    stats_per_level['expanded nodes'] = 0
-                    stats_per_level['avg nodes per second'] = 0
+                stats_per_level['total time taken'] = sum_time
+                stats_per_level['median expanded nodes'] = np.average(nodes_opened)
+                stats_per_level['avg nodes per second'] = sum(nodes_opened) / sum_time
+
                 overall_stats[experiment_name][novelty_type] = stats_per_level
 
 plt.title('Levels solved and passed ')
@@ -103,6 +101,19 @@ plt.title('Nodes per second')
 print('\nnodes per second\n, ' + ','.join(str(lev) for lev in level_nums))
 for experiment_name in experiment_names:
     ex_per_sec = [overall_stats[experiment_name][i]['avg nodes per second'] for i in level_nums]
+    print(experiment_name + ', ' + ','.join(str(lev) for lev in ex_per_sec))
+    plt.plot([str(t) for t in level_nums], [ex_per_sec[i] for i in range(len(ex_per_sec))], '*')
+ax = plt.gca()
+ax.set_xlabel('level type')
+ax.legend(experiment_names)
+plt.show()
+
+
+plt.figure()
+plt.title('total time taken')
+print('\ntotal time taken\n, ' + ','.join(str(lev) for lev in level_nums))
+for experiment_name in experiment_names:
+    ex_per_sec = [overall_stats[experiment_name][i]['total time taken'] for i in level_nums]
     print(experiment_name + ', ' + ','.join(str(lev) for lev in ex_per_sec))
     plt.plot([str(t) for t in level_nums], [ex_per_sec[i] for i in range(len(ex_per_sec))], '*')
 ax = plt.gca()

@@ -63,6 +63,7 @@ class Planner:
         self.queue = collections.deque([state])
         while self.queue:
             state = self.queue.popleft()
+            self.explored_states += 1
             if constants.PLOT_BIRD_NODE_ORDER:
                 active_bird_string = heuristic_functions.get_active_bird_string(state)
                 if active_bird_string is None:
@@ -101,16 +102,17 @@ class Planner:
                             new_state = new_state.apply_happening(hp2, from_state=from_state, create_new_state=new_state is state)
 
                     if new_state is state:
-                        new_state = copy.deepcopy(state)
+                        new_state = State(predecessor=state)
+                        new_state.predecessor = state
                         new_state.predecessor_hashed = hash(from_state)
 
                     new_state.time = time_passed
                     new_state.predecessor_action = aa
                 else:
                     new_state = state.apply_happening(aa, from_state=from_state)
-                self.explored_states += 1
 
-                new_state_hash = hash(VisitedState(new_state))
+                visited_state = VisitedState(new_state)
+                new_state_hash = hash(visited_state)
                 if new_state_hash not in self.visited_hashmap and new_state.time <= constants.TIME_HORIZON and new_state.depth <= constants.DEPTH_LIMIT:
                     if grounded_instance.goals(new_state, constants):
                         # if grounded_instance.problem.metric == ['total-time']:
@@ -126,7 +128,7 @@ class Planner:
                             return self.reached_goal_states
 
                     if new_state.depth < constants.DEPTH_LIMIT:
-                        self.visited_hashmap[new_state_hash] = VisitedState(new_state)
+                        self.visited_hashmap[new_state_hash] = visited_state
                         self.enqueue_state(new_state)
 
                 if self.explored_states % constants.PRINT_INFO == 0:
@@ -203,19 +205,37 @@ class Planner:
         curr_v_state = VisitedState(sstate)
 
         while curr_v_state.state.predecessor_action is not None:
-            plan.insert(0, (curr_v_state.state.predecessor_action, copy.deepcopy(curr_v_state.state)))
+            plan.insert(0, (curr_v_state.state.predecessor_action, curr_v_state.state))
             curr_v_state = self.visited_hashmap[curr_v_state.state.predecessor_hashed]
         return plan
 
     def plot_node_expasion(self, bird_xy):
         plt.figure()
         colors, x_data, y_data = [], [], []
+        xys = {}
         for c, xy in enumerate(bird_xy):
             colors.append(c)
             x_data.append(xy[0])
             y_data.append(xy[1])
+            # if xys.get((xy[0], xy[0])):
+            #     xys[(xy[0], xy[0])].append(xy[2])
+            # else:
+            #     xys[(xy[0], xy[0])] = [xy[2]]
+        # for states in xys.values():
+        #     if len(states) > 3:
+        #         for state in states:
+        #             if state.predecessor is not None:
+        #                 print(state.copy_counter)
+        #                 print(state.time)
+        #                 print(state.state_vars)
+        #                 print(state.predecessor.time)
+        #                 print(state.predecessor.state_vars)
+        #                 # print(state.predecessor_action)
+        #                 print('*******************')
         print(len(bird_xy))
         print(self.explored_states)
+        # print(len(xys))
+        plt.figure()
         plt.scatter(x_data, y_data, c=colors)
         plt.title(settings.EXPERIMENT_NAME + ' ' + str(settings.NOVELTY_TYPE))
         plt.show()
