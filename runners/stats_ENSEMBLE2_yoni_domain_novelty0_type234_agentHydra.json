@@ -1,0 +1,1316 @@
+{
+    "levels": [
+        {
+            "birds": {
+                "BirdRed": 1
+            },
+            "birds_remaining": 0,
+            "birds_start": 1,
+            "level": "Levels/novelty_level_0/type234/Levels/00025_0_0_234_0.xml",
+            "novelty_detections": [
+                false,
+                false,
+                false,
+                false,
+                false,
+                true,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                true,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false
+            ],
+            "novelty_likelihood": false,
+            "objects": 7,
+            "pddl_novelty_likelihood": [
+                0.030547532193735343
+            ],
+            "pigs_remaining": 0,
+            "pigs_start": 1,
+            "reward_estimator_likelihood": [
+                0.23719165085388993
+            ],
+            "score": 10000.0,
+            "simplification level time 1": 20.660089349999907,
+            "simplification level time 2": 18.591460943003767,
+            "status": "Pass",
+            "unknown_object": [
+                false
+            ]
+        },
+        {
+            "birds": {
+                "BirdRed": 1
+            },
+            "birds_remaining": 0,
+            "birds_start": 1,
+            "level": "Levels/novelty_level_0/type234/Levels/00065_0_0_234_0.xml",
+            "novelty_detections": [
+                false,
+                false,
+                false,
+                false,
+                false,
+                true,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                true,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false
+            ],
+            "novelty_likelihood": false,
+            "objects": 8,
+            "pddl_novelty_likelihood": [
+                1.507057194235549
+            ],
+            "pigs_remaining": 0,
+            "pigs_start": 1,
+            "reward_estimator_likelihood": [
+                0.16587379931046342
+            ],
+            "score": 10000.0,
+            "simplification level time 1": 24.552752079995116,
+            "simplification level time 2": 16.927222760001314,
+            "status": "Pass",
+            "unknown_object": [
+                false
+            ]
+        },
+        {
+            "birds": {
+                "BirdRed": 1
+            },
+            "birds_remaining": 0,
+            "birds_start": 1,
+            "level": "Levels/novelty_level_0/type234/Levels/00108_0_0_234_0.xml",
+            "novelty_detections": [
+                false,
+                false,
+                false,
+                false,
+                false,
+                true,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                true,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false
+            ],
+            "novelty_likelihood": false,
+            "objects": 9,
+            "pddl_novelty_likelihood": [
+                0.32961415698219715
+            ],
+            "pigs_remaining": 0,
+            "pigs_start": 1,
+            "reward_estimator_likelihood": [
+                0.1802701240642247
+            ],
+            "score": 10000.0,
+            "simplification level time 1": 30.147140850996948,
+            "simplification level time 2": 17.480266384998686,
+            "status": "Pass",
+            "unknown_object": [
+                false
+            ]
+        },
+        {
+            "birds": {
+                "BirdRed": 1
+            },
+            "birds_remaining": 0,
+            "birds_start": 1,
+            "level": "Levels/novelty_level_0/type234/Levels/00157_0_0_234_0.xml",
+            "novelty_detections": [
+                false,
+                false,
+                false,
+                false,
+                false,
+                true,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                true,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false
+            ],
+            "novelty_likelihood": false,
+            "objects": 9,
+            "pddl_novelty_likelihood": [
+                0.0017096416720866793
+            ],
+            "pigs_remaining": 1,
+            "pigs_start": 1,
+            "reward_estimator_likelihood": [
+                0.08273710310459137
+            ],
+            "score": 0.0,
+            "simplification level time 1": 24.676415337991784,
+            "simplification level time 2": 18.2828356300015,
+            "status": "Fail",
+            "unknown_object": [
+                false
+            ]
+        },
+        {
+            "birds": {
+                "BirdRed": 1
+            },
+            "birds_remaining": 0,
+            "birds_start": 1,
+            "level": "Levels/novelty_level_0/type234/Levels/00061_0_0_234_0.xml",
+            "novelty_detections": [
+                false,
+                false,
+                false,
+                false,
+                false,
+                true,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                true,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false
+            ],
+            "novelty_likelihood": false,
+            "objects": 11,
+            "pddl_novelty_likelihood": [
+                0.4352154416719793
+            ],
+            "pigs_remaining": 0,
+            "pigs_start": 1,
+            "reward_estimator_likelihood": [
+                0.18357897161080217
+            ],
+            "score": 10000.0,
+            "simplification level time 1": 30.10832272900734,
+            "simplification level time 2": 13.786047958012205,
+            "status": "Pass",
+            "unknown_object": [
+                false
+            ]
+        },
+        {
+            "birds": {
+                "BirdRed": 1
+            },
+            "birds_remaining": 0,
+            "birds_start": 1,
+            "level": "Levels/novelty_level_0/type234/Levels/00242_0_0_234_0.xml",
+            "novelty_detections": [
+                false,
+                false,
+                false,
+                false,
+                false,
+                true,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                true,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false
+            ],
+            "novelty_likelihood": false,
+            "objects": 10,
+            "pddl_novelty_likelihood": [
+                0.04347114041377596
+            ],
+            "pigs_remaining": 0,
+            "pigs_start": 1,
+            "reward_estimator_likelihood": [
+                0.23167787056921696
+            ],
+            "score": 10000.0,
+            "simplification level time 1": 30.13044224900659,
+            "simplification level time 2": 17.585184007999487,
+            "status": "Pass",
+            "unknown_object": [
+                false
+            ]
+        },
+        {
+            "birds": {
+                "BirdRed": 1
+            },
+            "birds_remaining": 0,
+            "birds_start": 1,
+            "level": "Levels/novelty_level_0/type234/Levels/00300_0_0_234_0.xml",
+            "novelty_detections": [
+                false,
+                false,
+                false,
+                false,
+                false,
+                true,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                true,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false
+            ],
+            "novelty_likelihood": false,
+            "objects": 8,
+            "pddl_novelty_likelihood": [
+                0.14578237775817088
+            ],
+            "pigs_remaining": 0,
+            "pigs_start": 1,
+            "reward_estimator_likelihood": [
+                0.1683687975866971
+            ],
+            "score": 10000.0,
+            "simplification level time 1": 23.283118795996415,
+            "simplification level time 2": 17.114693655006704,
+            "status": "Pass",
+            "unknown_object": [
+                false
+            ]
+        },
+        {
+            "birds": {
+                "BirdRed": 1
+            },
+            "birds_remaining": 0,
+            "birds_start": 1,
+            "level": "Levels/novelty_level_0/type234/Levels/00004_0_0_234_0.xml",
+            "novelty_detections": [
+                false,
+                false,
+                false,
+                false,
+                false,
+                true,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                true,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false
+            ],
+            "novelty_likelihood": false,
+            "objects": 11,
+            "pddl_novelty_likelihood": [
+                0.1174870102582307
+            ],
+            "pigs_remaining": 0,
+            "pigs_start": 1,
+            "reward_estimator_likelihood": [
+                0.11693997292353486
+            ],
+            "score": 10000.0,
+            "simplification level time 1": 29.97903327200038,
+            "simplification level time 2": 17.828091114992276,
+            "status": "Pass",
+            "unknown_object": [
+                false
+            ]
+        },
+        {
+            "birds": {
+                "BirdRed": 1
+            },
+            "birds_remaining": 0,
+            "birds_start": 1,
+            "level": "Levels/novelty_level_0/type234/Levels/00073_0_0_234_0.xml",
+            "novelty_detections": [
+                false,
+                false,
+                false,
+                false,
+                false,
+                true,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                true,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false
+            ],
+            "novelty_likelihood": false,
+            "objects": 8,
+            "pddl_novelty_likelihood": [
+                0.004389162726986152
+            ],
+            "pigs_remaining": 0,
+            "pigs_start": 1,
+            "reward_estimator_likelihood": [
+                0.15080258606507158
+            ],
+            "score": 10000.0,
+            "simplification level time 1": 23.640167015997577,
+            "simplification level time 2": 17.143675446990528,
+            "status": "Pass",
+            "unknown_object": [
+                false
+            ]
+        },
+        {
+            "birds": {
+                "BirdRed": 1
+            },
+            "birds_remaining": 0,
+            "birds_start": 1,
+            "level": "Levels/novelty_level_0/type234/Levels/00151_0_0_234_0.xml",
+            "novelty_detections": [
+                false,
+                false,
+                false,
+                false,
+                false,
+                true,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                true,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false
+            ],
+            "novelty_likelihood": false,
+            "objects": 9,
+            "pddl_novelty_likelihood": [
+                0.2694529178598371
+            ],
+            "pigs_remaining": 0,
+            "pigs_start": 1,
+            "reward_estimator_likelihood": [
+                0.17250831036402559
+            ],
+            "score": 10000.0,
+            "simplification level time 1": 27.754586016002577,
+            "simplification level time 2": 14.776912022003671,
+            "status": "Pass",
+            "unknown_object": [
+                false
+            ]
+        },
+        {
+            "birds": {
+                "BirdRed": 1
+            },
+            "birds_remaining": 0,
+            "birds_start": 1,
+            "level": "Levels/novelty_level_0/type234/Levels/00088_0_0_234_0.xml",
+            "novelty_detections": [
+                false,
+                false,
+                false,
+                false,
+                false,
+                true,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                true,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false
+            ],
+            "novelty_likelihood": false,
+            "objects": 7,
+            "pddl_novelty_likelihood": [
+                0.06418518123337856
+            ],
+            "pigs_remaining": 0,
+            "pigs_start": 1,
+            "reward_estimator_likelihood": [
+                0.16970667599274492
+            ],
+            "score": 10000.0,
+            "simplification level time 1": 14.632889544998761,
+            "simplification level time 2": 13.974368010996841,
+            "status": "Pass",
+            "unknown_object": [
+                false
+            ]
+        },
+        {
+            "birds": {
+                "BirdRed": 1
+            },
+            "birds_remaining": 0,
+            "birds_start": 1,
+            "level": "Levels/novelty_level_0/type234/Levels/00163_0_0_234_0.xml",
+            "novelty_detections": [
+                false,
+                false,
+                false,
+                false,
+                false,
+                true,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                true,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false
+            ],
+            "novelty_likelihood": false,
+            "objects": 9,
+            "pddl_novelty_likelihood": [
+                0.01605850025605399
+            ],
+            "pigs_remaining": 0,
+            "pigs_start": 1,
+            "reward_estimator_likelihood": [
+                0.23719165085388993
+            ],
+            "score": 10000.0,
+            "simplification level time 1": 27.86235320700507,
+            "simplification level time 2": 16.701190693012904,
+            "status": "Pass",
+            "unknown_object": [
+                false
+            ]
+        },
+        {
+            "birds": {
+                "BirdRed": 1
+            },
+            "birds_remaining": 0,
+            "birds_start": 1,
+            "level": "Levels/novelty_level_0/type234/Levels/00019_0_0_234_0.xml",
+            "novelty_detections": [
+                false,
+                false,
+                false,
+                false,
+                false,
+                true,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                true,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false
+            ],
+            "novelty_likelihood": false,
+            "objects": 8,
+            "pddl_novelty_likelihood": [
+                0.022992715147853497
+            ],
+            "pigs_remaining": 0,
+            "pigs_start": 1,
+            "reward_estimator_likelihood": [
+                0.2004674894972024
+            ],
+            "score": 10000.0,
+            "simplification level time 1": 18.92279488699569,
+            "simplification level time 2": 13.876012868000544,
+            "status": "Pass",
+            "unknown_object": [
+                false
+            ]
+        },
+        {
+            "birds": {
+                "BirdRed": 1
+            },
+            "birds_remaining": 0,
+            "birds_start": 1,
+            "level": "Levels/novelty_level_0/type234/Levels/00221_0_0_234_0.xml",
+            "novelty_detections": [
+                false,
+                false,
+                false,
+                false,
+                false,
+                true,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                true,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false
+            ],
+            "novelty_likelihood": false,
+            "objects": 10,
+            "pddl_novelty_likelihood": [
+                2.385702983187835
+            ],
+            "pigs_remaining": 0,
+            "pigs_start": 1,
+            "reward_estimator_likelihood": [
+                0.16414974241091584
+            ],
+            "score": 10000.0,
+            "simplification level time 1": 30.130100687005324,
+            "simplification level time 2": 14.314829993003514,
+            "status": "Pass",
+            "unknown_object": [
+                false
+            ]
+        },
+        {
+            "birds": {
+                "BirdRed": 1
+            },
+            "birds_remaining": 0,
+            "birds_start": 1,
+            "level": "Levels/novelty_level_0/type234/Levels/00283_0_0_234_0.xml",
+            "novelty_detections": [
+                false,
+                false,
+                false,
+                false,
+                false,
+                true,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                true,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false
+            ],
+            "novelty_likelihood": false,
+            "objects": 11,
+            "pddl_novelty_likelihood": [
+                0.39738243839910237
+            ],
+            "pigs_remaining": 0,
+            "pigs_start": 1,
+            "reward_estimator_likelihood": [
+                0.20850079304112767
+            ],
+            "score": 10000.0,
+            "simplification level time 1": 30.126053489002516,
+            "simplification level time 2": 14.114248596990365,
+            "status": "Pass",
+            "unknown_object": [
+                false
+            ]
+        },
+        {
+            "birds": {
+                "BirdRed": 1
+            },
+            "birds_remaining": 0,
+            "birds_start": 1,
+            "level": "Levels/novelty_level_0/type234/Levels/00042_0_0_234_0.xml",
+            "novelty_detections": [
+                false,
+                false,
+                false,
+                false,
+                false,
+                true,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                true,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false
+            ],
+            "novelty_likelihood": false,
+            "objects": 7,
+            "pddl_novelty_likelihood": [
+                0.012425848890436674
+            ],
+            "pigs_remaining": 0,
+            "pigs_start": 1,
+            "reward_estimator_likelihood": [
+                0.23719165085388993
+            ],
+            "score": 10000.0,
+            "simplification level time 1": 16.945367160995374,
+            "simplification level time 2": 14.724880342997494,
+            "status": "Pass",
+            "unknown_object": [
+                false
+            ]
+        },
+        {
+            "birds": {
+                "BirdRed": 1
+            },
+            "birds_remaining": 0,
+            "birds_start": 1,
+            "level": "Levels/novelty_level_0/type234/Levels/00292_0_0_234_0.xml",
+            "novelty_detections": [
+                false,
+                false,
+                false,
+                false,
+                false,
+                true,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                true,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false
+            ],
+            "novelty_likelihood": false,
+            "objects": 10,
+            "pddl_novelty_likelihood": [
+                0.023249712325077297
+            ],
+            "pigs_remaining": 0,
+            "pigs_start": 1,
+            "reward_estimator_likelihood": [
+                0.19285760803653573
+            ],
+            "score": 10000.0,
+            "simplification level time 1": 27.918739045009715,
+            "simplification level time 2": 15.128433115998632,
+            "status": "Pass",
+            "unknown_object": [
+                false
+            ]
+        },
+        {
+            "birds": {
+                "BirdRed": 1
+            },
+            "birds_remaining": 0,
+            "birds_start": 1,
+            "level": "Levels/novelty_level_0/type234/Levels/00036_0_0_234_0.xml",
+            "novelty_detections": [
+                false,
+                false,
+                false,
+                false,
+                false,
+                true,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                true,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false
+            ],
+            "novelty_likelihood": false,
+            "objects": 10,
+            "pddl_novelty_likelihood": [
+                0.13608913469974002
+            ],
+            "pigs_remaining": 0,
+            "pigs_start": 1,
+            "reward_estimator_likelihood": [
+                0.1404287105662999
+            ],
+            "score": 10000.0,
+            "simplification level time 1": 24.767696587005048,
+            "simplification level time 2": 14.412306305006496,
+            "status": "Pass",
+            "unknown_object": [
+                false
+            ]
+        },
+        {
+            "birds": {
+                "BirdRed": 1
+            },
+            "birds_remaining": 0,
+            "birds_start": 1,
+            "level": "Levels/novelty_level_0/type234/Levels/00026_0_0_234_0.xml",
+            "novelty_detections": [
+                false,
+                false,
+                false,
+                false,
+                false,
+                true,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                true,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false
+            ],
+            "novelty_likelihood": false,
+            "objects": 9,
+            "pddl_novelty_likelihood": [
+                0
+            ],
+            "pigs_remaining": 1,
+            "pigs_start": 1,
+            "reward_estimator_likelihood": [
+                0.011545486748218536
+            ],
+            "score": 0.0,
+            "simplification level time 1": 27.013642866004375,
+            "simplification level time 2": 14.458557079007733,
+            "status": "Fail",
+            "unknown_object": [
+                false
+            ]
+        },
+        {
+            "birds": {
+                "BirdRed": 1
+            },
+            "birds_remaining": 0,
+            "birds_start": 1,
+            "level": "Levels/novelty_level_0/type234/Levels/00258_0_0_234_0.xml",
+            "novelty_detections": [
+                false,
+                false,
+                false,
+                false,
+                false,
+                true,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                true,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false
+            ],
+            "novelty_likelihood": false,
+            "objects": 11,
+            "pddl_novelty_likelihood": [
+                0.1112095356746351
+            ],
+            "pigs_remaining": 0,
+            "pigs_start": 1,
+            "reward_estimator_likelihood": [
+                0.14520094154908036
+            ],
+            "score": 10000.0,
+            "simplification level time 1": 30.138376377988607,
+            "simplification level time 2": 16.447025392990327,
+            "status": "Pass",
+            "unknown_object": [
+                false
+            ]
+        },
+        {
+            "birds": {
+                "BirdRed": 1
+            },
+            "birds_remaining": 0,
+            "birds_start": 1,
+            "level": "Levels/novelty_level_0/type234/Levels/00234_0_0_234_0.xml",
+            "novelty_detections": [
+                false,
+                false,
+                false,
+                false,
+                false,
+                true,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                true,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false
+            ],
+            "novelty_likelihood": false,
+            "objects": 9,
+            "pddl_novelty_likelihood": [
+                0.029061515894870073
+            ],
+            "pigs_remaining": 0,
+            "pigs_start": 1,
+            "reward_estimator_likelihood": [
+                0.10559128402985024
+            ],
+            "score": 5000.0,
+            "simplification level time 1": 29.902034190003178,
+            "simplification level time 2": 17.43663772799482,
+            "status": "Pass",
+            "unknown_object": [
+                false
+            ]
+        },
+        {
+            "birds": {
+                "BirdRed": 1
+            },
+            "birds_remaining": 0,
+            "birds_start": 1,
+            "level": "Levels/novelty_level_0/type234/Levels/00135_0_0_234_0.xml",
+            "novelty_detections": [
+                false,
+                false,
+                false,
+                false,
+                false,
+                true,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                true,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false
+            ],
+            "novelty_likelihood": false,
+            "objects": 7,
+            "pddl_novelty_likelihood": [
+                0.00827965301278746
+            ],
+            "pigs_remaining": 0,
+            "pigs_start": 1,
+            "reward_estimator_likelihood": [
+                0.2368188773518679
+            ],
+            "score": 10000.0,
+            "simplification level time 1": 18.01762496799347,
+            "simplification level time 2": 17.443371601009858,
+            "status": "Pass",
+            "unknown_object": [
+                false
+            ]
+        },
+        {
+            "birds": {
+                "BirdRed": 1
+            },
+            "birds_remaining": 0,
+            "birds_start": 1,
+            "level": "Levels/novelty_level_0/type234/Levels/00028_0_0_234_0.xml",
+            "novelty_detections": [
+                false,
+                false,
+                false,
+                false,
+                false,
+                true,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                true,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false
+            ],
+            "novelty_likelihood": false,
+            "objects": 11,
+            "pddl_novelty_likelihood": [
+                0.14795061549234578
+            ],
+            "pigs_remaining": 0,
+            "pigs_start": 1,
+            "reward_estimator_likelihood": [
+                0.1377523800594983
+            ],
+            "score": 10000.0,
+            "simplification level time 1": 30.14799713800312,
+            "simplification level time 2": 17.57020440699125,
+            "status": "Pass",
+            "unknown_object": [
+                false
+            ]
+        },
+        {
+            "birds": {
+                "BirdRed": 1
+            },
+            "birds_remaining": 0,
+            "birds_start": 1,
+            "level": "Levels/novelty_level_0/type234/Levels/00178_0_0_234_0.xml",
+            "novelty_detections": [
+                false,
+                false,
+                false,
+                false,
+                false,
+                true,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                true,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false
+            ],
+            "novelty_likelihood": false,
+            "objects": 7,
+            "pddl_novelty_likelihood": [
+                1.1476473369356823
+            ],
+            "pigs_remaining": 0,
+            "pigs_start": 1,
+            "reward_estimator_likelihood": [
+                0.22614616139366006
+            ],
+            "score": 10000.0,
+            "simplification level time 1": 18.0563310419966,
+            "simplification level time 2": 18.81566345698957,
+            "status": "Pass",
+            "unknown_object": [
+                false
+            ]
+        },
+        {
+            "birds": {
+                "BirdRed": 1
+            },
+            "birds_remaining": 0,
+            "birds_start": 1,
+            "level": "Levels/novelty_level_0/type234/Levels/00243_0_0_234_0.xml",
+            "novelty_detections": [
+                false,
+                false,
+                false,
+                false,
+                false,
+                true,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                true,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false
+            ],
+            "novelty_likelihood": false,
+            "objects": 10,
+            "pddl_novelty_likelihood": [
+                2.0714415474159025
+            ],
+            "pigs_remaining": 0,
+            "pigs_start": 1,
+            "reward_estimator_likelihood": [
+                0.17808467878534173
+            ],
+            "score": 10000.0,
+            "simplification level time 1": 30.169811985993874,
+            "simplification level time 2": 18.07211113300582,
+            "status": "Pass",
+            "unknown_object": [
+                false
+            ]
+        }
+    ],
+    "overall": {
+        "agent": "Hydra",
+        "avg_score": 9000.0,
+        "birds": {
+            "BirdRed": {
+                "failed": 2,
+                "passed": 23
+            }
+        },
+        "failed": 2,
+        "passed": 23
+    }
+}

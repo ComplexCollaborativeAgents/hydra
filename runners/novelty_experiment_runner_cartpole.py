@@ -17,6 +17,9 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import optparse
 
+
+FLUENT_MAP_DICT = {'length': 'l_pole', 'gravity': 'gravity'}
+
 class LoggingRepairingCartpoleHydraAgent(RepairingCartpoleHydraAgent):
     def __init__(self):
         super().__init__()
@@ -55,10 +58,19 @@ class NoveltyExperimentGymCartpoleDispatcher(GymCartpoleDispatcher):
         for param in novelties:
             self._env_params[param] = novelties[param]
 
-    def set_is_known(self, is_known=None, novelty_info=None):
+    def set_is_known(self, is_known=None, novelty_info=None, experiment_type=1):
         self._is_known = is_known
         if novelty_info and 'config' in novelty_info.keys():
-            self._novelty_info = novelty_info['config']
+            self._novelty_info = {}
+            for key in novelty_info['config']:
+                if experiment_type == 2:
+                    value = novelty_info['config'][key]
+                else:
+                    value = None
+                newkey = FLUENT_MAP_DICT[key]
+                self._novelty_info[newkey] = value
+
+        print(self._novelty_info)
 
 
     def _make_environment(self):
@@ -186,18 +198,18 @@ class NoveltyExperimentRunnerCartpole:
         env_dispatcher = NoveltyExperimentGymCartpoleDispatcher(observer, render=False, train_with_reward=(self._agent_type == 'dqn'), log_details = self._log_episode_details, details_directory=os.path.join(self._results_details_directory_path, trial_type, str(trial_num)))
         print("experiment type {}".format(self._experiment_type))
         if trial_type == constants.UNKNOWN:
-            env_dispatcher.set_is_known(None, None)
+            env_dispatcher.set_is_known(None, None, self._experiment_type)
         else:
             if episode_type == constants.NOVELTY:
                 print("episode type {}".format(constants.NOVELTY))
-                if self._experiment_type == 2:
+                if self._experiment_type == 2 or self._experiment_type == 3:
                     print("detected {}".format(True))
-                    env_dispatcher.set_is_known(True, novelty)
+                    env_dispatcher.set_is_known(True, novelty, self._experiment_type)
                 else:
-                    env_dispatcher.set_is_known(True, None)
+                    env_dispatcher.set_is_known(True, None, self._experiment_type)
             else:
                 if episode_type == constants.NON_NOVELTY_PERFORMANCE:
-                    env_dispatcher.set_is_known(False, None)
+                    env_dispatcher.set_is_known(False, None, self._experiment_type)
 
         if episode_type == constants.NOVELTY:
             env_dispatcher.set_novelty(novelty['config'])
@@ -218,7 +230,7 @@ class NoveltyExperimentRunnerCartpole:
         else:
             novelties_config = [novelty_config]
         for novelty in novelties_config:
-            results_file_handle = open(os.path.join(self._results_directory_path, "novelty_{}.csv".format(novelty['uid'])), "a")
+            results_file_handle = open(os.path.join(self._results_directory_path, "novelty_{}_{}.csv".format(novelty['uid'], self._experiment_type)), "a")
             results_dataframe = pandas.DataFrame(columns=['episode_num','novelty_probability','novelty_threshold','novelty','novelty_characterization','performance','trial_num','novelty_id','trial_type','episode_type','level','env_config'])
             results_dataframe.to_csv(results_file_handle, index=False)
             #for trial_type in [constants.UNKNOWN, constants.KNOWN]:
@@ -345,7 +357,7 @@ if __name__ == '__main__':
     parser.add_option("--name",
                       dest="name",
                       help="name of the directory in which all the results will be stored at ../data/cartpole/",
-                      default="aaai_aug")
+                      default="m3m4")
     parser.add_option("--num_trials",
                       dest='num_trials',
                       help="Number of full trials to be run. Each trial is several subtrials",
@@ -361,7 +373,7 @@ if __name__ == '__main__':
     parser.add_option("--novelty-subtrial",
                       dest='l_novelty',
                       help='number of episodes in the novelty subtrial',
-                      default=1)
+                      default=30)
     parser.add_option("--log-episode-details",
                       dest='log_episode_details',
                       help='if we want to record states, action, cnn_likelihood, consistency_scores',
@@ -372,8 +384,8 @@ if __name__ == '__main__':
                       default={'uid': 'length_1point1_gravity_12', 'level': 1, 'config': {constants.LENGTH: 1.1, constants.GRAVITY: 12}})
     parser.add_option("--experiment_type",
                      dest='experiment_type',
-                     help='a numeral representing if to run 1: m3/m4 or 2: m3.1/m4.1',
-                     default=2)
+                     help='a numeral representing if to run 1: no info; 2: with full info, 3: with only fluent names',
+                     default=3)
 
 
     (options, args) = parser.parse_args()
