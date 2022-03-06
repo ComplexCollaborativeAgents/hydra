@@ -34,15 +34,11 @@ class ConstantChangeMMO(ModelManipulationOperator):
 class MmoBasedMetaModelRepair(SimulationBasedMetaModelRepair):
     ''' Repair class based on a given set of MMOs. '''
 
-    def __init__(self, fluents_to_repair,
-                 consistency_estimator,
-                 deltas,
+    def __init__(self, consistency_estimator,
                  consistency_threshold=2,
                  max_iterations=30,
                  time_limit=1000):
-        super().__init__(fluents_to_repair,
-                         consistency_estimator,
-                         deltas,
+        super().__init__(consistency_estimator,
                          consistency_threshold,
                          max_iterations,
                          time_limit)
@@ -50,10 +46,10 @@ class MmoBasedMetaModelRepair(SimulationBasedMetaModelRepair):
         self.incumbet_repair = None
         self.incumbet_consistency = 100000
 
-    ''' Repair the given domain and plan such that the given plan's expected outcome matches the observed outcome'''
     def repair(self,
                pddl_meta_model: ScienceBirdsMetaModel,
                observation, delta_t=1.0):
+        ''' Repair the given domain and plan such that the given plan's expected outcome matches the observed outcome'''
 
         self._setup_repair(pddl_meta_model, observation, delta_t)
         base_consistency = self.incumbent_consistency # Save the base consistency to measure success
@@ -75,16 +71,21 @@ class MmoBasedMetaModelRepair(SimulationBasedMetaModelRepair):
             self._do_change(self.incumbent_repair)
         return self.incumbent_repair, self.incumbent_consistency
 
-    ''' Setup the internal parameters before running the repair algorithm '''
     def _setup_repair(self, pddl_meta_model, observation, delta_t):
+        ''' Setup the internal parameters before running the repair algorithm '''
+
         self.start_time = time.time()
         self.current_delta_t = delta_t
         self.current_meta_model = pddl_meta_model
         self.observation = observation
+
+        self._fluents_to_repair = list(self.current_meta_model.repairable_constants)
+        self._deltas = list(self.current_meta_model.repair_deltas)
+
         # Initialize OPEN
         self.open = []
-        repair = [0] * len(self.fluents_to_repair)  # Repair is a list, in order of the fluents_to_repair list
-        base_consistency = self._compute_consistency(repair, self.observation)
+        repair = [0] * len(self._fluents_to_repair)  # Repair is a list, in order of the fluents_to_repair list
+        base_consistency = self._compute_consistency(repair, observation)
         priority = self._heuristic(repair, base_consistency)
         heapq.heappush(self.open, [priority, repair])
         self.generated_repairs = set()  # A set of all generated repaired. This is used for pruning duplicate repairs
@@ -96,10 +97,10 @@ class MmoBasedMetaModelRepair(SimulationBasedMetaModelRepair):
         # Initialize mmo_list
         self.mmo_list = list()
         MAX_STEPS = 10 # The number of applications of the same MMO we allow
-        for i, fluent in enumerate(self.fluents_to_repair):
-            initial_fluent_value = self.current_meta_model.constant_numeric_fluents[self.fluents_to_repair[i]]
-            self.mmo_list.append(ConstantChangeMMO(i, 1.0*self.deltas[i], upper_bound = MAX_STEPS * self.deltas[i]))
-            self.mmo_list.append(ConstantChangeMMO(i, -1.0*self.deltas[i], lower_bound = -initial_fluent_value/self.deltas[i]))
+        for i, fluent in enumerate(self._fluents_to_repair):
+            initial_fluent_value = self.current_meta_model.constant_numeric_fluents[fluent]
+            self.mmo_list.append(ConstantChangeMMO(i, 1.0 * self._deltas[i], upper_bound =MAX_STEPS * self._deltas[i]))
+            self.mmo_list.append(ConstantChangeMMO(i, -1.0 * self._deltas[i], lower_bound =-initial_fluent_value / self._deltas[i]))
 
         return base_consistency
 
@@ -127,23 +128,19 @@ class MmoBasedMetaModelRepair(SimulationBasedMetaModelRepair):
     def _heuristic(self, repair, consistency):
         change_cardinality = 0
         for i, change in enumerate(repair):
-            change_cardinality=change_cardinality+ abs(change/self.deltas[i])
+            change_cardinality=change_cardinality+ abs(change / self._deltas[i])
         return consistency+change_cardinality
 
 
 class FocusedMetaModelRepair(MmoBasedMetaModelRepair):
     ''' A MetaModelRepair'''
 
-    def __init__(self, fluents_to_repair,
-                 consistency_estimator,
-                 deltas,
+    def __init__(self, consistency_estimator,
                  consistency_threshold=2,
                  max_iterations=30,
                  time_limit=1000):
 
-        super().__init__(fluents_to_repair,
-                         consistency_estimator,
-                         deltas,
+        super().__init__(consistency_estimator,
                          consistency_threshold=consistency_threshold,
                          max_iterations=max_iterations,
                          time_limit=time_limit)

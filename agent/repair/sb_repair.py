@@ -135,28 +135,24 @@ class ScienceBirdsConsistencyEstimator(MetaModelBasedConsistencyEstimator):
 class ScienceBirdsMetaModelRepair(GreedyBestFirstSearchMetaModelRepair):
     ''' The meta model repair used for ScienceBirds. '''
 
-    def __init__(self, meta_model = ScienceBirdsMetaModel(),
-                 consistency_threshold=settings.SB_CONSISTENCY_THRESHOLD,
+    def __init__(self, consistency_threshold=settings.SB_CONSISTENCY_THRESHOLD,
                  time_limit=settings.SB_REPAIR_TIMEOUT,
                  max_iterations=settings.SB_REPAIR_MAX_ITERATIONS):
-        constants_to_repair = meta_model.repairable_constants
-        repair_deltas = meta_model.repair_deltas
         consistency_estimator = ScienceBirdsConsistencyEstimator()
-        super().__init__(constants_to_repair, consistency_estimator, repair_deltas,
+        super().__init__(consistency_estimator,
                          consistency_threshold=consistency_threshold,
                          max_iterations=max_iterations,
                          time_limit=time_limit)
 
 
 class ScienceBirdsFocusedMetaModelRepair(FocusedMetaModelRepair):
+    ''' EXPERIMENTAL REPAIR: NOT IN THE AGENT YET '''
     def __init__(self, meta_model = ScienceBirdsMetaModel(),
                  consistency_threshold=settings.SB_CONSISTENCY_THRESHOLD,
                  time_limit=settings.SB_REPAIR_TIMEOUT,
                  max_iterations=settings.SB_REPAIR_MAX_ITERATIONS):
-        constants_to_repair = meta_model.repairable_constants
-        repair_deltas = meta_model.repair_deltas
         consistency_estimator = ScienceBirdsConsistencyEstimator()
-        super().__init__(constants_to_repair, consistency_estimator, repair_deltas,
+        super().__init__(consistency_estimator,
                          consistency_threshold=consistency_threshold,
                          max_iterations=max_iterations,
                          time_limit=time_limit)

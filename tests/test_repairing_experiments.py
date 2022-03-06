@@ -6,7 +6,7 @@ import worlds.science_birds as sb
 import pickle
 import tests.test_utils as test_utils
 import os.path as path
-from agent.repair.sb_repair import ScienceBirdsConsistencyEstimator, ScienceBirdsMetaModelRepair
+from agent.repair.sb_repair import ScienceBirdsMetaModelRepair
 
 GRAVITY_FACTOR = "gravity_factor"
 BASE_LIFE_WOOD_MULTIPLIER = "base_life_wood_multiplier"
@@ -26,38 +26,6 @@ fh.setFormatter(formatter)
 logger = test_utils.create_logger("hydra_agent")
 logger.setLevel(logging.INFO)
 logger.addHandler(fh)
-
-'''
-A greedy best-first search model repair implementation. 
-'''
-class MockMetaModelRepair(SimulationBasedMetaModelRepair):
-    def __init__(self, oracle_repair):
-        meta_model = ScienceBirdsMetaModel()
-
-        super().__init__(meta_model.repairable_constants,
-                         ScienceBirdsConsistencyEstimator(),
-            [1.0] * len(meta_model.repairable_constants))
-
-        self.oracle_repair = oracle_repair
-
-    ''' Repair the given domain and plan such that the given plan's expected outcome matches the observed outcome'''
-    def repair(self,
-               pddl_meta_model: ScienceBirdsMetaModel,
-               observation, delta_t=1.0):
-
-        self.current_delta_t = delta_t
-        self.current_meta_model = pddl_meta_model
-
-        repair = [0] * len(self.oracle_repair)  # Repair is a list, in order of the fluents_to_repair list
-        base_consistency = self._compute_consistency(repair, observation)
-        best_consistency = self._compute_consistency(self.oracle_repair, observation)
-
-        assert(best_consistency<base_consistency)
-
-        self._do_change(self.oracle_repair)
-
-        return self.oracle_repair, best_consistency
-
 
 
 @pytest.fixture(scope="module")
@@ -131,7 +99,7 @@ def test_set_of_levels_repair_no_fault():
     logger.info("Starting mock oracle repair experiment")
     env = sb.ScienceBirds(None,launch=True,config='test_repair_wood_health.xml')
     hydra = RepairingSBHydraAgent(env)
-    hydra.meta_model_repair = MockMetaModelRepair([3.0, 3.0])
+    hydra.meta_model_repair = MockMetaModelRepair([3.0, 3.0], consistency_checker=ScienceBirdsConsistencyEstimator())
     levels_completed_oracle_repair, reward_with_oracle_repair = _run_experiment(hydra, "with_repair-%d" % max_iterations, max_iterations=max_iterations)
     env.kill()
     logger.info("Ending mock oracle repair experiment, levels completed = %d, reward = %.2f" % (levels_completed_oracle_repair, reward_with_oracle_repair))

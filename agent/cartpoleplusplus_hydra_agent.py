@@ -180,7 +180,7 @@ class RepairingCartpolePlusPlusHydraAgent(CartpolePlusPlusHydraAgent):
             if nonzero:
                 novelty_likelihood = 1.0
                 self.has_repaired = True
-                novelty_characterization = json.dumps(dict(zip(self.meta_model_repair.fluents_to_repair, repair)))
+                novelty_characterization = self.meta_model_repair.get_repair_as_json(repair)
             elif consistency > settings.CP_CONSISTENCY_THRESHOLD:
                 novelty_likelihood = 1.0
                 novelty_characterization = json.dumps({'Unknown novelty': 'no adjustments made'})

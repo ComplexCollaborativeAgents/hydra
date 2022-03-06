@@ -61,20 +61,20 @@ class CartpoleHydraAgent(HydraAgent):
         self.last_performance.append(performance) # Records the last performance value, to show impact
         return self.novelty_likelihood, self.novelty_threshold, self.novelty_type, self.novelty_characterization
 
-    def choose_action(self, observation: CartPoleObservation) -> \
+    def choose_action(self, state) -> \
             dict:
 
         if self.plan is None:
             # self.meta_model.constant_numeric_fluents['time_limit'] = 4.0
             self.meta_model.constant_numeric_fluents['time_limit'] = max(0.02, min(4.0, round((4.0 - ((self.steps) * 0.02)), 2)))
-            self.plan = self.planner.make_plan(observation, 0)
+            self.plan = self.planner.make_plan(state, 0)
             self.current_observation = CartPoleObservation()
             if len(self.plan) == 0:
                 self.plan_idx = 999
 
         if self.plan_idx >= self.replan_idx:
             self.meta_model.constant_numeric_fluents['time_limit'] = max(0.02, min(4.0, round((4.0 - ((self.steps) * 0.02)), 2)))
-            new_plan = self.planner.make_plan(observation, 0)
+            new_plan = self.planner.make_plan(state, 0)
             self.current_observation = CartPoleObservation()
             if len(new_plan) != 0:
                 self.plan = new_plan
@@ -87,7 +87,7 @@ class CartpoleHydraAgent(HydraAgent):
         self.plan_idx += 1
         self.steps += 1
         self.current_observation.actions.append(action)
-        self.current_observation.states.append(observation)
+        self.current_observation.states.append(state)
 
         label = self.action_to_label(action)
         return label
@@ -135,6 +135,8 @@ class RepairingCartpoleHydraAgent(CartpoleHydraAgent):
     def novelty_detection(self):
         ''' Computes the likelihood that the current observation is novel '''
         last_observation = self.observations_list[-1]
+        novelty_likelihood = 0
+        novelty_characterization = {}
 
         if self.should_repair(last_observation):
             novelty_characterization, novelty_likelihood = self.repair_meta_model(last_observation)
@@ -144,6 +146,30 @@ class RepairingCartpoleHydraAgent(CartpoleHydraAgent):
 
         return novelty_likelihood, novelty_characterization
 
+    def _update_meta_model_with_novelty_info(self):
+        ''' Update self.meta_model with the given novelty info '''
+        new_repairable_constants = []
+        new_repair_delta = []
+        for repair_env_param, repair_value in self.novelty_info.items():
+            if repair_env_param not in ENV_PARAM_TO_FLUENT:
+                self.log.info(f"Repair env parameter {repair_env_param} is not mapped to any fluent in the PDDL+ model")
+                continue  # Repairable constant is not a known fluent in our PDDL+
+            repair_fluent_name = ENV_PARAM_TO_FLUENT[repair_env_param]
+            for i, repair_constant in enumerate(self.meta_model.repairable_constants):
+                if repair_fluent_name == repair_constant:
+                    new_repairable_constants.append(repair_fluent_name)
+
+                    # Set the constant value of the repairable meta model, if we have it
+                    if repair_value is not None:
+                        original_value = self.meta_model.constant_numeric_fluents[repair_fluent_name]
+                        repair_delta = abs(original_value - repair_value)  # Delta must be positive
+                    else:
+                        repair_delta = self.meta_model.repair_deltas[i]
+                    new_repair_delta.append(repair_delta)
+        # Set the repair constants and deltas in the meta model
+        self.meta_model.repairable_constants = new_repairable_constants
+        self.meta_model.repair_deltas = new_repair_delta
+
     def repair_meta_model(self, last_observation):
         ''' Repair the meta model based on the last observation '''
         novelty_characterization = dict()
@@ -151,31 +177,9 @@ class RepairingCartpoleHydraAgent(CartpoleHydraAgent):
             # If novelty info exists, this provides hints for what the repair should be
             if self.novelty_info is not None:
                 self.log.info(f"Identified novelty info {self.novelty_info} - adapt meta-model repair accordingly")
-                new_repairable_constants = []
-                new_repair_delta = []
-                for repair_env_param, repair_value in self.novelty_info.items():
-                    if repair_env_param not in ENV_PARAM_TO_FLUENT:
-                        logging.info(f"Repair env parameter {repair_env_param} is not mapped to any fluent in the PDDL+ model")
-                        continue # Repairable constant is not a known fluent in our PDDL+
-                    repair_fluent_name = ENV_PARAM_TO_FLUENT[repair_env_param]
-                    for i, repair_constant in enumerate(self.meta_model.repairable_constants):
-                        if repair_fluent_name == repair_constant:
-                            new_repairable_constants.append(repair_fluent_name)
-
-                            # Set the constant value of the repairable meta model, if we have it
-                            if repair_value is not None:
-                                original_value = self.meta_model.constant_numeric_fluents[repair_fluent_name]
-                                repair_delta = abs(original_value - repair_value) # Delta must be positive
-                            else:
-                                repair_delta = self.meta_model.repair_deltas[i]
-                            new_repair_delta.append(repair_delta)
-                # Set the repair constants and deltas in the meta model
-                self.meta_model.repairable_constants = new_repairable_constants
-                self.meta_model.repair_deltas = new_repair_delta
+                self._update_meta_model_with_novelty_info()
 
             # Set the repair constants and deltas in the meta_model_repair object
-            self.meta_model_repair.fluents_to_repair = list(self.meta_model.repairable_constants)
-            self.meta_model_repair.repair_deltas = list(self.meta_model.repair_deltas)
             repair, consistency = self.meta_model_repair.repair(self.meta_model, last_observation,
                                                            delta_t=settings.CP_DELTA_T)
             self.log.info("Repaired meta model (repair string: %s)" % repair)
@@ -183,7 +187,7 @@ class RepairingCartpoleHydraAgent(CartpoleHydraAgent):
             if nonzero:
                 novelty_likelihood = 1.0
                 self.has_repaired = True
-                novelty_characterization = json.dumps(dict(zip(self.meta_model_repair.fluents_to_repair, repair)))
+                novelty_characterization = self.meta_model_repair.get_repair_as_json(repair)
             elif consistency > settings.CP_CONSISTENCY_THRESHOLD:
                 novelty_likelihood = 1.0
                 novelty_characterization = json.dumps({'Unknown novelty': 'no adjustments made'})
@@ -192,7 +196,7 @@ class RepairingCartpoleHydraAgent(CartpoleHydraAgent):
                 novelty_characterization = {}
             self.consistency_scores.append(consistency)
         except Exception as err:
-            logging.exception(err)
+            self.log.exception(err)
             pass
         return novelty_characterization, novelty_likelihood
 
@@ -220,8 +224,8 @@ class CartpoleHydraAgentObserver(WSUObserver):
         if "novelty_info" in dir(self.agent):
             self.agent.novelty_info = novelty_info
 
-        observation = self.agent.feature_vector_to_observation(feature_vector)
+        state = self.agent.feature_vector_to_observation(feature_vector)  # TODO: Rename this function to feature_vector_to_state to avoid confusion with CartpoleObservation
 
-        action = self.agent.choose_action(observation)
+        action = self.agent.choose_action(state)
         self.log.debug("Testing instance: sending action={}".format(action))
         return action

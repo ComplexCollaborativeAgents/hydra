@@ -18,7 +18,7 @@ import agent.planning.nyx.semantic_attachments as semantic_attachments
 
 import logging
 logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
-logger = logging.getLogger("Polycraft")
+logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 class Planner:

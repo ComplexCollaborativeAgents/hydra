@@ -475,7 +475,7 @@ class RepairingSBHydraAgent(SBHydraAgent):
             agent_stats = list()
         settings.NOVELTY_POSSIBLE = True
         self.revision_attempts = 0
-        self.meta_model_repair = ScienceBirdsMetaModelRepair(self.meta_model)
+        self.meta_model_repair = ScienceBirdsMetaModelRepair()
 
     def reinit(self):
         super().reinit()
@@ -505,7 +505,6 @@ class RepairingSBHydraAgent(SBHydraAgent):
         self.process_final_observation()
         super().handle_game_lost()
 
-
     def handle_game_playing(self, observation, raw_state):
         """ Handle what happens when the agent receives a PLAYING request"""
         last_obs = self.find_last_obs()
@@ -534,8 +533,7 @@ class RepairingSBHydraAgent(SBHydraAgent):
         start_repair_time = time.time()
         try:
             repair, consistency = self.meta_model_repair.repair(self.meta_model, last_obs)
-            repair_description = ["Repair %s, %.2f" % (fluent, repair[i])
-                                  for i, fluent in enumerate(self.meta_model_repair.fluents_to_repair)]
+            repair_description = self.meta_model_repair.get_repair_description(repair)
             logger.info(
                 "Repair done! Consistency: %.2f, Repair:\n %s" % (consistency, "\n".join(repair_description)))
         except:
