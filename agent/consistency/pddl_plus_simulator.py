@@ -25,6 +25,7 @@ class PddlPlusSimulator():
 
     def __init__(self, allow_cascading_effects=True):
         self.allow_cascading_effects = allow_cascading_effects
+        self.ignore_failed_actions = True # If this is true, the simulation will stop properly when simulated actions cannot be applied. If false, an InconsistentPlanError will be thrown.
 
     ''' Return a list of (values_dict,t) pairs, where value_dict is a dictionary
      with the values of the fluents at time t, according to the given trace '''
@@ -69,9 +70,12 @@ class PddlPlusSimulator():
         trace_item[TI_WORLD_CHANGES] = world_changes_at_t
 
         still_active = True
-        while still_active and t<max_t and t/self.delta_t<max_iterations:
-            still_active, t = self._sim_step(current_state, t)
-
+        try:
+            while still_active and t<max_t and t/self.delta_t<max_iterations:
+                still_active, t = self._sim_step(current_state, t)
+        except InconsistentPlanError as e: # Sometimes the repair makes the executed plan be inconsistent #TODO: Discuss this
+            if self.ignore_failed_actions==False:
+                raise e
         return current_state, t, self.trace
 
     ''' Simulate a single step '''
