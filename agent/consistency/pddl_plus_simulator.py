@@ -124,8 +124,7 @@ class PddlPlusSimulator:
         trace_item = [None, None, None]
         trace_item[TI_STATE] = current_state.clone()
         trace_item[TI_T] = t
-        trace_item[
-            TI_WORLD_CHANGES] = world_changes_at_t  # Actions, events, and process, performed in this (state,time) pair
+        trace_item[TI_WORLD_CHANGES] = world_changes_at_t  # Actions, events, and process, performed in this (state,time) pair
         self.trace.append(trace_item)
         # Stopping condition
         if len(active_processes) > 0:

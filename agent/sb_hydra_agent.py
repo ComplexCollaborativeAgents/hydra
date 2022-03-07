@@ -24,9 +24,11 @@ from agent.hydra_agent import HydraAgent
 logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("hydra_agent")
 
+from agent.reward_estimation.reward_estimator import RewardEstimator
+import pickle
+
 # Flags from ANU
-# NOVELTY_EXISTENCE_NOT_GIVEN = -1
-# The self.novelty_existence value indicating that novelty detection is not given by the environment
+NOVELTY_EXISTENCE_NOT_GIVEN = -1 # The self.novelty_existance value indicating that novelty detection is not given by the environment
 
 # stats_per_level dictionary keys
 # NN_PROB = "nn_novelty_likelihood" this originally was the state-based detector written by UPenn
@@ -153,11 +155,13 @@ class SBHydraAgent(HydraAgent):
 
         while True:
 
+            # TODO: figure out a way of restarting the level or bypassing the dead bird in the observation
+
             observation = ScienceBirdsObservation()  # Create an observation object to track on what happend
             raw_state = self.env.get_current_state()
 
             if raw_state.game_state.value == GameState.PLAYING.value:
-                self.env.sb_client.batch_ground_truth(10, 1)
+                self.env.sb_client.batch_ground_truth(1, 1)
                 raw_state = self.env.get_current_state()
                 self.handle_game_playing(observation, raw_state)
                 if settings.NOVELTY_POSSIBLE:
@@ -437,6 +441,25 @@ class SBHydraAgent(HydraAgent):
 
         processed_state = self.perception.process_state(raw_state)
         observation.state = processed_state
+
+        # # Track movement of external agents in comparison with birds (flat shot: v_bird ~= vx_bird)
+        # problem = self.meta_model.create_pddl_problem(processed_state)
+        # pddl_state = PddlPlusState(problem.init)
+        # default_time = self.meta_model.angle_to_action_time(10, pddl_state)
+        # tim_act = TimedAction("pa-twang blueBird_-336", default_time)
+        # sb1_action = self.meta_model.create_sb_action(tim_act, processed_state)
+        # st = time.time()
+        # self.env.sb_client.fast_shoot(sb1_action.ref_x+sb1_action.dx, sb1_action.ref_y+sb1_action.dy, 0, sb1_action.tap, settings.SB_GT_FREQ)
+        # interstates = self.env.sb_client.batch_ground_truth(1, 100)
+        # en = time.time() - st
+        # magi_coords = []
+        # blu_coords = []
+        # for ob in interstates:
+        #     magi0_polygon = copy.deepcopy(self.perception.process_state(SBState(ob, None, None)).objects['-2738']['polygon'])
+        #     blu0_polygon = copy.deepcopy(self.perception.process_state(SBState(ob, None, None)).objects['-336']['polygon'])
+        #     magi_coords.append(round(abs(magi0_polygon.bounds[2] + magi0_polygon.bounds[0]) / 2))
+        #     blu_coords.append(round(abs(blu0_polygon.bounds[2] + blu0_polygon.bounds[0]) / 2))
+
         self.choose_action(observation)
 
     def choose_action(self, observation: ScienceBirdsObservation):
@@ -648,7 +671,7 @@ class RepairingSBHydraAgent(SBHydraAgent):
 
             # Check if we should repair
             logger.info("checking for repair...")
-            should_repair = self._need_to_repair  # self.should_repair(last_obs)
+            should_repair = self.should_repair(last_obs)
             print("Should repair is {}".format(should_repair))
             if should_repair and (settings.NO_REPAIR == False):
                 self.repair_meta_model(last_obs)

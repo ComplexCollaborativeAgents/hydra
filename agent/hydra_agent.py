@@ -30,10 +30,8 @@ class HydraAgent:
     """ A superclass of all the Hydra agents """
     def __init__(self, planner : HydraPlanner,
                  meta_model_repair : MetaModelRepair):
-
         if planner is not None:
             self.meta_model = planner.meta_model
-
         self.planner = planner
         self.meta_model_repair = meta_model_repair
         self.observations_list = []

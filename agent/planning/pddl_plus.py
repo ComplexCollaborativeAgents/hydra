@@ -6,12 +6,11 @@ Using code from https://norvig.com/lispy.html by Peter Norvig
 from enum import Enum
 from collections import defaultdict
 
-'''
-Return a numeric fluent from the list of fluents
-'''
-
 
 def get_numeric_fluent(fluent_list, fluent_name):
+    """
+    Return a numeric fluent from the list of fluents
+    """
     for fluent in fluent_list:
         if fluent[
             0] == "=":  # Note: I intentionally not added an AND with the next if, to not fall for cases where len(fluent)==1
@@ -20,22 +19,18 @@ def get_numeric_fluent(fluent_list, fluent_name):
     raise ValueError("Fluent %s not found in list" % fluent_name)
 
 
-'''
-Return the value of a given numeric fluent name
-'''
-
-
 def get_numeric_fluent_value(fluent):
+    """
+    Return the value of a given numeric fluent name
+    """
     return fluent[-1]
 
 
-'''
-A fluent is defined by a identifier and a set of objects. 
-Two fluent names are equal if these are equal.  
-'''
-
-
 def fluents_names_equals(fluent_name1, fluent_name2):
+    """
+    A fluent is defined by a identifier and a set of objects.
+    Two fluent names are equal if these are equal.
+    """
     if len(fluent_name1) != len(fluent_name2):
         return False
     for i in range(len(fluent_name1)):
@@ -50,10 +45,11 @@ class WorldChangeTypes(Enum):
     action = 3
 
 
-''' A class that represents an event, process, or action'''
+
 
 
 class PddlPlusWorldChange():
+    """ A class that represents an event, process, or action"""
     def __init__(self, type: WorldChangeTypes):
         self.name = None
         self.type = type
@@ -103,9 +99,10 @@ class PddlPlusProblem():
             return False
         return True
 
-    ''' Get the initial state in PDDL+ format'''
+
 
     def get_init_state(self):
+        """ Get the initial state in PDDL+ format"""
         return PddlPlusState(self.init)
 
 
@@ -463,10 +460,11 @@ def is_float(text: str):
         return False
 
 
-''' Check if the given string is one of the supported mathematical operations '''
 
 
 def is_op(op_name: str):
+    """ Check if the given string is one of the supported mathematical operations """
+
     if op_name in ("+-/*=><"):
         return True
     elif op_name == "<=" or op_name == ">=":

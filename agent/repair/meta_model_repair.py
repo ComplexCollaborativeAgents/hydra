@@ -168,9 +168,9 @@ class GreedyBestFirstSearchMetaModelRepair(SimulationBasedMetaModelRepair):
             for new_repair in new_repairs:
 
                 # Check if reached the timeout
-                # if time.time() - start_time > self.time_limit:
-                #     timeout = True
-                #     break
+                if time.time() - start_time > self.time_limit:
+                    timeout = True
+                    break
 
                 new_repair_tuple = tuple(new_repair)
                 if new_repair_tuple not in generated_repairs:  # If  this is a new repair

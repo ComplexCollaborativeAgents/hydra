@@ -100,16 +100,18 @@ def diff_directories(a, b):
     difference = [d for d in difference if any(d.iterdir())]
     if len(difference) == 1:
         return difference.pop()
-    else:
+    elif len(difference) > 1:
         difference.sort(key=lambda d: time.ctime(os.path.getctime(d)), reverse=True)
         return difference[0]
-
-    return None
+    else:
+        return None
 
 
 @contextlib.contextmanager
-def run_agent(config, agent, agent_stats=list()):
+def run_agent(config, agent, agent_stats=None):
     """ Run science birds and the hydra agent. """
+    if agent_stats is None:
+        agent_stats = list()
     env = sb.ScienceBirds(None, launch=True, config=config)
 
     if agent == AgentType.Hydra:
