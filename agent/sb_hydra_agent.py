@@ -163,7 +163,7 @@ class SBHydraAgent(HydraAgent):
                 if settings.NOVELTY_POSSIBLE:
                     self.num_objects = len(raw_state.objects[0]['features'])
                     # print("number of objects is {}".format(self.num_objects))
-                    # self._record_novelty_indicators(observation)
+                    self._record_novelty_indicators(observation)
             elif raw_state.game_state.value == GameState.WON.value:
                 self.handle_game_won()
             elif raw_state.game_state.value == GameState.LOST.value:

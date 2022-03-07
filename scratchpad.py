@@ -14,12 +14,15 @@ from agent.planning.nyx.nyx import runner
 from runners.run_sb_stats import AgentType
 from settings import EXPERIMENT_NAME
 
-experiment_names = ['bfs0', 'gbfs5'] #  'dfs0', 'gbfs2', , 'gbfs11', 'helpful_actions']
+our_agent = ['bfs0', 'dfs0', 'gbfs2', 'gbfs5', 'gbfs5a',  'gbfs11', 'helpful_actions'] #     ]
+baseline_agents = ['Baseline', 'Datalab', 'Eaglewings']
+experiment_names = our_agent.copy()
+experiment_names.extend(baseline_agents.copy())
 
-folder = 'runners/' #latest_data/working heuristic/25 levels'
+folder = 'runners/latest_data/25 levels working heuristic' #' #working heuristic/25 levels'
 
 NOVELTY = 0
-level_nums = [222, 225, 236, 245, 246, 253, 254, 257] #, 555]  # 226,243, 252,
+level_nums = [222, 225, 236, 245, 246, 253, 254, 257, 555]  # 226,243, 252,
 
 novelties = {NOVELTY: level_nums}
 
@@ -33,35 +36,57 @@ for novelty, types in novelties.items():
 
         for experiment_name in experiment_names:
 
-            filename = "stats_{}_novelty{}_type{}_agent{}".format(experiment_name, novelty, novelty_type,
-                                                                  AgentType.RepairingHydra.name)
-            filename = "{}/{}.json".format(folder, filename)
-            with open(filename, 'r') as jf:
-                stats = json.load(jf)
-                stats_per_level = {'passed': 0, 'solved': 0, 'default shot': 0}
-                sum_time = 0
-                nodes_opened = []
-                for entry in stats['levels']:
-                    if entry.get('Default action used'):
-                        stats_per_level['default shot'] += 1
-                    else:
-                        stats_per_level['solved'] += 1
-                        if entry['status'] == 'Pass':
-                            stats_per_level['passed'] += 1
-                    if entry.get('planning times'):
-                        sum_time += sum(entry['planning times']) / sum(entry['birds'].values())
-                        nodes_opened.append(sum(entry['expanded nodes']) / sum(entry['birds'].values()))
-                # stats_per_level['avg planning time'] = sum_time / len(stats['levels'])
-                stats_per_level['total time taken'] = sum_time
-                stats_per_level['median expanded nodes'] = np.average(nodes_opened)
-                stats_per_level['avg nodes per second'] = sum(nodes_opened) / sum_time
+            if experiment_name in our_agent:
 
-                overall_stats[experiment_name][novelty_type] = stats_per_level
+                filename = "stats_{}_novelty{}_type{}_agent{}".format(experiment_name, novelty, novelty_type,
+                                                                      AgentType.RepairingHydra.name)
+                filename = "{}/{}.json".format(folder, filename)
+                with open(filename, 'r') as jf:
+                    stats = json.load(jf)
+                    stats_per_level = {'passed': 0, 'solved': 0, 'solved_passed': 0, 'default shot': 0}
+                    sum_time = 0
+                    nodes_opened = []
+                    for entry in stats['levels']:
+                        if entry.get('Default action used'):
+                            stats_per_level['default shot'] += 1
+                        else:
+                            stats_per_level['passed'] += 1
+                            if entry['status'] == 'Pass':
+                                stats_per_level['solved_passed'] += 1
+                        if entry.get('planning times'):
+                            sum_time += sum(entry['planning times']) / sum(entry['birds'].values())
+                            nodes_opened.append(sum(entry['expanded nodes']) / sum(entry['birds'].values()))
+                    # stats_per_level['avg planning time'] = sum_time / len(stats['levels'])
+                    stats_per_level['total time taken'] = sum_time
+                    stats_per_level['average expanded nodes'] = np.average(nodes_opened)
+                    stats_per_level['avg nodes per second'] = sum(nodes_opened) / sum_time
+
+            else:
+                filename = "stats_{}_novelty{}_type{}_agent{}".format(experiment_name, novelty, novelty_type,
+                                                                      experiment_name)
+                filename = "{}/{}.json".format(folder, filename)
+                with open(filename, 'r') as jf:
+                    stats = json.load(jf)
+                    stats_per_level = {'passed': stats['overall']['passed']}
+
+            overall_stats[experiment_name][novelty_type] = stats_per_level
+
+plt.title('Levels passed ')
+print('passed\n, ' + ','.join(str(lev) for lev in level_nums))
+for experiment_name in experiment_names:
+    passed = [overall_stats[experiment_name][i]['passed'] for i in level_nums]
+    print(experiment_name + ', ' + ','.join(str(lev) for lev in passed))
+    plt.plot([str(t) for t in level_nums], [passed[i] for i in range(len(passed))], '*')
+ax = plt.gca()
+ax.set_xlabel('level type')
+ax.legend(experiment_names)
+plt.show()
+
 
 plt.title('Levels solved and passed ')
 print('passed that were also solved\n, ' + ','.join(str(lev) for lev in level_nums))
-for experiment_name in experiment_names:
-    passed = [overall_stats[experiment_name][i]['passed'] for i in level_nums]
+for experiment_name in our_agent:
+    passed = [overall_stats[experiment_name][i]['solved_passed'] for i in level_nums]
     print(experiment_name + ', ' + ','.join(str(lev) for lev in passed))
     plt.plot([str(t) for t in level_nums], [passed[i] for i in range(len(passed))], '*')
 ax = plt.gca()
@@ -73,52 +98,52 @@ plt.show()
 plt.figure()
 plt.title('Levels solved')
 print('\nsolved\n, ' + ','.join(str(lev) for lev in level_nums))
-for experiment_name in experiment_names:
+for experiment_name in our_agent:
     solved = [overall_stats[experiment_name][i]['solved'] for i in level_nums]
     print(experiment_name + ', ' + ','.join(str(lev) for lev in solved))
     plt.plot([str(t) for t in level_nums], [solved[i] for i in range(len(solved))], '*')
 ax = plt.gca()
 ax.set_xlabel('level type')
-ax.legend(experiment_names)
+ax.legend(our_agent)
 plt.show()
 
 
 plt.figure()
-plt.title('Median nodes expanded')
-print('\nmedian nodes expanded\n, ' + ','.join(str(lev) for lev in level_nums))
-for experiment_name in experiment_names:
-    expanded = [overall_stats[experiment_name][i]['median expanded nodes'] for i in level_nums]
+plt.title('Average nodes expanded')
+print('\naverage nodes expanded\n, ' + ','.join(str(lev) for lev in level_nums))
+for experiment_name in our_agent:
+    expanded = [overall_stats[experiment_name][i]['average expanded nodes'] for i in level_nums]
     print(experiment_name + ', ' + ','.join(str(lev) for lev in expanded))
     plt.plot([str(t) for t in level_nums], [expanded[i] for i in range(len(expanded))], '*')
 ax = plt.gca()
 ax.set_xlabel('level type')
-ax.legend(experiment_names)
+ax.legend(our_agent)
 plt.show()
 
 
 plt.figure()
 plt.title('Nodes per second')
 print('\nnodes per second\n, ' + ','.join(str(lev) for lev in level_nums))
-for experiment_name in experiment_names:
+for experiment_name in our_agent:
     ex_per_sec = [overall_stats[experiment_name][i]['avg nodes per second'] for i in level_nums]
     print(experiment_name + ', ' + ','.join(str(lev) for lev in ex_per_sec))
     plt.plot([str(t) for t in level_nums], [ex_per_sec[i] for i in range(len(ex_per_sec))], '*')
 ax = plt.gca()
 ax.set_xlabel('level type')
-ax.legend(experiment_names)
+ax.legend(our_agent)
 plt.show()
 
 
 plt.figure()
 plt.title('total time taken')
 print('\ntotal time taken\n, ' + ','.join(str(lev) for lev in level_nums))
-for experiment_name in experiment_names:
+for experiment_name in our_agent:
     ex_per_sec = [overall_stats[experiment_name][i]['total time taken'] for i in level_nums]
     print(experiment_name + ', ' + ','.join(str(lev) for lev in ex_per_sec))
     plt.plot([str(t) for t in level_nums], [ex_per_sec[i] for i in range(len(ex_per_sec))], '*')
 ax = plt.gca()
 ax.set_xlabel('level type')
-ax.legend(experiment_names)
+ax.legend(our_agent)
 plt.show()
 
 

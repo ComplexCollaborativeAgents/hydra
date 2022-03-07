@@ -1,17 +1,18 @@
 #!/usr/bin/env python
 # Four spaces as indentation [no tabs]
-import bisect
 import collections
+import copy
+import time
 import matplotlib.pyplot as plt
-from hmac import new
 
-import agent.planning.nyx.heuristic_functions as heuristic_functions
-from agent.planning.nyx.PDDL import PDDL_Parser
-import settings
+import agent.planning.nyx.semantic_attachments as semantic_attachments
 import agent.planning.nyx.syntax.constants as constants
-import time, copy
-from agent.planning.nyx.syntax.visited_state import VisitedState
+import settings
+from agent.planning.nyx.PDDL import PDDL_Parser
+from agent.planning.nyx.heuristic_functions import get_heuristic_function, SBHelpfulAngleHeuristic, SBOneBirdHeuristic, get_active_bird_string
+from agent.planning.nyx.openlist import BFSList, DFSList, PreferredList, AlternatingList, PriorityList
 from agent.planning.nyx.syntax.state import State
+from agent.planning.nyx.syntax.visited_state import VisitedState
 
 # (NOT AVAILABLE YET ON MASTER BRANCH)
 import agent.planning.nyx.semantic_attachments.semantic_attachment as semantic_attachment
@@ -22,21 +23,14 @@ class Planner:
     # Solve
     #-----------------------------------------------
 
-    # initial_state = None
-    # reached_goal_state = None
-    # explored_states = 0
-    # # total_visited = 0
-    # queue = []
-    # visited_hashmap = {}
-
     def __init__(self):
         self.initial_state = None
         self.reached_goal_states = collections.deque(maxlen=constants.TRACKED_PLANS)
         self.explored_states = 0
         # self.total_visited = 0
-        self.queue = collections.deque()
         self.visited_hashmap = {}
-
+        self.queue = self._get_open_list()  # TODO get this parameter in some normal way
+        self.heuristic = get_heuristic_function(constants.CUSTOM_HEURISTIC_ID) # TODO get this parameter in some normal way
 
     def solve(self, domain, problem):
 
@@ -47,10 +41,20 @@ class Planner:
         # Parser
         parser = PDDL_Parser(domain, problem)
         grounded_instance = parser.grounded_instance
+        if constants.SB_W_HELPFUL_ACTIONS:
+            self.heuristic = SBHelpfulAngleHeuristic(blocking_blocks=True)
+            pref_list = PreferredList(PriorityList(), self.heuristic)
+            self.queue = AlternatingList([pref_list, PriorityList()])
+        else:
+            self.heuristic = get_heuristic_function(constants.CUSTOM_HEURISTIC_ID, groundedPPDL=grounded_instance)  # TODO get this parameter in some normal way
         # Parsed data
         state = grounded_instance.init_state
         self.initial_state = grounded_instance.init_state
-        heuristic_functions.h_list[constants.CUSTOM_HEURISTIC_ID].notify_initial_state(state)
+        if type(self.heuristic) is list:
+            for h in self.heuristic:
+                h.notify_initial_state(state)
+        else:
+            self.heuristic.notify_initial_state(state)
 
         print("\t* model parse time: " + str("{:5.4f}".format(time.time() - start_solve_time)) + "s")
         print('\n=================================================\n')
@@ -60,12 +64,12 @@ class Planner:
 
         # Search
         self.visited_hashmap[hash(VisitedState(state))] = VisitedState(state)
-        self.queue = collections.deque([state])
+        self.queue.push(state)
         while self.queue:
-            state = self.queue.popleft()
+            state = self.queue.pop()
             self.explored_states += 1
             if constants.PLOT_BIRD_NODE_ORDER:
-                active_bird_string = heuristic_functions.get_active_bird_string(state)
+                active_bird_string = get_active_bird_string(state)
                 if active_bird_string is None:
                     node_bird_data.append((98, 19))
                 else:
@@ -149,37 +153,32 @@ class Planner:
                     self.plot_node_expasion(node_bird_data)
                 return None
 
+        # logger.info(f"Open list exhausted. Found {len(self.reached_goal_states)} plans")
         if constants.PLOT_BIRD_NODE_ORDER:
             self.plot_node_expasion(node_bird_data)
         return None
 
-
-
     def enqueue_state(self, n_state):
-        if constants.SEARCH_BFS:
-            self.queue.append(n_state)
-        elif constants.SEARCH_DFS:
-            self.queue.appendleft(n_state)
-        elif constants.SEARCH_GBFS:
-            n_state.h = heuristic_functions.heuristic_function(n_state)
-            ''' changing enqueue to bisect.insort ==> needs performance comparison '''
-            # self.queue.insert(0, n_state)
-            # self.queue = sorted(self.queue, key=lambda elem: (elem.h))
-
-            bisect.insort(self.queue, n_state)
-
-            # self.queue.insert(bisect.bisect_left(self.queue, n_state), n_state)
-
-            # self.queue.appendleft(n_state)
-            # self.queue = collections.deque(sorted(self.queue, key=lambda elem: (elem.h)))
-
-        elif constants.SEARCH_ASTAR:
-            n_state.h = heuristic_functions.heuristic_function(n_state)
-            self.queue.appendleft(n_state)
-            self.queue = collections.deque(sorted(self.queue, key=lambda elem: (elem.h + elem.g)))
+        if type(self.heuristic) is list:
+            for h in self.heuristic:
+                h.evaluate(n_state)
+        else:
+            self.heuristic.evaluate(n_state)
+        self.queue.push(n_state)
 
         if constants.PRINT_ALL_STATES:
             print(n_state)
+
+    def _get_open_list(self):
+        if constants.SEARCH_ASTAR:
+            return PriorityList()
+        elif constants.SEARCH_DFS:
+            return DFSList()
+        elif constants.SEARCH_GBFS:
+            return PriorityList(Astar=False)
+        else:
+            # defalut to BFS
+            return BFSList()
 
 
     def enqueue_goal(self, n_state):
@@ -205,8 +204,9 @@ class Planner:
         curr_v_state = VisitedState(sstate)
 
         while curr_v_state.state.predecessor_action is not None:
-            plan.insert(0, (curr_v_state.state.predecessor_action, curr_v_state.state))
+            plan.append((curr_v_state.state.predecessor_action, curr_v_state.state))
             curr_v_state = self.visited_hashmap[curr_v_state.state.predecessor_hashed]
+        plan.reverse()
         return plan
 
     def plot_node_expasion(self, bird_xy):

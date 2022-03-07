@@ -101,8 +101,8 @@ class ClientNaiveAgent(Thread):
         self.if_check_gt = False
 
         #load model coef
-        self.model = np.loadtxt("model",delimiter=",")
-        self.target_class = list(map(lambda x : x.replace("\n", ""),open('target_class').readlines()))
+        self.model = np.loadtxt("../worlds/science_birds_interface/model",delimiter=",")
+        self.target_class = list(map(lambda x : x.replace("\n", ""),open('../worlds/science_birds_interface/target_class').readlines()))
         #self._logger = logging.getLogger("ClientNaiveAgent") remove for updated logger version
 
     def sample_state(self, request = RequestCodes.GetNoisyGroundTruthWithScreenshot, frequency = 0.5):
@@ -348,7 +348,7 @@ class ClientNaiveAgent(Thread):
             elif state == GameState.EVALUATION_TERMINATED:
                 #store info and disconnect the agent as the evaluation is finished
                 self.logger.critical("Evaluation terminated.")
-                exit(0)
+                return
     def _update_reader(self, dtype, if_check_gt=False):
         '''
         update the ground truth reader with 4 different types of ground truth if the ground truth is vaild

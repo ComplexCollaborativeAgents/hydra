@@ -115,7 +115,6 @@ class SBOneBirdHeuristic(AbstractHeuristic):
     LARGE_VALUE = 999999
 
     def __init__(self):
-        self.initialized = False
         self.targets_x_keys = {}
         self.targets_x = {}
         self.pig_x_keys = {}
@@ -133,7 +132,6 @@ class SBOneBirdHeuristic(AbstractHeuristic):
 
     def notify_initial_state(self, node):
         self._generate_keys(node)
-        self.initialized = True
         return self.evaluate(node)
 
     def evaluate(self, node):
@@ -143,8 +141,7 @@ class SBOneBirdHeuristic(AbstractHeuristic):
         # white: modeled as "shoots straight down when tapped". Remove "passes over everything" check.
         # Blue: adding a 20% margin to the bounding box is probably pretty good. TODO: Some experimentation can narrow
         #                                                                           that to a more accurate number.
-        if not self.initialized:
-            self.notify_initial_state(node)
+
         active_bird_string = get_active_bird_string(node)
         if active_bird_string is None:
             if node.predecessor_action == constants.TIME_PASSING_ACTION:
@@ -195,6 +192,7 @@ class SBOneBirdHeuristic(AbstractHeuristic):
             return node.h
         else:
             return 0
+            # This entire next sectoin turns out to be detrimental to winning
             # Find type of bird
             bird_type = node.state_vars["['bird_type'" + active_bird_string]
             BIRD_RED = 0
@@ -408,8 +406,6 @@ class SBBlockedPigsHeuristic(SBOneBirdHeuristic):
     def evaluate(self, node):
         # find which pigs are still alive
         # go through list of suspicious blocks and sum ones that are still sus
-        if not self.initialized:
-            self.notify_initial_state(node)
         h_value = 0
         live_pigs = []
         for pig_id, pig_dead_key in self.pig_dead_keys.items():
@@ -443,7 +439,7 @@ class SBHelpfulAngleHeuristic(SBBlockedPigsHeuristic):
         SBBlockedPigsHeuristic.__init__(self, blocks_under_pig=blocking_blocks)
         self.x_0, self.y_0 = 0, 0
         self.g = 9.81
-        self.deviation = ComparableInterval[-7, 7]  # TODO: find reasonable values
+        self.deviation = ComparableInterval[-3, 3]  # TODO: find reasonable values
         self.trajectories = set()  # What are they? a set of lists of states? Just a set of states?
 
     evaluate = SBOneBirdHeuristic.evaluate
@@ -451,7 +447,7 @@ class SBHelpfulAngleHeuristic(SBBlockedPigsHeuristic):
     def notify_initial_state(self, node: State):
         SBBlockedPigsHeuristic._generate_keys(self, node)
         first_bird = get_active_bird_string(node)  # For now, use this as x_0, y_0 (should really be the sling)
-        self.x_0, self.y_0 = node.state_vars["['y_bird'" + first_bird], node.state_vars["['x_bird'" + first_bird]
+        self.x_0, self.y_0 = node.state_vars["['x_bird'" + first_bird], node.state_vars["['y_bird'" + first_bird]
         self.g = node.state_vars["['gravity']"]
         initial_velocity = node.state_vars["['v_bird'" + first_bird]
         self._calculate_useful_trajectories(initial_velocity, node)
@@ -518,18 +514,23 @@ class SBHelpfulAngleHeuristic(SBBlockedPigsHeuristic):
         def trajectory_trace(x_0: float, y_0: float, v_x_0: float, v_y_0: float, g: float, x_t: ComparableInterval):
             x_0, y_0, v_x_0, v_y_0, g = round(x_0, 10), round(y_0, 10), round(v_x_0, 10), round(v_y_0, 10), round(g, 10)
             x_t = round(x_t)
-            y_t = (y_0 + x_0 * (v_y_0 / v_x_0) - 0.5 * g * (x_0 ** 2) * (v_x_0 ** -2)) \
-                  + ((v_y_0 / v_x_0) + g * (v_x_0 ** -2)) * x_t - 0.5 * g * (v_x_0 ** -2) * (x_t ** 2)
+            t = (x_t - x_0) / v_x_0
+            y_t = y_0 + v_y_0 * t - 0.5 * g * t ** 2
             return y_t
 
         active_bird_string = get_active_bird_string(node)
+
         if active_bird_string is not None:
+            if not node.state_vars["['bird_released'" + active_bird_string] and node.state_vars["['angle']"] > 0:
+                # Haven't fired yet - want to have all angles available first.
+                # print(node.state_vars["['x_bird'" + active_bird_string] + self.deviation, node.state_vars["['y_bird'" + active_bird_string], node.state_vars["['vx_bird'" + active_bird_string])
+                return True
+            # else
             x_t = node.state_vars["['x_bird'" + active_bird_string] + self.deviation
             y_t = node.state_vars["['y_bird'" + active_bird_string]
             v_x_t = node.state_vars["['vx_bird'" + active_bird_string]
             for v_x_0, v_y_0 in self.trajectories:
                 if v_x_0 in v_x_t + self.deviation and y_t in trajectory_trace(self.x_0, self.y_0, v_x_0, v_y_0, self.g, x_t):
-                    print('preferred state found!')
                     return True
         return False
 

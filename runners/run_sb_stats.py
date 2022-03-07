@@ -7,6 +7,7 @@ import csv
 import json
 import enum
 import collections
+import time
 import xml.etree.ElementTree as ET
 from typing import Optional
 
@@ -40,8 +41,8 @@ class AgentType(enum.Enum):
 
 
 NOVELTY = 0
-TYPE = [222, 225, 236, 245, 246, 253, 254, 257, 555]  # 555, 222, 225, 226, 236, 243, 252,  , 257
-SAMPLES = 25
+TYPE = [222, 225, 236, 245, 246, 253, 254, 257, 555]  #245 555, 222, 225, 226, 236, 243, 252,  , 257
+SAMPLES = 1
 
 AGENT = AgentType.RepairingHydra
 
@@ -96,9 +97,12 @@ def diff_directories(a, b):
         return None
 
     difference = set(b) - set(a)
-    difference = {d for d in difference if any(d.iterdir())}
+    difference = [d for d in difference if any(d.iterdir())]
     if len(difference) == 1:
         return difference.pop()
+    else:
+        difference.sort(key=lambda d: time.ctime(os.path.getctime(d)), reverse=True)
+        return difference[0]
 
     return None
 
@@ -106,7 +110,6 @@ def diff_directories(a, b):
 @contextlib.contextmanager
 def run_agent(config, agent, agent_stats=list()):
     """ Run science birds and the hydra agent. """
-    # try:
     env = sb.ScienceBirds(None, launch=True, config=config)
 
     if agent == AgentType.Hydra:
@@ -116,7 +119,13 @@ def run_agent(config, agent, agent_stats=list()):
         hydra = RepairingSBHydraAgent(env, agent_stats)
         hydra.main_loop(max_actions=10000)
     elif agent == AgentType.Baseline:
-        ground_truth = ClientNaiveAgent(env.id, env.sb_client)
+        naive_config = collections.namedtuple(
+            'NaiveConfig', ['save_logs', 'agent_host', 'agent_port', 'observer_host', 'observer_port'])
+        naive_config.agent_host = env.sb_client.server_host
+        naive_config.agent_port = env.sb_client.server_port
+        naive_config.observer_host = None
+        naive_config.observer_port = None
+        ground_truth = ClientNaiveAgent(str(env.id), naive_config)
         ground_truth.run()
     elif agent == AgentType.Datalab:
         datalab = sb.DatalabAgent()
@@ -373,7 +382,7 @@ def run_performance_stats(novelties: dict,
             post_directories = None
 
             agent_stats = list()
-            print('running agent!')
+            logger.info('running agent!')
             run_agent(config.name, agent_type, agent_stats)  # TODO: Typo?
             post_directories = glob_directories(SB_BIN_PATH, 'Agent*')
 
@@ -533,19 +542,19 @@ def _compute_stats(results, file_suffix):
 if __name__ == '__main__':
     # run_sb_stats(seed=0, record_novelty_stats=True)
 
-    # baseline_agents = [AgentType.Datalab, AgentType.Eaglewings] # AgentType.Baseline,
+    # baseline_agents = [AgentType.Baseline, AgentType.Datalab, AgentType.Eaglewings]  #[] # ,
     # for agent in baseline_agents:
     #     AGENT = agent
     #     settings.EXPERIMENT_NAME = agent.name
     #     run_sb_stats(record_novelty_stats=True)
 
-    #
+
     ICAPS_benchmarks = [
-        ('bfs', '0'),
-        ('dfs', '0'),
-        ('gbfs', '2'),
+        # ('bfs', '0'),
+        # ('dfs', '0'),
+        # ('gbfs', '2'),
         ('gbfs', '5'),
-        ('gbfs', '11')
+        # ('gbfs', '11')
     ]
 
     AGENT = AgentType.RepairingHydra
@@ -556,7 +565,7 @@ if __name__ == '__main__':
         settings.EXPERIMENT_NAME = alg + heuristic
         run_sb_stats(record_novelty_stats=True)
 
-    # constants.SB_W_HELPFUL_ACTIONS = True
-    # settings.SB_ALGO_STRING = 'gbfs'
-    # settings.EXPERIMENT_NAME = 'helpful_actions'
-    # run_sb_stats(record_novelty_stats=True)
+    constants.SB_W_HELPFUL_ACTIONS = True
+    settings.SB_ALGO_STRING = 'gbfs'
+    settings.EXPERIMENT_NAME = 'helpful_actions'
+    run_sb_stats(record_novelty_stats=True)
