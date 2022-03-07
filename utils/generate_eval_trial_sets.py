@@ -2,105 +2,165 @@ import json
 import pathlib
 import random
 import os
+import xml.etree.ElementTree as ET
 
 import settings
 
-NUM_TRIALS = 2
-NUM_LEVELS = 40     # Levels per trial
-LEVELS_BEFORE_NOVELTY = 20   # Levels before novelty is introduced
-SB_BIN_PATH = pathlib.Path(settings.SCIENCE_BIRDS_BIN_DIR) / 'linux'
-NON_NOVELTY_DIR = os.path.join('Levels', 'novelty_level_0')
-NOVELTY_LEVELS = {'novelty_level_1': '1', 'novelty_level_2': '2', 'novelty_level_3': '3', 'novelty_level_22': '22', 'novelty_level_23': '23', 'novelty_level_24': '24', 'novelty_level_25': '25'}
-NOVELTY_TYPES = {"type1": "1", "type2": "2", "type4": "4", "type5": "5", "type6": "6", "type7": "7", "type8": "8", "type9": "9", "type10": "10", "type22": "22", "type23": "23", "type24": "24", "type25": "25"}
-TRIALS_FILENAME = "eval_sb_trials_b4_novelty_{}.json".format(LEVELS_BEFORE_NOVELTY)
+from collections import defaultdict
 
-"""
-Creates a JSON file of trials that have each start with non-novelty levels and transitions into novelty levels
-Intended for 2021 evaluation
-
-Output file format:
-[
-    {   // Trial 1
-        "<Novelty Level>":{
-            "<Novelty Type>":[
-                "level file 1",
-                "level file 2",
-                ...
-            ]
-        },
-    },
-    { // Trial 2
-        ...
-    },
-    ...
+# Types and levels of novelty
+NOVELTY_LEVELS = [
+    'novelty_level_1', 'novelty_level_2', 'novelty_level_3',
+    'novelty_level_22', 'novelty_level_23', 'novelty_level_24', 'novelty_level_25'
+]
+NON_NOVEL_LEVELS = ['novelty_level_0']
+NOVELTY_TYPES = [
+    "type1", "type2", "type4", "type5", "type6", "type7", "type8", "type9", "type10",
+    "type22", "type23", "type24", "type25"
+]
+NON_NOVEL_TYPES = [
+    "type2", "type4", "type5", "type6", "type7", 
+    "type22", "type23", "type24", "type25", "type26",
+    "type222", "type223", "type224", "type225", "type226", "type227",
+    "type232", "type233", "type234", "type235", "type236", "type237",
+    "type242", "type243", "type244", "type245", "type246", "type247",
+    "type252", "type253", "type254", "type255", "type256", "type257"  
 ]
 
-"""
+# Constants
+SB_CONFIG_PATH = pathlib.Path(settings.ROOT_PATH) / 'data' / 'science_birds' / 'config'
+CONFIG_TEMPLATE = SB_CONFIG_PATH / 'test_config.xml'    # Template to build subsequent xml config files off of
+SB_BIN_PATH = pathlib.Path(settings.SCIENCE_BIRDS_BIN_DIR) / 'linux'    # Path to the Science Birds application directory
+NON_NOVELTY_DIR = os.path.join('Levels', 'novelty_level_0')
+
+# Settings
+NUM_TRIALS = 2
+NUM_LEVELS = 40     # Levels per trial
+LEVELS_BEFORE_NOVELTY = 40   # Levels before novelty is introduced
+NOTIFY_NOVELTY = True
+REPETITION = 10   # If not set to None, the same sampled level will be used this many times before another is selected.
+NON_NOVEL_TO_USE = { # level and type of non-novel levels to use
+    'novelty_level_0': [
+        "type222", "type223", "type224", "type225", "type226", "type227",
+        "type232", "type233", "type234", "type235", "type236", "type237",
+        "type242", "type243", "type244", "type245", "type246", "type247",
+        "type252", "type253", "type254", "type255", "type256", "type257"
+        ]
+    }   
+NOVEL_TO_USE = {    # level and type of novel levels to use
+    'novelty_level_1': [
+        'type6'
+    ]
+}   
+OUTPUT_DIR = SB_CONFIG_PATH / 'Phase2'
 
 
 if __name__ == "__main__":
-    trials = []
-    non_novelty_levels = []
+    trials = {}
+    all_levels = {}
 
     novelty_path = ""
 
-    non_novelty_type_dirs = [os.path.join(t, "Levels") for t in os.listdir(SB_BIN_PATH / NON_NOVELTY_DIR)]
+    # Iterate over all non novel levels
+    for non_novelty_level in NON_NOVEL_LEVELS:
+        all_levels[non_novelty_level] = {}
 
-    # Collect non novelty levels
-    for type_dir in non_novelty_type_dirs:
-        type_dir_path = SB_BIN_PATH / NON_NOVELTY_DIR / type_dir
-        for nn_filename in os.listdir(type_dir_path):
-            print("Added {} to non-novelty levels".format(nn_filename))
-            non_novelty_levels.append(os.path.join(NON_NOVELTY_DIR, type_dir, nn_filename))
+        print("Loading levels from non-novelty level {}".format(non_novelty_level))
+        non_novel_path = os.path.join("Levels", non_novelty_level)
+        non_novel_dirs = os.listdir(os.path.join(SB_BIN_PATH, non_novel_path))
+
+        # Collect non novelty levels
+        for non_novel_type in NON_NOVEL_TYPES:
+            if non_novel_type not in non_novel_dirs:
+                # Skip over types not present
+                print("non-novel level {} has no type: {}".format(non_novelty_level, non_novel_type))
+                continue
+
+            pattern = 'Levels/{}/{}/Levels/*.xml'.format(non_novelty_level, non_novel_type)
+            levels = list(SB_BIN_PATH.glob(pattern))
+            all_levels[non_novelty_level][non_novel_type] = []
+
+            for level in levels: # Iterate over all levels of the novelty level and typeå
+                # Add level to set - use shorthand for easier access later
+                all_levels[non_novelty_level][non_novel_type].append(level)
+
+            print("Non novelty {} has {} levels".format(non_novel_type, len(all_levels[non_novelty_level][non_novel_type])))
+
+    for novelty_level in NOVELTY_LEVELS:   # Iterate over all novelty levels
+        all_levels[novelty_level] = {}
+
+        print("Loading levels from novelty level {}".format(novelty_level))
+        
+        novelty_path = os.path.join("Levels", novelty_level)
+        novelty_dirs = os.listdir(os.path.join(SB_BIN_PATH, novelty_path))
+        for novelty_type in NOVELTY_TYPES:  # Iterate over all novelty types
+            if novelty_type not in novelty_dirs:
+                # Skip over types not present
+                print("novel level {} has no type: {}".format(novelty_level, novelty_type))
+                continue
+
+            # dir_path = SB_BIN_PATH / novelty_path / NOVELTY_TYPES[novelty_type] / "Levels"
+            # print("SB: Loading levels from novelty type {} directory {}".format(novelty_type, dir_path))
+
+            pattern = './Levels/{}/{}/Levels/*.xml'.format(novelty_level, novelty_type)
+            levels = list(SB_BIN_PATH.glob(pattern))
+            all_levels[novelty_level][novelty_type] = []
+
+            for level in levels: # Iterate over all levels of the novelty level and typeå
+                # Add level to set - use shorthand for easier access later
+                all_levels[novelty_level][novelty_type].append(level)
+            
+            print("Novelty {} has {} levels".format(novelty_type, len(all_levels[novelty_level][novelty_type])))
 
     # Create trials
-    for trial_num in range(1, NUM_TRIALS):
-        
-        trial = {}
+    for trial_num in range(NUM_TRIALS):
+        for novelty, novel_types in NOVEL_TO_USE.items():
+            for nn_type in NON_NOVEL_TO_USE['novelty_level_0']:
+                # Create a trial for every type
+                for n_type in novel_types:
+                    trial_id = '{}_{}_{}_non-novelty_{}'.format(NUM_LEVELS, novelty, n_type, nn_type)
+                    trials[trial_id] = []
+                    output_filepath = OUTPUT_DIR / "{}.xml".format(trial_id)
 
-        # For every novelty level
-        for novelty_level in NOVELTY_LEVELS:
-            novelty_path = os.path.join("Levels", novelty_level)
-            
-            print("Creating trial set for {}".format(novelty_path))
-            sets = {}
+                    print("Generating trial for {}".format(trial_id))
 
-            # For a novelty type within a novelty level, create a set of trials
-            for novelty_type in NOVELTY_TYPES:
-                trial_levels = []   # list of levels
-                print("Processing trial for type {}, {}".format(novelty_type, novelty_level))
+                    to_add = all_levels['novelty_level_0'][nn_type][0] # placeholder
+                    for level_num in range(NUM_LEVELS):
+                        # Use sampled non-novel level from set of non-novel levels to use
+                        if level_num < LEVELS_BEFORE_NOVELTY:
+                            # Update sampled level to add 
+                            # (if repetition is enabled, only update when repetition count is reached)
+                            if REPETITION is None or (REPETITION is not None and level_num % REPETITION == 0):
+                                index = random.choice(list(range(len(all_levels['novelty_level_0'][nn_type]))))
+                                to_add = all_levels['novelty_level_0'][nn_type].pop(index) 
+                        else:   # Use level sampled from novelty level / type
+                            # Update sampled level to add 
+                            # (if repetition is enabled, only update when repetition count is reached)
+                            if REPETITION is None or (REPETITION is not None and level_num % REPETITION == 0):
+                                index = random.choice(list(range(len(all_levels[novelty][n_type]))))
+                                to_add = all_levels[novelty][n_type].pop(index) 
+                        # finally append the level
+                        trials[trial_id].append(to_add)
 
-                # Check to see if type exists within the level dir
-                if novelty_type not in os.listdir(os.path.join(SB_BIN_PATH, novelty_path)):
-                    print("Novelty type {} not present in {}".format(novelty_type, novelty_path))
-                    continue
+                    # Create xml config file for trial
+                    tree = ET.parse(CONFIG_TEMPLATE)
 
-                dir_path = os.path.join(SB_BIN_PATH, novelty_path, novelty_type, 'Levels')
-                novelty_type_levels = os.listdir(dir_path)
+                    # Set notify novelty flag if applicable
+                    if NOTIFY_NOVELTY:
+                        xpath = './trials/trial'
+                        trial = tree.getroot().find(xpath)
+                        trial.set('notify_novelty', str(NOTIFY_NOVELTY))
 
-                # Populate the trial with levels
-                for index in range(NUM_LEVELS):
-                    next_level = ""
-                    if index < LEVELS_BEFORE_NOVELTY:   # append non novelty
-                        next_index = random.randrange(len(non_novelty_levels))
-                        next_level = non_novelty_levels[next_index]    # Pop random level from non novelty level
-                        print("Appending non-novelty level {}".format(next_level))
-                    else:   # append novelty
-                        next_index = random.randrange(len(novelty_type_levels))
-                        next_level = os.path.join(novelty_path, novelty_type, 'Levels', novelty_type_levels[next_index])    # Pop random level from novelty type
-                        print("Appending novelty level {}".format(next_level))
+                    xpath = './trials/trial/game_level_set'
+                    level_set = tree.getroot().find(xpath)
+                    level_set.set('time_limit', '500000')
+                    level_set.set('total_interaction_limit', '1000000')
 
-                    trial_levels.append(next_level)
+                    for child in list(level_set):
+                        level_set.remove(child)
 
-                # add to set
-                sets[NOVELTY_TYPES[novelty_type]] = trial_levels
+                    for level in trials[trial_id]:
+                        relpath = os.path.relpath(level, SB_BIN_PATH)
+                        ET.SubElement(level_set, 'game_levels', level_path=relpath)
 
-            # Add set to trial
-            trial[NOVELTY_LEVELS[novelty_level]] = sets
-
-        trials.append(trial)
-
-    # Write to file 
-    print("Writing trials to JSON file: {}".format(TRIALS_FILENAME))
-    with open(TRIALS_FILENAME, "w+") as f:
-        json.dump(trials, f, sort_keys=True, indent=4)
+                    tree.write(output_filepath)
