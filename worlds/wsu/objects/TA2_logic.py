@@ -47,7 +47,8 @@ from . import objects
 
 class TA2Logic(object):
     def __init__(self, config_file: str, printout: bool, debug: bool, fulldebug: bool,
-                 logfile: str, no_testing: bool, just_one_trial: bool, ignore_secret: bool):
+                 logfile: str, no_testing: bool, just_one_trial: bool, ignore_secret: bool
+):
         # options = self._get_command_line_options()
         # config_file = options.config
         # printout = options.printout
@@ -203,6 +204,7 @@ class TA2Logic(object):
     def _get_command_line_options(self):
         parser = optparse.OptionParser(usage="usage: %prog [options]")
         parser = self._add_command_line_options(parser)
+        parser = self._add_ta2_command_line_options(parser)
 
         (options, args) = parser.parse_args()
         if options.fulldebug:
@@ -253,6 +255,9 @@ class TA2Logic(object):
                           help=('Causes the program to ignore any secret stored in experiment_'
                                 'secret.'),
                           default=False)
+        return parser
+
+    def _add_ta2_command_line_options(self, parser):
         return parser
 
     def _set_model_filename(self):

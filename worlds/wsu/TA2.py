@@ -27,7 +27,7 @@ import random
 import threading
 import time
 
-from worlds.wsu.objects.TA2_logic import TA2Logic
+from objects.TA2_logic import TA2Logic
 
 
 class ThreadedProcessingExample(threading.Thread):
@@ -60,15 +60,8 @@ class ThreadedProcessingExample(threading.Thread):
 
 
 class TA2Agent(TA2Logic):
-    def __init__(self, options):
-        super().__init__(config_file=options.config,
-                         printout=options.printout,
-                         debug=options.debug,
-                         fulldebug=options.fulldebug,
-                         logfile=options.logfile,
-                         no_testing=options.no_testing,
-                         just_one_trial=options.just_one_trial,
-                         ignore_secret=options.ignore_secret)
+    def __init__(self):
+        super().__init__()
 
         self.possible_answers = list()
         # This variable can be set to true and the system will attempt to end training at the
@@ -78,7 +71,37 @@ class TA2Agent(TA2Logic):
         # will attempt to cleanly end the experiment at the conclusion of the current episode,
         # or sooner if possible.
         self.end_experiment_early = False
+
+        # If you need values from the command line, you can get values from your custom options
+        # here.  Set custom options in the _add_ta2_command_line_options() function.
+        options = self._get_command_line_options()
+        my_custom_value = options.custom_value
+        self.log.debug('Command line custom value is: {}'.format(my_custom_value))
         return
+
+    def _add_ta2_command_line_options(self, parser: optparse.OptionParser):
+        """If you do not want to use this function, you can remove it from TA2.py to clean up
+        your code.  This is already defined in the parent class.
+
+        This function allows you to easily add custom arguments to the command line parser.  To
+        see what is already defined, please see the _add_command_line_options() function in the
+        parent class found in options/TA2_logic.py.
+
+        Parameters
+        ----------
+        parser : optparse.OptionParser
+            This is the command line parser object, you can add custom entries to it here.
+
+        Returns
+        -------
+        optparse.OptionParser
+            The parser object that you have added additional options to.
+        """
+        parser.add_option("--custom-value",
+                          dest="custom_value",
+                          help="Example for adding custom options to the command line parser.",
+                          default="HelloWorld!")
+        return parser
 
     def experiment_start(self):
         """This function is called when this TA2 has connected to a TA1 and is ready to begin
@@ -380,50 +403,5 @@ class TA2Agent(TA2Logic):
 
 
 if __name__ == "__main__":
-    parser = optparse.OptionParser(usage="usage: %prog [options]")
-    parser.add_option("--config",
-                      dest="config",
-                      help="Custom ClientAgent config file.",
-                      default="TA2.config")
-    parser.add_option("--debug",
-                      dest="debug",
-                      action="store_true",
-                      help="Set logging level to DEBUG from INFO.",
-                      default=False)
-    parser.add_option("--fulldebug",
-                      dest="fulldebug",
-                      action="store_true",
-                      help="Set logging level to DEBUG from INFO for all imported libraries.",
-                      default=False)
-    parser.add_option("--logfile",
-                      dest="logfile",
-                      help="Filename if you want to write the log to disk.")
-    parser.add_option("--printout",
-                      dest="printout",
-                      action="store_true",
-                      help="Print output to the screen at given logging level.",
-                      default=False)
-    parser.add_option("--no-testing",
-                      dest="no_testing",
-                      action="store_true",
-                      help=('Instruct the TA2 to just create the experiment, update the config, '
-                            'consume training data (if any), train the model (if needed), saves '
-                            'the model to disk, and then exits. This disables the use of '
-                            '--just-one-trial when set.'),
-                      default=False)
-    parser.add_option("--just-one-trial",
-                      dest="just_one_trial",
-                      action="store_true",
-                      help="Process just one trial and then exit.",
-                      default=False)
-    parser.add_option("--ignore-secret",
-                      dest="ignore_secret",
-                      action="store_true",
-                      help='Causes the program to ignore any secret stored in experiment_secret.',
-                      default=False)
-    (options, args) = parser.parse_args()
-    if options.fulldebug:
-        options.debug = True
-
-    agent = TA2Agent(options)
+    agent = TA2Agent()
     agent.run()

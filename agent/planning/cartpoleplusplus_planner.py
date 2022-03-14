@@ -63,7 +63,7 @@ class CartPolePlusPlusPlanner(HydraPlanner):
     def get_plan_actions(self, count=0):
         nyx.runner("%s/cartpole_plus_plus_domain.pddl" % str(settings.CARTPOLEPLUSPLUS_PLANNING_DOCKER_PATH),
                    "%s/cartpole_prob.pddl" % str(settings.CARTPOLEPLUSPLUS_PLANNING_DOCKER_PATH),
-                   ['-vv', '-to:%s' % str(settings.CP_TIMEOUT), '-np:6', '-dblevent', '-noplan', '-search:gbfs', '-custom_heuristic:1',
+                   ['-vv', '-to:%s' % str(settings.CP_TIMEOUT), '-np:6', '-noplan', '-dblevent', '-search:gbfs', '-custom_heuristic:1',
                     '-th:%s' % str(self.meta_model.constant_numeric_fluents['time_limit']),
                     '-t:%s' % str(settings.CP_DELTA_T)])
 
@@ -138,11 +138,19 @@ class CartPolePlusPlusPlanner(HydraPlanner):
                     copy_line2 = copy.copy(lines_list2[ix + 5])
                     copy_line3 = copy.copy(lines_list2[ix + 5])
                     copy_line4 = copy.copy(lines_list2[ix + 5])
+                    copy_line5 = copy.copy(lines_list2[ix + 5])
+                    copy_line6 = copy.copy(lines_list2[ix + 5])
+                    copy_line7 = copy.copy(lines_list2[ix + 5])
+                    copy_line8 = copy.copy(lines_list2[ix + 5])
 
                     state_values = (float(str(copy_line.split('\"[\'pos_x\']\",')[1].split(']')[0])),
                                     float(str(copy_line2.split('\"[\'pos_y\']\",')[1].split(']')[0])),
                                     float(str(copy_line3.split('\"[\'pos_x_dot\']\",')[1].split(']')[0])),
                                     float(str(copy_line4.split('\"[\'pos_y_dot\']\",')[1].split(']')[0])),
+                                    float(str(copy_line.split('\"[\'theta_x\']\",')[1].split(']')[0])),
+                                    float(str(copy_line2.split('\"[\'theta_y\']\",')[1].split(']')[0])),
+                                    float(str(copy_line3.split('\"[\'theta_x_dot\']\",')[1].split(']')[0])),
+                                    float(str(copy_line4.split('\"[\'theta_y_dot\']\",')[1].split(']')[0])),
                                     (round(float(linex.split(':')[0].strip()) + 0.02, 4)))
                     # print (str(state_values) + "\n")
                     # print("COPY LINEEEEEE: "+str(copy_line))
