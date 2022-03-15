@@ -52,10 +52,11 @@ class NoveltyDetector():
 
     def evalaute(self):
         """
-        returns list of subImgs
+        returns dict with type and novelty
         """
         keys = list(self.state.keys())
         subImgs = []
+        novelty_dict = {}
         id = 0
         for k in range(len(keys)):
             object = self.state[keys[k]]
@@ -64,15 +65,18 @@ class NoveltyDetector():
             if poly.type == "Polygon":
                 subImg = self.img_to_subImg(type, poly)
                 activations_ll = self.extract_activations(subImg)
-                novelty, type_preidcted = self.detect_novelty(activations_ll)
-                print(novelty, type, type_preidcted)
+                novelty, type_predicted, sim_scores = self.detect_novelty(activations_ll)
+                novelty_dict[keys[k]] = {'novelty':novelty, 'type':type, 'predicted_type':type_predicted, 'sim_scores':sim_scores}
+                # pdb.set_trace()
+                print(novelty, type, type_predicted)
                 ## do novelty detection
             elif poly.type == "MultiPolygon":
                 for p in range(len(poly)):
                     subImg = self.img_to_subImg(type, poly[p])
                     activations_ll = self.extract_activations(subImg)
-                    novelty, type_preidcted = self.detect_novelty(activations_ll)
-                    print(novelty, type, type_preidcted)
+                    novelty, type_predicted, sim_scores = self.detect_novelty(activations_ll)
+                    novelty_dict[keys[k]] = {'novelty':novelty, 'type':type, 'predicted_type':type_predicted, 'sim_scores':sim_scores}
+                    # print(novelty, type, type_predicted)
                 ## do novelty detection
 
     def extract_activations(self,subImg):
@@ -96,11 +100,10 @@ class NoveltyDetector():
 
         if max_score > self.thresholds[max_score_class]:
             novelty = False
-
-
-            return novelty, self.class_list[max_score_class]
+            return novelty, self.class_list[max_score_class], scores
         novelty = True
-        return novelty, self.class_list[max_score_class]
+        # pdb.set_trace()
+        return novelty, self.class_list[max_score_class], scores
 
 
     def img_to_subImg(self,type, poly):
