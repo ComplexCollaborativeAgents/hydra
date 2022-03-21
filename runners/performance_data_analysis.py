@@ -1,4 +1,5 @@
 import json
+import os
 import pathlib
 import matplotlib.pyplot as plt
 import numpy as np
@@ -14,15 +15,15 @@ from agent.planning.nyx.nyx import runner
 from runners.run_sb_stats import AgentType
 from settings import EXPERIMENT_NAME
 
-our_agent = ['bfs0', 'dfs0', 'gbfs2', 'gbfs5', 'gbfs5a',  'gbfs11', 'helpful_actions'] #     ]
-baseline_agents = ['Baseline', 'Datalab', 'Eaglewings']
+our_agent = ['bfs0', 'dfs0', 'gbfs2', 'gbfs5', 'gbfs11', 'helpful_actions'] #['bfs0', 'dfs0', 'gbfs2', 'gbfs5', 'gbfs11', 'helpful_actions'] #   'gbfs5a',  ]
+baseline_agents = [] #['Baseline', 'Datalab', 'Eaglewings']
 experiment_names = our_agent.copy()
 experiment_names.extend(baseline_agents.copy())
 
-folder = 'runners/latest_data/25 levels working heuristic' #' #working heuristic/25 levels'
+folder = '.' #latest_data' # '/25 levels working heuristic' #' #working heuristic/25 levels'
 
 NOVELTY = 0
-level_nums = [222, 225, 236, 245, 246, 253, 254, 257, 555]  # 226,243, 252,
+level_nums = [555] #[2, 4, 5, 6, 7, 222, 225, 236, 245, 246, 253, 254, 257, 555]  # 226,243, 252,
 
 novelties = {NOVELTY: level_nums}
 
@@ -165,6 +166,34 @@ plt.show()
 # plt.show()
 
 
+#### CODE FOR COUNTING INSTATIATED OBJECTS
+# This code to be put in sb_hydra_agent.py right after a plan is made to calculate the number of instantiated objects.
+# if not self.stats_for_level.get('instantiated counts'):
+#     parser = PDDL_Parser("%s/sb_domain.pddl" % str(settings.SB_PLANNING_DOCKER_PATH),
+#                          "%s/sb_prob.pddl" % str(settings.SB_PLANNING_DOCKER_PATH), )
+#     grounded_instance = parser.grounded_instance
+#     a_count = sum(1 for _ in grounded_instance.actions)
+#     p_count = sum(1 for _ in grounded_instance.processes)
+#     e_count = sum(1 for _ in grounded_instance.events)
+#     self.stats_for_level['instantiated counts'] = {'events': e_count,
+#                                                    'processes': p_count,
+#                                                    'actions': a_count}
+
+#
+# for novelty, types in novelties.items():
+#     for novelty_type in types:
+#
+#         for experiment_name in experiment_names:
+#
+#             filename = "stats_{}_novelty{}_type{}_agent{}".format(experiment_name, novelty, novelty_type,
+#                                                                   AgentType.RepairingHydra.name)
+#             filename = "{}/{}.json".format(folder, filename)
+#             with open(filename, 'r') as jf:
+#                 stats = json.load(jf)
+#                 #
+#                 stats_per_level = [entry['instantiated counts'] for entry in stats['levels']]
+#                 print(novelty_type)
+#                 print(stats_per_level)
 
 
 

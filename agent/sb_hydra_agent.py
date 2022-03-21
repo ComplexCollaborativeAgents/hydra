@@ -1,4 +1,5 @@
 from agent.consistency.trace_visualizer import plot_expected_trace_for_obs
+from agent.planning.nyx.PDDL import PDDL_Parser
 from agent.planning.nyx.syntax import constants
 from agent.reward_estimation.reward_estimator import RewardEstimator
 import pickle

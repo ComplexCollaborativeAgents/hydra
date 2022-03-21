@@ -15,6 +15,7 @@ from agent.planning.meta_model import *
 
 logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("sb_meta_model")
+logger.setLevel(logging.INFO)
 
 ''' Utility functions '''
 
@@ -792,11 +793,11 @@ class ScienceBirdsMetaModel(MetaModel):
         pddl_problem.init.append(['=', ['gravity'], problem_params["gravity"]])
 
         # Initial angle value to prune un-promising trajectories which only hit the ground
-        closest_obj_x, closest_obj_y = get_closest_object_xy(pddl_problem)
+        # closest_obj_x, closest_obj_y = get_closest_object_xy(pddl_problem)
         # min_angle, max_angle = estimate_launch_angle(slingshot, Point2D(closest_obj_x, closest_obj_y), self)
         problem_params["angle"] = 0.0
         pddl_problem.init.append(['=', ['angle'], problem_params["angle"]])
-        problem_params["max_angle"] = 90  # max_angle
+        problem_params["max_angle"] = 81.5  # max_angle # Above angles of 81.5 the bird goes backwards.
         pddl_problem.init.append(['=', ['max_angle'], problem_params["max_angle"]])
 
         problem_params["points_score"] = len(problem_params["birds"])

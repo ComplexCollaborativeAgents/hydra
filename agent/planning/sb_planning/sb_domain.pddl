@@ -35,7 +35,7 @@
             (= (active_bird) (bird_id ?b))
             (not (bird_released ?b))
             (not (angle_adjusted))
-            (< (angle) 81.5)
+            (< (angle) 90)
             (>= (angle) 0)
         )
         :effect (and
@@ -64,7 +64,7 @@
             (= (active_bird) (bird_id ?b))
             (not (bird_released ?b))
             (not (angle_adjusted))
-            (< (angle) 81.5)
+            (< (angle) 90)
         )
         :effect (and
             (assign (vy_bird ?b) (* (v_bird ?b) (/ (* (* 4 (angle)) (- 180 (angle))) (- 40500 (* (angle) (- 180 (angle)))) )  ) )
@@ -345,6 +345,7 @@
         )
         :effect (and
       	    (assign (vx_bird ?b) 0)
+      	    (assign (vy_bird ?b) 0)
       	    (bird_tapped ?b)
 
   	    )
@@ -418,7 +419,7 @@
         	(= (active_bird) (bird_id ?b))
         	; (or
       		(= (bird_type ?b) 3)
-      		(> (bounce_count ?b) 0)
+      		(= (bounce_count ?b) 3)
       			; (and (= (bird_type ?b) 3) (= (bounce_count ?b) 1) (bird_tapped ?b) )
   			; )
             (not (pig_dead ?p))
