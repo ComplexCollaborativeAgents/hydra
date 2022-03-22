@@ -397,7 +397,7 @@ class SBHydraAgent(HydraAgent):
         """ This is called when a level has ended, either in a win or a loss outcome """
         self._need_to_repair = self.made_plan and not success
         self.completed_levels.append(success)
-        # self._infer_novelty_existence()  TODO: this is the novelty detection, turn back on when done with video
+        self._infer_novelty_existence()
         self.stats_for_level[NOVELTY_LIKELIHOOD] = bool(self._new_novelty_likelihood)
         self.stats_for_level[PDDL_PROB] = self.level_novelty_indicators[PDDL_PROB]
         self.stats_for_level[REWARD_PROB] = self.level_novelty_indicators[REWARD_PROB]
@@ -472,34 +472,36 @@ class SBHydraAgent(HydraAgent):
             simplifications = settings.SB_PLANNER_SIMPLIFICATION_SEQUENCE.copy()
             simplifications.reverse()
             plan = []
-            # try:
-            while len(simplifications) > 0 and (len(plan) == 0 or plan[0].action_name == "out of memory"):
-                simplification = simplifications.pop()
-                start_time = time.perf_counter()
-                plan, self.made_plan = self.planner.make_plan(processed_state, simplification)
-                #### Additional statistics
-                if self.made_plan:
-                    if not self.stats_for_level.get('Plan action count'):
-                        self.stats_for_level['Plan action count'] = []
-                    plan_actions = 0
-                    for act in self.planner.plan:
-                        if not act[0] == constants.TIME_PASSING_ACTION:
-                            plan_actions += 1
-                    self.stats_for_level['Plan action count'].append(plan_actions)
-                    if not self.stats_for_level.get('Plan total time'):
-                        self.stats_for_level['Plan total time'] = []
-                    self.stats_for_level['Plan total time'].append(self.planner.plan[-1][1].time)
+            try:
+                while len(simplifications) > 0 and (len(plan) == 0 or plan[0].action_name == "out of memory"):
+                    simplification = simplifications.pop()
+                    start_time = time.perf_counter()
+                    plan, self.made_plan = self.planner.make_plan(processed_state, simplification)
+                    #### Additional statistics
+                    if self.made_plan:
+                        if not self.stats_for_level.get('Plan action count'):
+                            self.stats_for_level['Plan action count'] = []
+                        plan_actions = 0
+                        for act in self.planner.plan:
+                            if not act[0] == constants.TIME_PASSING_ACTION:
+                                plan_actions += 1
+                        self.stats_for_level['Plan action count'].append(plan_actions)
+                        if not self.stats_for_level.get('Plan total time'):
+                            self.stats_for_level['Plan total time'] = []
+                        self.stats_for_level['Plan total time'].append(self.planner.plan[-1][1].time)
 
-                ###
-                plan_time = (time.perf_counter() - start_time)
-                self.stats_for_level['planning times'].append(plan_time)
-                self.stats_for_level['expanded nodes'].append(self.planner.explored_states)
-                self.cumulative_plan_time += plan_time
-                logger.info(
-                    "[hydra_agent_server] :: Problem simplification {} planning time: {}".format(simplification,
+                    ###
+                    plan_time = (time.perf_counter() - start_time)
+                    self.stats_for_level['planning times'].append(plan_time)
+                    self.stats_for_level['expanded nodes'].append(self.planner.explored_states)
+                    self.cumulative_plan_time += plan_time
+                    logger.info(
+                        "[hydra_agent_server] :: Problem simplification {} planning time: {}".format(simplification,
                                                                                                      str(plan_time)))
-            # except Exception as e:
-            #     logger.error("Planner threw an exception. Exception details:\n {}".format(e))
+            except Exception as e:
+                logger.error("Planner threw an exception. Exception details:\n {}".format(e))
+                import traceback
+                traceback.print_exc()
 
             if len(plan) == 0 or plan[0].action_name == "out of memory":  # TODO FIX THIS
                 plan = []
@@ -641,7 +643,7 @@ class RepairingSBHydraAgent(SBHydraAgent):
 
     def process_final_observation(self):
         """ This is called after winning or losing a level. """
-        # self.stats_for_level[NOVELTY_LIKELIHOOD]=self._new_novelty_likelihood
+        self.stats_for_level[NOVELTY_LIKELIHOOD]=self._new_novelty_likelihood
         # The consistency score per level for this level is the mean over the consistency scored of this level's observations
         # self.pddl_prob_per_level.insert(0,
         # sum(self.stats_for_level[PDDL_PROB]) / len(self.stats_for_level[PDDL_PROB]))
@@ -715,3 +717,5 @@ class RepairingSBHydraAgent(SBHydraAgent):
 
         if self._new_novelty_likelihood:
             return True
+
+        return False

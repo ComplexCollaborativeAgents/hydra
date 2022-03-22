@@ -40,9 +40,9 @@ class AgentType(enum.Enum):
     Eaglewings = 4
 
 
-NOVELTY = 0
-TYPE = [222, 225, 236, 245, 246, 253, 254, 257, 555]  #245 555, 222, 225, 226, 236, 243, 252,  , 257
-SAMPLES = 1
+NOVELTY = 24
+TYPE = [1] #[222, 225, 236, 245, 246, 253, 254, 257, 555]  #245 555, 222, 225, 226, 236, 243, 252,  , 257
+SAMPLES = 10
 
 AGENT = AgentType.RepairingHydra
 
@@ -373,7 +373,7 @@ def run_performance_stats(novelties: dict,
             number_samples = len(levels)
             if samples is not None:
                 number_samples = min(number_samples, samples)
-            levels = levels[20:20 + number_samples]
+            levels = levels[:number_samples]
             # levels = random.sample(levels, number_samples)
 
             if level_lookup:
@@ -550,13 +550,13 @@ if __name__ == '__main__':
     #     settings.EXPERIMENT_NAME = agent.name
     #     run_sb_stats(record_novelty_stats=True)
 
-
     ICAPS_benchmarks = [
         # ('bfs', '0'),
+        # ('gbfs', '5'),
+        # ('gbfs', '11'),
         # ('dfs', '0'),
-        # ('gbfs', '2'),
-        ('gbfs', '5'),
-        # ('gbfs', '11')
+        # ('gbfs', '2')
+        #
     ]
 
     AGENT = AgentType.RepairingHydra
@@ -571,3 +571,4 @@ if __name__ == '__main__':
     settings.SB_ALGO_STRING = 'gbfs'
     settings.EXPERIMENT_NAME = 'helpful_actions'
     run_sb_stats(record_novelty_stats=True)
+
