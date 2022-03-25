@@ -3,6 +3,8 @@ import logging
 import socket
 import enum
 import os
+import numpy as np
+import base64
 
 
 """
@@ -346,3 +348,19 @@ class PolycraftInterface:
 
         self._send_cmd(cmd)
         return self._recv_response("CRAFT")
+
+    def SENSE_SCREEN(self) -> np.ndarray:
+        """
+        Get an image of what the player character is able to see.  Returns a flattened integer array, with each integer representing the RGB value of the pixel.
+        """
+        cmd = "SENSE_SCREEN"
+
+        self._send_cmd(cmd)
+        raw_data = self._recv_response(cmd)
+
+        # Initially comes across as an integer array encoded in base64
+        png_data_b64 = json.loads(raw_data)['screen']['data']
+        data = base64.b64decode(png_data_b64)
+
+        # Return as numpy array for convenience
+        return np.frombuffer(data, np.uint8)
