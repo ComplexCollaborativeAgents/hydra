@@ -191,7 +191,6 @@ class SBOneBirdHeuristic(AbstractHeuristic):
             node.h = self.time_to_pig((x_0, y_0, v_x, v_y), self.pigs_x, self.pigs_y)
             return node.h
         else:
-            return 0
             # This entire next sectoin turns out to be detrimental to winning
             # Find type of bird
             bird_type = node.state_vars["['bird_type'" + active_bird_string]
@@ -227,8 +226,8 @@ class SBOneBirdHeuristic(AbstractHeuristic):
                 self.targets_y.update(self.pigs_y)
                 self.targets_h.update(self.pig_radii)
 
-                targets_max_y = [self.targets_x[o_id] + self.targets_w[o_id] for o_id in self.targets_x.keys()]
-                targets_min_y = [self.targets_x[o_id] - self.targets_w[o_id] for o_id in self.targets_x.keys()]
+                targets_max_y = [self.targets_y[o_id] + self.targets_h[o_id] for o_id in self.targets_y.keys()]
+                targets_min_y = [self.targets_y[o_id] - self.targets_h[o_id] for o_id in self.targets_y.keys()]
                 bbox_maxy = max(targets_max_y)
                 bbox_miny = min(targets_min_y)
 
@@ -253,7 +252,7 @@ class SBOneBirdHeuristic(AbstractHeuristic):
 
             if bird_type == BIRD_RED or bird_type == BIRD_BLACK or bird_type == BIRD_WHITE or bird_type == BIRD_BLUE:
                 # Hitting the ground spot
-                hit_ground_time = (- v_y_0 + np.sqrt(np.power(v_y_0, 2) + 2 * gravity * y_0)) / (2 * gravity)
+                hit_ground_time = (v_y_0 + np.sqrt(np.power(v_y_0, 2) + 2 * gravity * y_0)) / gravity
                 hit_ground_x = x_0 + v_x * hit_ground_time
 
                 # if bird_type == BIRD_BLUE:
@@ -333,7 +332,7 @@ class SBOneBirdHeuristic(AbstractHeuristic):
         vec_in_direction = (targets_xy[closest_ind][0] - bird_coords[0]) ** 2 / dists[closest_ind], \
                            (targets_xy[closest_ind][1] - bird_coords[1]) ** 2 / dists[closest_ind]
         speed_in_direction = bird_coords[2] * vec_in_direction[0] + bird_coords[3] * vec_in_direction[1]
-        if speed_in_direction == 0.0:
+        if speed_in_direction <= 0.0:
             return np.inf
         value = max(0, math.sqrt(dists[closest_ind]) / (speed_in_direction * constants.DELTA_T))
         return int(value)
@@ -481,8 +480,8 @@ class SBHelpfulAngleHeuristic(SBBlockedPigsHeuristic):
                 min_angle, max_angle = self._get_single_trajectory(self.g, block_x - self.x_0, block_y - self.y_0,
                                                                    initial_velocity)
                 if min_angle is not None:
-                    # self.trajectories.add(
-                    #     (initial_velocity * math.cos(min_angle), initial_velocity * math.sin(min_angle)))
+                    self.trajectories.add(
+                        (initial_velocity * math.cos(min_angle), initial_velocity * math.sin(min_angle)))
                     self.trajectories.add(
                         (initial_velocity * math.cos(max_angle), initial_velocity * math.sin(max_angle)))
 
@@ -530,7 +529,8 @@ class SBHelpfulAngleHeuristic(SBBlockedPigsHeuristic):
             y_t = node.state_vars["['y_bird'" + active_bird_string]
             v_x_t = node.state_vars["['vx_bird'" + active_bird_string]
             for v_x_0, v_y_0 in self.trajectories:
-                if v_x_0 in v_x_t + self.deviation and y_t in trajectory_trace(self.x_0, self.y_0, v_x_0, v_y_0, self.g, x_t):
+                y_comp = trajectory_trace(self.x_0, self.y_0, v_x_0, v_y_0, self.g, x_t)
+                if v_x_0 in v_x_t + self.deviation and y_t in y_comp:
                     return True
         return False
 

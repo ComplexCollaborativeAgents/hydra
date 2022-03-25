@@ -15,6 +15,7 @@ from agent.planning.meta_model import *
 
 logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("sb_meta_model")
+logger.setLevel(logging.INFO)
 
 ''' Utility functions '''
 
@@ -334,7 +335,7 @@ class BirdType(PddlObjectType):
         self.hyper_parameters["bird_released"] = False
         ## TAP UPDATE
         self.hyper_parameters["bird_tapped"] = False
-        self.hyper_parameters["velocity_multiplier"] = 10
+        self.hyper_parameters["velocity_change"] = 0
 
     def _compute_obj_attributes(self, obj, problem_params: dict):
         obj_attributes = self._compute_observable_obj_attributes(obj, problem_params)
@@ -362,7 +363,8 @@ class BirdType(PddlObjectType):
             obj_attributes["x_bird"] = slingshot_x
             obj_attributes["y_bird"] = slingshot_y
             obj_attributes[
-                "v_bird"] = 182  # round((9.5 / 2.7) * (get_scale(slingshot)) * (self.hyper_parameters["velocity_multiplier"]/10) )
+                "v_bird"] = 182 + self.hyper_parameters["velocity_change"]
+            # round((9.5 / 2.7) * (get_scale(slingshot)) * (self.hyper_parameters["velocity_change"]/10) )
         else:
             obj_attributes["x_bird"] = get_x_coordinate(obj)
             obj_attributes["y_bird"] = get_y_coordinate(obj, ground_offset)
@@ -504,17 +506,18 @@ class ScienceBirdsMetaModel(MetaModel):
                          delta_t=settings.SB_DELTA_T,
                          metric='minimize(total-time)',
                          repairable_constants=[
-                             # 'meta_wood_multiplier',
-                             # 'meta_stone_multiplier',
-                             # 'meta_ice_multiplier',
-                             # 'v_bird_multiplier',
+                             'meta_wood_multiplier',
+                             'meta_stone_multiplier',
+                             'meta_ice_multiplier',
+                             'v_bird_change',
                              # 'meta_platform_size',
                              'base_life_pig_multiplier',
                              # 'explosion_damage',
-                             # 'fall_damage'
+                             # 'fall_damage',
+                             'gravity_factor'
                          ],
                          repair_deltas=[
-                             50,  # 50, 10
+                             1, 1, 1, 1,  50, 0.1 # 50, 10
                          ],
                          constant_numeric_fluents={
                              'active_bird': 0,
@@ -531,7 +534,7 @@ class ScienceBirdsMetaModel(MetaModel):
                              'meta_wood_multiplier': 1.0,
                              'meta_stone_multiplier': 1.0,
                              'meta_ice_multiplier': 1.0,
-                             'v_bird_multiplier': 10.0,
+                             'v_bird_change': 0.0,
                              'gravity_factor': 9.81,
                              'meta_platform_size': 1.75,
                              'base_life_pig_multiplier': 0.0,
@@ -695,8 +698,8 @@ class ScienceBirdsMetaModel(MetaModel):
         self.object_types["pig"].hyper_parameters["pig_life_multiplier"] = self.constant_numeric_fluents[
             "base_life_pig_multiplier"]
 
-        self.object_types["bird"].hyper_parameters["velocity_multiplier"] = self.constant_numeric_fluents[
-            "v_bird_multiplier"]
+        self.object_types["bird"].hyper_parameters["velocity_change"] = self.constant_numeric_fluents[
+            "v_bird_change"]
 
         logger.debug("\n\n")
         ex_agent_types = {'magician', 'wizard', 'butterfly', 'worm'}
@@ -792,11 +795,11 @@ class ScienceBirdsMetaModel(MetaModel):
         pddl_problem.init.append(['=', ['gravity'], problem_params["gravity"]])
 
         # Initial angle value to prune un-promising trajectories which only hit the ground
-        closest_obj_x, closest_obj_y = get_closest_object_xy(pddl_problem)
+        # closest_obj_x, closest_obj_y = get_closest_object_xy(pddl_problem)
         # min_angle, max_angle = estimate_launch_angle(slingshot, Point2D(closest_obj_x, closest_obj_y), self)
         problem_params["angle"] = 0.0
         pddl_problem.init.append(['=', ['angle'], problem_params["angle"]])
-        problem_params["max_angle"] = 90  # max_angle
+        problem_params["max_angle"] = 81.5  # max_angle # Above angles of 81.5 the bird goes backwards.
         pddl_problem.init.append(['=', ['max_angle'], problem_params["max_angle"]])
 
         problem_params["points_score"] = len(problem_params["birds"])

@@ -66,22 +66,22 @@ class SBPlanner(HydraPlanner):
         plan_actions = []
         planning_successful = False
 
-        try:
+        # try:
         # TODO create NYX object and get stats from it
-            self.plan, self.explored_states = nyx.runner("%s/sb_domain.pddl" % str(settings.SB_PLANNING_DOCKER_PATH),
-                                   "%s/sb_prob.pddl" % str(settings.SB_PLANNING_DOCKER_PATH),
-                                   ['-vv', '-to:%s' % str(settings.SB_TIMEOUT), '-noplan', '-search:' + settings.SB_ALGO_STRING,
-                                    '-custom_heuristic:' + settings.SB_HEURISTIC_STRING, '-th:10',
-                                    # '-th:%s' % str(self.meta_model.constant_numeric_fluents['time_limit']),
-                                    '-t:%s' % str(settings.SB_DELTA_T)])
+        self.plan, self.explored_states = nyx.runner("%s/sb_domain.pddl" % str(settings.SB_PLANNING_DOCKER_PATH),
+                               "%s/sb_prob.pddl" % str(settings.SB_PLANNING_DOCKER_PATH),
+                               ['-vv', '-to:%s' % str(settings.SB_TIMEOUT), '-noplan', '-search:' + settings.SB_ALGO_STRING,
+                                '-custom_heuristic:' + settings.SB_HEURISTIC_STRING, '-th:10',
+                                # '-th:%s' % str(self.meta_model.constant_numeric_fluents['time_limit']),
+                                '-t:%s' % str(settings.SB_DELTA_T)])
 
-            plan_actions = self.extract_actions_from_plan_trace(
-                "%s/plan_sb_prob.pddl" % str(settings.SB_PLANNING_DOCKER_PATH))
+        plan_actions = self.extract_actions_from_plan_trace(
+            "%s/plan_sb_prob.pddl" % str(settings.SB_PLANNING_DOCKER_PATH))
 
-        except Exception as e_inst:
-            import traceback
-            traceback.print_exc()
-            print(e_inst)
+        # except Exception as e_inst:
+        #     import traceback
+        #     traceback.print_exc()
+        #     print(e_inst)
 
         # print(plan_actions)
 
