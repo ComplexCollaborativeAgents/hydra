@@ -57,6 +57,14 @@ pytest
    
       Additional note: The reason for this messed up way is that the Polycraft application is unable to run non-headless when used in the `polycraft_dispatcher.py` or in `bin/pal/PolycraftAIGym/LaunchTournament.py` or any other python script that runs it via subprocess on its own.  The workaround described above runs the polycraft server in a separate command line window (using `./gradlew --no-daemon --stacktrace runclient`), and then sets up another Python script with a `Polycraft` world object with the optional `launch` boolean set to False. The caveat with this is that you will need to time the agent start when the Polycraft application is fully initialized, or the process will crash.
 
+## Setting up Cartpole
+
+### pybullet
+Cartpole uses a forked version of pybullet, which can be installed by doing the following:
+```
+pip install git+https://github.com/tboult/bullet3.git@TBPlanar
+```
+
 ## Building Docker
 
 ```

@@ -138,7 +138,7 @@ def print_solution_info(pln, plnr, ttime):
     print(config_string)
 
 
-def runner(dom_file, prob_file, args_list: []):
+def runner(dom_file, prob_file, args_list:list=[]):
     start_time = time.time()
     domain = dom_file
     problem = prob_file
