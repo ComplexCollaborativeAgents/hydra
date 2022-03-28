@@ -71,10 +71,11 @@ class Planner:
             if constants.PLOT_BIRD_NODE_ORDER:
                 active_bird_string = get_active_bird_string(state)
                 if active_bird_string is None:
-                    node_bird_data.append((98, 19))
+                    node_bird_data.append((98, 19, False))
                 else:
                     node_bird_data.append((state.state_vars["['x_bird'" + active_bird_string],
-                                           state.state_vars["['y_bird'" + active_bird_string]))  # Active bird x, y
+                                           state.state_vars["['y_bird'" + active_bird_string],
+                                           state.state_vars["['bird_tapped'" + active_bird_string]))  # Active bird x, y
 
             from_state = VisitedState(state)
             time_passed = round(state.time + constants.DELTA_T, constants.NUMBER_PRECISION)
@@ -211,12 +212,17 @@ class Planner:
 
     def plot_node_expasion(self, bird_xy):
         plt.figure()
-        colors, x_data, y_data = [], [], []
+        colors, x_data, y_data, x_data2, y_data2 = [], [], [], [], []
         xys = {}
         for c, xy in enumerate(bird_xy):
-            colors.append(c)
-            x_data.append(xy[0])
-            y_data.append(xy[1])
+            if xy[2]:
+                x_data2.append(xy[0])
+                y_data2.append(xy[1])
+            else:
+                x_data.append(xy[0])
+                y_data.append(xy[1])
+                colors.append(c)
+
             # if xys.get((xy[0], xy[0])):
             #     xys[(xy[0], xy[0])].append(xy[2])
             # else:
@@ -232,10 +238,9 @@ class Planner:
         #                 print(state.predecessor.state_vars)
         #                 # print(state.predecessor_action)
         #                 print('*******************')
-        print(len(bird_xy))
-        print(self.explored_states)
         # print(len(xys))
         plt.figure()
         plt.scatter(x_data, y_data, c=colors)
+        plt.scatter(x_data2, y_data2, color='k', marker='*')
         plt.title(settings.EXPERIMENT_NAME + ' ' + str(settings.NOVELTY_TYPE))
         plt.show()

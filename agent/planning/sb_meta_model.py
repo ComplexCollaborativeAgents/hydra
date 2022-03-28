@@ -346,6 +346,7 @@ class BirdType(PddlObjectType):
         # obj_attributes["m_bird"] = self.hyper_parameters["m_bird"]
         obj_attributes["bounce_count"] = self.hyper_parameters["bounce_count"]
         obj_attributes["bird_released"] = self.hyper_parameters["bird_released"]
+        obj_attributes["bird_radius"] = get_radius(obj)
 
         return obj_attributes
 

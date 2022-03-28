@@ -13,6 +13,7 @@ import os
 
 SERVER_TRACE = False
 server_trace_filename = './server_trace'
+open(server_trace_filename, 'w')
 
 #logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 class GameState(Enum):
@@ -133,7 +134,7 @@ class AgentClient:
         )
         if SERVER_TRACE:
             with open(server_trace_filename, 'a') as f:
-                f.write(f'sent: {msg}\n')
+                f.write(f'sent {command}: {msg}\n')
         self.server_socket.sendall(msg)
 
     # INITIALIZATION
