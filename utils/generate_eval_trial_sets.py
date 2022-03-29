@@ -11,12 +11,14 @@ from collections import defaultdict
 # Types and levels of novelty
 NOVELTY_LEVELS = [
     'novelty_level_1', 'novelty_level_2', 'novelty_level_3',
+    'novelty_level_11', 'novelty_level_12', 'novelty_level_13',
     'novelty_level_22', 'novelty_level_23', 'novelty_level_24', 'novelty_level_25'
 ]
 NON_NOVEL_LEVELS = ['novelty_level_0']
 NOVELTY_TYPES = [
-    "type1", "type2", "type4", "type5", "type6", "type7", "type8", "type9", "type10",
-    "type22", "type23", "type24", "type25"
+    "type1", "type2", "type4", "type5", "type6", "type7", "type8", "type9", "type10", 
+    "type12", "type14", "type15", "type20"
+    "type22", "type23", "type24", "type25", "type50", "type90", "type110", "type130"
 ]
 NON_NOVEL_TYPES = [
     "type2", "type4", "type5", "type6", "type7", 
