@@ -8,8 +8,9 @@ from agent.perception.novelty_detection.model_cosine import ModelCosine
 import torchvision.transforms as transforms
 
 import pickle
-import pdb
+import matplotlib.pyplot as plt
 
+import pdb
 class ObsToState():
 
     def Unpack_ScienceBirdsObservation(self,obs):
@@ -40,10 +41,12 @@ class NoveltyDetector():
         self.thresholds = np.load(class_info_path)['thresholds']
 
         self.class_list = np.load(class_info_path)['class_list']
+        print(self.class_list)
         self.novelty_model = ModelCosine(len(self.class_list))
         self.novelty_model.load_state_dict(torch.load(model_path))
 
         self.weight_ll = self.novelty_model.classifier[4].weight.detach().cpu().numpy()
+        self.img_dim = (32,32)
         # self.image = image
         # self.state = state
     def init_state(self,state, image):
@@ -63,11 +66,12 @@ class NoveltyDetector():
             type = object['type']
             poly = object['polygon']
             if poly.type == "Polygon":
+                # print(type)
                 subImg = self.img_to_subImg(type, poly)
                 activations_ll = self.extract_activations(subImg)
                 novelty, type_predicted, sim_scores = self.detect_novelty(activations_ll)
                 novelty_dict[keys[k]] = {'novelty':novelty, 'type':type, 'predicted_type':type_predicted, 'sim_scores':sim_scores}
-                # pdb.set_trace()
+
                 print(novelty, type, type_predicted)
                 ## do novelty detection
             elif poly.type == "MultiPolygon":
@@ -83,11 +87,12 @@ class NoveltyDetector():
         trans = transforms.Compose([transforms.ToTensor()])
         subImg_tensor = trans(subImg)
         subImg_tensor_reshaped =  subImg_tensor.reshape((1,3,32,32))
-
+    
         # subImg_tensor = torch.tensor(subImg)
         self.novelty_model.eval()
         with torch.no_grad():
-            layers, _ = self.novelty_model(subImg_tensor_reshaped)
+            layers, out = self.novelty_model(subImg_tensor_reshaped)
+
         act = layers[len(layers)-2].cpu().numpy()
         return act
 
@@ -97,7 +102,7 @@ class NoveltyDetector():
 
         max_score = np.max(scores)
         max_score_class = np.argmax(scores)
-
+        # pdb.set_trace()
         if max_score > self.thresholds[max_score_class]:
             novelty = False
             return novelty, self.class_list[max_score_class], scores
@@ -116,8 +121,13 @@ class NoveltyDetector():
         y_min = np.min(poly_coords[:,1])
         y_max = np.max(poly_coords[:,1])
         subImg = self.image[y_min:y_max,x_min:x_max,:]
-        subImg = cv2.resize(subImg,(32,32))
-        # subImg = Image.fromarray(image_type)
 
+        saveImg = Image.fromarray(subImg)
+        saveImg.save("tmp.png")
+        subImg = cv2.imread("tmp.png")
+        subImg = cv2.resize(subImg,self.img_dim)
+        # pdb.set_trace()
+        # plt.imshow(subImg)
 
+        # plt.show()
         return subImg
