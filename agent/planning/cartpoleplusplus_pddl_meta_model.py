@@ -5,7 +5,7 @@ import logging
 from agent.planning.meta_model import *
 import numpy as np
 
-fh = logging.FileHandler("cartpole_hydra.log",mode='w')
+fh = logging.FileHandler("cartpoleplusplus_hydra.log",mode='w')
 formatter = logging.Formatter('%(asctime)-15s %(name)s - %(levelname)s - %(message)s')
 fh.setFormatter(formatter)
 logger = logging.getLogger("cartpole_pddl_meta_model")
@@ -59,6 +59,35 @@ class PddlObjectType():
             else: # Attribute is a number
                 pddl_state.numeric_fluents[fluent_name]=value
 
+    def _get_name(self, obj):
+        return 'object_{}'.format(obj['id'])
+
+class BlockType(PddlObjectType):
+    def __init__(self):
+        super(BlockType,self).__init__()
+        self.pddl_type = "block"
+        self.hyper_parameters["block_radius"] = 0.5
+
+    def _compute_obj_attributes(self, obj, problem_params:dict):
+        obj_attributes = self._compute_observable_obj_attributes(obj, problem_params)
+        # obj_attributes[""] = self.hyper_parameters[""]
+        return obj_attributes
+
+    def _compute_observable_obj_attributes(self, obj, problem_params:dict):
+        obj_attributes = dict()
+        obj_attributes["block_x"] = obj['x_position']
+        obj_attributes["block_y"] = obj['y_position']
+        obj_attributes["block_z"] = obj['z_position']
+        obj_attributes["block_x_dot"] = obj['x_velocity']
+        obj_attributes["block_y_dot"] = obj['y_velocity']
+        obj_attributes["block_z_dot"] = obj['z_velocity']
+        obj_attributes["block_r"] = self.hyper_parameters["block_radius"]
+        obj_attributes['block_active'] = True
+
+        return obj_attributes
+
+    def _get_name(self, obj):
+        return 'block_{}'.format(obj['id'])
 
 class CartPolePlusPlusMetaModel(MetaModel):
     PLANNER_PRECISION = 5 # how many decimal points the planner can handle correctly
@@ -69,17 +98,16 @@ class CartPolePlusPlusMetaModel(MetaModel):
             domain_file_name="cartpole_plus_plus_domain.pddl",
             delta_t=settings.CP_DELTA_T,
             metric='minimize(total-time)',
-            repairable_constants=('m_cart', 'l_pole', 'm_pole', 'force_mag', 'gravity', 'angle_limit', 'x_limit'),
+            repairable_constants=('m_cart', 'l_pole', 'm_pole', 'force_mag', 'gravity', 'angle_limit'),
             repair_deltas=(1.0, 0.1, 0.1, 1.0, 1.0, 0.1, 0.1),
             constant_numeric_fluents={
                 'm_cart': 1.0,
-                'friction_cart': 0.0,
+                'r_cart': 0.5,
                 'l_pole': 1.0,
-                # 'l_pole': 0.5,
-                'm_pole': 1.0,
-                'friction_pole': 0.0,
+                # 'l_pole': 0.5, # original OpenAI Gym version
+                'm_pole': 0.1,
                 'force_mag': 10.0,
-                'inertia': 1.0,
+                # 'inertia': 1.0,
                 'elapsed_time': 0.0,
                 'gravity': 9.81,
                 'time_limit': 1.0,
@@ -98,6 +126,9 @@ class CartPolePlusPlusMetaModel(MetaModel):
                 'ready':True,
                 'cart_available':True})
 
+        self.object_types = dict()
+        self.object_types["block"] = BlockType()
+
     ''' Translate the initial SBState, as observed, to a PddlPlusProblem object. 
     Note that in the initial state, we ignore the location of the bird and assume it is on the slingshot. '''
     def create_pddl_problem(self, observation_array):
@@ -111,13 +142,13 @@ class CartPolePlusPlusMetaModel(MetaModel):
         pddl_problem.goal = []
 
         pddl_problem.objects.append(['dummy_obj', 'dummy'])
-        pddl_problem.objects.append(['dummy_block', 'block'])
 
         euler_pole = self.quaternion_to_euler(round(observation_array['pole']['x_quaternion'], 5), round(observation_array['pole']['y_quaternion'], 5), round(observation_array['pole']['z_quaternion'], 5), round(observation_array['pole']['w_quaternion'], 5))
-        obs_theta_x = round(euler_pole[0], 5)
-        obs_theta_y = round(euler_pole[1], 5)
+        obs_theta_x = round(euler_pole[0], 5) # XY reversed on purpose to match observation
+        obs_theta_y = round(euler_pole[1], 5) # XY reversed on purpose to match observation
         # obs_theta_x = np.radians(round(observation_array['pole']['x_position'], 5))
         # obs_theta_y = np.radians(round(observation_array['pole']['y_position'], 5))
+
         obs_theta_x_dot = round(observation_array['pole']['x_velocity'], 5)
         obs_theta_y_dot = round(observation_array['pole']['y_velocity'], 5)
         obs_pos_x = round(observation_array['cart']['x_position'], 5)
@@ -152,10 +183,11 @@ class CartPolePlusPlusMetaModel(MetaModel):
         pddl_problem.init.append(['=', ['F_x'], 0.0])
         pddl_problem.init.append(['=', ['F_y'], 0.0])
 
-        initial_F = 0.0 # TODO: import initial force based on the last action applied, split initial_F into X and Y directions.
+        initial_Fx = 0.0 # TODO: import initial force based on the last action applied, split initial_F into X and Y directions.
+        initial_Fy = 0.0
 
         # TODO; WP: changed "self.constant_numeric_fluents['force_mag']" to "self.constant_numeric_fluents['F_x']" to "initial_F=0.0" at the beginning of calc_temp_x (verify that it's the correct thing to do).
-        calc_temp_x = (initial_F + (self.constant_numeric_fluents['m_pole'] * self.constant_numeric_fluents['l_pole']) *
+        calc_temp_x = (initial_Fx + (self.constant_numeric_fluents['m_pole'] * self.constant_numeric_fluents['l_pole']) *
                      obs_theta_x_dot ** 2 * math.sin(obs_theta_x)) / (self.constant_numeric_fluents['m_cart'] + self.constant_numeric_fluents['m_pole'])
         calc_theta_x_ddot = (self.constant_numeric_fluents['gravity'] * math.sin(obs_theta_x) - math.cos(obs_theta_x) * calc_temp_x) / (self.constant_numeric_fluents['l_pole'] * (4.0 / 3.0 - self.constant_numeric_fluents['m_pole'] * math.cos(obs_theta_x) ** 2 / (self.constant_numeric_fluents['m_cart'] + self.constant_numeric_fluents['m_pole'])))
         calc_pos_x_ddot = calc_temp_x - (self.constant_numeric_fluents['m_pole'] * self.constant_numeric_fluents['l_pole']) * calc_theta_x_ddot * math.cos(obs_theta_x) / (self.constant_numeric_fluents['m_cart'] + self.constant_numeric_fluents['m_pole'])
@@ -164,13 +196,28 @@ class CartPolePlusPlusMetaModel(MetaModel):
         pddl_problem.init.append(['=', ['theta_x_ddot'], round(calc_theta_x_ddot, CartPolePlusPlusMetaModel.PLANNER_PRECISION)])
 
         # TODO; WP: changed "self.constant_numeric_fluents['force_mag']" to "self.constant_numeric_fluents['F_y']" to "initial_F=0.0" at the beginning of calc_temp_y (verify that it's the correct thing to do).
-        calc_temp_y = (initial_F + (self.constant_numeric_fluents['m_pole'] * self.constant_numeric_fluents['l_pole']) *
+        calc_temp_y = (initial_Fy + (self.constant_numeric_fluents['m_pole'] * self.constant_numeric_fluents['l_pole']) *
                      obs_theta_y_dot ** 2 * math.sin(obs_theta_y)) / (self.constant_numeric_fluents['m_cart'] + self.constant_numeric_fluents['m_pole'])
         calc_theta_y_ddot = (self.constant_numeric_fluents['gravity'] * math.sin(obs_theta_y) - math.cos(obs_theta_y) * calc_temp_y) / (self.constant_numeric_fluents['l_pole'] * (4.0 / 3.0 - self.constant_numeric_fluents['m_pole'] * math.cos(obs_theta_y) ** 2 / (self.constant_numeric_fluents['m_cart'] + self.constant_numeric_fluents['m_pole'])))
         calc_pos_y_ddot = calc_temp_y - (self.constant_numeric_fluents['m_pole'] * self.constant_numeric_fluents['l_pole']) * calc_theta_y_ddot * math.cos(obs_theta_y) / (self.constant_numeric_fluents['m_cart'] + self.constant_numeric_fluents['m_pole'])
 
         pddl_problem.init.append(['=', ['pos_y_ddot'], round(calc_pos_y_ddot, CartPolePlusPlusMetaModel.PLANNER_PRECISION)])
         pddl_problem.init.append(['=', ['theta_y_ddot'], round(calc_theta_y_ddot, CartPolePlusPlusMetaModel.PLANNER_PRECISION)])
+
+
+
+        # FLYING BLOCKS AND THEIR ATTRIBUTES
+        purposely_ignoring_blocks = True
+        # Add objects to problem
+        if len(observation_array['blocks']) == 0 or purposely_ignoring_blocks:
+            pddl_problem.objects.append(['dummy_block', 'block'])
+        else:
+            for bl in observation_array['blocks']:
+                # Get type
+                type = self.object_types["block"]
+                # Add object of this type to the problem
+                type.add_object_to_problem(pddl_problem, bl, problem_params)
+
 
         # Add goal
         # pddl_problem.goal.append(['pole_position'])
@@ -190,10 +237,11 @@ class CartPolePlusPlusMetaModel(MetaModel):
 
         euler_pole = self.quaternion_to_euler(round(observations_array['pole']['x_quaternion'], 5), round(observations_array['pole']['y_quaternion'], 5), round(observations_array['pole']['z_quaternion'], 5), round(observations_array['pole']['w_quaternion'], 5))
 
-        obs_theta_x = round(euler_pole[0],5)
+        obs_theta_x = round(euler_pole[0], 5)
         obs_theta_y = round(euler_pole[1], 5)
         obs_theta_x_dot = round(observations_array['pole']['x_velocity'], 5)
         obs_theta_y_dot = round(observations_array['pole']['y_velocity'], 5)
+
         obs_pos_x = round(observations_array['cart']['x_position'], 5)
         obs_pos_y = round(observations_array['cart']['y_position'], 5)
         obs_pos_x_dot = round(observations_array['cart']['x_velocity'], 5)

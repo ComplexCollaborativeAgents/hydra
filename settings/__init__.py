@@ -33,6 +33,8 @@ CP_PLANNER_MEMORY_LIMIT = 50  # memory limit for UPMurphi (in MB)
 CP_DELTA_T = 0.02  # time discretisation for UPMurphi
 CP_TIMEOUT = 60  # timeout for the planning phase (in seconds)
 CP_CONSISTENCY_THRESHOLD = 0.01
+CP_EPISODE_TIME_LIMIT = 1200
+CP_REPAIR_TIMEOUT = 180
 
 POLYCRAFT_DELTA_T = 1 # Time discretization
 POLYCRAFT_TIMEOUT = 300 # timeout for the planning phase (in seconds)
@@ -41,7 +43,7 @@ OS_ROOT_PATH = path.abspath(os.sep)
 ROOT_PATH = path.join(path.dirname(path.dirname(path.abspath(__file__))))
 SCIENCE_BIRDS_BIN_DIR = path.join(ROOT_PATH,'bin')
 SCIENCE_BIRDS_LEVELS_DIR = path.join(SCIENCE_BIRDS_BIN_DIR, 'linux', 'Levels', 'novelty_level_0', 'type2', 'Levels')
-POLYCRAFT_DIR = path.join(ROOT_PATH, 'bin', 'pal', 'PolycraftAIGym')
+POLYCRAFT_DIR = path.join(ROOT_PATH, 'bin', 'pal')
 SB_INIT_COLOR_MAP = path.join(ROOT_PATH, 'worlds', 'science_birds_interface', 'demo', 'ColorMap.json')
 SB_SIM_SPEED = 30  # run at real time
 SB_GT_FREQ = 30  # int(30/SB_SIM_SPEED)

@@ -20,7 +20,7 @@ USE_HYDRA = True
 
 def main():
 
-    # agent_type_arg = CartpoleHydraAgent # this was sent to WSU for early tests
+    # agent_type_arg = CartpolePlusPlusHydraAgent # this was sent to WSU for early tests
     agent_type_arg = RepairingCartpolePlusPlusHydraAgent
     if len(sys.argv) > 1:
         agent_type_arg = CartpolePlusPlusHydraAgent if sys.argv[1] == '-norepair' else RepairingCartpolePlusPlusHydraAgent

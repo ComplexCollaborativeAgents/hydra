@@ -1,22 +1,23 @@
-import json
-import os
-import sys
-import queue
-import pickle
-import subprocess
-import time
 import copy
-import logging
-from os import path
-import threading
-import psutil
-
-import settings
-import worlds.polycraft_interface.client.polycraft_interface as poly
-# from trajectory_planner.trajectory_planner import SimpleTrajectoryPlanner
-from utils.host import Host
-from utils.state import State, Action, World
 import enum
+import json
+import logging
+import os
+import pickle
+import queue
+import subprocess
+import sys
+import threading
+import time
+from os import path
+
+import numpy as np
+import psutil
+import settings
+from utils.host import Host
+from utils.state import Action, State, World
+
+import worlds.polycraft_interface.client.polycraft_interface as poly
 
 logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("Polycraft")
@@ -73,7 +74,7 @@ class PolycraftState(State):
 
     def __init__(self, step_num: int, facing_block: str, location: dict, game_map: dict,
                  entities: dict, inventory: dict, current_item: str,
-                 recipes: list, trades: list, door_to_room_cells: dict, terminal: bool, step_cost: int = -1):
+                 recipes: list, trades: list, door_to_room_cells: dict, terminal: bool, step_cost: int = -1, viz: np.ndarray=None):
         super().__init__()
 
         self.step_num = step_num
@@ -88,6 +89,7 @@ class PolycraftState(State):
         self.door_to_room_cells = door_to_room_cells  # Maps a room id to the door through which to enter to it
         self.recipes = recipes
         self.trades = trades
+        self.viz = viz # flattened array of integers representing the visualization of the player character at the given state
 
     def get_known_cells(self) -> dict:
         ''' Returns a game-map-like dictionary containing all the cells from all the rooms '''
@@ -632,7 +634,7 @@ class Polycraft(World):
 
         return self.get_current_state(), action.get_cost(results)
 
-    def get_current_state(self) -> PolycraftState:
+    def get_current_state(self, get_viz:bool=False) -> PolycraftState:
         """
         Query polycraft instance using low level interface and return State
         """
@@ -658,12 +660,18 @@ class Polycraft(World):
             if 'goal' in sensed:
                 terminal = sensed['gameOver'] or sensed['goal']['goalAchieved']
             entities = sensed['entities']
+            viz = None
+
+            if get_viz:
+                viz = self.poly_client.SENSE_SCREEN()
+
             state = PolycraftState(id, facing_block, pos, sensed_game_map, entities, inventory, currently_selected,
                                    copy.deepcopy(self.current_recipes),
                                    copy.deepcopy(self.current_trades),
                                    copy.deepcopy(self.door_to_room_cells),
                                    terminal=terminal,
-                                   step_cost=self.get_level_total_step_cost())
+                                   step_cost=self.get_level_total_step_cost(),
+                                   viz=viz)
 
 
         except (BrokenPipeError, KeyboardInterrupt) as err:

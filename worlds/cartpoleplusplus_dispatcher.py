@@ -99,7 +99,7 @@ class CartPolePlusPlusDispatcher:
                 reward = 1
                 #self.log.debug("Observation: {}, reward: {}, done {}".format(observation, reward, done))
                 sum_reward += reward
-                time_stamp += 1.0 / 30.0
+                time_stamp += 1.0 / 50.0
                 features = self.observation_to_feature_vector(observation, env, time_stamp)
                 if done:
                     self.delegate.training_instance(feature_vector=features, feature_label=None, reward=reward, done=done)
@@ -116,7 +116,7 @@ class CartPolePlusPlusDispatcher:
                     steps: int = 200,
                     informed: bool = True):
         self.log.debug("Running trial with generator: {} and difficulty: {}".format(generator.__name__, difficulty))
-        env = self.nominal_env(difficulty, renders=self.render)
+        env = generator(difficulty, renders=self.render)
         for episode in range(self.num_episodes):
             self.delegate.testing_episode_start(episode)
             reward = 0
@@ -136,14 +136,14 @@ class CartPolePlusPlusDispatcher:
                     time.sleep(1/50)
 
                 label = self.delegate.testing_instance(feature_vector=features, novelty_indicator=novelty_indicator)
-                self.log.debug("Received label={}".format(label))
+                # self.log.debug("Received label={}".format(label))
                 action = self.actions[label['action']]
 
                 observation, reward, done, _ = env.step(action)
 
                 # WSU is using this time increment:
                 # https://github.com/holderlb/WSU-SAILON-NG/blob/master/WSU-Portable-Generator/source/partial_env_generator/test_loader.py#L207
-                time_stamp += 1.0 / 30.0
+                time_stamp += 1.0 / 50.0
 
                 features = self.observation_to_feature_vector(observation, env, time_stamp)
                 if done:

@@ -138,11 +138,14 @@ def print_solution_info(pln, plnr, ttime):
     print(config_string)
 
 
-def runner(dom_file, prob_file, args_list: []):
+def runner(dom_file, prob_file, args_list:list=[]):
     start_time = time.time()
     domain = dom_file
     problem = prob_file
     plan_file = os.path.dirname(prob_file) + "/plan_" + os.path.basename(prob_file)
+
+    # WP: suppressing printouts for WSU evaluation
+    sys.stdout = open(os.devnull, 'w')
 
     process_arguments(args_list)
 

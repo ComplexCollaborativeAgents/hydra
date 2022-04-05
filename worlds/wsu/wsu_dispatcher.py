@@ -211,8 +211,9 @@ class WSUObserver:
             A dictionary of your label prediction of the format {'action': label}.  This is
                 strictly enforced and the incorrect format will result in an exception being thrown.
         """
-        self.log.debug('Testing Instance: feature_vector={}, novelty_indicator={}'.format(
-            feature_vector, novelty_indicator))
+        ## commented out for evaluation
+        # self.log.debug('Testing Instance: feature_vector={}, novelty_indicator={}'.format(
+        #     feature_vector, novelty_indicator))
 
         # Return dummy random choices, but should be determined by trained model
         if len(self.possible_answers) == 0:
