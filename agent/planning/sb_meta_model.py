@@ -516,6 +516,7 @@ class ScienceBirdsMetaModel(MetaModel):
                              # 'explosion_damage',
                              # 'fall_damage',
                              'gravity_factor'
+
                          ],
                          repair_deltas=[
                              1, 1, 1, 1,  50, 0.1 # 50, 10
@@ -524,13 +525,13 @@ class ScienceBirdsMetaModel(MetaModel):
                              'active_bird': 0,
                               'angle_rate': 20,
                              'ground_damper': 0.3,
-                             'base_life_wood_multiplier': 1.0,
-                             'base_life_ice_multiplier': 0.5,
-                             'base_life_stone_multiplier': 2.0,
+                             'base_life_wood_multiplier': 0.75,
+                             'base_life_ice_multiplier': 0.4,
+                             'base_life_stone_multiplier': 1.25,
                              'base_life_tnt_multiplier': 0.001,
-                             'base_mass_wood_multiplier': 0.375 * 1.3,
-                             'base_mass_ice_multiplier': 0.25,
-                             'base_mass_stone_multiplier': 1.2,
+                             'base_mass_wood_multiplier': 0.375,
+                             'base_mass_ice_multiplier': 0.188,
+                             'base_mass_stone_multiplier': 1,
                              'base_mass_tnt_multiplier': 0.1,
                              'meta_wood_multiplier': 1.0,
                              'meta_stone_multiplier': 1.0,
@@ -540,7 +541,23 @@ class ScienceBirdsMetaModel(MetaModel):
                              'meta_platform_size': 1.75,
                              'base_life_pig_multiplier': 0.0,
                              'fall_damage': 50,
-                             'explosion_damage': 100},
+                             'explosion_damage': 100,
+                             'red_ice_damage_factor': 1.5,
+                             'red_wood_damage_factor': 0.5,
+                             'red_stone_damage_factor': 0.3,
+                             'yellow_ice_damage_factor': 0.4,
+                             'yellow_wood_damage_factor': 2,
+                             'yellow_stone_damage_factor': 0.5,
+                             'blue_ice_damage_factor': 2,
+                             'blue_wood_damage_factor': 0.5,
+                             'blue_stone_damage_factor': 0.1,
+                             'black_ice_damage_factor': 1,
+                             'black_wood_damage_factor': 1,
+                             'black_stone_damage_factor': 0.2,
+                             'white_ice_damage_factor': 0.5,
+                             'white_wood_damage_factor': 0.5,
+                             'white_stone_damage_factor': 0.5
+                         },
                          constant_boolean_fluents={
                              'angle_adjusted': False,
                              'pig_killed': False})
@@ -722,6 +739,7 @@ class ScienceBirdsMetaModel(MetaModel):
                     # while iterating through all objects store platforms so they can be used to define borders for the worm agent (in the subsequent loop through level objects)
                     just_in_case_platforms.append(objj)
 
+
         # Add objects to problem
         for obj in sb_state.objects.items():
             # Get type
@@ -730,6 +748,14 @@ class ScienceBirdsMetaModel(MetaModel):
             if 'bird' in type_str.lower() or (
                     get_x_coordinate(obj) <= get_slingshot_x(slingshot) and not 'slingshot' in type_str):
                 obj_type = self.object_types["bird"]
+                for block in sb_state.objects.items():
+                    if block[1]['type'] in ['ice', 'wood', 'stone']:
+                        block_str = block[1]['type'] + '_' + block[0]
+                        bird_str = type_str + '_' + obj[0]
+                        pddl_problem.init.append(['=',
+                                                  ['bird_block_damage', bird_str, block_str],
+                                                  self.constant_numeric_fluents[type_str[:-4]+ '_' + block[1]['type'] + '_damage_factor']])
+                        # TODO handle unknown bird and block types?
             else:
                 if type_str in self.object_types:
                     obj_type = self.object_types[type_str]

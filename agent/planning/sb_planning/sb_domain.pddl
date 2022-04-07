@@ -5,6 +5,7 @@
     (:functions (x_bird ?b - bird) (y_bird ?b - bird) (v_bird ?b - bird) (vx_bird ?b - bird) (vy_bird ?b - bird) (m_bird ?b - bird) (bird_id ?b - bird) (bounce_count ?b - bird)
                 (bird_type ?b - bird) ;; BIRD TYPES: RED=0, YELLOW=1, BLACK=2, WHITE=3, BLUE=4 ;;
                 (bird_radius ?b - bird)
+                (bird_block_damage ?b - bird ?bl - block)
                 (gravity) (angle_rate) (angle) (active_bird) (ground_damper) (max_angle) (gravity_factor)  (min_angle)
                 (base_life_wood_multiplier) (base_life_ice_multiplier) (base_life_stone_multiplier) (base_life_tnt_multiplier)
                 (base_mass_wood_multiplier) (base_mass_ice_multiplier) (base_mass_stone_multiplier) (base_mass_tnt_multiplier)
@@ -156,7 +157,7 @@
             (<= (- (y_bird ?b) (bird_radius ?b)) (+ (y_block ?bl) (/ (block_height ?bl) 2) ) )
             (> (block_life ?bl) 0)
             (> (block_stability ?bl) (v_bird ?b) )
-            (> (block_life ?bl) (v_bird ?b) )
+            (> (block_life ?bl) ( * (v_bird ?b) (bird_block_damage ?b ?bl)))
         )
         :effect (and
             (assign (x_bird ?b) (- (x_block ?bl) (+ (/ (block_width ?bl) 2) 1) ) )
@@ -164,7 +165,7 @@
             (assign (vy_bird ?b) (* (vy_bird ?b) (/ (v_bird ?b) (block_life ?bl)) ))
             (assign (vx_bird ?b) (- 0 (* (vx_bird ?b) (/ (v_bird ?b) (block_life ?bl))) ))
             (assign (block_stability ?bl) (- (block_stability ?bl) (v_bird ?b)) )
-            (assign (block_life ?bl) (- (block_life ?bl) (v_bird ?b)) )
+            (assign (block_life ?bl) (- (block_life ?bl) ( * (v_bird ?b) (bird_block_damage ?b ?bl))) )
             (assign (v_bird ?b) (/ (v_bird ?b) 2))  ; This is an approximation, because the original values of block stability and life have already been lost.
             (assign (bounce_count ?b) (+ (bounce_count ?b) 1))
         )
@@ -183,14 +184,14 @@
             (> (block_life ?bl) 0)
             (or
             	(<= (block_stability ?bl) (v_bird ?b))
-            	(<= (block_life ?bl) (v_bird ?b))
+            	(<= (block_life ?bl) ( * (v_bird ?b) (bird_block_damage ?b ?bl)))
         	)
         )
         :effect (and
             (decrease (vy_bird ?b) (/ (vy_bird ?b) 2))
             (decrease (vx_bird ?b) (/ (vy_bird ?b) 2))
             (decrease (block_stability ?bl) (v_bird ?b) )
-            (assign (block_life ?bl) (- (block_life ?bl) (v_bird ?b)) )
+            (assign (block_life ?bl) (- (block_life ?bl) ( * (v_bird ?b) (bird_block_damage ?b ?bl))) )
             (assign (v_bird ?b) (/ (v_bird ?b) 2))
             (assign (bounce_count ?b) (+ (bounce_count ?b) 1))
             ;(increase (points_score) 500)
