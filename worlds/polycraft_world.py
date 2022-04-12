@@ -21,7 +21,7 @@ import worlds.polycraft_interface.client.polycraft_interface as poly
 
 logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("Polycraft")
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 
 
 # Useful constants
@@ -439,6 +439,16 @@ class Polycraft(World):
 
         return next_line
 
+    def wait_for_server_output(self, output:str):
+        """ Waits for a particular message to be recieved from the server before continuing. """
+        while True:
+            try:
+                if output in self._get_polycraft_output():
+                    break
+            except KeyboardInterrupt as err:
+                self.kill(exit_program=True)
+
+    
     def kill(self, exit_program=False):
         ''' Perform cleanup '''
 
@@ -522,13 +532,8 @@ class Polycraft(World):
         logger.info("Waiting for polycraft process to fully start up before sending commands...")
 
         # Wait for polycraft application to fully start up before sending commands
-        while True:
-            try:
-                if "Minecraft finished loading" in self._get_polycraft_output():
-                    logger.info("Polycraft application ready...")
-                    break
-            except KeyboardInterrupt as err:
-                self.kill(exit_program=True)
+        self.wait_for_server_output("Minecraft finished loading")
+        logger.info("Polycraft application ready...")
 
     def load_hosts(self, server_host: Host, observer_host: Host):
         """ Holdover from ScienceBirds world - intention is to use Docker to run as if agent were being evaluated"""
@@ -568,7 +573,12 @@ class Polycraft(World):
             if self.world_mode != ServerMode.TOURNAMENT:
                 self.poly_client.START()  # Send START command - will not perform any further actions unless done so
 
-            self.poly_client.CHECK_COST()  # Give time for the polycraft instance to clear its buffer?
+            # Wait for agent to fully join before sending commands
+            logger.info("Waiting for agent to connect to polycraft server...")
+            self.wait_for_server_output("joined the game")
+            logger.info("Agent connected to polycraft server...")
+
+            # self.poly_client.CHECK_COST()  # Give time for the polycraft instance to clear its buffer?
 
         except (ConnectionRefusedError, BrokenPipeError) as err:
             logger.error("Failed to connect to Polycraft server - shutting down.")
@@ -592,10 +602,8 @@ class Polycraft(World):
             # Wait for level to load fully (if not loaded fully, SENSE_ALL will return nothing and other undefined behavior) TODO: make consistent with RunTournament.py
             if self.world_mode == ServerMode.SERVER:
                 logger.info("Telling Polycraft to load a new level: {}".format(self.current_level))
-                while True:
-                    if "[EXP] game initialization completed" in self._get_polycraft_output():
-                        self.ready_for_cmds = True
-                        break
+                self.wait_for_server_output("[EXP] game initialization completed")
+                self.ready_for_cmds = True
             else:  # Detached server, using a heuristic of waiting a bit for it to load TODO: Is this bad?
                 logger.info("Waiting for level to initialize...")
                 time.sleep(5)  # Assumes 5 sec. is enough to load a level.
