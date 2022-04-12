@@ -14,6 +14,7 @@ from os import path
 import numpy as np
 import psutil
 import settings
+from agent.planning.pddl_plus import TimedAction
 from utils.host import Host
 from utils.state import Action, State, World
 
@@ -312,10 +313,11 @@ class PolycraftState(State):
         return diff_dict
 
 
-class PolycraftAction(Action):
+class PolycraftAction(Action, TimedAction):
     ''' Polycraft World Action '''
 
     def __init__(self):
+        TimedAction.__init__(self, type(self).__name__, 0.0)
         self.name = type(self).__name__
         self.success = None
         self.response = None  # The result returned by the server for doing this command. Initialized as None.
@@ -430,10 +432,10 @@ class Polycraft(World):
 
         try:
             next_line = str(self.poly_output_queue.get(False, timeout=0.025))
-            logger.debug(
-                next_line)  # Turn off logging for now, the output from polycraft is large, and consists mostly of response messaging
-            sys.stdout.flush()
-            sys.stderr.flush()
+            # logger.debug(
+            #     next_line)  # Turn off logging for now, the output from polycraft is large, and consists mostly of response messaging
+            # sys.stdout.flush()
+            # sys.stderr.flush()
         except queue.Empty:
             pass
 
@@ -572,6 +574,10 @@ class Polycraft(World):
             # LaunchTournament.py automatically calls START, do not do so if running without it!
             if self.world_mode != ServerMode.TOURNAMENT:
                 self.poly_client.START()  # Send START command - will not perform any further actions unless done so
+                while True:
+                    # If not using LaunchTournament.py, need to wait for player to join before taking any actions.
+                    if "joined the game" in self._get_polycraft_output():
+                        break
 
             # Wait for agent to fully join before sending commands
             logger.info("Waiting for agent to connect to polycraft server...")
