@@ -23,7 +23,7 @@ class PolycraftDispatcher():
 
         # Load polycarft world
         mode = ServerMode.CLIENT
-        if standalone:
+        if not standalone:
             mode = ServerMode.SERVER
         self.env = Polycraft(polycraft_mode=mode)
         self.trials = {}
