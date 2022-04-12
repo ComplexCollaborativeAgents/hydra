@@ -574,10 +574,6 @@ class Polycraft(World):
             # LaunchTournament.py automatically calls START, do not do so if running without it!
             if self.world_mode != ServerMode.TOURNAMENT:
                 self.poly_client.START()  # Send START command - will not perform any further actions unless done so
-                while True:
-                    # If not using LaunchTournament.py, need to wait for player to join before taking any actions.
-                    if "joined the game" in self._get_polycraft_output():
-                        break
 
             # Wait for agent to fully join before sending commands
             logger.info("Waiting for agent to connect to polycraft server...")
@@ -585,6 +581,7 @@ class Polycraft(World):
             logger.info("Agent connected to polycraft server...")
 
             # self.poly_client.CHECK_COST()  # Give time for the polycraft instance to clear its buffer?
+
 
         except (ConnectionRefusedError, BrokenPipeError) as err:
             logger.error("Failed to connect to Polycraft server - shutting down.")
