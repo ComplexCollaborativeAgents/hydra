@@ -11,9 +11,6 @@ import sys
 import time
 import os
 
-SERVER_TRACE = False
-server_trace_filename = './server_trace'
-
 #logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 class GameState(Enum):
     """The state of the game at a particular instant"""
@@ -96,7 +93,7 @@ class AgentClient:
         else:
             self._logger = logging.getLogger('Agent Client')
 
-        logging.getLogger().setLevel(logging.WARNING)
+        logging.getLogger().setLevel(logging.INFO)
     def _read_raw_from_buff(self, size):
         """Read a specific number of bytes from server_socket"""
         self._logger.debug("Reading %s bytes from server", size)
@@ -116,9 +113,6 @@ class AgentClient:
         fmt = "!" + fmt
         size = struct.calcsize(fmt)
         encoded = self._read_raw_from_buff(size)
-        if SERVER_TRACE:
-            with open(server_trace_filename, 'a') as f:
-                f.write(f'received: {encoded}\n')
         return struct.unpack(fmt, encoded)
 
     def _send_command(self, command, *args):
@@ -131,18 +125,12 @@ class AgentClient:
             command,
             msg.hex()[:75] + (msg.hex()[75:] and "...")
         )
-        if SERVER_TRACE:
-            with open(server_trace_filename, 'a') as f:
-                f.write(f'sent: {msg}\n')
         self.server_socket.sendall(msg)
 
     # INITIALIZATION
     def connect_to_server(self):
         try:
             self.server_socket.connect((self.server_host, self.server_port))
-            if SERVER_TRACE:
-                with open(server_trace_filename, 'a') as f:
-                    f.write('connected\n')
             self._logger.info(
                 'Client connected to server on port: %d',
                 self.server_port
@@ -159,9 +147,6 @@ class AgentClient:
     def disconnect_from_server(self):
         try:
             self.server_socket.close()
-            if SERVER_TRACE:
-                with open(server_trace_filename, 'a') as f:
-                    f.write('disconnected\n')
             self._logger.info('Client disconnected from server.')
         except socket.error as e:
             self._logger.exception(
@@ -188,7 +173,7 @@ class AgentClient:
             'Received configuration: Round = %d, time_limit=%d, levels = %d',
             round_number, limit, levels
         )
-        return round_number, limit, levels
+        return (round_number, limit, levels)
 
     def ready_for_new_set(self):
         self._logger.info("Ready for new data set with appropriate agent.")
@@ -232,17 +217,11 @@ class AgentClient:
         read_bytes = 0
         # read first bytes
         image_bytes = self.server_socket.recv(2048)
-        if SERVER_TRACE:
-            with open(server_trace_filename, 'a') as f:
-                f.write(f'read image: {image_bytes}\n')
         read_bytes += image_bytes.__len__()
 
         # read the rest
         while (read_bytes < total_bytes):
             byte_buffer = self.server_socket.recv(2048)
-            if SERVER_TRACE:
-                with open(server_trace_filename, 'a') as f:
-                    f.write(f'read image: {image_bytes}\n')
             byte_buffer_length = byte_buffer.__len__()
             if (byte_buffer_length != -1):
                 image_bytes += byte_buffer
@@ -270,9 +249,6 @@ class AgentClient:
         self._logger.debug("groundtruth length is %d bytes", msg_length)
         while len(data) < msg_length:
             packet = self.server_socket.recv(msg_length - len(data))
-            if SERVER_TRACE:
-                with open(server_trace_filename, 'a') as f:
-                    f.write(f'read ground truth: {packet}\n')
             if not packet:
                 return None
             data += packet
@@ -376,6 +352,7 @@ class AgentClient:
                 gt_images.append(im)
             gt_jsons.append(gt)
         self._logger.info("received %d ground truth frames ", ground_truths_count)
+#        print("received ground truth frames ", ground_truths_count)
         return gt_jsons
 
 
@@ -451,6 +428,7 @@ class AgentClient:
         self._send_command(RequestCodes.GetNoisyGroundTruthWithoutScreenshot)
         gt = self.read_ground_truth_from_stream()
         return gt
+
 
 if __name__ == "__main__":
     """ TEST AGENT """
