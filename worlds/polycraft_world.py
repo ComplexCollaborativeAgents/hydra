@@ -22,7 +22,7 @@ import worlds.polycraft_interface.client.polycraft_interface as poly
 
 logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("Polycraft")
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 
 
 # Useful constants

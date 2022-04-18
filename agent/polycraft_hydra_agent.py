@@ -351,6 +351,9 @@ class PolycraftHydraAgent(HydraAgent):
 
     def replan(self, world_state: PolycraftState):
         """ Create a new plan after the active plan failed """
+        if self.should_repair(world_state):
+            self.repair_meta_model(world_state)
+
         if not self._should_explore(world_state):
             task = PolycraftTask.CRAFT_POGO.create_instance()
             plan = self.plan(active_task=task)
@@ -503,8 +506,13 @@ class PolycraftHydraAgent(HydraAgent):
             self.novelty_existence = True
         else:
             novelty_characterization = ""
-            novelty_likelihood = 0.0
-            self.novelty_existence = False
+            curr_inconsistency = self.meta_model_repair.compute_consistency([], self.observations_list[-1])
+            if curr_inconsistency > settings.POLYCRAFT_CONSISTENCY_THRESHOLD:
+                novelty_likelihood = curr_inconsistency / settings.POLYCRAFT_CONSISTENCY_THRESHOLD
+                self.novelty_existence = True
+            else:
+                novelty_likelihood = 0.0
+                self.novelty_existence = False
         return novelty_likelihood, novelty_characterization
 
     def _detect_unknown_objects(self, state: PolycraftState):
@@ -524,6 +532,7 @@ class PolycraftHydraAgent(HydraAgent):
 
     def should_repair(self, state: PolycraftState):
         """ Choose if the agent should repair its metamodel based on the given observation """
+        self.novelty_detection(report_novelty=True, only_current_state=False)
         return self.novelty_existence
 
     def repair_meta_model(self, state: PolycraftState):

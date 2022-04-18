@@ -84,7 +84,7 @@ class MmoBasedMetaModelRepair(SimulationBasedMetaModelRepair):
         # Initialize OPEN
         self.open = []
         repair = [0] * len(self.fluents_to_repair)  # Repair is a list, in order of the fluents_to_repair list
-        base_consistency = self._compute_consistency(repair, self.observation)
+        base_consistency = self.compute_consistency(repair, self.observation)
         priority = self._heuristic(repair, base_consistency)
         heapq.heappush(self.open, [priority, repair])
         self.generated_repairs = set()  # A set of all generated repaired. This is used for pruning duplicate repairs
@@ -111,7 +111,7 @@ class MmoBasedMetaModelRepair(SimulationBasedMetaModelRepair):
                 new_repair_tuple = tuple(new_repair)
                 if new_repair_tuple not in self.generated_repairs:
                     self.generated_repairs.add(new_repair_tuple)  # To allow duplicate detection
-                    consistency = self._compute_consistency(new_repair, self.observation)
+                    consistency = self.compute_consistency(new_repair, self.observation)
                     priority = self._heuristic(new_repair, consistency)
                     heapq.heappush(self.open, [priority, new_repair])
 
@@ -169,6 +169,6 @@ class FocusedMetaModelRepair(MmoBasedMetaModelRepair):
                     break
 
             # Ideally, compare the trace. TODO: For now, we compare the consistency, assuming that some small difference will always be there
-            consistency = self._compute_consistency(new_repair, self.observation)
+            consistency = self.compute_consistency(new_repair, self.observation)
             if base_consistency!=consistency: # This is a heuristic
                 self.mmo_list.append(mmo)
