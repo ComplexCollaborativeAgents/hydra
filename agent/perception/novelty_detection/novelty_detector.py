@@ -38,12 +38,16 @@ class ObsToState():
 
 class NoveltyDetector():
     def __init__(self, model_path, class_info_path):
+        self._device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
         self.thresholds = np.load(class_info_path)['thresholds']
 
         self.class_list = np.load(class_info_path)['class_list']
         print(self.class_list)
         self.novelty_model = ModelCosine(len(self.class_list))
-        self.novelty_model.load_state_dict(torch.load(model_path))
+
+
+        self.novelty_model.load_state_dict(torch.load(model_path, map_location=self._device))
 
         self.weight_ll = self.novelty_model.classifier[4].weight.detach().cpu().numpy()
         self.img_dim = (32,32)
@@ -72,7 +76,7 @@ class NoveltyDetector():
                 novelty, type_predicted, sim_scores = self.detect_novelty(activations_ll)
                 novelty_dict[keys[k]] = {'novelty':novelty, 'type':type, 'predicted_type':type_predicted, 'sim_scores':sim_scores}
 
-                print(novelty, type, type_predicted)
+                print(novelty, type, type_predicted, sim_scores)
                 ## do novelty detection
             elif poly.type == "MultiPolygon":
                 for p in range(len(poly)):
