@@ -13,7 +13,7 @@ Runner intended to interface with UTD's LaunchTournament.py (can be found in pal
 LaunchTournament.py handles trial sets and most of simulation management, such as loading next levels
 """
 
-RUNNER_MODE = ServerMode.CLIENT
+RUNNER_MODE = ServerMode.TOURNAMENT
 
 SINGLE_LEVEL_MODE = False   # For testing purposes, load a single level and finish when it's done
 SINGLE_LEVEL_TO_RUN = pathlib.Path(settings.POLYCRAFT_NON_NOVELTY_LEVEL_DIR) / "POGO_L00_T01_S01_X0100_U9999_V0_G00066_I0366_N0.json"
