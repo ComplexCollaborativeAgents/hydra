@@ -25,7 +25,7 @@ def get_heuristic_function(heuristic=constants.CUSTOM_HEURISTIC_ID, **kwargs):
     elif heuristic == 3:
         return active_heuristic
     elif heuristic == 4:
-        return CartpoltHeuristic()
+        return CartpoleHeuristic()
     elif heuristic == 5:
         return SBOneBirdHeuristic()
     elif heuristic == 6:
@@ -77,7 +77,7 @@ class BadSBHeuristic(AbstractHeuristic):
 
         # return 0
 
-class CartpoltHeuristic(AbstractHeuristic):
+class CartpoleHeuristic(AbstractHeuristic):
     # CARTPOLE HEURISTIC
     def evaluate(self, node):
         node.h = math.sqrt(math.pow(node.state_vars["['x']"], 2) + math.pow(node.state_vars["['theta']"], 2) +
@@ -535,7 +535,7 @@ class SBHelpfulAngleHeuristic(SBBlockedPigsHeuristic):
         return False
 
 
-h_list = [ZeroHeuristic(), CartpolePlusPlusHeuristic(), BadSBHeuristic(), active_heuristic, CartpoltHeuristic(),
+h_list = [ZeroHeuristic(), CartpolePlusPlusHeuristic(), BadSBHeuristic(), active_heuristic, CartpoleHeuristic(),
           SBOneBirdHeuristic(), SBBlockedPigsHeuristic(), None, None, None, None,
           HeuristicSum([SBOneBirdHeuristic(), SBBlockedPigsHeuristic()])]
 

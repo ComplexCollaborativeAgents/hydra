@@ -5,7 +5,7 @@ from typing import Type, List, Optional
 
 from worlds.wsu.generator.cartpoleplusplus import CartPoleBulletEnv
 from worlds.wsu.generator.n_0 import CartPole
-from worlds.wsu.generator.n import CartPoleNoBlocks
+# from worlds.wsu.generator.n import CartPoleNoBlocks
 from worlds.wsu.wsu_dispatcher import WSUObserver
 
 
@@ -76,7 +76,7 @@ class CartPolePlusPlusDispatcher:
         self.delegate.experiment_end()
 
 
-    def __run_training(self, generator: CartPoleEnv = CartPoleNoBlocks, episodes: int = 2000, steps: int = 200):
+    def __run_training(self, generator: CartPoleEnv = CartPole, episodes: int = 2000, steps: int = 200):
         self.log.debug("Running training with generator: {}".format(generator.__name__))
         env = generator('easy', renders=False)
         for episode in range(episodes):

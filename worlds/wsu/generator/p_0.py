@@ -1,4 +1,4 @@
-from .cartpoleplusplus import CartPoleBulletEnv
+from .p_base import CartPoleBulletEnv
 
 
 class CartPole(CartPoleBulletEnv):

@@ -70,36 +70,39 @@ class CartpolePlusPlusHydraAgent(HydraAgent):
 
         if self.plan is None:
             # self.meta_model.constant_numeric_fluents['time_limit'] = 4.0
-            self.meta_model.constant_numeric_fluents['time_limit'] = max(0.02, min(4.0, round((4.0 - ((self.steps) * 0.02)), 2)))
+            self.meta_model.constant_numeric_fluents['time_limit'] = max(0.02, min(1.0, round((4.0 - ((self.steps) * 0.02)), 2)))
             self.plan = self.planner.make_plan(observation, 0)
             self.current_observation = CartPolePlusPlusObservation()
             if len(self.plan) == 0:
                 self.plan_idx = 999
 
         if (self.plan_idx >= self.replan_idx) and ((time.time() - self.episode_timer) < settings.CP_EPISODE_TIME_LIMIT):
-            self.meta_model.constant_numeric_fluents['time_limit'] = max(0.02, min(4.0, round((4.0 - ((self.steps) * 0.02)), 2)))
+            self.meta_model.constant_numeric_fluents['time_limit'] = max(0.02, min(1.0, round((4.0 - ((self.steps) * 0.02)), 2)))
             new_plan = self.planner.make_plan(observation, 0)
             if len(new_plan) != 0:
                 self.current_observation = CartPolePlusPlusObservation()
                 self.plan = new_plan
                 self.plan_idx = 0
 
-        # state_values_list = self.planner.extract_state_values_from_trace("%s/plan_cartpole_prob.pddl" % str(settings.CARTPOLEPLUSPLUS_PLANNING_DOCKER_PATH))
-        # state_values_list.insert(0, (observation['cart']['x_position'], observation['cart']['y_position'], observation['cart']['x_velocity'], observation['cart']['y_velocity'],
-        #                              euls[0], euls[1], observation['pole']['x_velocity'], observation['pole']['y_velocity']))
-        # if (len(state_values_list) > 1):
-        #     print("cart observation (X,Y,Vx,Vy):\t\t" + str(observation['cart']['x_position']) + ",\t\t " + str(observation['cart']['y_position']) +
-        #           ",\t\t " + str(observation['cart']['x_velocity']) + ",\t\t " + str(observation['cart']['y_velocity']))
-        #     print("cart plan val (X,Y,Vx,Vy):\t\t\t" + str(state_values_list[self.plan_idx][0]) + ",\t\t " + str(state_values_list[self.plan_idx][1]) +
-        #           ",\t\t " + str(state_values_list[self.plan_idx][2]) + ",\t\t " + str(state_values_list[self.plan_idx][3]))
-        #
-        #     print("pole observation (X,Y,Vx,Vy):\t" + str(round(math.degrees(euls[0]), 6)) + ",\t\t " + str(round(math.degrees(euls[1]), 6)) +
-        #           ",\t\t " + str(observation['pole']['x_velocity']) + ",\t\t " + str(observation['pole']['y_velocity']))
-        #     print("pole plan val (X,Y,Vx,Vy):\t\t" + str(
-        #         round(math.degrees(state_values_list[self.plan_idx][4]), 6)) + ",\t\t " + str(
-        #         round(math.degrees(state_values_list[self.plan_idx][5]), 6)) + ",\t\t " + str(
-        #         state_values_list[self.plan_idx][6]) + ",\t\t " + str(state_values_list[self.plan_idx][7]))
-        # print("STEP: " + str(self.steps))
+        state_values_list = self.planner.extract_state_values_from_trace("%s/plan_cartpole_prob.pddl" % str(settings.CARTPOLEPLUSPLUS_PLANNING_DOCKER_PATH))
+        state_values_list.insert(0, (observation['cart']['x_position'], observation['cart']['y_position'], observation['cart']['x_velocity'], observation['cart']['y_velocity'],
+                                     euls[1], euls[0], observation['pole']['y_velocity'], observation['pole']['x_velocity']))
+        if (len(state_values_list) > 1):
+            print("cart observation (X,Y,Vx,Vy):\t\t" + str(observation['cart']['x_position']) + ",\t\t " + str(observation['cart']['y_position']) +
+                  ",\t\t " + str(observation['cart']['x_velocity']) + ",\t\t " + str(observation['cart']['y_velocity']))
+            print("cart plan val (X,Y,Vx,Vy):\t\t\t" + str(state_values_list[self.plan_idx][0]) + ",\t\t " + str(state_values_list[self.plan_idx][1]) +
+                  ",\t\t " + str(state_values_list[self.plan_idx][2]) + ",\t\t " + str(state_values_list[self.plan_idx][3]))
+
+            # REVERSED POLE X & Y POSITIONS AND VELOCITIES TO MATCH THE STUPID CARTPOLE++ ENV
+            print("pole observation (X,Y,Vx,Vy):\t" + str(round(math.degrees(euls[1]), 6)) + ",\t\t " + str(round(math.degrees(euls[0]), 6)) +
+                  ",\t\t " + str(observation['pole']['y_velocity']) + ",\t\t " + str(observation['pole']['x_velocity']))
+            print("pole plan val (X,Y,Vx,Vy):\t\t" + str(
+                round(math.degrees(state_values_list[self.plan_idx][4]), 6)) + ",\t\t " + str(
+                round(math.degrees(state_values_list[self.plan_idx][5]), 6)) + ",\t\t " + str(
+                state_values_list[self.plan_idx][6]) + ",\t\t " + str(state_values_list[self.plan_idx][7]))
+        print("STEP: " + str(self.steps))
+
+        time.sleep(10)
 
         action = random.randint(0, 4)
         if self.plan_idx < len(self.plan):
@@ -257,5 +260,5 @@ class CartpolePlusPlusHydraAgentObserver(WSUObserver):
 
         action = self.agent.choose_action(observation)
 
-        # self.log.debug("Testing instance: sending action={}".format(action))
+        self.log.debug("Testing instance: sending action={}".format(action))
         return action
