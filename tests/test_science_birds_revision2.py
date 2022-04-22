@@ -50,13 +50,13 @@ def launch_science_birds():
     ###  - test_revision4.xml
     ### displays all different shapes of wood blocks
     ### Don't copy
-    cmd = 'cp {}/data/science_birds/level-19.xml {}/../../../novelty_level_0/type2/Levels/00001.xml'.format(str(settings.ROOT_PATH), str(settings.SCIENCE_BIRDS_LEVELS_DIR))
+    cmd = 'cp {}/data/science_birds/level-19.xml {}/novelty_level_0/type2/Levels/00001.xml'.format(str(settings.ROOT_PATH), str(settings.SCIENCE_BIRDS_LEVELS_DIR))
     subprocess.run(cmd, shell=True)
-    cmd = 'cp {}/data/science_birds/level-19-2.xml {}/../../../novelty_level_0/type2/Levels/00002.xml'.format(str(settings.ROOT_PATH), str(settings.SCIENCE_BIRDS_LEVELS_DIR))
+    cmd = 'cp {}/data/science_birds/level-19-2.xml {}/novelty_level_0/type2/Levels/00002.xml'.format(str(settings.ROOT_PATH), str(settings.SCIENCE_BIRDS_LEVELS_DIR))
     subprocess.run(cmd, shell=True)
-    cmd = 'cp {}/data/science_birds/level-19-3.xml {}/../../../novelty_level_0/type2/Levels/00003.xml'.format(str(settings.ROOT_PATH), str(settings.SCIENCE_BIRDS_LEVELS_DIR))
+    cmd = 'cp {}/data/science_birds/level-19-3.xml {}/novelty_level_0/type2/Levels/00003.xml'.format(str(settings.ROOT_PATH), str(settings.SCIENCE_BIRDS_LEVELS_DIR))
     subprocess.run(cmd, shell=True)
-    cmd = 'cp {}/data/science_birds/level-19-4.xml {}/../../../novelty_level_0/type2/Levels/00004.xml'.format(str(settings.ROOT_PATH), str(settings.SCIENCE_BIRDS_LEVELS_DIR))
+    cmd = 'cp {}/data/science_birds/level-19-4.xml {}/novelty_level_0/type2/Levels/00004.xml'.format(str(settings.ROOT_PATH), str(settings.SCIENCE_BIRDS_LEVELS_DIR))
     subprocess.run(cmd, shell=True)
 
     env = sb.ScienceBirds(None, launch=True, config='test_revision4.xml')
