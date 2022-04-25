@@ -103,7 +103,7 @@ class CartPolePlusPlusMetaModel(MetaModel):
             constant_numeric_fluents={
                 'm_cart': 1.0,
                 'r_cart': 0.5,
-                'l_pole': 1.0,
+                'l_pole': 0.8,
                 # 'l_pole': 0.5, # original OpenAI Gym version
                 'm_pole': 0.1,
                 'force_mag': 10.0,

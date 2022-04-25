@@ -72,9 +72,9 @@
         (increase (pos_y) (* #t (pos_y_dot)) )
         (increase (theta_x) (* #t (theta_x_dot)))
         (increase (theta_y) (* #t (theta_y_dot)))
-        (decrease (pos_x_dot) (* #t (pos_x_ddot)) )
+        (increase (pos_x_dot) (* #t (pos_x_ddot)) )
         (increase (pos_y_dot) (* #t (pos_y_ddot)) )
-        (decrease (theta_x_dot) (* #t (theta_x_ddot)) )
+        (increase (theta_x_dot) (* #t (theta_x_ddot)) )
         (decrease (theta_y_dot) (* #t (theta_y_ddot)) )
         
         (increase (elapsed_time) (* #t 1) )
@@ -144,35 +144,35 @@
 ;    )
 ;  )
 
- ;  (:action move_cart_right
- ;    :parameters (?d - dummy)
- ;    :precondition (and
- ;    	(ready)
- ;    	(<= (F_x) 0.0)
- ;    	(cart_available)
- ;    	(not (total_failure))
-	; )
- ;    :effect (and
- ;      (assign (F_x) (force_mag))
- ;      (assign (F_y) 0.0)
- ;      (not (cart_available))
- ;  	)
- ;  )
+  (:action move_cart_right
+    :parameters (?d - dummy)
+    :precondition (and
+    	(ready)
+    	(<= (F_x) 0.0)
+    	(cart_available)
+    	(not (total_failure))
+	)
+    :effect (and
+      (assign (F_x) (force_mag))
+      (assign (F_y) 0.0)
+      (not (cart_available))
+  	)
+  )
 
- ;  (:action move_cart_left
- ;    :parameters (?d - dummy)
- ;    :precondition (and
- ;    	(ready)
- ;    	(>= (F_x) 0.0)
- ;    	(cart_available)
- ;    	(not (total_failure))
-	; )
- ;    :effect (and
- ;      (assign (F_x) (* (force_mag) -1.0))
- ;      (assign (F_y) 0.0)
- ;      (not (cart_available))
- ;  	)
- ;  )
+  (:action move_cart_left
+    :parameters (?d - dummy)
+    :precondition (and
+    	(ready)
+    	(>= (F_x) 0.0)
+    	(cart_available)
+    	(not (total_failure))
+	)
+    :effect (and
+      (assign (F_x) (* (force_mag) -1.0))
+      (assign (F_y) 0.0)
+      (not (cart_available))
+  	)
+  )
 
   (:action move_cart_backward
     :parameters (?d - dummy)

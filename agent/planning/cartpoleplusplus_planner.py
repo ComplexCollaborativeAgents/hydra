@@ -102,9 +102,9 @@ class CartPolePlusPlusPlanner(HydraPlanner):
                     action_name = "do_nothing dummy_obj"
                     if action_angle_time[1] != 0.0 and action_angle_time[2] == 0.0:
                         if action_angle_time[1] > 0.0:
-                            action_name = "move_cart_left dummy_obj"
-                        if action_angle_time[1] < 0.0:
                             action_name = "move_cart_right dummy_obj"
+                        if action_angle_time[1] < 0.0:
+                            action_name = "move_cart_left dummy_obj"
                     elif action_angle_time[1] == 0.0 and action_angle_time[2] != 0.0:
                         if action_angle_time[2] < 0.0:
                             action_name = "move_cart_backward dummy_obj"

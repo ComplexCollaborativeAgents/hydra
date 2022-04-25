@@ -33,7 +33,7 @@ CP_PLANNER_MEMORY_LIMIT = 50  # memory limit for UPMurphi (in MB)
 CP_DELTA_T = 0.02  # time discretisation for UPMurphi
 CP_TIMEOUT = 30  # timeout for the planning phase (in seconds)
 CP_CONSISTENCY_THRESHOLD = 0.01
-CP_EPISODE_TIME_LIMIT = 1200
+CP_EPISODE_TIME_LIMIT = 300
 CP_REPAIR_TIMEOUT = 180
 
 POLYCRAFT_DELTA_T = 1 # Time discretization

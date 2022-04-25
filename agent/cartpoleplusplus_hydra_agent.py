@@ -24,7 +24,7 @@ class CartpolePlusPlusHydraAgent(HydraAgent):
         self.log = logging.getLogger(__name__).getChild('CartpolePlusPlusHydraAgent')
 
         self.observations_list = []
-        self.default_replan_idx = 5
+        self.default_replan_idx = 6
         self.replan_idx = self.default_replan_idx
 
         self.novelty_likelihood = 0.0
@@ -58,26 +58,27 @@ class CartpolePlusPlusHydraAgent(HydraAgent):
     def choose_action(self, observation: CartPolePlusPlusObservation) -> \
             dict:
 
+        current_time = time.time() - self.episode_timer
+
         euls = self.quaternions_to_eulers(observation['pole']['x_quaternion'], observation['pole']['y_quaternion'],
                                           observation['pole']['z_quaternion'], observation['pole']['w_quaternion'])
 
+        self.replan_idx = self.default_replan_idx
         if round(abs(math.degrees(euls[0])), 6) > 3.0 or round(abs(math.degrees(euls[1])), 6) > 3.0:
-            self.replan_idx = 5
-        elif round(abs(math.degrees(euls[0])), 6) > 5.0 or round(abs(math.degrees(euls[1])), 6) > 5.0:
+            self.replan_idx = 4
+        if round(abs(math.degrees(euls[0])), 6) > 5.0 or round(abs(math.degrees(euls[1])), 6) > 5.0:
             self.replan_idx = 2
-        else:
-            self.replan_idx = self.default_replan_idx
 
-        if self.plan is None:
+        if self.plan is None and (current_time < settings.CP_EPISODE_TIME_LIMIT):
             # self.meta_model.constant_numeric_fluents['time_limit'] = 4.0
-            self.meta_model.constant_numeric_fluents['time_limit'] = max(0.02, min(1.0, round((4.0 - ((self.steps) * 0.02)), 2)))
+            self.meta_model.constant_numeric_fluents['time_limit'] = max(0.02, min(4.0, round((4.0 - ((self.steps) * 0.02)), 2)))
             self.plan = self.planner.make_plan(observation, 0)
             self.current_observation = CartPolePlusPlusObservation()
             if len(self.plan) == 0:
                 self.plan_idx = 999
 
-        if (self.plan_idx >= self.replan_idx) and ((time.time() - self.episode_timer) < settings.CP_EPISODE_TIME_LIMIT):
-            self.meta_model.constant_numeric_fluents['time_limit'] = max(0.02, min(1.0, round((4.0 - ((self.steps) * 0.02)), 2)))
+        if (self.plan_idx >= self.replan_idx) and (current_time < settings.CP_EPISODE_TIME_LIMIT):
+            self.meta_model.constant_numeric_fluents['time_limit'] = max(0.02, min(4.0, round((4.0 - ((self.steps) * 0.02)), 2)))
             new_plan = self.planner.make_plan(observation, 0)
             if len(new_plan) != 0:
                 self.current_observation = CartPolePlusPlusObservation()
@@ -100,18 +101,18 @@ class CartpolePlusPlusHydraAgent(HydraAgent):
                 round(math.degrees(state_values_list[self.plan_idx][4]), 6)) + ",\t\t " + str(
                 round(math.degrees(state_values_list[self.plan_idx][5]), 6)) + ",\t\t " + str(
                 state_values_list[self.plan_idx][6]) + ",\t\t " + str(state_values_list[self.plan_idx][7]))
-        print("STEP: " + str(self.steps))
+        print("STEP: " + str(self.steps) + "  [{}]".format(current_time))
 
-        time.sleep(10)
+        # time.sleep(10)
 
         action = random.randint(0, 4)
         if self.plan_idx < len(self.plan):
             action = 0
             if self.plan[self.plan_idx].action_name == "do_nothing dummy_obj":
                 action = 0
-            elif self.plan[self.plan_idx].action_name == "move_cart_left dummy_obj":
-                action = 1
             elif self.plan[self.plan_idx].action_name == "move_cart_right dummy_obj":
+                action = 1
+            elif self.plan[self.plan_idx].action_name == "move_cart_left dummy_obj":
                 action = 2
             elif self.plan[self.plan_idx].action_name == "move_cart_forward dummy_obj":
                 action = 3
@@ -139,7 +140,7 @@ class CartpolePlusPlusHydraAgent(HydraAgent):
 
     @staticmethod
     def action_to_label(action: int) -> dict:
-        labels = [{'action': 'nothing'}, {'action': 'left'}, {'action': 'right'}, {'action': 'forward'}, {'action': 'backward'}]
+        labels = [{'action': 'nothing'}, {'action': 'right'}, {'action': 'left'}, {'action': 'forward'}, {'action': 'backward'}]
         return labels[action]
 
     @staticmethod
