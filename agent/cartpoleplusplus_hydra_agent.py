@@ -85,23 +85,23 @@ class CartpolePlusPlusHydraAgent(HydraAgent):
                 self.plan = new_plan
                 self.plan_idx = 0
 
-        state_values_list = self.planner.extract_state_values_from_trace("%s/plan_cartpole_prob.pddl" % str(settings.CARTPOLEPLUSPLUS_PLANNING_DOCKER_PATH))
-        state_values_list.insert(0, (observation['cart']['x_position'], observation['cart']['y_position'], observation['cart']['x_velocity'], observation['cart']['y_velocity'],
-                                     euls[1], euls[0], observation['pole']['y_velocity'], observation['pole']['x_velocity']))
-        if (len(state_values_list) > 1):
-            print("cart observation (X,Y,Vx,Vy):\t\t" + str(observation['cart']['x_position']) + ",\t\t " + str(observation['cart']['y_position']) +
-                  ",\t\t " + str(observation['cart']['x_velocity']) + ",\t\t " + str(observation['cart']['y_velocity']))
-            print("cart plan val (X,Y,Vx,Vy):\t\t\t" + str(state_values_list[self.plan_idx][0]) + ",\t\t " + str(state_values_list[self.plan_idx][1]) +
-                  ",\t\t " + str(state_values_list[self.plan_idx][2]) + ",\t\t " + str(state_values_list[self.plan_idx][3]))
-
-            # REVERSED POLE X & Y POSITIONS AND VELOCITIES TO MATCH THE STUPID CARTPOLE++ ENV
-            print("pole observation (X,Y,Vx,Vy):\t" + str(round(math.degrees(euls[1]), 6)) + ",\t\t " + str(round(math.degrees(euls[0]), 6)) +
-                  ",\t\t " + str(observation['pole']['y_velocity']) + ",\t\t " + str(observation['pole']['x_velocity']))
-            print("pole plan val (X,Y,Vx,Vy):\t\t" + str(
-                round(math.degrees(state_values_list[self.plan_idx][4]), 6)) + ",\t\t " + str(
-                round(math.degrees(state_values_list[self.plan_idx][5]), 6)) + ",\t\t " + str(
-                state_values_list[self.plan_idx][6]) + ",\t\t " + str(state_values_list[self.plan_idx][7]))
-        print("STEP: " + str(self.steps) + "  [{}]".format(current_time))
+        # state_values_list = self.planner.extract_state_values_from_trace("%s/plan_cartpole_prob.pddl" % str(settings.CARTPOLEPLUSPLUS_PLANNING_DOCKER_PATH))
+        # state_values_list.insert(0, (observation['cart']['x_position'], observation['cart']['y_position'], observation['cart']['x_velocity'], observation['cart']['y_velocity'],
+        #                              euls[1], euls[0], observation['pole']['y_velocity'], observation['pole']['x_velocity']))
+        # if (len(state_values_list) > 1):
+        #     print("cart observation (X,Y,Vx,Vy):\t\t" + str(observation['cart']['x_position']) + ",\t\t " + str(observation['cart']['y_position']) +
+        #           ",\t\t " + str(observation['cart']['x_velocity']) + ",\t\t " + str(observation['cart']['y_velocity']))
+        #     print("cart plan val (X,Y,Vx,Vy):\t\t\t" + str(state_values_list[self.plan_idx][0]) + ",\t\t " + str(state_values_list[self.plan_idx][1]) +
+        #           ",\t\t " + str(state_values_list[self.plan_idx][2]) + ",\t\t " + str(state_values_list[self.plan_idx][3]))
+        #
+        #     # REVERSED POLE X & Y POSITIONS AND VELOCITIES TO MATCH THE STUPID CARTPOLE++ ENV
+        #     print("pole observation (X,Y,Vx,Vy):\t" + str(round(math.degrees(euls[1]), 6)) + ",\t\t " + str(round(math.degrees(euls[0]), 6)) +
+        #           ",\t\t " + str(observation['pole']['y_velocity']) + ",\t\t " + str(observation['pole']['x_velocity']))
+        #     print("pole plan val (X,Y,Vx,Vy):\t\t" + str(
+        #         round(math.degrees(state_values_list[self.plan_idx][4]), 6)) + ",\t\t " + str(
+        #         round(math.degrees(state_values_list[self.plan_idx][5]), 6)) + ",\t\t " + str(
+        #         state_values_list[self.plan_idx][6]) + ",\t\t " + str(state_values_list[self.plan_idx][7]))
+        # print("STEP: " + str(self.steps) + "  [{}]".format(current_time))
 
         # time.sleep(10)
 
@@ -261,5 +261,6 @@ class CartpolePlusPlusHydraAgentObserver(WSUObserver):
 
         action = self.agent.choose_action(observation)
 
-        self.log.debug("Testing instance: sending action={}".format(action))
+        # commented out for evaluation
+        # self.log.debug("Testing instance: sending action={}".format(action))
         return action

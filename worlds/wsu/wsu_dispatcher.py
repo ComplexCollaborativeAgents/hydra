@@ -212,8 +212,8 @@ class WSUObserver:
                 strictly enforced and the incorrect format will result in an exception being thrown.
         """
         ## commented out for evaluation
-        self.log.debug('Testing Instance: feature_vector={}, novelty_indicator={}'.format(
-            feature_vector, novelty_indicator))
+        # self.log.debug('Testing Instance: feature_vector={}, novelty_indicator={}'.format(
+        #     feature_vector, novelty_indicator))
 
         # Return dummy random choices, but should be determined by trained model
         if len(self.possible_answers) == 0:
@@ -340,7 +340,8 @@ class WSUDispatcher(TA2Logic):
                 response = response_queue.get(block=True, timeout=5)
                 response = response
             except queue.Empty:
-                self.log.debug("Processing AMQP Events...")
+                # commented out for evaluation
+                # self.log.debug("Processing AMQP Events...")
                 self.process_amqp_events()
 
         threaded_work.stop()
