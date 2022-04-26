@@ -12,7 +12,7 @@ if __name__=="__main__":
     class_info_path = "agent/perception/novelty_detection/params/class_info.npz"
     novelty_detector = NoveltyDetector(model_path, class_info_path)
 
-    data_path = 'angry_birds/data/50_level_1_type_10_novelties/random/'
+    data_path = '../50_level_1_type_10_novelties/random/'
     data_obs = os.listdir(data_path)
     Obs_to_State = ObsToState()
 
@@ -20,5 +20,6 @@ if __name__=="__main__":
         print(obs)
         observation = pickle.load(open(data_path+obs,"rb"))
         state, image = Obs_to_State.Obs_to_StateImage(observation)
+        print(state)
         novelty_detector.init_state(state, image)
         novelty_detector.evalaute()

@@ -20,6 +20,8 @@ import pickle
 from utils.state import State, Action, World
 import sklearn.linear_model as lm
 
+from agent.perception.novelty_detection.novelty_detector import ObsToState, NoveltyDetector
+
 from worlds.science_birds import SBState
 import csv
 logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
@@ -37,6 +39,12 @@ class Perception():
         self.threshold = settings.SB_CLASSIFICATION_THRESHOLD
         self.new_level = True
         self.writer = csv.DictWriter(open('object_class.csv','w'), fieldnames=classification_cols())
+
+        self.penn_novelty_model_path = "{}/agent/perception/novelty_detection/params/model.pt".format(settings.ROOT_PATH)
+        self.penn_class_info_path = "{}/agent/perception/novelty_detection/params/class_info.npz".format(settings.ROOT_PATH)
+        self.penn_novelty_detector = NoveltyDetector(model_path=self.penn_novelty_model_path,
+                                                     class_info_path=self.penn_class_info_path)
+
         if settings.DEBUG:
             self.writer.writeheader()
 
@@ -59,10 +67,22 @@ class Perception():
             return self.process_sb_state(state)
         return state
 
-        
+
+    def process_initial_state_screenshot(self, raw_state, initial_state_screenshot):
+        self._initial_state_screenshot = initial_state_screenshot
+        self._initial_raw_state = raw_state
+        self._initial_processed_state = self.process_sb_state(raw_state)
+
+        self.penn_novelty_detector.init_state(self._initial_processed_state.objects, self._initial_state_screenshot)
+        novelty_info = self.penn_novelty_detector.evalaute()
+        print(novelty_info)
+
+        return
+
 # Output: {0: {'type': 'redBird', 'bbox': <shapely.geometry.polygon.Polygon object at 0x112145b10>}, 1: {'type': 'slingshot', 'bbox': <shapely.geometry.polygon.Polygon object at 0x112145590>}, 2: {'type': 'wood', 'bbox': <shapely.geometry.polygon.Polygon object at 0x1120f4690>}, 3: {'type': 'wood', 'bbox': <shapely.geometry.polygon.Polygon object at 0x1120f4510>}, 4: {'type': 'pig', 'bbox': <shapely.geometry.polygon.Polygon object at 0x1120f4450>}}
     def process_sb_state(self, state):
         vision = GroundTruthReader(state.objects, self.model, self.target_class)
+
 
         if self.new_level and settings.DEBUG:
             for obj in vision.alljson:

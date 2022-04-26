@@ -440,6 +440,10 @@ class SBHydraAgent(HydraAgent):
     def handle_game_playing(self, observation, raw_state):
         """ Handle what happens when the agent receives a PLAYING request"""
 
+        if self.perception.new_level == True:
+            initial_state_screenshot = self.env.sb_client.get_initial_state_screenshot()
+            self.perception.process_initial_state_screenshot(raw_state, initial_state_screenshot)
+
         processed_state = self.perception.process_state(raw_state)
         observation.state = processed_state
 

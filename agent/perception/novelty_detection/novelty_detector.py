@@ -69,6 +69,7 @@ class NoveltyDetector():
             object = self.state[keys[k]]
             type = object['type']
             poly = object['polygon']
+            id = keys[k]
             if poly.type == "Polygon":
                 # print(type)
                 subImg = self.img_to_subImg(type, poly)
@@ -76,7 +77,7 @@ class NoveltyDetector():
                 novelty, type_predicted, sim_scores = self.detect_novelty(activations_ll)
                 novelty_dict[keys[k]] = {'novelty':novelty, 'type':type, 'predicted_type':type_predicted, 'sim_scores':sim_scores}
 
-                print(novelty, type, type_predicted, sim_scores)
+                print(id, novelty, type, type_predicted, sim_scores)
                 ## do novelty detection
             elif poly.type == "MultiPolygon":
                 for p in range(len(poly)):
@@ -127,8 +128,8 @@ class NoveltyDetector():
         subImg = self.image[y_min:y_max,x_min:x_max,:]
 
         saveImg = Image.fromarray(subImg)
-        saveImg.save("tmp.png")
-        subImg = cv2.imread("tmp.png")
+        #saveImg.save("tmp.png")
+        #subImg = cv2.imread("tmp.png")
         subImg = cv2.resize(subImg,self.img_dim)
         # pdb.set_trace()
         # plt.imshow(subImg)
