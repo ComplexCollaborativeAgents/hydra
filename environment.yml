@@ -2,7 +2,7 @@ name: hydra
 channels:
   - defaults
   - conda-forge
-#  - pytorch
+  - pytorch
 dependencies:
   - python=3.7
   - pip
@@ -22,8 +22,8 @@ dependencies:
   - psutil
   - pytz
   - cpuonly
-#  - pytorch=1.7.0
-#  - torchvision=0.8.1
+  - pytorch=1.7.0
+  - torchvision=0.8.1
   - shortuuid
   - seaborn
   - certifi==2020.4.5.2
