@@ -22,7 +22,7 @@ import worlds.polycraft_interface.client.polycraft_interface as poly
 
 logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("Polycraft")
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 
 
 # Useful constants
@@ -376,6 +376,8 @@ class Polycraft(World):
             self.launch_polycraft()
         else:
             logger.info("Starting agent without launching Polycraft")
+            # Launch polycraft listener, as it wouldn't have been launched in launch_polycraft()
+            self.launch_polycraft_listener()
 
         # Path to polycraft client interface config file (host name/port, buffer size, etc.)
         if client_config is None:
@@ -432,10 +434,10 @@ class Polycraft(World):
 
         try:
             next_line = str(self.poly_output_queue.get(False, timeout=0.025))
-            # logger.debug(
-            #     next_line)  # Turn off logging for now, the output from polycraft is large, and consists mostly of response messaging
-            # sys.stdout.flush()
-            # sys.stderr.flush()
+            logger.info(
+                next_line)  # Turn off logging for now, the output from polycraft is large, and consists mostly of response messaging
+            sys.stdout.flush()
+            sys.stderr.flush()
         except queue.Empty:
             pass
 
@@ -486,7 +488,7 @@ class Polycraft(World):
         if exit_program:
             exit()
 
-    def launch_polycraft(self):
+    def launch_polycraft(self, launch_listener:bool=True):
         """
         Start polycraft server using parameters from config dictionary
         See https://github.com/StephenGss/PAL/tree/release_2.0 for full list of parameters
@@ -519,10 +521,8 @@ class Polycraft(World):
 
         logger.info("Starting Polycraft process listener thread...")
 
-        self.poly_listener = threading.Thread(target=self._read_polycraft_output,
-                                              args=(self.poly_server_process, self.poly_output_queue))
-        self.poly_listener.daemon = True
-        self.poly_listener.start()
+        if launch_listener: # Launch the process that listens to Polycraft output
+            self.launch_polycraft_listener()
 
         if self.poly_server_process.poll() is None:
             logger.debug('Launched Polycraft with pid: {}'.format(str(self.poly_server_process.pid)))
@@ -536,6 +536,13 @@ class Polycraft(World):
         # Wait for polycraft application to fully start up before sending commands
         self.wait_for_server_output("Minecraft finished loading")
         logger.info("Polycraft application ready...")
+
+    def launch_polycraft_listener(self):
+        """ Launches a thread that listens to stdout for Polycraft server output """
+        self.poly_listener = threading.Thread(target=self._read_polycraft_output,
+                                              args=(self.poly_server_process, self.poly_output_queue))
+        self.poly_listener.daemon = True
+        self.poly_listener.start()
 
     def load_hosts(self, server_host: Host, observer_host: Host):
         """ Holdover from ScienceBirds world - intention is to use Docker to run as if agent were being evaluated"""
@@ -575,13 +582,13 @@ class Polycraft(World):
             if self.world_mode != ServerMode.TOURNAMENT:
                 self.poly_client.START()  # Send START command - will not perform any further actions unless done so
 
-            # Wait for agent to fully join before sending commands
-            logger.info("Waiting for agent to connect to polycraft server...")
-            self.wait_for_server_output("joined the game")
-            logger.info("Agent connected to polycraft server...")
+                # Wait for agent to fully join before sending commands
+                # If in tournament mode, we will not have the self.poly_server_process to work with, so skip?
+                logger.info("Waiting for agent to connect to polycraft server...")
+                self.wait_for_server_output("joined the game")
+                logger.info("Agent connected to polycraft server...")
 
             # self.poly_client.CHECK_COST()  # Give time for the polycraft instance to clear its buffer?
-
 
         except (ConnectionRefusedError, BrokenPipeError) as err:
             logger.error("Failed to connect to Polycraft server - shutting down.")

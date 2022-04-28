@@ -36,7 +36,7 @@ def main():
     # trials = [os.path.join(settings.POLYCRAFT_LEVEL_DIR, "POGO_10game_prenovelty", "POGO_L00_T01_S01", "X0010", "POGO_L00_T01_S01_X0010_A_U9999_V0")]
     trials = [os.path.join(settings.POLYCRAFT_NON_NOVELTY_LEVEL_DIR)]
 
-    agent = PolycraftHydraAgent(planner=FixedPlanPlanner())
+    agent = PolycraftHydraAgent()#planner=FixedPlanPlanner())
 
     dispatcher = PolycraftDispatcher(agent=agent)
     try:

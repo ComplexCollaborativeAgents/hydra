@@ -98,7 +98,7 @@ class AgentClient:
         else:
             self._logger = logging.getLogger('Agent Client')
 
-        logging.getLogger().setLevel(logging.WARNING)
+        logging.getLogger().setLevel(logging.INFO)
     def _read_raw_from_buff(self, size):
         """Read a specific number of bytes from server_socket"""
         self._logger.debug("Reading %s bytes from server", size)
@@ -135,7 +135,7 @@ class AgentClient:
         )
         if SERVER_TRACE:
             with open(server_trace_filename, 'a') as f:
-                f.write(f'sent {command}: {msg}\n')
+                f.write(f'sent: {msg}\n')
         self.server_socket.sendall(msg)
 
     # INITIALIZATION
@@ -190,7 +190,7 @@ class AgentClient:
             'Received configuration: Round = %d, time_limit=%d, levels = %d',
             round_number, limit, levels
         )
-        return round_number, limit, levels
+        return (round_number, limit, levels)
 
     def ready_for_new_set(self):
         self._logger.info("Ready for new data set with appropriate agent.")
