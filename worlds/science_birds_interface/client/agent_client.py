@@ -10,6 +10,7 @@ from PIL import Image
 import sys
 import time
 import os
+import cv2
 
 SERVER_TRACE = False
 server_trace_filename = './server_trace'
@@ -135,7 +136,7 @@ class AgentClient:
         )
         if SERVER_TRACE:
             with open(server_trace_filename, 'a') as f:
-                f.write(f'sent: {msg}\n')
+                f.write(f'sent {command}: {msg}\n')
         self.server_socket.sendall(msg)
 
     # INITIALIZATION
@@ -190,7 +191,7 @@ class AgentClient:
             'Received configuration: Round = %d, time_limit=%d, levels = %d',
             round_number, limit, levels
         )
-        return (round_number, limit, levels)
+        return round_number, limit, levels
 
     def ready_for_new_set(self):
         self._logger.info("Ready for new data set with appropriate agent.")
@@ -259,10 +260,10 @@ class AgentClient:
         self._logger.info('Received screenshot')
 
         img = np.array(rgb_image)
-        # Convert RGB to BGR
+        # Convert BGR to RGB
         rgb_image = img[:, :, ::-1].copy()
-        # cv2.imwrite('image.png',img)
-        return img
+        #cv2.imwrite('image.png',rgb_image)
+        return rgb_image
 
     def read_ground_truth_from_stream(self):
         """Read Ground Truth from sever_socket"""
