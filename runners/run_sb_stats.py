@@ -40,9 +40,10 @@ class AgentType(enum.Enum):
     Eaglewings = 4
 
 
-NOVELTY = 24
-TYPE = [1] #[222, 225, 236, 245, 246, 253, 254, 257, 555]  #245 555, 222, 225, 226, 236, 243, 252,  , 257
-SAMPLES = 10
+NOVELTY = 0
+TYPE = [246] # [226, 243, 244, 252] #[222, 225, 236, 245, 246, 253, 254, 257, 555]  #245 555, 222, 225, 226, 236, 243, 252,  , 257
+NOVELTY_SET = {0: [226, 227]}  # 11:[50, 130], 12:[30, 110]  13: [20, 90], 14:[1]
+SAMPLES = 3
 
 AGENT = AgentType.RepairingHydra
 
@@ -341,7 +342,7 @@ def compute_eval_stats(results_path, agent, agent_stats=list()):
 
 def run_sb_stats(extract=False, seed=None, record_novelty_stats=False):
     """ Run science birds agent stats. """
-    novelties = {NOVELTY: TYPE}
+    novelties = NOVELTY_SET
     samples = SAMPLES
     run_performance_stats(novelties, agent_type=AGENT, seed=seed, samples=samples,
                           record_novelty_stats=record_novelty_stats)
@@ -373,7 +374,7 @@ def run_performance_stats(novelties: dict,
             number_samples = len(levels)
             if samples is not None:
                 number_samples = min(number_samples, samples)
-            levels = levels[:number_samples]
+            levels = levels[20:20 + number_samples]
             # levels = random.sample(levels, number_samples)
 
             if level_lookup:

@@ -36,8 +36,11 @@ CP_CONSISTENCY_THRESHOLD = 0.01
 CP_EPISODE_TIME_LIMIT = 1200
 CP_REPAIR_TIMEOUT = 180
 
-POLYCRAFT_DELTA_T = 1 # Time discretization
-POLYCRAFT_TIMEOUT = 300 # timeout for the planning phase (in seconds)
+POLYCRAFT_DELTA_T = 1  # Time discretization
+POLYCRAFT_TIMEOUT = 300  # timeout for the planning phase (in seconds)
+POLYCRAFT_REPAIR_TIMEOUT = 180
+POLYCRAFT_CONSISTENCY_THRESHOLD = 0
+POLYCRAFT_REPAIR_MAX_ITERATIONS = 30
 
 OS_ROOT_PATH = path.abspath(os.sep)
 ROOT_PATH = path.join(path.dirname(path.dirname(path.abspath(__file__))))

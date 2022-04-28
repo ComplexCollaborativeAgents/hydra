@@ -74,7 +74,7 @@ class SimulationBasedMetaModelRepair(MetaModelRepair):
 
 
 
-    def _compute_consistency(self, repair: list, observation: ScienceBirdsObservation):
+    def compute_consistency(self, repair: list, observation: HydraObservation):
         """ Computes the consistency score for the given delta state"""
         # Apply change
         self._do_change(repair)
@@ -145,7 +145,7 @@ class GreedyBestFirstSearchMetaModelRepair(SimulationBasedMetaModelRepair):
         # Initialize OPEN
         open_list = []
         repair = [0] * len(self.fluents_to_repair)  # Repair is a list, in order of the fluents_to_repair list
-        base_consistency = self._compute_consistency(repair, observation)
+        base_consistency = self.compute_consistency(repair, observation)
         priority = self._heuristic(repair, base_consistency)
         heapq.heappush(open_list, [priority, repair])
 
@@ -175,7 +175,7 @@ class GreedyBestFirstSearchMetaModelRepair(SimulationBasedMetaModelRepair):
                 new_repair_tuple = tuple(new_repair)
                 if new_repair_tuple not in generated_repairs:  # If  this is a new repair
                     generated_repairs.add(new_repair_tuple)  # To allow duplicate detection
-                    consistency = self._compute_consistency(new_repair, observation)
+                    consistency = self.compute_consistency(new_repair, observation)
                     priority = self._heuristic(new_repair, consistency)
                     heapq.heappush(open_list, [priority, new_repair])
 

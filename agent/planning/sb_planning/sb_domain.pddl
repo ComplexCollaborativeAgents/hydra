@@ -349,7 +349,7 @@
       	    (assign (vx_bird ?b) 0)
       	    (assign (vy_bird ?b) 0)
       	    (bird_tapped ?b)
-
+            (assign (bird_radius ?b) (/ (bird_radius ?b) 2))
   	    )
     )
 

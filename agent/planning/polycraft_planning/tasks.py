@@ -103,11 +103,12 @@ class CreatePogoTask(Task):
 
     def get_metric(self, world_state:PolycraftState, meta_model:PolycraftMetaModel):
         return 'minimize(total-time)'
-    def get_planner_heuristic(self, world_state:PolycraftState, meta_model:PolycraftMetaModel):
+
+    def get_planner_heuristic(self, world_state:PolycraftState):
         ''' Returns the heuristic to be used by the planner'''
         return CraftPogoHeuristic(world_state)
 
-    def is_done(self, state:PolycraftState)->bool:
+    def is_done(self, state: PolycraftState) -> bool:
         ''' Checks if the task has been succesfully completed '''
         if state.count_items_of_type(ItemType.WOODEN_POGO_STICK.value)>0:
             return True
