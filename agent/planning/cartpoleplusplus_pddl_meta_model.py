@@ -184,7 +184,7 @@ class CartPolePlusPlusMetaModel(MetaModel):
         pddl_problem.init.append(['=', ['theta_x_dot'], round(obs_theta_x_dot, CartPolePlusPlusMetaModel.PLANNER_PRECISION)])
         pddl_problem.init.append(['=', ['theta_y_dot'], round(obs_theta_y_dot, CartPolePlusPlusMetaModel.PLANNER_PRECISION)])
         pddl_problem.init.append(['=', ['F_x'], 0.0])
-        pddl_problem.init.append(['=', ['F_y'], 10.0])
+        pddl_problem.init.append(['=', ['F_y'], 0.0])
 
         initial_Fx = 0.0 # TODO: import initial force based on the last action applied, split initial_F into X and Y directions.
         initial_Fy = 0.0
@@ -210,7 +210,7 @@ class CartPolePlusPlusMetaModel(MetaModel):
 
 
         # FLYING BLOCKS AND THEIR ATTRIBUTES
-        purposely_ignoring_blocks = True
+        purposely_ignoring_blocks = False
         # Add objects to problem
         if len(observation_array['blocks']) == 0 or purposely_ignoring_blocks:
             pddl_problem.objects.append(['dummy_block', 'block'])

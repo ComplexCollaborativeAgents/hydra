@@ -50,13 +50,13 @@ class CartpolePlusPlusHeuristic(AbstractHeuristic):
             node.h = math.sqrt(
                                # math.pow(node.state_vars["['pos_x']"], 2) +
                                math.pow(node.state_vars["['theta_x']"], 2) +
-                               math.pow(0.2*node.state_vars["['theta_x_dot']"], 2) +
+                               # math.pow(0.2*node.state_vars["['theta_x_dot']"], 2) +
                                # math.pow(node.state_vars["['pos_x_dot']"], 2) +
                                # math.pow(node.state_vars["['theta_x_ddot']"], 2) +
                                # math.pow(node.state_vars["['pos_x_ddot']"], 2) +
                                # math.pow(node.state_vars["['pos_y']"], 2) +
-                               math.pow(node.state_vars["['theta_y']"], 2) +
-                               math.pow(0.2*node.state_vars["['theta_y_dot']"], 2)
+                               math.pow(node.state_vars["['theta_y']"], 2)
+                               # math.pow(0.2*node.state_vars["['theta_y_dot']"], 2)
                                # math.pow(node.state_vars["['pos_y_dot']"], 2) +
                                # math.pow(node.state_vars["['theta_y_ddot']"], 2) +
                                # math.pow(node.state_vars["['pos_y_ddot']"], 2)

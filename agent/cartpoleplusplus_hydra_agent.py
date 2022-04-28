@@ -26,6 +26,7 @@ class CartpolePlusPlusHydraAgent(HydraAgent):
         self.observations_list = []
         self.default_replan_idx = 6
         self.replan_idx = self.default_replan_idx
+        self.missed_steps = 0
 
         self.novelty_likelihood = 0.0
         self.novelty_existence = None
@@ -47,6 +48,7 @@ class CartpolePlusPlusHydraAgent(HydraAgent):
     def episode_end(self, performance: float, feedback: dict = None):
         self.steps = 0
         self.plan_idx = 0
+        self.missed_steps = 0
         self.plan = None
         self.episode_timer = time.time()
         self.observations_list.append(self.current_observation)
@@ -77,13 +79,23 @@ class CartpolePlusPlusHydraAgent(HydraAgent):
             if len(self.plan) == 0:
                 self.plan_idx = 999
 
-        if (self.plan_idx >= self.replan_idx) and (current_time < settings.CP_EPISODE_TIME_LIMIT):
+        if (self.plan_idx >= self.replan_idx) and (current_time < settings.CP_EPISODE_TIME_LIMIT) and (self.missed_steps < 3):
             self.meta_model.constant_numeric_fluents['time_limit'] = max(0.02, min(4.0, round((4.0 - ((self.steps) * 0.02)), 2)))
             new_plan = self.planner.make_plan(observation, 0)
             if len(new_plan) != 0:
                 self.current_observation = CartPolePlusPlusObservation()
                 self.plan = new_plan
                 self.plan_idx = 0
+                self.missed_steps = 0
+            else:
+                self.missed_steps += 1
+
+
+        if (self.missed_steps >= 10):
+            self.missed_steps = 2
+        if (self.missed_steps >= 3):
+            self.missed_steps += 1
+
 
         # state_values_list = self.planner.extract_state_values_from_trace("%s/plan_cartpole_prob.pddl" % str(settings.CARTPOLEPLUSPLUS_PLANNING_DOCKER_PATH))
         # state_values_list.insert(0, (observation['cart']['x_position'], observation['cart']['y_position'], observation['cart']['x_velocity'], observation['cart']['y_velocity'],
@@ -101,7 +113,10 @@ class CartpolePlusPlusHydraAgent(HydraAgent):
         #         round(math.degrees(state_values_list[self.plan_idx][4]), 6)) + ",\t\t " + str(
         #         round(math.degrees(state_values_list[self.plan_idx][5]), 6)) + ",\t\t " + str(
         #         state_values_list[self.plan_idx][6]) + ",\t\t " + str(state_values_list[self.plan_idx][7]))
+        #
+
         # print("STEP: " + str(self.steps) + "  [{}]".format(current_time))
+        # print("missed steps: {}".format(self.missed_steps), end='\r')
 
         # time.sleep(10)
 
@@ -226,9 +241,12 @@ class RepairingCartpolePlusPlusHydraAgent(CartpolePlusPlusHydraAgent):
                 novelty_likelihood = 1.0
                 self.has_repaired = True
                 novelty_characterization = json.dumps(dict(zip(self.meta_model_repair.fluents_to_repair, repair)))
+                print("\n\nNOVELTY => {},{} (consistency={})".format(self.meta_model_repair.fluents_to_repair, repair, consistency))
             elif consistency > settings.CP_CONSISTENCY_THRESHOLD:
                 novelty_likelihood = 1.0
                 novelty_characterization = json.dumps({'Unknown novelty': 'no adjustments made'})
+                print("\n\nUNKNOWN NOVELTY (consistency={})\n\n".format(consistency))
+
             self.consistency_scores.append(consistency)
         except Exception:
             pass

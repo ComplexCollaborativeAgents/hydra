@@ -15,11 +15,14 @@ LOG_PATH = pathlib.Path(settings.ROOT_PATH) / 'runners' / 'log'
 # WSU_CARTPOLE = pathlib.Path(settings.ROOT_PATH) / 'worlds' / 'wsu' / 'parc-mockn-cartpole.config'
 
 # UNCOMMENT THE BELOW CONFIG FILE FOR WSU EVALUATION
-WSU_CARTPOLE = pathlib.Path(settings.ROOT_PATH) / 'runners' / 'client.config'
+# WSU_CARTPOLE = pathlib.Path(settings.ROOT_PATH) / 'runners' / 'client.config'
 USE_HYDRA = True
 
 
-def main(config_file_cmd):
+def main(config_file_cmd = None):
+
+    WSU_CARTPOLE = pathlib.Path(settings.ROOT_PATH) / 'runners' / 'client.config'
+    # WSU_CARTPOLE = pathlib.Path(settings.ROOT_PATH) / 'worlds' / 'wsu' / 'parc-mockn-cartpole.config'
 
     if (config_file_cmd):
         arg_config_list = config_file_cmd.split('=')
@@ -42,4 +45,7 @@ def main(config_file_cmd):
 
 
 if __name__ == '__main__':
-    main(sys.argv[1])
+    if (len(sys.argv) > 1):
+        main(sys.argv[1])
+    else:
+        main()
