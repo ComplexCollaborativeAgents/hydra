@@ -92,7 +92,7 @@ class CartPolePlanner(HydraPlanner):
                     return plan_actions
                 if "time-passing" in line:
                     action_angle_time = (line.split(':')[1].split('[')[0].replace('(', '').replace(')', '').strip(),
-                                         float(str(lines_list[i+5].split('\"[\'f\']\",')[1].split(']')[0])),
+                                         float(str(lines_list[i+6].split('\"[\'f\']\",')[1].split(']')[0])),
                                          float(line.split(':')[0].strip()))
                     # print (str(action_angle_time) + "\n")
 

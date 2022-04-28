@@ -18,7 +18,6 @@ def launch_cartpole_sample_level():
     logger.info("Starting CartPole")
     env = gym.make("CartPole-v1")
     yield env
-    # env.kill()
     logger.info("Ending CartPole")
 
 
@@ -26,10 +25,11 @@ def launch_cartpole_sample_level():
 def _inject_fault_to_meta_model(meta_model : CartPoleMetaModel, fluent_to_change = GRAVITY):
     meta_model.constant_numeric_fluents[fluent_to_change] = 4.9
 
-''' A full system test: run SB with a bad metnka model, observe results, fix meta model '''
 
 # @pytest.mark.skip()
 def test_repair_gravity_in_cartpole_agent(launch_cartpole_sample_level):
+    ''' A full system test: run SB with a bad metnka model, observe results, fix meta model '''
+
     # Constants
     save_obs = True # Set this to true to create a new observation file for test_repair_gravity_offline()
     plot_obs_vs_exp = False
