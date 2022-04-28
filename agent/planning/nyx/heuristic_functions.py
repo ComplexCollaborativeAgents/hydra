@@ -25,7 +25,7 @@ def get_heuristic_function(heuristic=constants.CUSTOM_HEURISTIC_ID, **kwargs):
     elif heuristic == 3:
         return active_heuristic
     elif heuristic == 4:
-        return CartpoltHeuristic()
+        return CartpoleHeuristic()
     elif heuristic == 5:
         return SBOneBirdHeuristic()
     elif heuristic == 6:
@@ -47,18 +47,20 @@ class CartpolePlusPlusHeuristic(AbstractHeuristic):
         if node.state_vars["['total_failure']"]:
             node.h = 999999
         else:
-            node.h = math.sqrt(math.pow(node.state_vars["['pos_x']"], 2) +
+            node.h = math.sqrt(
+                               # math.pow(node.state_vars["['pos_x']"], 2) +
                                math.pow(node.state_vars["['theta_x']"], 2) +
-                               math.pow(node.state_vars["['theta_x_dot']"], 2) +
-                               math.pow(node.state_vars["['pos_x_dot']"], 2) +
-                               math.pow(node.state_vars["['theta_x_ddot']"], 2) +
-                               math.pow(node.state_vars["['pos_x_ddot']"], 2) +
-                               math.pow(node.state_vars["['pos_y']"], 2) +
-                               math.pow(node.state_vars["['theta_y']"], 2) +
-                               math.pow(node.state_vars["['theta_y_dot']"], 2) +
-                               math.pow(node.state_vars["['pos_y_dot']"], 2) +
-                               math.pow(node.state_vars["['theta_y_ddot']"], 2) +
-                               math.pow(node.state_vars["['pos_y_ddot']"], 2)) * \
+                               # math.pow(0.2*node.state_vars["['theta_x_dot']"], 2) +
+                               # math.pow(node.state_vars["['pos_x_dot']"], 2) +
+                               # math.pow(node.state_vars["['theta_x_ddot']"], 2) +
+                               # math.pow(node.state_vars["['pos_x_ddot']"], 2) +
+                               # math.pow(node.state_vars["['pos_y']"], 2) +
+                               math.pow(node.state_vars["['theta_y']"], 2)
+                               # math.pow(0.2*node.state_vars["['theta_y_dot']"], 2)
+                               # math.pow(node.state_vars["['pos_y_dot']"], 2) +
+                               # math.pow(node.state_vars["['theta_y_ddot']"], 2) +
+                               # math.pow(node.state_vars["['pos_y_ddot']"], 2)
+                               ) * \
                      (node.state_vars["['time_limit']"] - node.state_vars["['elapsed_time']"])
         return node.h
 
@@ -75,7 +77,9 @@ class BadSBHeuristic(AbstractHeuristic):
         node.h = 50000 - node.state_vars["['points_score']"]
         return node.h
 
-class CartpoltHeuristic(AbstractHeuristic):
+        # return 0
+
+class CartpoleHeuristic(AbstractHeuristic):
     # CARTPOLE HEURISTIC
     def evaluate(self, node):
         node.h = math.sqrt(math.pow(node.state_vars["['x']"], 2) + math.pow(node.state_vars["['theta']"], 2) +
@@ -137,16 +141,17 @@ class SBOneBirdHeuristic(AbstractHeuristic):
         # red + black: none\no need to deal with here
         # yellow: accelerates. Just don't check falling short, because can accelerate at peak and reach blocks.
         # white: modeled as "shoots straight down when tapped". Remove "passes over everything" check.
-        # Blue: adding a 20% margin to the bounding box is probably pretty good.
+        # Blue: adding a 20% margin to the bounding box is probably pretty good. TODO: Some experimentation can narrow
+        #                                                                           that to a more accurate number.
 
         active_bird_string = get_active_bird_string(node)
         if active_bird_string is None:
             if node.predecessor_action == constants.TIME_PASSING_ACTION:
-                if node.predecessor.state_vars == node.state_vars:
-                    node.h = np.inf
+                if node.predecessor.state_vars == node.state_vars: # TODO this also doesn't work?
+                    node.h = SBOneBirdHeuristic.LARGE_VALUE
                     return node.h
             # This heuristic doesn't know what do to without a birb
-            node.h = SBOneBirdHeuristic.LARGE_VALUE
+            node.h = self._backup_heuristic()
             return node.h
         bird_released = node.state_vars.get("['bird_released'" + active_bird_string)
 
@@ -204,7 +209,7 @@ class SBOneBirdHeuristic(AbstractHeuristic):
             if v_x == 0:
                 # In this situation, we can't reason about ballistics.
                 # I have concluded that this situation doesn't arise, but left this just in case to prevent div by 0.
-                node.h = SBOneBirdHeuristic.LARGE_VALUE
+                node.h = self._backup_heuristic()
                 return node.h
 
             y_0 = node.state_vars["['y_bird'" + active_bird_string]
@@ -536,7 +541,7 @@ class SBHelpfulAngleHeuristic(SBBlockedPigsHeuristic):
         return False
 
 
-h_list = [ZeroHeuristic(), CartpolePlusPlusHeuristic(), BadSBHeuristic(), active_heuristic, CartpoltHeuristic(),
+h_list = [ZeroHeuristic(), CartpolePlusPlusHeuristic(), BadSBHeuristic(), active_heuristic, CartpoleHeuristic(),
           SBOneBirdHeuristic(), SBBlockedPigsHeuristic(), None, None, None, None,
           HeuristicSum([SBOneBirdHeuristic(), SBBlockedPigsHeuristic()])]
 

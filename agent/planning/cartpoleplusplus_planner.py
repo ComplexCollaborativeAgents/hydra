@@ -63,7 +63,7 @@ class CartPolePlusPlusPlanner(HydraPlanner):
     def get_plan_actions(self, count=0):
         nyx.runner("%s/cartpole_plus_plus_domain.pddl" % str(settings.CARTPOLEPLUSPLUS_PLANNING_DOCKER_PATH),
                    "%s/cartpole_prob.pddl" % str(settings.CARTPOLEPLUSPLUS_PLANNING_DOCKER_PATH),
-                   ['-vv', '-to:%s' % str(settings.CP_TIMEOUT), '-np:6', '-noplan', '-dblevent', '-search:gbfs', '-custom_heuristic:1',
+                   ['-vv', '-to:%s' % str(settings.CP_TIMEOUT), '-np:6', '-noplan', '-search:gbfs', '-custom_heuristic:1', '-pi:100000',
                     '-th:%s' % str(self.meta_model.constant_numeric_fluents['time_limit']),
                     '-t:%s' % str(settings.CP_DELTA_T)])
 
@@ -102,9 +102,9 @@ class CartPolePlusPlusPlanner(HydraPlanner):
                     action_name = "do_nothing dummy_obj"
                     if action_angle_time[1] != 0.0 and action_angle_time[2] == 0.0:
                         if action_angle_time[1] > 0.0:
-                            action_name = "move_cart_left dummy_obj"
-                        if action_angle_time[1] < 0.0:
                             action_name = "move_cart_right dummy_obj"
+                        if action_angle_time[1] < 0.0:
+                            action_name = "move_cart_left dummy_obj"
                     elif action_angle_time[1] == 0.0 and action_angle_time[2] != 0.0:
                         if action_angle_time[2] < 0.0:
                             action_name = "move_cart_backward dummy_obj"
@@ -134,14 +134,14 @@ class CartPolePlusPlusPlanner(HydraPlanner):
             for ix, linex in enumerate(plan_trace_file):
                 # print(str(i) + " =====> " + str(line))
                 if "time-passing" in linex:
-                    copy_line = copy.copy(lines_list2[ix + 5])
-                    copy_line2 = copy.copy(lines_list2[ix + 5])
-                    copy_line3 = copy.copy(lines_list2[ix + 5])
-                    copy_line4 = copy.copy(lines_list2[ix + 5])
-                    copy_line5 = copy.copy(lines_list2[ix + 5])
-                    copy_line6 = copy.copy(lines_list2[ix + 5])
-                    copy_line7 = copy.copy(lines_list2[ix + 5])
-                    copy_line8 = copy.copy(lines_list2[ix + 5])
+                    copy_line = copy.copy(lines_list2[ix + 6])
+                    copy_line2 = copy.copy(lines_list2[ix + 6])
+                    copy_line3 = copy.copy(lines_list2[ix + 6])
+                    copy_line4 = copy.copy(lines_list2[ix + 6])
+                    copy_line5 = copy.copy(lines_list2[ix + 6])
+                    copy_line6 = copy.copy(lines_list2[ix + 6])
+                    copy_line7 = copy.copy(lines_list2[ix + 6])
+                    copy_line8 = copy.copy(lines_list2[ix + 6])
 
                     state_values = (float(str(copy_line.split('\"[\'pos_x\']\",')[1].split(']')[0])),
                                     float(str(copy_line2.split('\"[\'pos_y\']\",')[1].split(']')[0])),

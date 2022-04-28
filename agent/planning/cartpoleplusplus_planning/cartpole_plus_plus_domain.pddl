@@ -70,95 +70,94 @@
     :effect (and
         (increase (pos_x) (* #t (pos_x_dot)) )
         (increase (pos_y) (* #t (pos_y_dot)) )
-        (decrease (pos_x_dot) (* #t (pos_x_ddot)) )
-        (increase (pos_y_dot) (* #t (pos_y_ddot)) )
-        (decrease (theta_x_dot) (* #t (theta_x_ddot)) )
-        (decrease (theta_y_dot) (* #t (theta_y_ddot)) )
         (increase (theta_x) (* #t (theta_x_dot)))
         (increase (theta_y) (* #t (theta_y_dot)))
+        (increase (pos_x_dot) (* #t (pos_x_ddot)) )
+        (increase (pos_y_dot) (* #t (pos_y_ddot)) )
+        (increase (theta_x_dot) (* #t (theta_x_ddot)) )
+        (decrease (theta_y_dot) (* #t (theta_y_ddot)) )
+        
         (increase (elapsed_time) (* #t 1) )
     )
   )
 
-  ;; commented for evaluation, not properly tested yet.
-  ; (:process block_movement
-  ;   :parameters (?bl - block)
-  ;   :precondition (and (block_active ?bl) (ready) (not (total_failure)))
-  ;   :effect (and
-  ;       (increase (block_x ?bl) (* #t (block_x_dot ?bl)) )
-  ;       (increase (block_y ?bl) (* #t (block_y_dot ?bl)) )
-  ;       (increase (block_z ?bl) (* #t (block_z_dot ?bl)) )
-  ;   )
-  ; )
-; 
-  ; (:event bounce_block_x
-  ;     :parameters (?bl - block)
-  ;     :precondition (and (block_active ?bl) (ready) (not (total_failure))
-  ;                        (or (>= (block_x ?bl) (wall_x_max))
-  ;                            (<= (block_x ?bl) (wall_x_min))
-  ;                        )
-  ;     )
-  ;     :effect (and
-  ;         (assign (block_x_dot ?bl) (* (block_x_dot ?bl) -1.0))
-  ;     )
-  ; )
-; 
-  ; (:event bounce_block_y
-  ;     :parameters (?bl - block)
-  ;     :precondition (and (block_active ?bl) (ready) (not (total_failure))
-  ;                        (or (>= (block_y ?bl) (wall_y_max))
-  ;                            (<= (block_y ?bl) (wall_y_min))
-  ;                        )
-  ;     )
-  ;     :effect (and
-  ;         (assign (block_y_dot ?bl) (* (block_y_dot ?bl) -1.0))
-  ;     )
-  ; )
-; 
-  ; (:event bounce_block_z
-  ;     :parameters (?bl - block)
-  ;     :precondition (and (block_active ?bl) (ready) (not (total_failure))
-  ;                        (or (>= (block_z ?bl) (wall_z_max))
-  ;                            (<= (block_z ?bl) (wall_z_min))
-  ;                        )
-  ;     )
-  ;     :effect (and
-  ;         (assign (block_z_dot ?bl) (* (block_z_dot ?bl) -1.0))
-  ;     )
-  ; )
-
-  (:action do_nothing
-    :parameters (?d - dummy)
-    :precondition (and
-      (ready)
-      (<= (theta_x) 2) (>= (theta_x) -2) (<= (theta_y) 2) (>= (theta_y) -2)
-      (or (> (F_x) 0.0) (< (F_x) 0.0) (> (F_y) 0.0) (< (F_y) 0.0) )
-      (cart_available)
-      (not (total_failure))
-  )
+  ; commented for evaluation, not properly tested yet.
+  (:process block_movement
+    :parameters (?bl - block)
+    :precondition (and (block_active ?bl) (ready) (not (total_failure)))
     :effect (and
-      (assign (F_y) 0.0)
-      (assign (F_x) 0.0)
-      (not (cart_available))
+        (increase (block_x ?bl) (* #t (block_x_dot ?bl)) )
+        (increase (block_y ?bl) (* #t (block_y_dot ?bl)) )
+        (increase (block_z ?bl) (* #t (block_z_dot ?bl)) )
     )
   )
 
-  (:action move_cart_right
-    :parameters (?d - dummy)
-    :precondition (and
-    	(ready)
-    	(>= (F_x) 0.0)
-    	(cart_available)
-    	(not (total_failure))
-	)
-    :effect (and
-      (assign (F_x) (* (force_mag) -1.0))
-      (assign (F_y) 0.0)
-      (not (cart_available))
-  	)
+  (:event bounce_block_x
+      :parameters (?bl - block)
+      :precondition (and (block_active ?bl) (ready) (not (total_failure))
+                         (or (>= (block_x ?bl) (wall_x_max))
+                             (<= (block_x ?bl) (wall_x_min))
+                         )
+      )
+      :effect (and
+          (assign (block_x_dot ?bl) (* (block_x_dot ?bl) -1.0))
+      )
   )
 
-  (:action move_cart_left
+  (:event bounce_block_y
+      :parameters (?bl - block)
+      :precondition (and (block_active ?bl) (ready) (not (total_failure))
+                         (or (>= (block_y ?bl) (wall_y_max))
+                             (<= (block_y ?bl) (wall_y_min))
+                         )
+      )
+      :effect (and
+          (assign (block_y_dot ?bl) (* (block_y_dot ?bl) -1.0))
+      )
+  )
+
+  (:event bounce_block_z
+      :parameters (?bl - block)
+      :precondition (and (block_active ?bl) (ready) (not (total_failure))
+                         (or (>= (block_z ?bl) (wall_z_max))
+                             (<= (block_z ?bl) (wall_z_min))
+                         )
+      )
+      :effect (and
+          (assign (block_z_dot ?bl) (* (block_z_dot ?bl) -1.0))
+      )
+  )
+
+  ; commented for evaluation, not properly tested yet.
+  (:event block_collision
+    :parameters (?bl - block)
+    :precondition (and
+      (not (total_failure))
+      (<= (elapsed_time) 1.0)
+      (block_active ?bl)
+      (<= (block_z ?bl) (* 1.5 (l_pole)))
+      (> (block_r ?bl) (^ (+ (^ (- (pos_x) (block_x ?bl)) 2.0) (^ (- (pos_y) (block_y ?bl)) 2.0)) 0.5) )
+    )
+    :effect (and (total_failure))
+  )
+
+ (:action do_nothing
+   :parameters (?d - dummy)
+   :precondition (and
+     (ready)
+     (<= (theta_x) 2) (>= (theta_x) -2) (<= (theta_y) 2) (>= (theta_y) -2)
+     (or (> (F_x) 0.0) (< (F_x) 0.0) (> (F_y) 0.0) (< (F_y) 0.0) )
+     (cart_available)
+     (not (total_failure))
+ )
+   :effect (and
+     (assign (F_y) 0.0)
+     (assign (F_x) 0.0)
+     (not (cart_available))
+   )
+ )
+
+  (:action move_cart_right
     :parameters (?d - dummy)
     :precondition (and
     	(ready)
@@ -168,6 +167,21 @@
 	)
     :effect (and
       (assign (F_x) (force_mag))
+      (assign (F_y) 0.0)
+      (not (cart_available))
+  	)
+  )
+
+  (:action move_cart_left
+    :parameters (?d - dummy)
+    :precondition (and
+    	(ready)
+    	(>= (F_x) 0.0)
+    	(cart_available)
+    	(not (total_failure))
+	)
+    :effect (and
+      (assign (F_x) (* (force_mag) -1.0))
       (assign (F_y) 0.0)
       (not (cart_available))
   	)
@@ -202,18 +216,6 @@
       (not (cart_available))
     )
   )
-
-  ; ; commented for evaluation, not properly tested yet.
-  ; (:event block_collision
-  ;   :parameters (?bl - block)
-  ;   :precondition (and 
-  ;     (not (total_failure))
-  ;     (block_active ?bl) 
-  ;     (<= (block_z ?bl) (* 2.0 (l_pole)))
-  ;     (< (+ (r_cart) (block_r ?bl)) (^ (+ (^ (- (pos_x) (block_x ?bl)) 2.0) (^ (- (pos_y) (block_y ?bl)) 2.0)) 0.5) )
-  ;   )
-  ;   :effect (and (total_failure))
-  ; )
 
   (:event exited_goal_region
       :parameters (?d - dummy)

@@ -260,6 +260,17 @@ class PddlPlusState:
                 blocks.add(fluent_name[1])
         return blocks
 
+    ''' Returns the set of block objects present in this state. 
+         Block is identified by the x_block fluent. Returns a set of block names. '''
+
+    def get_cp_blocks(self):
+        blocks = set()
+        for fluent_name in self.numeric_fluents:
+            # We expect every CP++ block has an x coordinate in a fluent of the form (block_x, block_name)
+            if len(fluent_name) == 2 and fluent_name[0] == "block_x":
+                blocks.add(fluent_name[1])
+        return blocks
+
     # Deep compare
     def __eq__(self, other):
         if isinstance(other, PddlPlusState) == False:

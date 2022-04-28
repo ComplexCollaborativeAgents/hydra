@@ -17,12 +17,25 @@ class CartpolePlusPlusConsistencyEstimator(MetaModelBasedConsistencyEstimator):
         fluent_names.append(('theta_x',))
         fluent_names.append(('theta_y',))
 
+        # Get blocks
+        blocks = set()
+        for [state, _, _] in simulation_trace:
+            if len(blocks) == 0:  # TODO: Discuss how to make this work. Currently a new bird suddenly appears
+                blocks = state.get_cp_blocks()
+            else:
+                break
+
+        for bl in blocks:
+            fluent_names.append(('block_x', bl))
+            fluent_names.append(('block_y', bl))
+            fluent_names.append(('block_z', bl))
+
         consistency_checker = SequenceConsistencyEstimator(fluent_names, self.unique_prefix_size, self.discount_factor, self.consistency_threshold)
         return consistency_checker.estimate_consistency(simulation_trace, state_seq, delta_t)
 
 ''' Repairs Cartpole constants '''
 class CartpolePlusPlusRepair(MetaModelRepair):
-    def __init__(self, consistency_checker=CartpolePlusPlusConsistencyEstimator(),
+    def __init__(self, consistency_checker=CartpolePlusPlusConsistencyEstimator(consistency_threshold=settings.CP_CONSISTENCY_THRESHOLD),
                  consistency_threshold=settings.CP_CONSISTENCY_THRESHOLD):
         meta_model = CartPolePlusPlusMetaModel()
         self.fluents_to_repair = meta_model.repairable_constants
