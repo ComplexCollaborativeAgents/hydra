@@ -1,0 +1,10 @@
+{
+    "levels": [],
+    "overall": {
+        "agent": "Hydra",
+        "avg_score": 0,
+        "birds": {},
+        "failed": 0,
+        "passed": 0
+    }
+}

@@ -156,7 +156,7 @@ class DQNLearnerObserver(WSUObserver):
         action_vector =  self.agent.get_next_action(observation, reward, done, is_training=True)
         return DQNLearnerObserver.action_to_label(action_vector)
 
-    def testing_instance(self, feature_vector: dict, novelty_indicator: bool = None, reward=None, done=None) -> \
+    def testing_instance(self, feature_vector: dict, novelty_indicator: bool = None, reward=None, done=None, novelty_info=None) -> \
             dict:
         super().testing_instance(feature_vector, novelty_indicator)
         observation = DQNLearnerObserver.feature_vector_to_observation(feature_vector)

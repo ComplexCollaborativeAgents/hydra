@@ -134,7 +134,7 @@ class DQNLearnerObserver(WSUObserver):
         print("reset agent")
         pass
 
-    def testing_instance(self, feature_vector: dict, novelty_indicator: bool = None, reward=None, done=None) -> \
+    def testing_instance(self, feature_vector: dict, novelty_indicator: bool = None, reward=None, done=None, novelty_info=None) -> \
             dict:
         super().testing_instance(feature_vector, novelty_indicator)
         observation = DQNLearnerObserver.feature_vector_to_observation(feature_vector)

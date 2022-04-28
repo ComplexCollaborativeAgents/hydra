@@ -12,12 +12,12 @@
     (x) (x_dot) (x_ddot) (m_cart) (friction_cart)
     (theta) (theta_dot) (theta_ddot)
     (l_pole) (m_pole) (friction_pole)
-    (gravity) (F) (elapsed_time) (inertia)
+    (gravity) (f) (elapsed_time) (inertia)
     (time_limit) (angle_limit) (x_limit) (force_mag)
   )
 
 
-  ; TEMP =  	(/ (+ (F) (* (* (m_pole) (l_pole)) (* (* (theta_dot) (theta_dot)) (SIN_THETA) ) ) ) (+ (m_cart) (m_pole)) )
+  ; TEMP =  	(/ (+ (f) (* (* (m_pole) (l_pole)) (* (* (theta_dot) (theta_dot)) (SIN_THETA) ) ) ) (+ (m_cart) (m_pole)) )
   ; COS_THETA = (/ (- 32400 (* 4 (* (* (theta) 57.29578) (* (theta) 57.29578)))) (+ 32400 (* (* (theta) 57.29578) (* (theta) 57.29578))))
   ; SIN_THETA = (/ (* (* 4 (* (theta) 57.29578)) (- 180 (* (theta) 57.29578))) (- 40500 (* (* (theta) 57.29578) (- 180 (* (theta) 57.29578)))))
 
@@ -29,13 +29,13 @@
       	(cart_available)
       	(assign (theta_ddot)
       		(/
-      			(- (* (gravity) (/ (* (* 4 (* (theta) 57.29578)) (- 180 (* (theta) 57.29578))) (- 40500 (* (* (theta) 57.29578) (- 180 (* (theta) 57.29578))))) ) (* (/ (- 32400 (* 4 (* (* (theta) 57.29578) (* (theta) 57.29578)))) (+ 32400 (* (* (theta) 57.29578) (* (theta) 57.29578)))) (/ (+ (F) (* (* (m_pole) (l_pole)) (* (* (theta_dot) (theta_dot)) (/ (* (* 4 (* (theta) 57.29578)) (- 180 (* (theta) 57.29578))) (- 40500 (* (* (theta) 57.29578) (- 180 (* (theta) 57.29578))))) ) ) ) (+ (m_cart) (m_pole)) ) ) )
+      			(- (* (gravity) (/ (* (* 4 (* (theta) 57.29578)) (- 180 (* (theta) 57.29578))) (- 40500 (* (* (theta) 57.29578) (- 180 (* (theta) 57.29578))))) ) (* (/ (- 32400 (* 4 (* (* (theta) 57.29578) (* (theta) 57.29578)))) (+ 32400 (* (* (theta) 57.29578) (* (theta) 57.29578)))) (/ (+ (f) (* (* (m_pole) (l_pole)) (* (* (theta_dot) (theta_dot)) (/ (* (* 4 (* (theta) 57.29578)) (- 180 (* (theta) 57.29578))) (- 40500 (* (* (theta) 57.29578) (- 180 (* (theta) 57.29578))))) ) ) ) (+ (m_cart) (m_pole)) ) ) )
       			(* (l_pole) (- (/ 4.0 3.0) (/ (* (m_pole) (* (/ (- 32400 (* 4 (* (* (theta) 57.29578) (* (theta) 57.29578)))) (+ 32400 (* (* (theta) 57.29578) (* (theta) 57.29578)))) (/ (- 32400 (* 4 (* (* (theta) 57.29578) (* (theta) 57.29578)))) (+ 32400 (* (* (theta) 57.29578) (* (theta) 57.29578)))) )) (+ (m_cart) (m_pole)) ) ) )
   			)
       	)
       	(assign (x_ddot)
       		(-
-      			(/ (+ (F) (* (* (m_pole) (l_pole)) (* (* (theta_dot) (theta_dot)) (/ (* (* 4 (* (theta) 57.29578)) (- 180 (* (theta) 57.29578))) (- 40500 (* (* (theta) 57.29578) (- 180 (* (theta) 57.29578))))) ) ) ) (+ (m_cart) (m_pole)) )
+      			(/ (+ (f) (* (* (m_pole) (l_pole)) (* (* (theta_dot) (theta_dot)) (/ (* (* 4 (* (theta) 57.29578)) (- 180 (* (theta) 57.29578))) (- 40500 (* (* (theta) 57.29578) (- 180 (* (theta) 57.29578))))) ) ) ) (+ (m_cart) (m_pole)) )
       			(/ (* (* (m_pole) (l_pole)) (* (theta_ddot) (/ (- 32400 (* 4 (* (* (theta) 57.29578) (* (theta) 57.29578)))) (+ 32400 (* (* (theta) 57.29578) (* (theta) 57.29578)))) )) (+ (m_cart) (m_pole)) )
   			)
       	)
@@ -59,12 +59,12 @@
     :parameters (?d - dummy)
     :precondition (and
     	(ready)
-    	(= (F) (force_mag))
+    	(= (f) (force_mag))
     	(cart_available)
     	(not (total_failure))
 	)
     :effect (and
-      (assign (F) (- 0.0 (force_mag)))
+      (assign (f) (- 0.0 (force_mag)))
       (not (cart_available))
   	)
   )
@@ -73,12 +73,12 @@
     :parameters (?d - dummy)
     :precondition (and
     	(ready)
-    	(= (F) (- 0.0 (force_mag)))
+    	(= (f) (- 0.0 (force_mag)))
     	(cart_available)
     	(not (total_failure))
 	)
     :effect (and
-      (assign (F) (force_mag))
+      (assign (f) (force_mag))
       (not (cart_available))
   	)
   )

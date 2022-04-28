@@ -9,7 +9,8 @@ from worlds.wsu.wsu_dispatcher import WSUObserver
 import os
 import settings
 import gym
-from agent.cartpole_hydra_agent import CartpoleHydraAgent, CartpoleHydraAgentObserver, RepairingCartpoleHydraAgent
+from agent.cartpole_hydra_agent import CartpoleHydraAgent, CartpoleHydraAgentObserver, RepairingCartpoleHydraAgent, ENV_PARAM_TO_FLUENT
+from agent.repair.meta_model_repair import MockMetaModelRepair
 import pandas, numpy
 import time
 from runners import constants
@@ -33,6 +34,61 @@ class LoggingRepairingCartpoleHydraAgent(RepairingCartpoleHydraAgent):
         self.actions.append(label)
         return label
 
+class OracleCartpoleHydraAgent(RepairingCartpoleHydraAgent):
+    ''' Oracle agent that applies the correct repair (based on the novelty info)'''
+    def __init__(self):
+        super().__init__()
+
+    def repair_meta_model(self, last_observation):
+        ''' Repair the meta model based on the last observation. Uses the given novelty info data to cheat '''
+        if self.novelty_info is None or len(self.novelty_info)==0:
+            return super().repair_meta_model(last_observation)
+
+        # Create perfect repair
+        constant_to_repair_value = dict()
+        for repair_env_param, repair_value in self.novelty_info.items():
+            if repair_env_param not in ENV_PARAM_TO_FLUENT:
+                self.log.info(
+                    f"Repair env parameter {repair_env_param} is not mapped to any fluent in the PDDL+ model")
+                continue  # Repairable constant is not a known fluent in our PDDL+
+            repair_fluent_name = ENV_PARAM_TO_FLUENT[repair_env_param]
+
+            if repair_value is None:
+                return super().repair_meta_model(last_observation)
+
+            constant_to_repair_value[repair_fluent_name]=repair_value
+
+        new_repairable_constants = []
+        new_repair_delta = []
+        oracle_repair = []
+        for repair_fluent_name, novel_value in constant_to_repair_value.items():
+            new_repairable_constants.append(repair_fluent_name)
+            new_repair_delta.append(0)
+            repair_value = novel_value - self.meta_model.constant_numeric_fluents[repair_fluent_name]
+            oracle_repair.append(repair_value)
+
+        self.meta_model.repairable_constants = new_repairable_constants
+        self.meta_model.repair_deltas = new_repair_delta
+        mock_repair = MockMetaModelRepair(oracle_repair, self.meta_model_repair.consistency_estimator)
+
+        # Set the repair constants and deltas in the meta_model_repair object
+        repair, consistency = mock_repair.repair(self.meta_model, last_observation,
+                                                       delta_t=settings.CP_DELTA_T)
+        self.log.info("Repaired meta model (repair string: %s)" % repair)
+        nonzero = any(map(lambda x: x != 0, repair))
+        if nonzero:
+            novelty_likelihood = 1.0
+            self.has_repaired = True
+            novelty_characterization = self.meta_model_repair.get_repair_as_json(repair)
+        elif consistency > settings.CP_CONSISTENCY_THRESHOLD:
+            novelty_likelihood = 1.0
+            novelty_characterization = json.dumps({'Unknown novelty': 'no adjustments made'})
+        else:
+            novelty_likelihood = consistency / settings.CP_CONSISTENCY_THRESHOLD
+            novelty_characterization = {}
+        self.consistency_scores.append(consistency)
+        return novelty_characterization, novelty_likelihood
+
 
 class NoveltyExperimentGymCartpoleDispatcher(GymCartpoleDispatcher):
     def __init__(self, delegate: WSUObserver, model_id: str = 'CartPole-v1', render: bool = False, train_with_reward = False, log_details = False, details_directory = None):
@@ -43,6 +99,7 @@ class NoveltyExperimentGymCartpoleDispatcher(GymCartpoleDispatcher):
                      'performance'])
         self._is_known = None
         self._train_with_reward = train_with_reward
+        self._novelty_info = None
 
         self._log_details = log_details
         self._details_directory = details_directory
@@ -54,8 +111,19 @@ class NoveltyExperimentGymCartpoleDispatcher(GymCartpoleDispatcher):
         for param in novelties:
             self._env_params[param] = novelties[param]
 
-    def set_is_known(self, is_known=None):
+    def set_is_known(self, is_known=None, novelty_info=None, experiment_type=1):
         self._is_known = is_known
+        if novelty_info and 'config' in novelty_info.keys():
+            self._novelty_info = {}
+            for key in novelty_info['config']:
+                if experiment_type == 2:
+                    value = novelty_info['config'][key]
+                else:
+                    value = None
+                self._novelty_info[key] = value
+
+        print(self._novelty_info)
+
 
     def _make_environment(self):
         environment = gym.make(self.model_id)
@@ -90,9 +158,10 @@ class NoveltyExperimentGymCartpoleDispatcher(GymCartpoleDispatcher):
                     env.render()
                     time.sleep(0.05)
                 if self._train_with_reward:
-                    label = self.delegate.testing_instance(feature_vector=features, novelty_indicator=self._is_known, reward=reward, done=done)
+                    label = self.delegate.testing_instance(feature_vector=features, novelty_indicator=self._is_known, reward=reward, done=done, novelty_info=None)
                 else:
-                    label = self.delegate.testing_instance(feature_vector=features, novelty_indicator=self._is_known)
+                    logger.info("Novelty info is {}".format(self._novelty_info))
+                    label = self.delegate.testing_instance(feature_vector=features, novelty_indicator=self._is_known, novelty_info=self._novelty_info)
                 self.log.debug("Received label={}".format(label))
                 action = self.label_to_action(label)
                 if done:
@@ -144,10 +213,12 @@ class NoveltyExperimentGymCartpoleDispatcher(GymCartpoleDispatcher):
 class NoveltyExperimentRunnerCartpole:
     def __init__(self, options):
         self._number_of_experiment_trials = int(options.num_trials)
-        self._non_novelty_learning_trial_length = int(options.l_learning)
+        self._non_novelty_learning_trial_length = int(options.l_learning)  # TODO: Remove this, does not seem to be used.
         self._non_novelty_performance_trial_length = int(options.l_performance)
         self._novelty_trial_length = int(options.l_novelty)
         self._agent_type = options.agent
+        self._experiment_type = options.experiment_type
+        self._novelty_config = options.novelty_config
 
         self._results_directory_path = os.path.join(settings.ROOT_PATH, "runners", "experiments", "cartpole", options.name, options.agent)
         if not os.path.exists(self._results_directory_path):
@@ -167,6 +238,8 @@ class NoveltyExperimentRunnerCartpole:
             observer = DQNLearnerObserver()
         if self._agent_type == 'basic':
             observer = CartpoleHydraAgentObserver(agent_type=CartpoleHydraAgent)
+        if self._agent_type == 'oracle':
+            observer = CartpoleHydraAgentObserver(agent_type=OracleCartpoleHydraAgent)
         if self._agent_type == 'repairing':
             if self._log_episode_details == True:
                 print("logging")
@@ -177,14 +250,20 @@ class NoveltyExperimentRunnerCartpole:
         assert observer is not None
         logger.info("Running agent type {}".format(self._agent_type))
         env_dispatcher = NoveltyExperimentGymCartpoleDispatcher(observer, render=False, train_with_reward=(self._agent_type == 'dqn'), log_details = self._log_episode_details, details_directory=os.path.join(self._results_details_directory_path, trial_type, str(trial_num)))
+        print("experiment type {}".format(self._experiment_type))
         if trial_type == constants.UNKNOWN:
-            env_dispatcher.set_is_known(None)
+            env_dispatcher.set_is_known(None, None, self._experiment_type)
         else:
             if episode_type == constants.NOVELTY:
-                env_dispatcher.set_is_known(True)
+                print("episode type {}".format(constants.NOVELTY))
+                if self._experiment_type == 2 or self._experiment_type == 3:
+                    print("detected {}".format(True))
+                    env_dispatcher.set_is_known(True, novelty, self._experiment_type)
+                else:
+                    env_dispatcher.set_is_known(True, None, self._experiment_type)
             else:
                 if episode_type == constants.NON_NOVELTY_PERFORMANCE:
-                    env_dispatcher.set_is_known(False)
+                    env_dispatcher.set_is_known(False, None, self._experiment_type)
 
         if episode_type == constants.NOVELTY:
             env_dispatcher.set_novelty(novelty['config'])
@@ -205,10 +284,11 @@ class NoveltyExperimentRunnerCartpole:
         else:
             novelties_config = [novelty_config]
         for novelty in novelties_config:
-            results_file_handle = open(os.path.join(self._results_directory_path, "novelty_{}.csv".format(novelty['uid'])), "a")
+            results_file_handle = open(os.path.join(self._results_directory_path, "novelty_{}_{}.csv".format(novelty['uid'], self._experiment_type)), "a")
             results_dataframe = pandas.DataFrame(columns=['episode_num','novelty_probability','novelty_threshold','novelty','novelty_characterization','performance','trial_num','novelty_id','trial_type','episode_type','level','env_config'])
             results_dataframe.to_csv(results_file_handle, index=False)
-            for trial_type in [constants.UNKNOWN, constants.KNOWN]:
+            #for trial_type in [constants.UNKNOWN, constants.KNOWN]:
+            for trial_type in [constants.KNOWN]:
                 for trial in range(0, self._number_of_experiment_trials):
                     episode_num = 0
                     subtrial_result = self.run_experiment_subtrial(
@@ -326,16 +406,16 @@ if __name__ == '__main__':
 
     parser.add_option("--agent",
                       dest='agent',
-                      help='name of the agent you want to run: basic, repairing, dqn',
+                      help='name of the agent you want to run: basic, repairing, dqn, oracle',
                       default='repairing')
     parser.add_option("--name",
                       dest="name",
                       help="name of the directory in which all the results will be stored at ../data/cartpole/",
-                      default="aaai_aug")
+                      default="m3m4")
     parser.add_option("--num_trials",
                       dest='num_trials',
                       help="Number of full trials to be run. Each trial is several subtrials",
-                      default=5)
+                      default=1)
     parser.add_option("--learning_subtrial",
                       dest='l_learning',
                       help='number of episodes in the learning subtrial',
@@ -343,11 +423,11 @@ if __name__ == '__main__':
     parser.add_option("--performance-subtrial",
                       dest='l_performance',
                       help='number of episodes in the non-novelty performance subtrial',
-                      default=7)
+                      default=1)
     parser.add_option("--novelty-subtrial",
                       dest='l_novelty',
                       help='number of episodes in the novelty subtrial',
-                      default=200)
+                      default=30)
     parser.add_option("--log-episode-details",
                       dest='log_episode_details',
                       help='if we want to record states, action, cnn_likelihood, consistency_scores',
@@ -356,6 +436,10 @@ if __name__ == '__main__':
                       dest='novelty_config',
                       help='a dict of novelty configurations',
                       default={'uid': 'length_1point1_gravity_12', 'level': 1, 'config': {constants.LENGTH: 1.1, constants.GRAVITY: 12}})
+    parser.add_option("--experiment_type",
+                     dest='experiment_type',
+                     help='a numeral representing if to run 1: no info; 2: with full info, 3: with only fluent names',
+                     default=2)
 
 
     (options, args) = parser.parse_args()

@@ -1,0 +1,5 @@
+trial_num,trial_type,novelty_level,episode_type,episode_num,novelty_probability,novelty_threshold,novelty,novelty_characterization,performance,pass,num_repairs,repair_time,pddl_novelty_likelihood,unknown_object,reward_estimator_likelihood
+0,unknown,2,non-novelty-performance,0,False,1,0,0,29500.0,Pass,0,0,"[0, 50.495049504950494, 0]","[False, False, False]","[0.21866050638272594, 0.02094070517247723, 0.3189241641132157]"
+0,unknown,2,novelty,1,False,1,0,0,89680.0,Fail,0,0,"[None, None, None, None, None, None, None]","[True, True, True, True, True, True, True]","[0.015949912355113532, 1.7342697297995187, 0.046489563567362426, 0.009435373900963641, 0.047863733023405075, 0.016247296705842018, 0.07391171157360077]"
+1,known,2,non-novelty-performance,0,False,1,0,0,61720.0,Pass,0,0,"[None, None]","[True, True]","[0.7986591484051275, 0.5643018136468965]"
+1,known,2,novelty,1,False,1,0,0,54240.0,Fail,0,0,"[None, None, None]","[True, True, True]","[0.08372414360915009, 0.7489579908365995, 0.35964098875278316]"

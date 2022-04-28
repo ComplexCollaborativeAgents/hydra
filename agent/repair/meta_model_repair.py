@@ -1,5 +1,4 @@
 from agent.consistency.consistency_estimator import *
-from agent.planning.sb_meta_model import *
 import heapq
 import time
 
@@ -7,11 +6,8 @@ logger = logging.getLogger("meta_model_repair")
 
 PLAN_FAILED_CONSISTENCY_VALUE = 1000  # A constant representing the inconsistency value of a meta model in which the executed plan is inconsistent
 
-''' An abstract class intended to repair a given PDDL+ meta model until it matches the observed behavior '''
-
-
 class MetaModelRepair:  # TODO: Remove this class
-    """ Repair the given domain and plan such that the given plan's expected outcome matches the observed outcome"""
+    ''' An abstract class intended to repair a given PDDL+ meta model until it matches the observed behavior '''
 
     def repair(self,
                pddl_meta_model,
@@ -54,15 +50,14 @@ class MetaModelRepair:  # TODO: Remove this class
 
 class SimulationBasedMetaModelRepair(MetaModelRepair):
     """ A repair algorithm that is based on simulating the action and checking consistency with the observation """
-    def __init__(self, fluents_to_repair,
-                 consistency_estimator,
-                 deltas,
+
+    def __init__(self, consistency_estimator,
                  consistency_threshold=2,
                  max_iteration=1000,
                  time_limit=1000000):
         self.consistency_estimator = consistency_estimator
-        self.fluents_to_repair = fluents_to_repair
-        self.deltas = deltas
+        self._fluents_to_repair = []
+        self._deltas = []
         self.consistency_threshold = consistency_threshold
         self.max_iterations = max_iteration
         self.simulator = NyxPddlPlusSimulator()
@@ -73,6 +68,14 @@ class SimulationBasedMetaModelRepair(MetaModelRepair):
         self.time_limit = time_limit  # Allows setting a timeout for the repair
 
 
+    def get_repair_description(self, repair):
+        ''' Return a textual description of the given repair '''
+        raise NotImplemented("Not yet")
+
+
+    def get_repair_as_json(self, repair):
+        ''' Get a JSON representation of the given repair '''
+        raise NotImplemented("Not yet")
 
     def compute_consistency(self, repair: list, observation: HydraObservation):
         """ Computes the consistency score for the given delta state"""
@@ -94,35 +97,34 @@ class SimulationBasedMetaModelRepair(MetaModelRepair):
 
     def _do_change(self, change: list):
         for i, change_to_fluent in enumerate(change):
-            self.current_meta_model.constant_numeric_fluents[self.fluents_to_repair[i]] = \
-                self.current_meta_model.constant_numeric_fluents[self.fluents_to_repair[i]] + change_to_fluent
+            self.current_meta_model.constant_numeric_fluents[self._fluents_to_repair[i]] = \
+                self.current_meta_model.constant_numeric_fluents[self._fluents_to_repair[i]] + change_to_fluent
 
     def _undo_change(self, change: list):
         for i, change_to_fluent in enumerate(change):
-            self.current_meta_model.constant_numeric_fluents[self.fluents_to_repair[i]] = \
-                self.current_meta_model.constant_numeric_fluents[self.fluents_to_repair[i]] - change_to_fluent
+            self.current_meta_model.constant_numeric_fluents[self._fluents_to_repair[i]] = \
+                self.current_meta_model.constant_numeric_fluents[self._fluents_to_repair[i]] - change_to_fluent
 
-    ''' Return True if the incumbent is good enough '''
+    def get_repair_description(self, repair):
+        ''' Return a textual description of the given repair '''
+        return ["Repair %s, %.2f" % (fluent, repair[i]) for i, fluent in enumerate(self._fluents_to_repair)]
+
+    def get_repair_as_json(self, repair):
+        ''' Get a JSON representation of the given repair '''
+        return json.dumps(dict(zip(self._fluents_to_repair, repair)))
 
     def is_incumbent_good_enough(self, consistency: float):
+        ''' Return True if the incumbent is good enough '''
         return consistency < self.consistency_threshold
 
-
 class GreedyBestFirstSearchMetaModelRepair(SimulationBasedMetaModelRepair):
-    """
-    A greedy best-first search model repair implementation.
-    """
-
-    def __init__(self, fluents_to_repair,
-                 consistency_estimator,
-                 deltas,
+    ''' A greedy best-first search model repair implementation. '''
+    def __init__(self, consistency_estimator,
                  consistency_threshold=2,
                  max_iterations=100,
                  time_limit=1000):
 
-        super().__init__(fluents_to_repair,
-                         consistency_estimator,
-                         deltas,
+        super().__init__(consistency_estimator,
                          consistency_threshold,
                          max_iterations,
                          time_limit)
@@ -131,21 +133,26 @@ class GreedyBestFirstSearchMetaModelRepair(SimulationBasedMetaModelRepair):
         """ The heuristic to use to prioritize repairs"""
         change_cardinality = 0
         for i, change in enumerate(repair):
-            change_cardinality = change_cardinality + abs(change / self.deltas[i])
-        return consistency + change_cardinality
+            change_cardinality=change_cardinality+ abs(change / self._deltas[i])
+        return consistency+change_cardinality
 
     def repair(self,
                pddl_meta_model: MetaModelRepair,
                observation, delta_t=1.0):
         """ Repair the given domain and plan such that the given plan's expected outcome matches the observed outcome"""
-
         self.current_delta_t = delta_t
         self.current_meta_model = pddl_meta_model
         start_time = time.time()
+
+        # Select the fluents and deltas to repair
+        self._fluents_to_repair = list(self.current_meta_model.repairable_constants)
+        self._deltas = list(self.current_meta_model.repair_deltas)
+
         # Initialize OPEN
         open_list = []
         repair = [0] * len(self.fluents_to_repair)  # Repair is a list, in order of the fluents_to_repair list
         base_consistency = self.compute_consistency(repair, observation)
+
         priority = self._heuristic(repair, base_consistency)
         heapq.heappush(open_list, [priority, repair])
 
@@ -196,7 +203,7 @@ class GreedyBestFirstSearchMetaModelRepair(SimulationBasedMetaModelRepair):
     def expand(self, repair):
         """ Expand the given repair by generating new repairs from it """
         new_repairs = []
-        for i, fluent in enumerate(self.fluents_to_repair):
+        for i, fluent in enumerate(self._fluents_to_repair):
             if repair[i] >= 0:
                 change_to_fluent = repair[i] + self.deltas[i]
                 if self.current_meta_model.constant_numeric_fluents[
@@ -212,3 +219,26 @@ class GreedyBestFirstSearchMetaModelRepair(SimulationBasedMetaModelRepair):
                     new_repair[i] = change_to_fluent
                     new_repairs.append(new_repair)
         return new_repairs
+
+class MockMetaModelRepair(SimulationBasedMetaModelRepair):
+    ''' A meta model repair object that accepts the right repair and performs it. Useful for testing and sanity checks'''
+    def __init__(self, oracle_repair, consistency_checker):
+        super().__init__(consistency_checker)
+        self.oracle_repair = oracle_repair
+
+    def repair(self,
+               pddl_meta_model,
+               observation,
+               delta_t=1.0):
+        ''' Repair the given domain and plan such that the given plan's expected outcome matches the observed outcome'''
+        self.current_delta_t = delta_t
+        self.current_meta_model = pddl_meta_model
+        self._fluents_to_repair = list(self.current_meta_model.repairable_constants)
+        self._deltas = list(self.current_meta_model.repair_deltas)
+
+        repair = [0] * len(self.oracle_repair)  # Repair is a list, in order of the fluents_to_repair list
+        # base_consistency = self._compute_consistency(repair, observation) # For debugging
+        best_consistency = self._compute_consistency(self.oracle_repair, observation)
+
+        self._do_change(self.oracle_repair)
+        return self.oracle_repair, best_consistency

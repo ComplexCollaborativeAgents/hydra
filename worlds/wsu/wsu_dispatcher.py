@@ -189,7 +189,7 @@ class WSUObserver:
         self.log.info('Testing Episode Start: #{}'.format(episode_number))
         return
 
-    def testing_instance(self, feature_vector: dict, novelty_indicator: bool = None) -> \
+    def testing_instance(self, feature_vector: dict, novelty_indicator: bool = None, novelty_info=None) -> \
             dict:
         """Evaluate a testing instance.  Returns the predicted label or action, if you believe
         this episode is novel, and what novelty level you beleive it to be.

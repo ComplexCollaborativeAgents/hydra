@@ -6,7 +6,7 @@ import worlds.science_birds as sb
 import pickle
 import tests.test_utils as test_utils
 import os.path as path
-from agent.repair.sb_repair import ScienceBirdsConsistencyEstimator, ScienceBirdsMetaModelRepair
+from agent.repair.sb_repair import ScienceBirdsMetaModelRepair, ScienceBirdsConsistencyEstimator
 
 GRAVITY_FACTOR = "gravity_factor"
 BASE_LIFE_WOOD_MULTIPLIER = "base_life_wood_multiplier"
@@ -131,7 +131,7 @@ def test_set_of_levels_repair_no_fault():
     logger.info("Starting mock oracle repair experiment")
     env = sb.ScienceBirds(None,launch=True,config='test_repair_wood_health.xml')
     hydra = RepairingSBHydraAgent(env)
-    hydra.meta_model_repair = MockMetaModelRepair([3.0, 3.0])
+    hydra.meta_model_repair = MockMetaModelRepair([3.0, 3.0], consistency_checker=ScienceBirdsConsistencyEstimator())
     levels_completed_oracle_repair, reward_with_oracle_repair = _run_experiment(hydra, "with_repair-%d" % max_iterations, max_iterations=max_iterations)
     env.kill()
     logger.info("Ending mock oracle repair experiment, levels completed = %d, reward = %.2f" % (levels_completed_oracle_repair, reward_with_oracle_repair))

@@ -1,0 +1,48 @@
+{
+    "levels": [
+        {
+            "birds": {
+                "BirdBlue": 1,
+                "BirdWhite": 1
+            },
+            "birds_remaining": 0,
+            "birds_start": 2,
+            "level": "Levels/novelty_level_0/type4/Levels/01537_0_0_4_0.xml",
+            "novelty_detection": false,
+            "novelty_likelihood": false,
+            "objects": 143,
+            "pddl_novelty_likelihood": [
+                50.520833333333336,
+                50.53763440860215
+            ],
+            "pigs_remaining": 0,
+            "pigs_start": 2,
+            "reward_estimator_likelihood": [
+                0.19033330119085945,
+                0.20803817903068078
+            ],
+            "score": 28260.0,
+            "status": "Pass",
+            "unknown_object": [
+                false,
+                false
+            ]
+        }
+    ],
+    "overall": {
+        "agent": "Hydra",
+        "avg_score": 28260.0,
+        "birds": {
+            "BirdBlue": {
+                "failed": 0,
+                "passed": 1
+            },
+            "BirdWhite": {
+                "failed": 0,
+                "passed": 1
+            }
+        },
+        "failed": 0,
+        "passed": 1
+    }
+}

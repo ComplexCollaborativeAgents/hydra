@@ -5,7 +5,7 @@ from agent.reward_estimation.reward_estimator import RewardEstimator
 import pickle
 import datetime
 import time
-
+import random
 import pandas
 
 import settings
@@ -17,6 +17,7 @@ import numpy
 
 # TODO: Maybe push this to the settings file? then every module just adds a logger
 from agent.repair.sb_repair import ScienceBirdsConsistencyEstimator, ScienceBirdsMetaModelRepair
+from agent.planning.sb_meta_model import *
 from agent.gym_hydra_agent import REPAIR_CALLS, REPAIR_TIME, logger
 from utils.point2D import Point2D
 from worlds.science_birds_interface.client.agent_client import GameState
@@ -635,7 +636,7 @@ class RepairingSBHydraAgent(SBHydraAgent):
             agent_stats = list()
         settings.NOVELTY_POSSIBLE = True
         self.revision_attempts = 0
-        self.meta_model_repair = ScienceBirdsMetaModelRepair(self.meta_model)
+        self.meta_model_repair = ScienceBirdsMetaModelRepair()
 
     def reinit(self):
         super().reinit()
@@ -690,9 +691,9 @@ class RepairingSBHydraAgent(SBHydraAgent):
         logger.info("Initiating repair number {}".format(self.revision_attempts))
         start_repair_time = time.time()
         try:
-            repair, consistency = self.meta_model_repair.repair(self.meta_model, last_obs, delta_t=settings.SB_DELTA_T)
-            repair_description = ["Repair %s, %.2f" % (fluent, repair[i])
-                                  for i, fluent in enumerate(self.meta_model_repair.fluents_to_repair)]
+            repair, consistency = self.meta_model_repair.repair(self.meta_model, last_obs)
+            repair_description = self.meta_model_repair.get_repair_description(repair)
+
             logger.info(
                 "Repair done! Consistency: %.2f, Repair:\n %s" % (consistency, "\n".join(repair_description)))
         except:

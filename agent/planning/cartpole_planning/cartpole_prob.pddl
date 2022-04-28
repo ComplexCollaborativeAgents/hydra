@@ -9,12 +9,18 @@
 	(= (force_mag)  10.0)
 	(= (inertia)  1.0)
 	(= (elapsed_time)  0.0)
+<<<<<<< HEAD
 	(= (gravity)  9.81)
 	(= (time_limit)  2.5)
+=======
+	(= (gravity)  4.9)
+	(= (time_limit)  3.2)
+>>>>>>> origin/m3-4
 	(= (angle_limit)  0.205)
 	(= (x_limit)  2.4)
 	(ready)
 	(cart_available)
+<<<<<<< HEAD
 	(= (x)  0.19533)
 	(= (x_dot)  0.30536)
 	(= (theta)  0.15378)
@@ -22,6 +28,15 @@
 	(= (F)  10.0)
 	(= (x_ddot)  9.63116)
 	(= (theta_ddot)  -12.02229)
+=======
+	(= (x)  -0.11147)
+	(= (x_dot)  -0.4221)
+	(= (theta)  0.08031)
+	(= (theta_dot)  0.29993)
+	(= (F)  10.0)
+	(= (x_ddot)  9.7232)
+	(= (theta_ddot)  -13.94815)
+>>>>>>> origin/m3-4
 )
 (:goal (and  (not (total_failure) )  (= (elapsed_time)  (time_limit) ) ))
 (:metric minimize(total-time))

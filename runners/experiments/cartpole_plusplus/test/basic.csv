@@ -1,0 +1,5 @@
+trial_num,novelty_id,trial_type,episode_type,level,env_config,episode_num,novelty_probability,novelty_threshold,novelty,novelty_characterization,performance
+0,0,True,non-novelty-performance,0,none,0,0.5449663365167126,0.8,0,{},0.0019500000000000001
+0,0,True,non-novelty-performance,0,none,1,0.30394603251876484,0.8,0,{},0.00165
+0,0,False,non-novelty-performance,0,none,0,0.5173653259552901,0.8,0,{},0.00945
+0,0,False,non-novelty-performance,0,none,1,0.5345325059495425,0.8,0,{},0.003

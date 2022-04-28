@@ -240,7 +240,8 @@ class RepairingCartpolePlusPlusHydraAgent(CartpolePlusPlusHydraAgent):
             if nonzero:
                 novelty_likelihood = 1.0
                 self.has_repaired = True
-                novelty_characterization = json.dumps(dict(zip(self.meta_model_repair.fluents_to_repair, repair)))
+
+                novelty_characterization = self.meta_model_repair.get_repair_as_json(repair)
                 print("\n\nNOVELTY => {},{} (consistency={})".format(self.meta_model_repair.fluents_to_repair, repair, consistency))
             elif consistency > settings.CP_CONSISTENCY_THRESHOLD:
                 novelty_likelihood = 1.0
@@ -268,7 +269,7 @@ class CartpolePlusPlusHydraAgentObserver(WSUObserver):
         super().testing_episode_end(performance, feedback)
         return self.agent.episode_end(performance, feedback)
 
-    def testing_instance(self, feature_vector: dict, novelty_indicator: bool = None) -> \
+    def testing_instance(self, feature_vector: dict, novelty_indicator: bool = None, novelty_info=None) -> \
             dict:
         super().testing_instance(feature_vector, novelty_indicator)
 
