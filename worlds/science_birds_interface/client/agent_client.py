@@ -10,6 +10,7 @@ from PIL import Image
 import sys
 import time
 import os
+import cv2
 
 SERVER_TRACE = False
 server_trace_filename = './server_trace'
@@ -72,6 +73,7 @@ class RequestCodes(Enum):
     ReadyForNewSet = 68
     NoveltyInfo = 69
     BatchGT = 70
+    GetInitialStateScreenShot = 71
 
 class AgentClient:
     """Science Birds agent API"""
@@ -97,7 +99,7 @@ class AgentClient:
         else:
             self._logger = logging.getLogger('Agent Client')
 
-        logging.getLogger().setLevel(logging.WARNING)
+        logging.getLogger().setLevel(logging.INFO)
     def _read_raw_from_buff(self, size):
         """Read a specific number of bytes from server_socket"""
         self._logger.debug("Reading %s bytes from server", size)
@@ -258,10 +260,10 @@ class AgentClient:
         self._logger.info('Received screenshot')
 
         img = np.array(rgb_image)
-        # Convert RGB to BGR
+        # Convert BGR to RGB
         rgb_image = img[:, :, ::-1].copy()
-        # cv2.imwrite('image.png',img)
-        return img
+        #cv2.imwrite('image.png',rgb_image)
+        return rgb_image
 
     def read_ground_truth_from_stream(self):
         """Read Ground Truth from sever_socket"""
@@ -286,6 +288,13 @@ class AgentClient:
         self._logger.info("Sending screenshot request")
         self._send_command(RequestCodes.DoScreenShot)
         return self.read_image_from_stream()
+
+    def get_initial_state_screenshot(self):
+        """Request screenshot from server"""
+        self._logger.info("Sending screenshot request")
+        self._send_command(RequestCodes.GetInitialStateScreenShot)
+        return self.read_image_from_stream()
+
 
     def get_game_state(self):
         """Retrieve game state"""
@@ -377,6 +386,7 @@ class AgentClient:
                 gt_images.append(im)
             gt_jsons.append(gt)
         self._logger.info("received %d ground truth frames ", ground_truths_count)
+#        print("received ground truth frames ", ground_truths_count)
         return gt_jsons
 
 

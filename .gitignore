@@ -136,3 +136,7 @@ dmypy.json
 
 # Yoni
 scratchpad.py
+
+# Logs and Data
+.log
+.csv

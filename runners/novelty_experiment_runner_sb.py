@@ -1,16 +1,29 @@
-import optparse
-import pandas
+import csv
 import datetime
-import numpy as np
-import matplotlib.pyplot as plt
-from pandas.core.frame import DataFrame
-import seaborn as sns
-from runners import constants
+import json
+import logging
+import os
+import pathlib
+from xml.etree import ElementTree as ET
 
-from xml.etree.ElementTree import ElementTree
-from collections import defaultdict
-from agent.gym_hydra_agent import *
-from runners.run_sb_stats import *
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas
+import seaborn as sns
+import settings
+from agent.sb_hydra_agent import RepairingSBHydraAgent, SBHydraAgent
+from pandas.core.frame import DataFrame
+from utils.generate_trials_sb import (NON_NOVEL_LEVELS, NON_NOVEL_TYPES,
+                                      NOVELTY_LEVELS, NOVELTY_TYPES,
+                                      collect_levels, generate_trial_sets,
+                                      unpack_trial_id)
+from worlds.science_birds import ScienceBirds
+
+from runners.constants import KNOWN, NON_NOVELTY_PERFORMANCE, NOVELTY, UNKNOWN
+from runners.run_sb_stats import (AgentType, diff_directories,
+                                  glob_directories, prepare_config)
+
+# from runners.run_sb_stats import *
 
 logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("novelty_experiment_runner")
@@ -22,27 +35,24 @@ SB_DATA_PATH = pathlib.Path(settings.ROOT_PATH) / 'data' / 'science_birds'
 SB_CONFIG_PATH = SB_DATA_PATH / 'config'
 TEMPLATE_PATH = SB_CONFIG_PATH / 'test_config.xml'
 
-# Constants
-NOVELTY_LEVELS = {'1': 'novelty_level_1', '2': 'novelty_level_2',  '3': 'novelty_level_3', '22': 'novelty_level_22', '23': 'novelty_level_23', '24': 'novelty_level_24', '25': 'novelty_level_25'}
-NOVELTY_TYPES = {"1": "type1", "2": "type2", "6": "type6", "7": "type7", "8": "type8", "9": "type9", "10": "type10"}
-NON_NOVEL_TYPES = {
-    "2": "type2", "4": "type4", "5": "type5", "6": "type6", "7": "type7", 
-    "22": "type22", "23": "type23", "24": "type24", "25": "type25", "26": "type26",
-    "222": "type222", "223": "type223", "224": "type224", "225": "type225", "226": "type226", "227": "type227",
-    "232": "type232", "233": "type233", "234": "type234", "235": "type235", "236": "type236", "237": "type237",
-    "242": "type242", "243": "type243", "244": "type244", "245": "type245", "246": "type246", "247": "type247",
-    "252": "type252", "253": "type253", "254": "type254", "255": "type255", "256": "type256", "257": "type257"  
-}
-NON_NOVEL_LEVELS = {'0': 'novelty_level_0'}
-
 # Options
 RESULTS_PATH = pathlib.Path(settings.ROOT_PATH) / "runners" / "experiments" / "ScienceBirds" / "SB_experiment"
 EXPORT_TRIALS = False   # Export trials xml file
-NUM_TRIALS = 5      # Number of trials to run per known/unknown, novelty level and type
-PER_TRIAL = 40   # Levels per trial
-BEFORE_NOVELTY = 12 # Levels in a trial before novelty is introduced
-NOVELTIES = {"22": ["1"]}  # Novelties to use in the experiment (IE, trials to run)
-NON_NOVELTIES = {"0": ["22", "23", "24", "25"]}
+NUM_TRIALS = 1      # Number of trials to generate
+NUM_LEVELS = 5     # Levels per trial
+LEVELS_BEFORE_NOVELTY = 2   # Levels before novelty is introduced
+NOTIFY_NOVELTY = True
+REPETITION = 1   # If not set to None, the same sampled level will be used this many times before another is selected.
+NON_NOVEL_TO_USE = { # level and type of non-novel levels to use
+    'novelty_level_0': [
+        "type222", "type223"
+        ]
+    }   
+NOVEL_TO_USE = {    # level and type of novel levels to use
+    'novelty_level_1': [
+        'type6'
+    ]
+}
 
 
 def load_lookup(lookup_path):
@@ -56,17 +66,21 @@ class NoveltyExperimentRunnerSB:
 
     def __init__(self,
                  agent_type: AgentType,
-                 novelties: dict = NOVELTIES,
+                 novelties: dict = NOVEL_TO_USE,
+                 non_novelties: dict = NON_NOVEL_TO_USE,
                  num_trials: int = NUM_TRIALS,
-                 levels_per_trial: int = PER_TRIAL,
-                 levels_before_novelty: int = BEFORE_NOVELTY,
+                 num_levels: int = NUM_LEVELS,
+                 levels_before_novelty: int = LEVELS_BEFORE_NOVELTY,
+                 repetition: bool = REPETITION,
                  export_trials: bool = EXPORT_TRIALS,
                  results_path: pathlib.Path = RESULTS_PATH):
         
         self.agent_type = agent_type
         self.novelties = novelties
+        self.non_novelties = non_novelties
         self.num_trials = num_trials
-        self.levels_per_trial = levels_per_trial
+        self.repetition = repetition
+        self.num_levels = num_levels
         self.levels_before_novelty = levels_before_novelty
         self.export_trials = export_trials
 
@@ -84,90 +98,17 @@ class NoveltyExperimentRunnerSB:
         Collect levels to be drawn upon when constructing trials
         """
 
-        # Iterate over all non novel levels
-        for non_novelty_level in NON_NOVEL_LEVELS:
-            self.levels[non_novelty_level] = defaultdict(set)
-
-            logger.debug("SB: Loading levels from non-novelty level {}".format(non_novelty_level))
-            non_novel_path = os.path.join("Levels", NON_NOVEL_LEVELS[non_novelty_level])
-            non_novel_dirs = os.listdir(os.path.join(SB_BIN_PATH, non_novel_path))
-
-            # Collect non novelty levels
-            for non_novel_type in NON_NOVEL_TYPES:
-                if NON_NOVEL_TYPES[non_novel_type] not in non_novel_dirs:
-                    # Skip over types not present
-                    continue
-
-                pattern = 'Levels/novelty_level_{}/type{}/Levels/*.xml'.format(non_novelty_level, non_novel_type)
-                levels = list(SB_BIN_PATH.glob(pattern))
-
-                for level in levels: # Iterate over all levels of the novelty level and typeå
-                    # Add level to set - use shorthand for easier access later
-                    self.levels[non_novelty_level][non_novel_type].add(level)
-
-
-        for novelty_level in NOVELTY_LEVELS:   # Iterate over all novelty levels
-            self.levels[novelty_level] = defaultdict(set)
-
-            logger.debug("SB: Loading levels from novelty level {}".format(novelty_level))
-            
-            novelty_path = os.path.join("Levels", NOVELTY_LEVELS[novelty_level])
-            novelty_dirs = os.listdir(os.path.join(SB_BIN_PATH, novelty_path))
-            for novelty_type in NOVELTY_TYPES:  # Iterate over all novelty types
-                if NOVELTY_TYPES[novelty_type] not in novelty_dirs:
-                    # Skip over types not present
-                    continue
-
-                # dir_path = SB_BIN_PATH / novelty_path / NOVELTY_TYPES[novelty_type] / "Levels"
-                # print("SB: Loading levels from novelty type {} directory {}".format(novelty_type, dir_path))
-
-                pattern = 'Levels/novelty_level_{}/type{}/Levels/*.xml'.format(novelty_level, novelty_type)
-                levels = list(SB_BIN_PATH.glob(pattern))
-
-                for level in levels: # Iterate over all levels of the novelty level and typeå
-                    # Add level to set - use shorthand for easier access later
-                    self.levels[novelty_level][novelty_type].add(level)
+        self.levels = collect_levels()
 
     def reset(self):
         """ reset the experiment """
         self.levels.clear()
         self.load_levels()
-    
-    def construct_trial(self, novelty_level: str, novelty_type: str, before_novelty: int):
-        """
-        Construct a trial for a particular novelty level and type.
-        Levels will be drawn from the database of levels in SB_BIN_PATH.
-        The trial will begin with non-novelty levels, and transition to novelty after the 'before_novelty' index.
-        Returns the trial, as well as the novelty id which takes the form '<novelty_level>_<novelty_type>'
-        """
-        random.seed() # Randomize seed
-        
-        trial = list()
-
-        for index in range(self.levels_per_trial):
-            next_level = ""
-            if index < before_novelty: # Collect from non-novel levels
-                type_to_pop = "2"
-                # Pop a non-novel level from randomly selected novelty type list - if NON_NOVELTIES is specified, choose from that selection
-                if len(NON_NOVELTIES) != 0: # We have non-novel stuff specified to be used
-                    type_to_pop = random.choice(NON_NOVELTIES["0"])   # Hard code level 0 for now - we only have 1 non-novelty level
-                else:   # pop random
-                    type_to_pop = random.choice(NON_NOVEL_TYPES.keys())   # Novelty Types have intersections
-                    
-                next_level = self.levels["0"][type_to_pop].pop()
-            else:   # Collect from novel levels
-                next_level = self.levels[novelty_level][novelty_type].pop()
-
-            trial.append(next_level)
-
-        logger.debug("Created trial: {}".format(["{}\n".format(level) for level in trial]))
-
-        return trial
 
     def run_trial(self, trial: list, trial_num: int, trial_type: str,  novelty_level: str, config_file: pathlib.Path = None) -> pandas.DataFrame:
         """ Run a trial """
 
-        do_notify = trial_type == constants.KNOWN
+        do_notify = trial_type == KNOWN
 
         if config_file is None:
             # Construct the config file
@@ -189,8 +130,20 @@ class NoveltyExperimentRunnerSB:
         agent_stats = list()
 
         # Run the agent
-        with run_agent(config, self.agent_type, agent_stats):
+        try:
+            env = ScienceBirds(None, launch=True, config=config)
+            if self.agent_type == AgentType.Hydra:
+                hydra = SBHydraAgent(env, agent_stats)
+                hydra.main_loop(max_actions=10000)
+            elif self.agent_type == AgentType.RepairingHydra:
+                hydra = RepairingSBHydraAgent(env, agent_stats)
+                hydra.main_loop(max_actions=10000)
+        finally:
+            env.kill()
             post_directories = glob_directories(SB_BIN_PATH, "Agent*")
+
+        # with run_agent(config, self.agent_type, agent_stats):
+        #     post_directories = glob_directories(SB_BIN_PATH, "Agent*")
 
         # Identify the results directory that contains all of the .csv result files output by the SB application
         results_directory = diff_directories(pre_directories, post_directories)
@@ -233,10 +186,10 @@ class NoveltyExperimentRunnerSB:
                     # Novelty type is always the 2nd index (0 indexed)
                     novelty_type = level_name.split(os.path.sep)[2]
                     
-                    is_novelty = constants.NOVELTY
+                    is_novelty = NOVELTY
 
                     if row['novelty'] == 'basic':
-                        is_novelty = constants.NON_NOVELTY_PERFORMANCE
+                        is_novelty = NON_NOVELTY_PERFORMANCE
 
                     if 'Pass' not in status:
                         # for bird in birds.keys():
@@ -273,7 +226,7 @@ class NoveltyExperimentRunnerSB:
                     novelty = 0     # TODO: This is a value used in Cartpole and not SB domain
 
                     # Override novelty level value based on whether this is from novelty level 0 or not
-                    nl = novelty_level if is_novelty == constants.NOVELTY else "0"
+                    nl = novelty_level if is_novelty == NOVELTY else "0"
 
                     result = pandas.DataFrame(data={
                         'trial_num': [trial_num],
@@ -314,7 +267,7 @@ class NoveltyExperimentRunnerSB:
             experiment_results.to_csv(f, index=False)
 
         for _ in range(self.num_trials):
-            for trial_type in [constants.UNKNOWN, constants.KNOWN]:
+            for trial_type in [UNKNOWN, KNOWN]:
                 if configs is not None:
                     for config in configs:
                         logger.debug("Using config file: {}".format)
@@ -323,9 +276,9 @@ class NoveltyExperimentRunnerSB:
                         tree = ET.parse(config)
 
                         if tree.getroot().find('./trials/trial').get('notify_novelty'):
-                            notify_novelty = constants.KNOWN
+                            notify_novelty = KNOWN
                         else:
-                            notify_novelty = constants.UNKNOWN
+                            notify_novelty = UNKNOWN
                         novelty_level = "0"
 
                         level_tags = tree.getroot().find('./trials/trial/game_level_set')
@@ -346,46 +299,49 @@ class NoveltyExperimentRunnerSB:
 
                         trial_num += 1
                 else:
-                    for novelty_level in self.novelties:
-                        for novelty_type in self.novelties[novelty_level]:
+                    trial_sets = generate_trial_sets(self.num_trials, self.num_levels, self.levels_before_novelty, 
+                                                     self.repetition, self.non_novelties, self.novelties, self.levels)
 
-                            trial = self.construct_trial(novelty_level, novelty_type, self.levels_before_novelty)
+                    for trial_id, trial in trial_sets.items():
+                        # Extract novelty level from the trial id
+                        _, _, novelty_level, _, _  = unpack_trial_id(trial_id)
+                        logger.info("Starting trial {}".format(trial_id))
 
-                            # Run the trial
-                            trial_results = self.run_trial(trial, trial_num, trial_type, novelty_level)
-                            experiment_results = experiment_results.append(trial_results)
+                        # Run the trial
+                        trial_results = self.run_trial(trial, trial_num, trial_type, novelty_level)
+                        experiment_results = experiment_results.append(trial_results)
 
-                            # Export results to file
-                            with open(experiment_results_path, "a") as f:
-                                trial_results.to_csv(f, index=False, header=False)
+                        # Export results to file
+                        with open(experiment_results_path, "a") as f:
+                            trial_results.to_csv(f, index=False, header=False)
 
-                            trial_num += 1
+                        trial_num += 1
 
     @staticmethod
     def categorize_examples_for_novelty_detection(dataframe):
-        dataframe['predicted_novel'] = numpy.where(dataframe['novelty_probability'] < dataframe['novelty_threshold'], False, True)
-        dataframe['TN'] = numpy.where((dataframe['episode_type'] == constants.NON_NOVELTY_PERFORMANCE) & (dataframe['predicted_novel'] == False), 1, 0)
-        dataframe['FP'] = numpy.where((dataframe['episode_type'] == constants.NON_NOVELTY_PERFORMANCE) & (dataframe['predicted_novel'] == True), 1, 0)
-        dataframe['TP'] = numpy.where((dataframe['episode_type'] == constants.NOVELTY) & (dataframe['predicted_novel'] == True), 1, 0)
-        dataframe['FN'] = numpy.where((dataframe['episode_type'] == constants.NOVELTY) & (dataframe['predicted_novel'] == False), 1, 0)
+        dataframe['predicted_novel'] = np.where(dataframe['novelty_probability'] < dataframe['novelty_threshold'], False, True)
+        dataframe['TN'] = np.where((dataframe['episode_type'] == NON_NOVELTY_PERFORMANCE) & (dataframe['predicted_novel'] == False), 1, 0)
+        dataframe['FP'] = np.where((dataframe['episode_type'] == NON_NOVELTY_PERFORMANCE) & (dataframe['predicted_novel'] == True), 1, 0)
+        dataframe['TP'] = np.where((dataframe['episode_type'] == NOVELTY) & (dataframe['predicted_novel'] == True), 1, 0)
+        dataframe['FN'] = np.where((dataframe['episode_type'] == NOVELTY) & (dataframe['predicted_novel'] == False), 1, 0)
         return dataframe
 
     @staticmethod
     def get_trials_summary(dataframe):
         # print(dataframe)
         trials = dataframe[['trial_num', 'trial_type', 'pass', 'FN', 'FP', 'TN', 'TP', 'performance']]
-        trials['passed'] = numpy.where(trials['pass'] == 'Pass', 1, 0)
+        trials['passed'] = np.where(trials['pass'] == 'Pass', 1, 0)
         # print(trials)
 
         grouped = trials.groupby(['trial_type', 'trial_num'])
 
         # print("AFTER group output: \n{}".format(grouped))
 
-        aggregate = grouped.agg({'FN': numpy.sum, 'FP': numpy.sum, 'TN': numpy.sum, 'TP': numpy.sum, 'performance': numpy.mean, 'passed': numpy.sum})
+        aggregate = grouped.agg({'FN': np.sum, 'FP': np.sum, 'TN': np.sum, 'TP': np.sum, 'performance': np.mean, 'passed': np.sum})
         
         # print("AFTER aggregate output: \n{}".format(aggregate))
 
-        aggregate['is_CDT'] = numpy.where((aggregate['TP'] > 1) & (aggregate['FP'] == 0), True, False)
+        aggregate['is_CDT'] = np.where((aggregate['TP'] > 1) & (aggregate['FP'] == 0), True, False)
         
         # print("AFTER CDT: {}".format(trials))
         cdt = aggregate[aggregate['is_CDT'] == True]
@@ -396,7 +352,7 @@ class NoveltyExperimentRunnerSB:
     def get_program_metrics(cdt: pandas.DataFrame, trials: pandas.DataFrame, hydra: pandas.DataFrame, baseline: pandas.DataFrame, asymptote: int = 5):
         num_trials_per_type = trials.groupby("trial_type").agg({'FN': len}).rename(columns={'FN': 'count'}) # Get number of trials
         # Aggregate to get
-        scores = cdt.groupby("trial_type").agg({'FN': numpy.mean, 'FP': len}).rename(columns={'FN': 'M1', 'FP': 'CDT_count'})
+        scores = cdt.groupby("trial_type").agg({'FN': np.mean, 'FP': len}).rename(columns={'FN': 'M1', 'FP': 'CDT_count'})
 
         # M1 - average number of FN among CDTs
 
@@ -404,12 +360,12 @@ class NoveltyExperimentRunnerSB:
         scores['M2'] = scores['CDT_count'] / num_trials_per_type['count']
 
         # M2.1 - % of trials with at least 1 FP
-        trials['CDT_FP_count'] = numpy.where((trials['FP'] > 0), True, False)
+        trials['CDT_FP_count'] = np.where((trials['FP'] > 0), True, False)
 
         CDT_FP_count = trials[trials['CDT_FP_count'] == True].groupby("trial_type")
         CDT_FP_count = CDT_FP_count.agg({'CDT_FP_count': len})
 
-        scores['M2.1'] = CDT_FP_count.replace(numpy.nan, 0)
+        scores['M2.1'] = CDT_FP_count.replace(np.nan, 0)
         scores['M2.1'] = scores['M2.1'] / num_trials_per_type['count']
 
         performance_metrics = pandas.DataFrame(columns=['M3', 'M4', 'M5', 'M6'])
@@ -431,21 +387,21 @@ class NoveltyExperimentRunnerSB:
         trials_asymptote = []   # M6
         for trial_num, group in grouped_trials:
             if 'known' in group.values: # group.trial_type: # M3
-                known_avg = group.groupby(["trial_type", "episode_type"]).get_group(("known", "novelty")).agg({'performance': numpy.mean})
+                known_avg = group.groupby(["trial_type", "episode_type"]).get_group(("known", "novelty")).agg({'performance': np.mean})
                 trials_known_avg.append(known_avg)
 
             if 'unknown' in group.values: # group.trial_type: # M4
-                unknown_avg = group.groupby(["trial_type", "episode_type"]).get_group(("unknown", "novelty")).agg({'performance': numpy.mean})
+                unknown_avg = group.groupby(["trial_type", "episode_type"]).get_group(("unknown", "novelty")).agg({'performance': np.mean})
                 trials_unknown_avg.append(unknown_avg)
 
             # M5
-            last_per_group = group.groupby("episode_type").get_group("novelty").agg({'performance': numpy.sum})
+            last_per_group = group.groupby("episode_type").get_group("novelty").agg({'performance': np.sum})
             trials_last.append(last_per_group)
 
             # M6
             novelty_grouped = group.groupby("episode_type").get_group("novelty")
             slice = asymptote if len(novelty_grouped.index) > asymptote else len(novelty_grouped.index)
-            post_asymptote = novelty_grouped.tail(slice).agg({"performance": numpy.sum})
+            post_asymptote = novelty_grouped.tail(slice).agg({"performance": np.sum})
             trials_asymptote.append(post_asymptote)
 
         if len(trials_known_avg) > 0:
@@ -463,21 +419,21 @@ class NoveltyExperimentRunnerSB:
         base_asymptote = []     # M6
         for trial_num, group in grouped_base:
             if 'known' in group.values: # group.trial_type:    # M3
-                known_avg = group.groupby(["trial_type", "episode_type"]).get_group(("known", "non-novelty-performance")).agg({'performance': numpy.mean})
+                known_avg = group.groupby(["trial_type", "episode_type"]).get_group(("known", "non-novelty-performance")).agg({'performance': np.mean})
                 base_known_avg.append(known_avg)
 
             if 'unknown' in group.values: # group.trial_type:    # M4
-                unknown_avg = group.groupby(["trial_type", "episode_type"]).get_group(("unknown", "non-novelty-performance")).agg({'performance': numpy.mean})
+                unknown_avg = group.groupby(["trial_type", "episode_type"]).get_group(("unknown", "non-novelty-performance")).agg({'performance': np.mean})
                 base_unknown_avg.append(unknown_avg)
 
             # M5
-            last_per_group = group.groupby("episode_type").get_group("novelty").agg({'performance': numpy.sum})
+            last_per_group = group.groupby("episode_type").get_group("novelty").agg({'performance': np.sum})
             base_last.append(last_per_group)
 
             # M6
             novelty_grouped = group.groupby("episode_type").get_group("novelty")
             slice = asymptote if len(novelty_grouped.index) > asymptote else len(novelty_grouped.index)
-            post_asymptote = novelty_grouped.tail(slice).agg({"performance": numpy.sum})
+            post_asymptote = novelty_grouped.tail(slice).agg({"performance": np.sum})
             base_asymptote.append(post_asymptote)
 
         if len(base_known_avg) > 0:
@@ -496,15 +452,15 @@ class NoveltyExperimentRunnerSB:
 
         if not m3_agg_trials.empty and not m3_agg_base.empty:
             m3_agg_trials['known_perf'] = m3_agg_trials[0] / m3_agg_base[0]
-            performance_metrics['M3'] = m3_agg_trials.agg({'known_perf': numpy.mean})
+            performance_metrics['M3'] = m3_agg_trials.agg({'known_perf': np.mean})
         if not m4_agg_trials.empty and not m4_agg_trials.empty:
             m4_agg_trials['unknown_perf'] = m4_agg_trials[0] / m4_agg_base[0]
-            performance_metrics['M4'] = m4_agg_trials.agg({'unknown_perf': numpy.mean})['unknown_perf']
+            performance_metrics['M4'] = m4_agg_trials.agg({'unknown_perf': np.mean})['unknown_perf']
         if not m5_agg_trials.empty and not m5_agg_base.empty:
             m5_agg_trials['opti_t'] = m5_agg_trials[0] / (m5_agg_base[0] + m5_agg_trials[0])
-            performance_metrics['M5'] = m5_agg_trials.agg({'opti_t': numpy.sum})[0] / len(m5_agg_trials.index)
+            performance_metrics['M5'] = m5_agg_trials.agg({'opti_t': np.sum})[0] / len(m5_agg_trials.index)
         if not m6_agg_trials.empty and not m6_agg_base.empty:
-            m6_agg_trials['asymptote'] = m6_agg_trials[0] / m6_agg_base[0].replace({0: numpy.nan})
+            m6_agg_trials['asymptote'] = m6_agg_trials[0] / m6_agg_base[0].replace({0: np.nan})
             performance_metrics['M6'] = m6_agg_trials.agg({'asymptote': lambda x: x.sum(skipna=True)})['asymptote'] / len(m6_agg_trials.index)
 
         return scores, performance_metrics
