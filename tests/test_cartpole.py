@@ -6,7 +6,7 @@ from runners.novelty_experiment_runner_cartpole import *
 logger = test_utils.create_logger("test_cartpole")
 
 @pytest.mark.parametrize('execution_number', range(5))
-def test_agent(tmp_path, execution_number):
+def test_agent_on_trials_without_novelties(tmp_path, execution_number):
     ''' A full system test: run the hydra cartpole agent, no non-novel cases '''
 
     observer = CartpoleHydraAgentObserver(agent_type=RepairingCartpoleHydraAgent)
