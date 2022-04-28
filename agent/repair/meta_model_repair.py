@@ -150,18 +150,19 @@ class GreedyBestFirstSearchMetaModelRepair(SimulationBasedMetaModelRepair):
 
         # Initialize OPEN
         open_list = []
-        repair = [0] * len(self.fluents_to_repair)  # Repair is a list, in order of the fluents_to_repair list
-        base_consistency = self.compute_consistency(repair, observation)
 
-        priority = self._heuristic(repair, base_consistency)
-        heapq.heappush(open_list, [priority, repair])
+        base_repair = [0] * len(self._fluents_to_repair)  # Repair is a list, in order of the fluents_to_repair list
+        base_consistency = self.compute_consistency(base_repair, observation)
+
+        priority = self._heuristic(base_repair, base_consistency)
+        heapq.heappush(open_list, [priority, base_repair])
 
         generated_repairs = set()  # A set of all generated repaired. This is used for pruning duplicate repairs
 
         iteration = 0
         # fig = test_utils.plot_observation(observation)  # For debug
         incumbent_consistency = base_consistency
-        incumbent_repair = repair
+        incumbent_repair = base_repair
         timeout = False
 
         print(f'initial consistency: {incumbent_consistency}')
@@ -198,6 +199,9 @@ class GreedyBestFirstSearchMetaModelRepair(SimulationBasedMetaModelRepair):
             logging.debug("Found a useful repair! %s,\n consistency gain=%.2f" % (str(incumbent_repair),
                                                                                   base_consistency - incumbent_consistency))
             self._do_change(incumbent_repair)
+        else:
+            logging.debug("Best repair does not improve over the no-repair option. Do not repair.")
+            incumbent_repair = base_repair # Do not repair since the incumbent isn't better than the baseline
         return incumbent_repair, incumbent_consistency
 
     def expand(self, repair):
@@ -205,16 +209,16 @@ class GreedyBestFirstSearchMetaModelRepair(SimulationBasedMetaModelRepair):
         new_repairs = []
         for i, fluent in enumerate(self._fluents_to_repair):
             if repair[i] >= 0:
-                change_to_fluent = repair[i] + self.deltas[i]
+                change_to_fluent = repair[i] + self._deltas[i]
                 if self.current_meta_model.constant_numeric_fluents[
-                    self.fluents_to_repair[i]] + change_to_fluent >= 0:  # Don't allow negative fluents TODO: Discuss
+                    self._fluents_to_repair[i]] + change_to_fluent >= 0:  # Don't allow negative fluents TODO: Discuss
                     new_repair = list(repair)
                     new_repair[i] = change_to_fluent
                     new_repairs.append(new_repair)
             if repair[i] <= 0:  # Note: if repair has zero for the current fluent, add both +delta and -delta states to open
-                change_to_fluent = repair[i] - self.deltas[i]
+                change_to_fluent = repair[i] - self._deltas[i]
                 if self.current_meta_model.constant_numeric_fluents[
-                    self.fluents_to_repair[i]] + change_to_fluent >= 0:  # Don't allow negative fluents TODO: Discuss
+                    self._fluents_to_repair[i]] + change_to_fluent >= 0:  # Don't allow negative fluents TODO: Discuss
                     new_repair = list(repair)
                     new_repair[i] = change_to_fluent
                     new_repairs.append(new_repair)
