@@ -14,6 +14,7 @@ from os import path
 import numpy as np
 import psutil
 import settings
+from agent.planning.pddl_plus import TimedAction
 from utils.host import Host
 from utils.state import Action, State, World
 
@@ -312,10 +313,11 @@ class PolycraftState(State):
         return diff_dict
 
 
-class PolycraftAction(Action):
+class PolycraftAction(Action, TimedAction):
     ''' Polycraft World Action '''
 
     def __init__(self):
+        TimedAction.__init__(self, type(self).__name__, 0.0)
         self.name = type(self).__name__
         self.success = None
         self.response = None  # The result returned by the server for doing this command. Initialized as None.
@@ -430,15 +432,25 @@ class Polycraft(World):
 
         try:
             next_line = str(self.poly_output_queue.get(False, timeout=0.025))
-            logger.debug(
-                next_line)  # Turn off logging for now, the output from polycraft is large, and consists mostly of response messaging
-            sys.stdout.flush()
-            sys.stderr.flush()
+            # logger.debug(
+            #     next_line)  # Turn off logging for now, the output from polycraft is large, and consists mostly of response messaging
+            # sys.stdout.flush()
+            # sys.stderr.flush()
         except queue.Empty:
             pass
 
         return next_line
 
+    def wait_for_server_output(self, output:str):
+        """ Waits for a particular message to be recieved from the server before continuing. """
+        while True:
+            try:
+                if output in self._get_polycraft_output():
+                    break
+            except KeyboardInterrupt as err:
+                self.kill(exit_program=True)
+
+    
     def kill(self, exit_program=False):
         ''' Perform cleanup '''
 
@@ -522,13 +534,8 @@ class Polycraft(World):
         logger.info("Waiting for polycraft process to fully start up before sending commands...")
 
         # Wait for polycraft application to fully start up before sending commands
-        while True:
-            try:
-                if "Minecraft finished loading" in self._get_polycraft_output():
-                    logger.info("Polycraft application ready...")
-                    break
-            except KeyboardInterrupt as err:
-                self.kill(exit_program=True)
+        self.wait_for_server_output("Minecraft finished loading")
+        logger.info("Polycraft application ready...")
 
     def load_hosts(self, server_host: Host, observer_host: Host):
         """ Holdover from ScienceBirds world - intention is to use Docker to run as if agent were being evaluated"""
@@ -568,7 +575,13 @@ class Polycraft(World):
             if self.world_mode != ServerMode.TOURNAMENT:
                 self.poly_client.START()  # Send START command - will not perform any further actions unless done so
 
-            self.poly_client.CHECK_COST()  # Give time for the polycraft instance to clear its buffer?
+            # Wait for agent to fully join before sending commands
+            logger.info("Waiting for agent to connect to polycraft server...")
+            self.wait_for_server_output("joined the game")
+            logger.info("Agent connected to polycraft server...")
+
+            # self.poly_client.CHECK_COST()  # Give time for the polycraft instance to clear its buffer?
+
 
         except (ConnectionRefusedError, BrokenPipeError) as err:
             logger.error("Failed to connect to Polycraft server - shutting down.")
@@ -592,10 +605,8 @@ class Polycraft(World):
             # Wait for level to load fully (if not loaded fully, SENSE_ALL will return nothing and other undefined behavior) TODO: make consistent with RunTournament.py
             if self.world_mode == ServerMode.SERVER:
                 logger.info("Telling Polycraft to load a new level: {}".format(self.current_level))
-                while True:
-                    if "[EXP] game initialization completed" in self._get_polycraft_output():
-                        self.ready_for_cmds = True
-                        break
+                self.wait_for_server_output("[EXP] game initialization completed")
+                self.ready_for_cmds = True
             else:  # Detached server, using a heuristic of waiting a bit for it to load TODO: Is this bad?
                 logger.info("Waiting for level to initialize...")
                 time.sleep(5)  # Assumes 5 sec. is enough to load a level.

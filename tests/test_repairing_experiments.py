@@ -49,8 +49,8 @@ class MockMetaModelRepair(SimulationBasedMetaModelRepair):
         self.current_meta_model = pddl_meta_model
 
         repair = [0] * len(self.oracle_repair)  # Repair is a list, in order of the fluents_to_repair list
-        base_consistency = self._compute_consistency(repair, observation)
-        best_consistency = self._compute_consistency(self.oracle_repair, observation)
+        base_consistency = self.compute_consistency(repair, observation)
+        best_consistency = self.compute_consistency(self.oracle_repair, observation)
 
         assert(best_consistency<base_consistency)
 

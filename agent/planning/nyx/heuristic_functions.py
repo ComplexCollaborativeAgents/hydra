@@ -75,8 +75,6 @@ class BadSBHeuristic(AbstractHeuristic):
         node.h = 50000 - node.state_vars["['points_score']"]
         return node.h
 
-        # return 0
-
 class CartpoltHeuristic(AbstractHeuristic):
     # CARTPOLE HEURISTIC
     def evaluate(self, node):
@@ -139,17 +137,16 @@ class SBOneBirdHeuristic(AbstractHeuristic):
         # red + black: none\no need to deal with here
         # yellow: accelerates. Just don't check falling short, because can accelerate at peak and reach blocks.
         # white: modeled as "shoots straight down when tapped". Remove "passes over everything" check.
-        # Blue: adding a 20% margin to the bounding box is probably pretty good. TODO: Some experimentation can narrow
-        #                                                                           that to a more accurate number.
+        # Blue: adding a 20% margin to the bounding box is probably pretty good.
 
         active_bird_string = get_active_bird_string(node)
         if active_bird_string is None:
             if node.predecessor_action == constants.TIME_PASSING_ACTION:
-                if node.predecessor.state_vars == node.state_vars: # TODO this also doesn't work?
-                    node.h = SBOneBirdHeuristic.LARGE_VALUE
+                if node.predecessor.state_vars == node.state_vars:
+                    node.h = np.inf
                     return node.h
             # This heuristic doesn't know what do to without a birb
-            node.h = self._backup_heuristic()
+            node.h = SBOneBirdHeuristic.LARGE_VALUE
             return node.h
         bird_released = node.state_vars.get("['bird_released'" + active_bird_string)
 
@@ -207,7 +204,7 @@ class SBOneBirdHeuristic(AbstractHeuristic):
             if v_x == 0:
                 # In this situation, we can't reason about ballistics.
                 # I have concluded that this situation doesn't arise, but left this just in case to prevent div by 0.
-                node.h = self._backup_heuristic()
+                node.h = SBOneBirdHeuristic.LARGE_VALUE
                 return node.h
 
             y_0 = node.state_vars["['y_bird'" + active_bird_string]
@@ -333,7 +330,11 @@ class SBOneBirdHeuristic(AbstractHeuristic):
                            (targets_xy[closest_ind][1] - bird_coords[1]) ** 2 / dists[closest_ind]
         speed_in_direction = bird_coords[2] * vec_in_direction[0] + bird_coords[3] * vec_in_direction[1]
         if speed_in_direction <= 0.0:
-            return np.inf
+            # passed pig, but might still be close enough to hit
+            if min(dists) < 50 ** 2:
+                tot_speed = pow(bird_coords[2] ** 2 + bird_coords[3] ** 2, 0.5)
+                return pow(min(dists), 0.5)/(tot_speed * constants.DELTA_T)
+            return SBOneBirdHeuristic.LARGE_VALUE
         value = max(0, math.sqrt(dists[closest_ind]) / (speed_in_direction * constants.DELTA_T))
         return int(value)
 

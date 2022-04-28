@@ -57,7 +57,7 @@ class PigDeadConsistencyEstimator(MetaModelBasedConsistencyEstimator):
         pigs_in_sim = last_state_in_sim.get_pigs()
         for pig in pigs_in_sim:
             if last_state_in_sim.is_true(('pig_dead', pig)) and pig in live_pigs_in_obs:
-                live_pigs += 3
+                live_pigs += 50
         return live_pigs
 
 
@@ -138,9 +138,9 @@ class ScienceBirdsConsistencyEstimator(MetaModelBasedConsistencyEstimator):
 
     def __init__(self, use_simplified_problems=True,
                  consistency_estimators=None):
-        # BirdLocationConsistencyEstimator()ExternalAgentLocationConsistencyEstimator(), BirdLocationConsistencyEstimator()
+        # ExternalAgentLocationConsistencyEstimator(), BirdLocationConsistencyEstimator()
         if consistency_estimators is None:
-            consistency_estimators = [BlockNotDeadConsistencyEstimator(), PigDeadConsistencyEstimator()]
+            consistency_estimators = [BirdLocationConsistencyEstimator(), BlockNotDeadConsistencyEstimator(), PigDeadConsistencyEstimator()]
         self.consistency_estimators = list()
         self.use_simplified_problems = use_simplified_problems
         self.consistency_estimators.extend(consistency_estimators)

@@ -199,7 +199,7 @@ class SimpleTrajectoryPlanner:
          *
         """
 
-        mag = sling.height * 8
+        mag = sling.height * 10  # The number for full power is much smaller - this is to mitigate rounding errors.
         # print('mag ', mag)
         ref = self.get_reference_point(sling)
         # print('ref ', ref)
