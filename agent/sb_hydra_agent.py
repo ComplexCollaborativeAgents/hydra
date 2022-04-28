@@ -476,6 +476,7 @@ class SBHydraAgent(HydraAgent):
                 while len(simplifications) > 0 and (len(plan) == 0 or plan[0].action_name == "out of memory"):
                     simplification = simplifications.pop()
                     start_time = time.perf_counter()
+                    constants.SB_W_HELPFUL_ACTIONS = True
                     plan, self.made_plan = self.planner.make_plan(processed_state, simplification)
                     #### Additional statistics
                     if self.made_plan:
