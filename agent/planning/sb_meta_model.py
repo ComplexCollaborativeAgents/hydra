@@ -542,21 +542,21 @@ class ScienceBirdsMetaModel(MetaModel):
                              'base_life_pig_multiplier': 0.0,
                              'fall_damage': 50,
                              'explosion_damage': 100,
-                             'red_ice_damage_factor': 1.5,
-                             'red_wood_damage_factor': 0.5,
-                             'red_stone_damage_factor': 0.3,
-                             'yellow_ice_damage_factor': 0.4,
-                             'yellow_wood_damage_factor': 2,
-                             'yellow_stone_damage_factor': 0.5,
-                             'blue_ice_damage_factor': 2,
-                             'blue_wood_damage_factor': 0.5,
-                             'blue_stone_damage_factor': 0.1,
-                             'black_ice_damage_factor': 1,
-                             'black_wood_damage_factor': 1,
-                             'black_stone_damage_factor': 0.2,
-                             'white_ice_damage_factor': 0.5,
-                             'white_wood_damage_factor': 0.5,
-                             'white_stone_damage_factor': 0.5
+                             'birdRed_ice_damage_factor': 1.5,
+                             'birdRed_wood_damage_factor': 0.5,
+                             'birdRed_stone_damage_factor': 0.3,
+                             'birdYellow_ice_damage_factor': 0.4,
+                             'birdYellow_wood_damage_factor': 2,
+                             'birdYellow_stone_damage_factor': 0.5,
+                             'birdBlue_ice_damage_factor': 2,
+                             'birdBlue_wood_damage_factor': 0.5,
+                             'birdBlue_stone_damage_factor': 0.1,
+                             'birdBlack_ice_damage_factor': 1,
+                             'birdBlack_wood_damage_factor': 1,
+                             'birdBlack_stone_damage_factor': 0.2,
+                             'birdWhite_ice_damage_factor': 0.5,
+                             'birdWhite_wood_damage_factor': 0.5,
+                             'birdWhite_stone_damage_factor': 0.5
                          },
                          constant_boolean_fluents={
                              'angle_adjusted': False,
@@ -754,7 +754,7 @@ class ScienceBirdsMetaModel(MetaModel):
                         bird_str = type_str + '_' + obj[0]
                         pddl_problem.init.append(['=',
                                                   ['bird_block_damage', bird_str, block_str],
-                                                  self.constant_numeric_fluents[type_str[:-4]+ '_' + block[1]['type'] + '_damage_factor']])
+                                                  self.constant_numeric_fluents[type_str + '_' + block[1]['type'] + '_damage_factor']])
                         # TODO handle unknown bird and block types?
             else:
                 if type_str in self.object_types:

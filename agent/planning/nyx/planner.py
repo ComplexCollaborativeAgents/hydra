@@ -75,7 +75,7 @@ class Planner:
                 else:
                     node_bird_data.append((state.state_vars["['x_bird'" + active_bird_string],
                                            state.state_vars["['y_bird'" + active_bird_string],
-                                           state.state_vars["['bird_tapped'" + active_bird_string]))  # Active bird x, y
+                                           self.heuristic.is_preferred(state)))  # Active bird x, y
 
             from_state = VisitedState(state)
             time_passed = round(state.time + constants.DELTA_T, constants.NUMBER_PRECISION)
