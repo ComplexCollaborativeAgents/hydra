@@ -28,7 +28,7 @@ class PolycraftConsistencyEstimator(MetaModelBasedConsistencyEstimator):
     def estimate_consistency(self, simulation_trace: list, state_seq: list, delta_t: float = DEFAULT_DELTA_T):
         """ Estimate consistency based on relevant values """
         fluent_names = []
-        fluent_names.extend((fl,) for fl in simulation_trace[0].state_vars if fl.startswith('count_'))
+        fluent_names.extend((fl[0],) for fl in simulation_trace[0].state.numeric_fluents.keys() if fl[0].startswith('count_'))
         fluent_names.append(('selectedItem',))
         # How is our agent's position stored?
         consistency_checker = SequenceConsistencyEstimator(fluent_names, self.unique_prefix_size, self.discount_factor,

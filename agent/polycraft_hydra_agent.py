@@ -1,5 +1,6 @@
 import datetime
 
+import settings
 from agent.consistency.observation import HydraObservation
 from agent.planning.polycraft_planning.tasks import *
 from agent.planning.polycraft_planning.actions import *
@@ -506,6 +507,8 @@ class PolycraftHydraAgent(HydraAgent):
             self.novelty_existence = True
         else:
             novelty_characterization = ""
+            self.meta_model_repair.current_delta_t = settings.POLYCRAFT_DELTA_T
+            self.meta_model_repair.current_meta_model = self.meta_model
             curr_inconsistency = self.meta_model_repair.compute_consistency([], self.observations_list[-1])
             if curr_inconsistency > settings.POLYCRAFT_CONSISTENCY_THRESHOLD:
                 novelty_likelihood = curr_inconsistency / settings.POLYCRAFT_CONSISTENCY_THRESHOLD

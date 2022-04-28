@@ -96,7 +96,10 @@ class NyxPddlPlusSimulator(PddlPlusSimulator):
                                                     (domain.events, nyx_domain.events, Event),
                                                     (domain.processes, nyx_domain.processes, Process)]:
             for happening in source:
-                parameters = [[arg, t] for args, t in cls.__iterate_arguments(happening.parameters[0]) for arg in args]
+                if happening.parameters:
+                    parameters = [[arg, t] for args, t in cls.__iterate_arguments(happening.parameters[0]) for arg in args]
+                else:
+                    parameters = []
                 destination.append(happening_type(happening.name,
                                                   parameters,
                                                   happening.preconditions,

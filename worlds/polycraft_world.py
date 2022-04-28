@@ -577,7 +577,7 @@ class Polycraft(World):
 
             # Wait for agent to fully join before sending commands
             logger.info("Waiting for agent to connect to polycraft server...")
-            self.wait_for_server_output("joined the game")
+            # self.wait_for_server_output("joined the game")
             logger.info("Agent connected to polycraft server...")
 
             # self.poly_client.CHECK_COST()  # Give time for the polycraft instance to clear its buffer?

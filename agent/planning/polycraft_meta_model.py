@@ -579,10 +579,53 @@ class PolycraftMetaModel(MetaModel):
 
     def create_pddl_state(self, world_state: PolycraftState) -> PddlPlusState:
         ''' Translate the given observed world state to a PddlPlusState object '''
-        raise NotImplementedError("todo")
+
+        pddl_state = PddlPlusState()
+        # A dictionary with global problem parameters
+        problem_params = dict()
+        problem_params["world_state"] = world_state
+
+        # For efficiency reasons, we consider only a subset of the cells in the map
+        known_cells = world_state.get_known_cells()
+        active_cells = list()
+        for cell, cell_attr in known_cells.items():
+            # Pruning cells to gain efficiency
+            if not self._should_ignore_cell(cell, world_state):
+                active_cells.append((cell, cell_attr))
+        problem_params["active_cells"] = active_cells
+
+        # Add fluents for the active game map cells to the problem
+        for cell in active_cells:
+            type = self.active_task.get_type_for_cell(cell[1], self)
+            type.add_object_to_state(pddl_state, cell, problem_params)
+
+        # Add inventory items
+        for item_type in self.item_type_to_idx.keys():
+            count = world_state.count_items_of_type(item_type)
+            pddl_state.numeric_fluents[f"count_{item_type}"] = count
+
+        # Add selected item
+        select_item = world_state.get_selected_item()
+        fluent_name = Function.selectedItem.name
+        selected_item_idx = -1
+        if select_item is not None and select_item in self.item_type_to_idx:
+            selected_item_idx = self.item_type_to_idx[select_item]
+            pddl_state.numeric_fluents[fluent_name] = selected_item_idx
+        else:
+            pddl_state.numeric_fluents[fluent_name] = -1
+
+        # Add other entities
+        for entity, entity_attr in world_state.entities.items():
+            type_str = entity_attr["type"]
+            if EntityType.TRADER.value == type_str:
+                entity_cell = coordinates_to_cell(entity_attr["pos"])
+                cell_name = PddlGameMapCellType.get_cell_object_name(entity_cell)
+                pddl_state.boolean_fluents.add(f"trader_{entity}_at" + cell_name)
+
+        return pddl_state
 
     def get_nyx_heuristic(self, world_state):
-        return self.active_task.get_planner_heuristic(world_state, self)
+        return self.active_task.get_planner_heuristic(world_state)
 
     #
     # def _extract_landmarks(self,world_state: PolycraftState, pddl_problem:PddlPlusProblem, pddl_domain: PddlPlusDomain):
