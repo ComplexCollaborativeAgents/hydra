@@ -2,6 +2,7 @@ import json
 import logging
 logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("hydra_agent")
+logger.setLevel(logging.INFO)
 
 from worlds.gym_cartpole_dispatcher import GymCartpoleDispatcher
 from baselines.cartpole.dqn_learner import DQNLearnerObserver, QNet
@@ -122,16 +123,16 @@ class NoveltyExperimentGymCartpoleDispatcher(GymCartpoleDispatcher):
                     value = None
                 self._novelty_info[key] = value
 
-        print(self._novelty_info)
+        logger.info(f"Novelty {self._novelty_info} is revealed to the agent")
 
 
     def _make_environment(self):
         environment = gym.make(self.model_id)
-        print(environment.env)
+        # print(environment.env)
         for param in self._env_params:
             setattr(environment.env, param, self._env_params[param])
             assert getattr(environment.env, param) is self._env_params[param]
-            print(param, getattr(environment.env, param))
+            # print(param, getattr(environment.env, param))
         return environment
 
     def begin_experiment(self):
@@ -160,7 +161,7 @@ class NoveltyExperimentGymCartpoleDispatcher(GymCartpoleDispatcher):
                 if self._train_with_reward:
                     label = self.delegate.testing_instance(feature_vector=features, novelty_indicator=self._is_known, reward=reward, done=done, novelty_info=None)
                 else:
-                    logger.info("Novelty info is {}".format(self._novelty_info))
+                    self.log.debug("Novelty info is {}".format(self._novelty_info))
                     label = self.delegate.testing_instance(feature_vector=features, novelty_indicator=self._is_known, novelty_info=self._novelty_info)
                 self.log.debug("Received label={}".format(label))
                 action = self.label_to_action(label)
@@ -242,22 +243,22 @@ class NoveltyExperimentRunnerCartpole:
             observer = CartpoleHydraAgentObserver(agent_type=OracleCartpoleHydraAgent)
         if self._agent_type == 'repairing':
             if self._log_episode_details == True:
-                print("logging")
+                # print("logging")
                 observer = CartpoleHydraAgentObserver(agent_type=LoggingRepairingCartpoleHydraAgent)
             else:
                 observer = CartpoleHydraAgentObserver(agent_type=RepairingCartpoleHydraAgent)
 
         assert observer is not None
-        logger.info("Running agent type {}".format(self._agent_type))
+        logger.info("Running experiment type {} with agent type {}".format(self._experiment_type, self._agent_type))
         env_dispatcher = NoveltyExperimentGymCartpoleDispatcher(observer, render=False, train_with_reward=(self._agent_type == 'dqn'), log_details = self._log_episode_details, details_directory=os.path.join(self._results_details_directory_path, trial_type, str(trial_num)))
-        print("experiment type {}".format(self._experiment_type))
+
         if trial_type == constants.UNKNOWN:
             env_dispatcher.set_is_known(None, None, self._experiment_type)
         else:
             if episode_type == constants.NOVELTY:
-                print("episode type {}".format(constants.NOVELTY))
+                logger.info("Running episode type {}".format(constants.NOVELTY))
                 if self._experiment_type == 2 or self._experiment_type == 3:
-                    print("detected {}".format(True))
+                    # print("detected {}".format(True))
                     env_dispatcher.set_is_known(True, novelty, self._experiment_type)
                 else:
                     env_dispatcher.set_is_known(True, None, self._experiment_type)
@@ -317,7 +318,7 @@ class NoveltyExperimentRunnerCartpole:
                 1: [constants.MASSCART, constants.LENGTH, constants.FORCE_MAG],
                 2: [constants.GRAVITY]
             },
-            'values': range(5, 25, 5)
+            'values': [5, 15, 20, 25]
         }
 
         novelties = []

@@ -189,6 +189,7 @@ class GreedyBestFirstSearchMetaModelRepair(SimulationBasedMetaModelRepair):
 
                     # If there is a new best solution
                     if consistency < incumbent_consistency:
+                        print(f"New incumbent: {new_repair}, consistency: {consistency})")
                         incumbent_consistency = consistency
                         incumbent_repair = new_repair
 
@@ -196,11 +197,11 @@ class GreedyBestFirstSearchMetaModelRepair(SimulationBasedMetaModelRepair):
 
         # If found a useful consistency - apply it to the current metamodel
         if base_consistency > incumbent_consistency:
-            logging.debug("Found a useful repair! %s,\n consistency gain=%.2f" % (str(incumbent_repair),
+            logging.info("Found a useful repair! %s,\n consistency gain=%.2f" % (str(incumbent_repair),
                                                                                   base_consistency - incumbent_consistency))
             self._do_change(incumbent_repair)
         else:
-            logging.debug("Best repair does not improve over the no-repair option. Do not repair.")
+            logging.info("Best repair does not improve over the no-repair option. Do not repair.")
             incumbent_repair = base_repair # Do not repair since the incumbent isn't better than the baseline
         return incumbent_repair, incumbent_consistency
 

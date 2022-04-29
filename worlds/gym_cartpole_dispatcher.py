@@ -16,7 +16,7 @@ class GymCartpoleDispatcher:
         self.render = render
 
         self.log = logging.getLogger(__name__).getChild('GymCartpole')
-        self.log.setLevel(logging.DEBUG)
+        self.log.setLevel(logging.INFO)
         self.delegate.set_logger(self.log)
         self.possible_answers = [{'action': 'left'}, {'action': 'right'}]
         self.delegate.set_possible_answers(self.possible_answers)

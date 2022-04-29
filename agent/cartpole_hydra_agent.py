@@ -31,6 +31,7 @@ class CartpoleHydraAgent(HydraAgent):
         super().__init__(planner=CartPolePlanner(CartPoleMetaModel()), meta_model_repair=None)
 
         self.log = logging.getLogger(__name__).getChild('CartpoleHydraAgent')
+        self.log.setLevel(logging.DEBUG)
 
         self.observations_list = []
         self.replan_idx = 25
@@ -67,6 +68,8 @@ class CartpoleHydraAgent(HydraAgent):
         if self.plan is None:
             # self.meta_model.constant_numeric_fluents['time_limit'] = 4.0
             self.meta_model.constant_numeric_fluents['time_limit'] = max(0.02, min(4.0, round((4.0 - ((self.steps) * 0.02)), 2)))
+            self.log.info(f"Planning (first plan)...")
+            print(f"Planning (first plan)...")
             self.plan = self.planner.make_plan(state, 0)
             self.current_observation = CartPoleObservation()
             if len(self.plan) == 0:
@@ -74,6 +77,8 @@ class CartpoleHydraAgent(HydraAgent):
 
         if self.plan_idx >= self.replan_idx:
             self.meta_model.constant_numeric_fluents['time_limit'] = max(0.02, min(4.0, round((4.0 - ((self.steps) * 0.02)), 2)))
+            self.log.info(f"Replanning ...")
+            print(f"Planning (plan index={self.plan_idx})...")
             new_plan = self.planner.make_plan(state, 0)
             self.current_observation = CartPoleObservation()
             if len(new_plan) != 0:
@@ -139,6 +144,7 @@ class RepairingCartpoleHydraAgent(CartpoleHydraAgent):
         novelty_characterization = {}
 
         if self.should_repair(last_observation):
+            self.log.info("Initiating repair...")
             novelty_characterization, novelty_likelihood = self.repair_meta_model(last_observation)
 
         if self.novelty_existence is True:
@@ -157,15 +163,20 @@ class RepairingCartpoleHydraAgent(CartpoleHydraAgent):
             repair_fluent_name = ENV_PARAM_TO_FLUENT[repair_env_param]
             for i, repair_constant in enumerate(self.meta_model.repairable_constants):
                 if repair_fluent_name == repair_constant:
-                    new_repairable_constants.append(repair_fluent_name)
-
                     # Set the constant value of the repairable meta model, if we have it
                     if repair_value is not None:
                         original_value = self.meta_model.constant_numeric_fluents[repair_fluent_name]
                         repair_delta = abs(original_value - repair_value)  # Delta must be positive
                     else:
                         repair_delta = self.meta_model.repair_deltas[i]
-                    new_repair_delta.append(repair_delta)
+
+                    if abs(repair_delta)>0.0001:
+                        # Only attempt a repair if the delta is non-zero
+                        new_repairable_constants.append(repair_fluent_name)
+                        new_repair_delta.append(repair_delta)
+                        self.log.info(f"Set repair parameter {repair_fluent_name} with delta {repair_delta}")
+                    else:
+                        self.log.info(f"Repair delta for parameter {repair_fluent_name} was zero - do not attempt to repair it")
         # Set the repair constants and deltas in the meta model
         self.meta_model.repairable_constants = new_repairable_constants
         self.meta_model.repair_deltas = new_repair_delta
@@ -227,5 +238,5 @@ class CartpoleHydraAgentObserver(WSUObserver):
         state = self.agent.feature_vector_to_observation(feature_vector)  # TODO: Rename this function to feature_vector_to_state to avoid confusion with CartpoleObservation
 
         action = self.agent.choose_action(state)
-        self.log.debug("Testing instance: sending action={}".format(action))
+        self.log.info("Testing instance: sending action={}".format(action))
         return action
