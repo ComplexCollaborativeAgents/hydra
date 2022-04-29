@@ -2,9 +2,9 @@
 set -e
 
 REGISTRY='registry.gitlab-external.parc.com:8443'
-REPO='hydra/experiment'
+REPO='hydra/polycraft_experiment'
 RELEASE='month30'
 
 docker login $REGISTRY
 docker build -t $REGISTRY/$REPO/$RELEASE .
-docker push $REGISTRY/$REPO/$RELEASE
+docker save -o hydra.tar $REGISTRY/$REPO/$RELEASE
