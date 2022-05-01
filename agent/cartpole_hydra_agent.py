@@ -52,11 +52,13 @@ class CartpoleHydraAgent(HydraAgent):
         self.plan = None
         self.current_observation = CartPoleObservation()
         self.last_performance = []
+        self.replan_attempts = 0
 
     def episode_end(self, performance: float, feedback: dict = None):
         self.steps = 0
         self.plan_idx = 0
         self.plan = None
+        self.replan_attempts = 0
         self.observations_list.append(self.current_observation)
         self.current_observation = CartPoleObservation()
         self.last_performance.append(performance) # Records the last performance value, to show impact
@@ -79,11 +81,16 @@ class CartpoleHydraAgent(HydraAgent):
             self.meta_model.constant_numeric_fluents['time_limit'] = max(0.02, min(4.0, round((4.0 - ((self.steps) * 0.02)), 2)))
             self.log.info(f"Replanning ...")
             print(f"Planning (plan index={self.plan_idx})...")
-            new_plan = self.planner.make_plan(state, 0)
-            self.current_observation = CartPoleObservation()
-            if len(new_plan) != 0:
-                self.plan = new_plan
-                self.plan_idx = 0
+
+            if self.replan_attempts<settings.CP_MAX_REPLAN_ATTEMPTS:
+                new_plan = self.planner.make_plan(state, 0)
+                self.current_observation = CartPoleObservation()
+                if len(new_plan) != 0:
+                    self.plan = new_plan
+                    self.plan_idx = 0
+                    self.replan_attempts = self.replan_attempts+1
+                else:
+                    self.replan_attempts=0
 
         action = random.randint(0, 1)
         if self.plan_idx < len(self.plan):
@@ -207,6 +214,10 @@ class RepairingCartpoleHydraAgent(CartpoleHydraAgent):
                 novelty_characterization = {}
             self.consistency_scores.append(consistency)
         except Exception as err:
+            novelty_likelihood = 1.0
+            print("----------- error ------------")
+            print(err)
+            print("----------- error ------------")
             self.log.exception(err)
             pass
         return novelty_characterization, novelty_likelihood

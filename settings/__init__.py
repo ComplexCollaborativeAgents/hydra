@@ -35,6 +35,7 @@ CP_TIMEOUT = 60  # timeout for the planning phase (in seconds)
 CP_CONSISTENCY_THRESHOLD = 0.01
 CP_EPISODE_TIME_LIMIT = 1200
 CP_REPAIR_TIMEOUT = 180
+CP_MAX_REPLAN_ATTEMPTS = 3 # Maximal times to try to plan in this domain before giving up on planning
 
 POLYCRAFT_DELTA_T = 1  # Time discretization
 POLYCRAFT_TIMEOUT = 300  # timeout for the planning phase (in seconds)
