@@ -41,9 +41,12 @@ class AgentType(enum.Enum):
 
 
 NOVELTY = 0
-TYPE = [246] # [226, 243, 244, 252] #[222, 225, 236, 245, 246, 253, 254, 257, 555]  #245 555, 222, 225, 226, 236, 243, 252,  , 257
-NOVELTY_SET = {0: [226, 227]}  # 11:[50, 130], 12:[30, 110]  13: [20, 90], 14:[1]
-SAMPLES = 3
+TYPE = [246]
+# NOVELTY_SET = {22: [1], 0: [222, 223, 224, 225, 226, 227]}  # Yoni
+# NOVELTY_SET = {23: [1], 0: [232, 233, 234, 235, 236, 237]}  # Wiktor
+# NOVELTY_SET = {24: [1], 0: [242, 243, 244, 245, 246, 247]}  # Jacob
+# NOVELTY_SET = {25: [1], 0: [252, 253, 254, 255, 256, 257]}  # Shiwali - I have updated the threshold
+SAMPLES = 20
 
 AGENT = AgentType.RepairingHydra
 
@@ -368,7 +371,7 @@ def run_performance_stats(novelties: dict,
     for novelty, types in novelties.items():
         for novelty_type in types:
             settings.NOVELTY_TYPE = novelty_type
-            pattern = 'Levels/novelty_level_{}/type{}/Levels/*.xml'.format(novelty, novelty_type)
+            pattern = '9001_Data/StreamingAssets/Levels/novelty_level_{}/type{}/Levels/*.xml'.format(novelty, novelty_type)
             levels = list(levels_path.glob(pattern))
 
             number_samples = len(levels)
