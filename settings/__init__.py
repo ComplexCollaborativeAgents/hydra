@@ -8,7 +8,7 @@ active_bird_id_string = ''
 
 # Create your own local_settings.py file in this directory if you want
 # to override this variable and not run headless
-HEADLESS = False
+HEADLESS = True
 SCREENSHOT = False
 DEBUG = False
 NO_PLANNING = False
@@ -48,10 +48,10 @@ SCIENCE_BIRDS_BIN_DIR = path.join(ROOT_PATH, 'bin')
 SCIENCE_BIRDS_LEVELS_DIR = path.join(SCIENCE_BIRDS_BIN_DIR, 'linux', 'Levels', 'novelty_level_0', 'type2', 'Levels')
 POLYCRAFT_DIR = path.join(ROOT_PATH, 'bin', 'pal')
 SB_INIT_COLOR_MAP = path.join(ROOT_PATH, 'worlds', 'science_birds_interface', 'demo', 'ColorMap.json')
-SB_SIM_SPEED = 1  # run at real time
+SB_SIM_SPEED = 30  # run at real time
 SB_GT_FREQ = 30  # int(30/SB_SIM_SPEED)
 # SB_GT_FREQ = 1
-SB_CLASSIFICATION_THRESHOLD = 0.35
+SB_CLASSIFICATION_THRESHOLD = 0.38
 SB_N_FRAMES = 100
 
 HYDRA_MODEL_REVISION_ATTEMPTS = 5

@@ -426,6 +426,7 @@ class SBHydraAgent(HydraAgent):
         self.stats_for_level = dict()
         self.stats_for_level['planning times'] = []
         self.stats_for_level['expanded nodes'] = []
+        self.novelty_detections = []
         self.level_novelty_indicators = {
             PDDL_PROB: list(),
             UNKNOWN_OBJ: list(),
