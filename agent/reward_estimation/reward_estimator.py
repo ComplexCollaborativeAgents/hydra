@@ -6,7 +6,7 @@ import numpy as np
 from agent.reward_estimation.nn_utils.converter import convert_pickle_to_image, normalization, extract_state_action_from_observation
 import pickle
 
-REWARD_ESTIMATOR_MODEL_PATH = "{}/model/reward_estimator_model_300.pth".format(settings.ROOT_PATH)
+REWARD_ESTIMATOR_MODEL_PATH = "{}/model/reward_estimator_model_500_may2022.pth".format(settings.ROOT_PATH)
 
 class RewardEstimator:
     def __init__(self):
@@ -18,7 +18,6 @@ class RewardEstimator:
         :rtype: difference in estimated expected reward and actual reward upon making the shot
         :param:
         """
-        print(observation)
         initial_state, applied_action, received_reward = extract_state_action_from_observation(observation)
         initial_state, applied_action, received_reward = normalization(initial_state, applied_action, received_reward)
         state_tensor = torch.tensor(initial_state).float()

@@ -2,6 +2,7 @@ from agent.consistency.observation import ScienceBirdsObservation
 from agent.reward_estimation.nn_utils.obs_to_imgs import *
 from agent.reward_estimation.nn_utils.ab_dataset_tensor import *
 import pickle
+import settings
 
 def extract_state_action_from_observation(observation: ScienceBirdsObservation):
     obsimg = SBObs_to_Imgs()
@@ -56,30 +57,12 @@ def normalization_reward(reward_output):
 
 
 def normalization(state_input, action_input, reward_output):
-    state_max = [np.amax(state_input[:, i, :, :]) for i in range(13)]
-    state_min = [np.amin(state_input[:, i, :, :]) for i in range(13)]
-    action_max = [-8, 225, 3000, 160, 326]
-    # action_max = [np.amax(action_input[:,i]) for i in range(5)]
-    action_min = [-226, 0, 3000, 142, 318]
-    # action_min = [np.amin(action_input[:,i]) for i in range(5)]
-    # if np.amax(reward_output) != np.amin(reward_output):
-    #    reward_max = [np.amax(reward_output)]
-    #    reward_min = [np.amin(reward_output)]
-    # else:
-    #    reward_max = [42160.0]
-    #    reward_min = [0.0]
-    reward_max = [42160.0]
-    reward_min = [0.0]
-    # print("reward_max !!!!!!!!!!!!!!!!!!")
-    # print(reward_max)
-
-    np.save("state_max.npy", np.asarray(state_max))
-    np.save("state_min.npy", np.asarray(state_min))
-    np.save("action_max.npy", np.asarray(action_max))
-    np.save("action_min.npy", np.asarray(action_min))
-    np.save("reward_max.npy", np.asarray(reward_max))
-    np.save("reward_min.npy", np.asarray(reward_min))
-    print("Normalization start")
+    state_max = np.load("{}/agent/reward_estimation/state_max.npy".format(settings.ROOT_PATH))
+    state_min = np.load("{}/agent/reward_estimation/state_min.npy".format(settings.ROOT_PATH))
+    action_max = np.load("{}/agent/reward_estimation/action_max.npy".format(settings.ROOT_PATH))
+    action_min = np.load("{}/agent/reward_estimation/action_min.npy".format(settings.ROOT_PATH))
+    reward_max = np.load("{}/agent/reward_estimation/reward_max.npy".format(settings.ROOT_PATH))
+    reward_min = np.load("{}/agent/reward_estimation/reward_min.npy".format(settings.ROOT_PATH))
     for i in range(13):
         if state_max[i] != state_min[i]:
             state_input[:, i, :, :] = (state_input[:, i, :, :] - state_min[i]) / (state_max[i] - state_min[i])
@@ -92,12 +75,4 @@ def normalization(state_input, action_input, reward_output):
         else:
             action_input[:, j] = 0.0
     reward_output = (reward_output[:, 0] - reward_min[0]) / (reward_max[0] - reward_min[0])
-    # with open("state_input_1_1.pkl",'wb') as f:
-    #    pickle.dump( state_input, f)
-    # with open("action_input_1_1.pkl",'wb') as f:
-    #    pickle.dump( action_input, f)
-    # with open("reward_output_1_1.pkl",'wb') as f:
-    #    pickle.dump( reward_output, f)
-
-    # np.savez("nomarlized_level0_2.npz", state = state_input, action = action_input, reward = reward_output)
     return state_input, action_input, reward_output
