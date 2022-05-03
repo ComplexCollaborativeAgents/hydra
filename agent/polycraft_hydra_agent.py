@@ -509,7 +509,8 @@ class PolycraftHydraAgent(HydraAgent):
             novelty_characterization = ""
             self.meta_model_repair.current_delta_t = settings.POLYCRAFT_DELTA_T
             self.meta_model_repair.current_meta_model = self.meta_model
-            curr_inconsistency = self.meta_model_repair.compute_consistency([], self.observations_list[-1])
+            curr_inconsistency = self.meta_model_repair.compute_consistency([], self.observations_list[-1],
+                                                                            max_iterations=50)
             if curr_inconsistency > settings.POLYCRAFT_CONSISTENCY_THRESHOLD:
                 novelty_likelihood = curr_inconsistency / settings.POLYCRAFT_CONSISTENCY_THRESHOLD
                 self.novelty_existence = True
