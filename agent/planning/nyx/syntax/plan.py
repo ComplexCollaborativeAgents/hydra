@@ -14,12 +14,14 @@ class Plan(list):
     TrajectoryElement = namedtuple('TrajectoryElement', ['action', 'time'])
 
     def iter(self, ignore_time_passing: bool = False) -> Iterator[TrajectoryElement]:
-        return filter(lambda item: not (item.action is constants.TIME_PASSING_ACTION and ignore_time_passing), self)
+        return filter(lambda item: item.action is not None and
+                                   not (item.action is constants.TIME_PASSING_ACTION and ignore_time_passing), self)
 
     def append_action(self, action: Action, time: float, expand_time_passing: bool = False):
         if expand_time_passing:
             self.pass_time(time)
-        self.append(self.TrajectoryElement(action, time))
+        if action is not None:
+            self.append(self.TrajectoryElement(action, time))
 
     def pass_time(self, time: float):
         current_time = 0.0 if len(self) == 0 else self[-1].time

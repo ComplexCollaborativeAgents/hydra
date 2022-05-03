@@ -397,7 +397,7 @@ class SBHydraAgent(HydraAgent):
         """ This is called when a level has ended, either in a win or a loss outcome """
         self._need_to_repair = self.made_plan and not success
         self.completed_levels.append(success)
-        self._infer_novelty_existence()
+        # self._infer_novelty_existence()
         self.stats_for_level[NOVELTY_LIKELIHOOD] = bool(self._new_novelty_likelihood)
         self.stats_for_level[PDDL_PROB] = self.level_novelty_indicators[PDDL_PROB]
         self.stats_for_level[REWARD_PROB] = self.level_novelty_indicators[REWARD_PROB]
@@ -477,6 +477,7 @@ class SBHydraAgent(HydraAgent):
                 while len(simplifications) > 0 and (len(plan) == 0 or plan[0].action_name == "out of memory"):
                     simplification = simplifications.pop()
                     start_time = time.perf_counter()
+                    constants.SB_W_HELPFUL_ACTIONS = True
                     plan, self.made_plan = self.planner.make_plan(processed_state, simplification)
                     #### Additional statistics
                     if self.made_plan:

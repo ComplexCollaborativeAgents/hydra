@@ -188,7 +188,7 @@ class SBOneBirdHeuristic(AbstractHeuristic):
             node.h = self.time_to_pig((x_0, y_0, v_x, v_y), self.pigs_x, self.pigs_y)
             return node.h
         else:
-            # This entire next sectoin turns out to be detrimental to winning
+            # This entire next section turns out to be detrimental to winning
             # Find type of bird
             bird_type = node.state_vars["['bird_type'" + active_bird_string]
             BIRD_RED = 0
