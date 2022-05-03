@@ -165,6 +165,12 @@ class ScienceBirdsConsistencyEstimator(MetaModelBasedConsistencyEstimator):
         except InconsistentPlanError as e:  # Sometimes the repair makes the executed plan be inconsistent, e.g., its preconditions are not satisfied
             consistency = MetaModelBasedConsistencyEstimator.PLAN_FAILED_CONSISTENCY_VALUE
             logger.info(f'Could not compute consistency! {str(e)}')
+        except KeyError as e:
+            consistency = MetaModelBasedConsistencyEstimator.PLAN_FAILED_CONSISTENCY_VALUE
+            logger.info(f'Inconsistency calculator: No {str(e)} found, that is pretty inconsistent. ')
+        except IndexError as e:
+            consistency = 0
+            logger.info('No observations to check, can not compute inconsistency. ')
         return consistency
 
     def estimate_consistency(self, simulation_trace: list, state_seq: list, delta_t: float = DEFAULT_DELTA_T):
