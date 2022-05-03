@@ -10,25 +10,28 @@ from scipy.stats import pearsonr
 from sklearn.linear_model import LogisticRegression
 
 
-SB_NOVELTY_DATA_PATH = pathlib.Path(settings.ROOT_PATH) / 'data' / 'science_birds' / 'novelty_detection'
+SB_NOVELTY_DATA_PATH = pathlib.Path(settings.ROOT_PATH) / 'data' / 'science_birds' / 'novelty_detection' / 'dataset_May2022'
 NON_NOVELTY_LEVELs = [0]
 NOVELTY_LEVELS = [22, 23, 24, 25]
 
 class ColumnName(enum.Enum):
     LEVEL = 'level',
     TYPE = 'type',
+    LEVEL_TYPE = 'level_type'
     HAS_NOVEL_OBJECT = 'has_novel_object',
     MAX_REWARD_DIFFERENCE = 'max_reward_difference',
     AVG_REWARD_DIFFERENCE = 'avg_reward_difference',
     MAX_PDDL_INCONSISTENCY = 'max_pddl_inconsistency',
     AVG_PDDL_INCONSISTENCY = 'avg_pddl_inconsistency',
-    HYDRA_NOVELTY_DETECTED = 'hydra_novelty_detected',
+   # HYDRA_NOVELTY_DETECTED = 'hydra_novelty_detected',
     GROUND_TRUTH = 'ground_truth',
-    NUM_OBJECTS = 'num_objects'
+    NUM_OBJECTS = 'num_objects',
+    PASS = 'pass'
 
 
 def generate_dataset_from_json():
     dataframe = pandas.DataFrame(columns=[
+        ColumnName.LEVEL_TYPE,
         ColumnName.LEVEL,
         ColumnName.TYPE,
         ColumnName.NUM_OBJECTS,
@@ -37,7 +40,7 @@ def generate_dataset_from_json():
         ColumnName.AVG_REWARD_DIFFERENCE,
         ColumnName.MAX_PDDL_INCONSISTENCY,
         ColumnName.AVG_PDDL_INCONSISTENCY,
-        ColumnName.HYDRA_NOVELTY_DETECTED,
+        #ColumnName.HYDRA_NOVELTY_DETECTED,
         ColumnName.GROUND_TRUTH
     ])
 
@@ -56,10 +59,15 @@ def generate_dataset_from_json():
                     has_unknown_object = 1
                 else:
                     has_unknown_object = 0
-                if episode['novelty_detection']:
-                    hydra_detected_novelty = 1
+                # if episode['novelty_detection']:
+                #     hydra_detected_novelty = 1
+                # else:
+                #     hydra_detected_novelty = 0
+
+                if episode['status'] == "Pass":
+                    status = 1
                 else:
-                    hydra_detected_novelty = 0
+                    status = 0
 
 
                 if all(v is None for v in episode['pddl_novelty_likelihood']):
@@ -86,17 +94,24 @@ def generate_dataset_from_json():
                 line = {
                     ColumnName.LEVEL: numbers[1],
                     ColumnName.TYPE: numbers[2],
+                    ColumnName.LEVEL_TYPE: float("{}.{}".format(numbers[1], numbers[2])),
                     ColumnName.NUM_OBJECTS: episode['objects'],
                     ColumnName.HAS_NOVEL_OBJECT: has_unknown_object,
                     ColumnName.MAX_REWARD_DIFFERENCE: max_reward_difference,
                     ColumnName.AVG_REWARD_DIFFERENCE: avg_reward_difference,
                     ColumnName.MAX_PDDL_INCONSISTENCY: max_pddl_inconsistency,
                     ColumnName.AVG_PDDL_INCONSISTENCY: avg_pddl_inconsistency,
-                    ColumnName.HYDRA_NOVELTY_DETECTED: hydra_detected_novelty,
-                    ColumnName.GROUND_TRUTH: ground_truth
+                    ColumnName.GROUND_TRUTH: ground_truth,
+                    ColumnName.PASS: int(status)
                 }
+
+                #print(line)
+
                 dataframe = dataframe.append(line, ignore_index=True)
-    dataframe.to_csv("{}/ensemble_learning_simple_levels.csv".format(SB_NOVELTY_DATA_PATH))
+
+    dataframe = dataframe.astype({ColumnName.PASS: 'int64'})
+    print(dataframe.dtypes)
+    dataframe.to_csv("{}/ensemble_learning_simple_levels_may2022.csv".format(SB_NOVELTY_DATA_PATH))
     return(dataframe)
 
 
