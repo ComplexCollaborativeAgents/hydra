@@ -386,10 +386,16 @@ class SBHydraAgent(HydraAgent):
             self._new_novelty_likelihood = self.novelty_existence
             return
 
+        if (not self._new_novelty_likelihood) and (settings.SB_LOOKBACK_ONLY_DETECTION) and (len(self.completed_levels) >= settings.SB_LOOKBACK_HORIZON):
+            # print("\n\nlast {} levels: {}".format(settings.SB_LOOKBACK_HORIZON, self.completed_levels[-settings.SB_LOOKBACK_HORIZON:]))
+            if not any(self.completed_levels[-settings.SB_LOOKBACK_HORIZON:]):
+                self._new_novelty_likelihood = True
+                return
+
         '''looks at the history of detections in previous levels and returns true when novelty has been detected for 3 contiguous episodes'''
         # self.novelty_detections.append(self._detect_level_novelty())
         self.novelty_detections.append(self._detect_level_novelty_with_ensemble())
-        if (not self._new_novelty_likelihood) and len(self.novelty_detections) > 2:
+        if (not settings.SB_LOOKBACK_ONLY_DETECTION) and (not self._new_novelty_likelihood) and len(self.novelty_detections) > 2:
             self._new_novelty_likelihood = self.novelty_detections[-1] and self.novelty_detections[-2] and \
                                            self.novelty_detections[-3]
 

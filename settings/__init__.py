@@ -64,6 +64,8 @@ SB_ANOMOLY_DETECTOR_THRESHOLD = 0.55
 
 SB_REWARD_CONSISTENCY_THRESHOLD = 0.5
 SB_LEVEL_NOVELTY_DETECTION_ENSEMBLE_THRESHOLD = 0.8
+SB_LOOKBACK_HORIZON = 5
+SB_LOOKBACK_ONLY_DETECTION = False
 
 SCIENCE_BIRDS_SERVER_CMD = 'java -jar {}'.format(path.join(SCIENCE_BIRDS_BIN_DIR, 'linux', 'game_playing_interface.jar'))
 POLYCRAFT_SERVER_CMD = "./gradlew --no-daemon --stacktrace runclient"   # Must be run in pal/PolycraftAIGym
