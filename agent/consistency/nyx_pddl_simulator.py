@@ -1,7 +1,10 @@
 import math
 import re
+import time
 from collections import namedtuple
 from typing import List, Tuple, Iterator, Dict, Union, Optional
+
+import logging
 
 from agent.consistency.observation import HydraObservation
 from agent.consistency.pddl_plus_simulator import PddlPlusSimulator
@@ -33,11 +36,12 @@ class NyxPddlPlusSimulator(PddlPlusSimulator):
                            observation: HydraObservation,
                            meta_model: MetaModel,
                            delta_t: float = 0.05,
-                           max_t: Optional[float] = None) -> Tuple[Trace, PddlPlusPlan]:
+                           max_t: Optional[float] = None,
+                           max_iterations=1000) -> Tuple[Trace, PddlPlusPlan]:
         problem = meta_model.create_pddl_problem(observation.get_initial_state())
         domain = meta_model.create_pddl_domain(observation.get_initial_state())
         plan = observation.get_pddl_plan(meta_model)
-        _, _, trace = self.simulate(plan, problem, domain, delta_t=delta_t, max_t=max_t)
+        _, _, trace = self.simulate(plan, problem, domain, delta_t=delta_t, max_t=max_t, max_iterations=max_iterations)
         return trace, plan
 
     def simulate(self,
@@ -62,7 +66,6 @@ class NyxPddlPlusSimulator(PddlPlusSimulator):
                                    max_iterations: int = 1000) -> SimulationOutput:
         nyx_constants.set_delta_t(delta_t)
         nyx_plan = self._nyx_plan(plan_to_simulate, grounded_pddl, delta_t, max_t=max_t)
-
         nyx_trace = nyx_plan.simulate(grounded_pddl.init_state,
                                       grounded_pddl,
                                       double_events=self.allow_cascading_effects,

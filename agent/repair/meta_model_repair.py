@@ -72,16 +72,14 @@ class SimulationBasedMetaModelRepair(MetaModelRepair):
         self.current_meta_model = None
         self.time_limit = time_limit  # Allows setting a timeout for the repair
 
-
-
-    def compute_consistency(self, repair: list, observation: HydraObservation):
+    def compute_consistency(self, repair: list, observation: HydraObservation, max_iterations=1000):
         """ Computes the consistency score for the given delta state"""
         # Apply change
         self._do_change(repair)
 
         try:
             expected_trace, plan = self.simulator.get_expected_trace(observation, self.current_meta_model,
-                                                                     self.current_delta_t)
+                                                                     self.current_delta_t, max_iterations=max_iterations)
             observed_seq = observation.get_pddl_states_in_trace(self.current_meta_model)
             consistency = self.consistency_estimator.estimate_consistency(expected_trace, observed_seq,
                                                                           delta_t=self.current_delta_t)
@@ -118,7 +116,7 @@ class GreedyBestFirstSearchMetaModelRepair(SimulationBasedMetaModelRepair):
                  deltas,
                  consistency_threshold=2,
                  max_iterations=100,
-                 time_limit=1000):
+                 time_limit=180):
 
         super().__init__(fluents_to_repair,
                          consistency_estimator,
