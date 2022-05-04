@@ -1,0 +1,834 @@
+{
+    "levels": [
+        {
+            "Plan action count": [
+                2
+            ],
+            "Plan total time": [
+                1.65
+            ],
+            "birds": {
+                "BirdWhite": 1
+            },
+            "birds_remaining": 0,
+            "birds_start": 1,
+            "expanded nodes": [
+                1173
+            ],
+            "level": "9001_Data/StreamingAssets/Levels/novelty_level_0/type226/Levels/00204_0_0_226_0.xml",
+            "novelty_detections": [],
+            "novelty_likelihood": false,
+            "objects": 12,
+            "pddl_novelty_likelihood": [
+                1000
+            ],
+            "pigs_remaining": 2,
+            "pigs_start": 2,
+            "planning times": [
+                1.0637012549996143
+            ],
+            "reward_estimator_likelihood": [
+                0.5023646326376352
+            ],
+            "rewards_per_shot": [
+                60
+            ],
+            "score": 60.0,
+            "status": "Fail",
+            "unknown_object": [
+                true
+            ]
+        },
+        {
+            "Plan action count": [
+                2
+            ],
+            "Plan total time": [
+                2.85
+            ],
+            "birds": {
+                "BirdWhite": 1
+            },
+            "birds_remaining": 0,
+            "birds_start": 1,
+            "expanded nodes": [
+                1029
+            ],
+            "level": "9001_Data/StreamingAssets/Levels/novelty_level_0/type226/Levels/00244_0_0_226_0.xml",
+            "novelty_detections": [],
+            "novelty_likelihood": false,
+            "objects": 10,
+            "pddl_novelty_likelihood": [
+                19.753145444121305
+            ],
+            "pigs_remaining": 2,
+            "pigs_start": 2,
+            "planning times": [
+                0.8190452910021122
+            ],
+            "repair_calls": 0,
+            "repair_time": 0,
+            "reward_estimator_likelihood": [
+                0.5420770049095154
+            ],
+            "rewards_per_shot": [
+                0
+            ],
+            "score": 0.0,
+            "status": "Fail",
+            "unknown_object": [
+                false
+            ]
+        },
+        {
+            "Plan action count": [
+                1
+            ],
+            "Plan total time": [
+                7.375
+            ],
+            "birds": {
+                "BirdWhite": 1
+            },
+            "birds_remaining": 0,
+            "birds_start": 1,
+            "expanded nodes": [
+                2536
+            ],
+            "level": "9001_Data/StreamingAssets/Levels/novelty_level_0/type226/Levels/00048_0_0_226_0.xml",
+            "novelty_detections": [],
+            "novelty_likelihood": false,
+            "objects": 11,
+            "pddl_novelty_likelihood": [
+                27.46324736232695
+            ],
+            "pigs_remaining": 1,
+            "pigs_start": 2,
+            "planning times": [
+                2.2876591889980773
+            ],
+            "repair_calls": 0,
+            "repair_time": 0,
+            "reward_estimator_likelihood": [
+                0.09824063121152327
+            ],
+            "rewards_per_shot": [
+                5000
+            ],
+            "score": 5000.0,
+            "status": "Fail",
+            "unknown_object": [
+                false
+            ]
+        },
+        {
+            "Plan action count": [
+                1
+            ],
+            "Plan total time": [
+                6.85
+            ],
+            "birds": {
+                "BirdWhite": 1
+            },
+            "birds_remaining": 0,
+            "birds_start": 1,
+            "expanded nodes": [
+                2266
+            ],
+            "level": "9001_Data/StreamingAssets/Levels/novelty_level_0/type226/Levels/00206_0_0_226_0.xml",
+            "novelty_detections": [],
+            "novelty_likelihood": false,
+            "objects": 12,
+            "pddl_novelty_likelihood": [
+                0
+            ],
+            "pigs_remaining": 1,
+            "pigs_start": 2,
+            "planning times": [
+                2.2507842230006645
+            ],
+            "repair_calls": 0,
+            "repair_time": 0,
+            "reward_estimator_likelihood": [
+                0.004307908426996021
+            ],
+            "rewards_per_shot": [
+                5000
+            ],
+            "score": 5000.0,
+            "status": "Fail",
+            "unknown_object": [
+                false
+            ]
+        },
+        {
+            "Plan action count": [
+                2
+            ],
+            "Plan total time": [
+                2.1
+            ],
+            "birds": {
+                "BirdWhite": 1
+            },
+            "birds_remaining": 0,
+            "birds_start": 1,
+            "expanded nodes": [
+                1171
+            ],
+            "level": "9001_Data/StreamingAssets/Levels/novelty_level_0/type226/Levels/00034_0_0_226_0.xml",
+            "novelty_detections": [],
+            "novelty_likelihood": false,
+            "objects": 11,
+            "pddl_novelty_likelihood": [
+                1000
+            ],
+            "pigs_remaining": 2,
+            "pigs_start": 2,
+            "planning times": [
+                1.120827033999376
+            ],
+            "repair_calls": 0,
+            "repair_time": 0,
+            "reward_estimator_likelihood": [
+                0.42951709748375666
+            ],
+            "rewards_per_shot": [
+                480
+            ],
+            "score": 480.0,
+            "status": "Fail",
+            "unknown_object": [
+                true
+            ]
+        },
+        {
+            "Plan action count": [
+                2
+            ],
+            "Plan total time": [
+                1.4
+            ],
+            "birds": {
+                "BirdWhite": 1
+            },
+            "birds_remaining": 0,
+            "birds_start": 1,
+            "expanded nodes": [
+                351
+            ],
+            "level": "9001_Data/StreamingAssets/Levels/novelty_level_0/type226/Levels/00067_0_0_226_0.xml",
+            "novelty_detections": [],
+            "novelty_likelihood": false,
+            "objects": 10,
+            "pddl_novelty_likelihood": [
+                1000
+            ],
+            "pigs_remaining": 2,
+            "pigs_start": 2,
+            "planning times": [
+                0.2888959470001282
+            ],
+            "repair_calls": 0,
+            "repair_time": 0,
+            "reward_estimator_likelihood": [
+                0.5181082487106323
+            ],
+            "rewards_per_shot": [
+                0
+            ],
+            "score": 0.0,
+            "status": "Fail",
+            "unknown_object": [
+                true
+            ]
+        },
+        {
+            "Plan action count": [
+                2
+            ],
+            "Plan total time": [
+                2.4
+            ],
+            "birds": {
+                "BirdWhite": 1
+            },
+            "birds_remaining": 0,
+            "birds_start": 1,
+            "expanded nodes": [
+                1351
+            ],
+            "level": "9001_Data/StreamingAssets/Levels/novelty_level_0/type226/Levels/00156_0_0_226_0.xml",
+            "novelty_detections": [],
+            "novelty_likelihood": false,
+            "objects": 11,
+            "pddl_novelty_likelihood": [
+                28.940156294134514
+            ],
+            "pigs_remaining": 2,
+            "pigs_start": 2,
+            "planning times": [
+                1.2021026100010204
+            ],
+            "repair_calls": 0,
+            "repair_time": 0,
+            "reward_estimator_likelihood": [
+                0.5563676953315735
+            ],
+            "rewards_per_shot": [
+                0
+            ],
+            "score": 0.0,
+            "status": "Fail",
+            "unknown_object": [
+                false
+            ]
+        },
+        {
+            "Plan action count": [
+                2
+            ],
+            "Plan total time": [
+                2.475
+            ],
+            "birds": {
+                "BirdWhite": 1
+            },
+            "birds_remaining": 0,
+            "birds_start": 1,
+            "expanded nodes": [
+                773
+            ],
+            "level": "9001_Data/StreamingAssets/Levels/novelty_level_0/type226/Levels/00275_0_0_226_0.xml",
+            "novelty_detections": [],
+            "novelty_likelihood": false,
+            "objects": 13,
+            "pddl_novelty_likelihood": [
+                22.373288913431693
+            ],
+            "pigs_remaining": 2,
+            "pigs_start": 2,
+            "planning times": [
+                0.8182912970005418
+            ],
+            "repair_calls": 0,
+            "repair_time": 0,
+            "reward_estimator_likelihood": [
+                0.5059207677841187
+            ],
+            "rewards_per_shot": [
+                0
+            ],
+            "score": 0.0,
+            "status": "Fail",
+            "unknown_object": [
+                false
+            ]
+        },
+        {
+            "Plan action count": [
+                1
+            ],
+            "Plan total time": [
+                7.2
+            ],
+            "birds": {
+                "BirdWhite": 1
+            },
+            "birds_remaining": 0,
+            "birds_start": 1,
+            "expanded nodes": [
+                2494
+            ],
+            "level": "9001_Data/StreamingAssets/Levels/novelty_level_0/type226/Levels/00200_0_0_226_0.xml",
+            "novelty_detections": [],
+            "novelty_likelihood": false,
+            "objects": 10,
+            "pddl_novelty_likelihood": [
+                0
+            ],
+            "pigs_remaining": 1,
+            "pigs_start": 2,
+            "planning times": [
+                2.1139426160007133
+            ],
+            "repair_calls": 0,
+            "repair_time": 0,
+            "reward_estimator_likelihood": [
+                0.5629136311783871
+            ],
+            "rewards_per_shot": [
+                10000
+            ],
+            "score": 10000.0,
+            "status": "Fail",
+            "unknown_object": [
+                false
+            ]
+        },
+        {
+            "Plan action count": [
+                1
+            ],
+            "Plan total time": [
+                6.85
+            ],
+            "birds": {
+                "BirdWhite": 1
+            },
+            "birds_remaining": 0,
+            "birds_start": 1,
+            "expanded nodes": [
+                2486
+            ],
+            "level": "9001_Data/StreamingAssets/Levels/novelty_level_0/type226/Levels/00114_0_0_226_0.xml",
+            "novelty_detections": [],
+            "novelty_likelihood": false,
+            "objects": 12,
+            "pddl_novelty_likelihood": [
+                1000
+            ],
+            "pigs_remaining": 1,
+            "pigs_start": 2,
+            "planning times": [
+                2.810045922997233
+            ],
+            "repair_calls": 0,
+            "repair_time": 0,
+            "reward_estimator_likelihood": [
+                0.5079287338032803
+            ],
+            "rewards_per_shot": [
+                10000
+            ],
+            "score": 10000.0,
+            "status": "Fail",
+            "unknown_object": [
+                true
+            ]
+        },
+        {
+            "Plan action count": [
+                2
+            ],
+            "Plan total time": [
+                2.675
+            ],
+            "birds": {
+                "BirdWhite": 1
+            },
+            "birds_remaining": 0,
+            "birds_start": 1,
+            "expanded nodes": [
+                4630
+            ],
+            "level": "9001_Data/StreamingAssets/Levels/novelty_level_0/type226/Levels/00291_0_0_226_0.xml",
+            "novelty_detections": [],
+            "novelty_likelihood": false,
+            "objects": 11,
+            "pddl_novelty_likelihood": [
+                1000
+            ],
+            "pigs_remaining": 2,
+            "pigs_start": 2,
+            "planning times": [
+                4.118472764999751
+            ],
+            "repair_calls": 0,
+            "repair_time": 0,
+            "reward_estimator_likelihood": [
+                0.4689258337020874
+            ],
+            "rewards_per_shot": [
+                0
+            ],
+            "score": 0.0,
+            "status": "Fail",
+            "unknown_object": [
+                true
+            ]
+        },
+        {
+            "Plan action count": [
+                1
+            ],
+            "Plan total time": [
+                7.4
+            ],
+            "birds": {
+                "BirdWhite": 1
+            },
+            "birds_remaining": 0,
+            "birds_start": 1,
+            "expanded nodes": [
+                2330
+            ],
+            "level": "9001_Data/StreamingAssets/Levels/novelty_level_0/type226/Levels/00203_0_0_226_0.xml",
+            "novelty_detections": [],
+            "novelty_likelihood": false,
+            "objects": 11,
+            "pddl_novelty_likelihood": [
+                1000
+            ],
+            "pigs_remaining": 0,
+            "pigs_start": 2,
+            "planning times": [
+                2.1449583579997125
+            ],
+            "repair_calls": 0,
+            "repair_time": 0,
+            "reward_estimator_likelihood": [
+                0.5142942416443905
+            ],
+            "rewards_per_shot": [
+                10000
+            ],
+            "score": 10000.0,
+            "status": "Pass",
+            "unknown_object": [
+                true
+            ]
+        },
+        {
+            "Plan action count": [
+                1
+            ],
+            "Plan total time": [
+                6.9
+            ],
+            "birds": {
+                "BirdWhite": 1
+            },
+            "birds_remaining": 0,
+            "birds_start": 1,
+            "expanded nodes": [
+                2542
+            ],
+            "level": "9001_Data/StreamingAssets/Levels/novelty_level_0/type226/Levels/00129_0_0_226_0.xml",
+            "novelty_detections": [],
+            "novelty_likelihood": false,
+            "objects": 11,
+            "pddl_novelty_likelihood": [
+                53.3052987147405
+            ],
+            "pigs_remaining": 0,
+            "pigs_start": 2,
+            "planning times": [
+                2.426120025000273
+            ],
+            "repair_calls": 0,
+            "repair_time": 0,
+            "reward_estimator_likelihood": [
+                0.4576686370148739
+            ],
+            "rewards_per_shot": [
+                10000
+            ],
+            "score": 10000.0,
+            "status": "Pass",
+            "unknown_object": [
+                false
+            ]
+        },
+        {
+            "Plan action count": [
+                2
+            ],
+            "Plan total time": [
+                3.025
+            ],
+            "birds": {
+                "BirdWhite": 1
+            },
+            "birds_remaining": 0,
+            "birds_start": 1,
+            "expanded nodes": [
+                585
+            ],
+            "level": "9001_Data/StreamingAssets/Levels/novelty_level_0/type226/Levels/00112_0_0_226_0.xml",
+            "novelty_detections": [],
+            "novelty_likelihood": false,
+            "objects": 9,
+            "pddl_novelty_likelihood": [
+                1000
+            ],
+            "pigs_remaining": 2,
+            "pigs_start": 2,
+            "planning times": [
+                0.5402525610006705
+            ],
+            "repair_calls": 0,
+            "repair_time": 0,
+            "reward_estimator_likelihood": [
+                0.4944932460784912
+            ],
+            "rewards_per_shot": [
+                0
+            ],
+            "score": 0.0,
+            "status": "Fail",
+            "unknown_object": [
+                true
+            ]
+        },
+        {
+            "Plan action count": [
+                2
+            ],
+            "Plan total time": [
+                2.4
+            ],
+            "birds": {
+                "BirdWhite": 1
+            },
+            "birds_remaining": 0,
+            "birds_start": 1,
+            "expanded nodes": [
+                785
+            ],
+            "level": "9001_Data/StreamingAssets/Levels/novelty_level_0/type226/Levels/00216_0_0_226_0.xml",
+            "novelty_detections": [],
+            "novelty_likelihood": false,
+            "objects": 10,
+            "pddl_novelty_likelihood": [
+                18.456557360242503
+            ],
+            "pigs_remaining": 2,
+            "pigs_start": 2,
+            "planning times": [
+                0.6261697609988914
+            ],
+            "repair_calls": 0,
+            "repair_time": 0,
+            "reward_estimator_likelihood": [
+                0.5459824800491333
+            ],
+            "rewards_per_shot": [
+                0
+            ],
+            "score": 0.0,
+            "status": "Fail",
+            "unknown_object": [
+                false
+            ]
+        },
+        {
+            "Plan action count": [
+                1
+            ],
+            "Plan total time": [
+                6.775
+            ],
+            "birds": {
+                "BirdWhite": 1
+            },
+            "birds_remaining": 0,
+            "birds_start": 1,
+            "expanded nodes": [
+                2626
+            ],
+            "level": "9001_Data/StreamingAssets/Levels/novelty_level_0/type226/Levels/00205_0_0_226_0.xml",
+            "novelty_detections": [],
+            "novelty_likelihood": false,
+            "objects": 11,
+            "pddl_novelty_likelihood": [
+                0
+            ],
+            "pigs_remaining": 1,
+            "pigs_start": 2,
+            "planning times": [
+                2.42105191200244
+            ],
+            "repair_calls": 0,
+            "repair_time": 0,
+            "reward_estimator_likelihood": [
+                0.4675437557473263
+            ],
+            "rewards_per_shot": [
+                10000
+            ],
+            "score": 10000.0,
+            "status": "Fail",
+            "unknown_object": [
+                false
+            ]
+        },
+        {
+            "Plan action count": [
+                2
+            ],
+            "Plan total time": [
+                2.6
+            ],
+            "birds": {
+                "BirdWhite": 1
+            },
+            "birds_remaining": 0,
+            "birds_start": 1,
+            "expanded nodes": [
+                2521
+            ],
+            "level": "9001_Data/StreamingAssets/Levels/novelty_level_0/type226/Levels/00165_0_0_226_0.xml",
+            "novelty_detections": [],
+            "novelty_likelihood": false,
+            "objects": 10,
+            "pddl_novelty_likelihood": [
+                33.619524904814405
+            ],
+            "pigs_remaining": 2,
+            "pigs_start": 2,
+            "planning times": [
+                2.04873686800056
+            ],
+            "repair_calls": 0,
+            "repair_time": 0,
+            "reward_estimator_likelihood": [
+                0.5583423972129822
+            ],
+            "rewards_per_shot": [
+                0
+            ],
+            "score": 0.0,
+            "status": "Fail",
+            "unknown_object": [
+                false
+            ]
+        },
+        {
+            "Plan action count": [
+                2
+            ],
+            "Plan total time": [
+                2.1
+            ],
+            "birds": {
+                "BirdWhite": 1
+            },
+            "birds_remaining": 0,
+            "birds_start": 1,
+            "expanded nodes": [
+                499
+            ],
+            "level": "9001_Data/StreamingAssets/Levels/novelty_level_0/type226/Levels/00022_0_0_226_0.xml",
+            "novelty_detections": [],
+            "novelty_likelihood": false,
+            "objects": 11,
+            "pddl_novelty_likelihood": [
+                21.681081113103005
+            ],
+            "pigs_remaining": 2,
+            "pigs_start": 2,
+            "planning times": [
+                0.40561347599941655
+            ],
+            "repair_calls": 0,
+            "repair_time": 0,
+            "reward_estimator_likelihood": [
+                0.4339057207107544
+            ],
+            "rewards_per_shot": [
+                0
+            ],
+            "score": 0.0,
+            "status": "Fail",
+            "unknown_object": [
+                false
+            ]
+        },
+        {
+            "Plan action count": [
+                2
+            ],
+            "Plan total time": [
+                2.85
+            ],
+            "birds": {
+                "BirdWhite": 1
+            },
+            "birds_remaining": 0,
+            "birds_start": 1,
+            "expanded nodes": [
+                895
+            ],
+            "level": "9001_Data/StreamingAssets/Levels/novelty_level_0/type226/Levels/00164_0_0_226_0.xml",
+            "novelty_detections": [],
+            "novelty_likelihood": false,
+            "objects": 12,
+            "pddl_novelty_likelihood": [
+                29.381125747500008
+            ],
+            "pigs_remaining": 2,
+            "pigs_start": 2,
+            "planning times": [
+                0.8373749000020325
+            ],
+            "repair_calls": 0,
+            "repair_time": 0,
+            "reward_estimator_likelihood": [
+                0.4955568313598633
+            ],
+            "rewards_per_shot": [
+                0
+            ],
+            "score": 0.0,
+            "status": "Fail",
+            "unknown_object": [
+                false
+            ]
+        },
+        {
+            "Plan action count": [
+                2
+            ],
+            "Plan total time": [
+                2.525
+            ],
+            "birds": {
+                "BirdWhite": 1
+            },
+            "birds_remaining": 0,
+            "birds_start": 1,
+            "expanded nodes": [
+                1735
+            ],
+            "level": "9001_Data/StreamingAssets/Levels/novelty_level_0/type226/Levels/00017_0_0_226_0.xml",
+            "novelty_detections": [],
+            "novelty_likelihood": false,
+            "objects": 10,
+            "pddl_novelty_likelihood": [
+                1000
+            ],
+            "pigs_remaining": 2,
+            "pigs_start": 2,
+            "planning times": [
+                1.8086428009992233
+            ],
+            "repair_calls": 0,
+            "repair_time": 0,
+            "reward_estimator_likelihood": [
+                0.3047720445310798
+            ],
+            "rewards_per_shot": [
+                520
+            ],
+            "score": 520.0,
+            "status": "Fail",
+            "unknown_object": [
+                true
+            ]
+        }
+    ],
+    "overall": {
+        "agent": "RepairingHydra",
+        "avg_score": 3053.0,
+        "birds": {
+            "BirdWhite": {
+                "failed": 18,
+                "passed": 2
+            }
+        },
+        "failed": 18,
+        "passed": 2
+    }
+}

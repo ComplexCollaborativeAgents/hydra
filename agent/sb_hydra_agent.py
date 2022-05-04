@@ -40,7 +40,7 @@ UNKNOWN_OBJ = "unknown_object"
 PLAN = "plan"
 UNDEFINED = None
 
-ENSEMBLE_MODEL = "{}/model/ensemble_simple_22_25.pkl".format(settings.ROOT_PATH)
+ENSEMBLE_MODEL = "{}/model/ensemble_may2022.pkl".format(settings.ROOT_PATH)
 
 
 class SBHydraAgent(HydraAgent):
@@ -324,7 +324,7 @@ class SBHydraAgent(HydraAgent):
         is_novel = has_new_object or are_level_observations_divergent or is_level_reward_inconsistent
         return is_novel
 
-    def _detect_level_novelty_with_ensemble(self):
+    def _detect_level_novelty_with_ensemble(self, success):
 
         with open(ENSEMBLE_MODEL, 'rb') as f:
             rf = pickle.load(f)
@@ -350,43 +350,52 @@ class SBHydraAgent(HydraAgent):
             max_reward_difference = numpy.nanmax(self.level_novelty_indicators[REWARD_PROB])
             avg_reward_difference = numpy.nanmean(self.level_novelty_indicators[REWARD_PROB])
 
+        if success == True:
+            status = 1
+        else:
+            status = 0
+
         dataframe = pandas.DataFrame(columns=['ColumnName.HAS_NOVEL_OBJECT',
                                               'ColumnName.MAX_REWARD_DIFFERENCE',
                                               'ColumnName.AVG_REWARD_DIFFERENCE',
                                               'ColumnName.MAX_PDDL_INCONSISTENCY',
-                                              'ColumnName.AVG_PDDL_INCONSISTENCY'])
+                                              'ColumnName.AVG_PDDL_INCONSISTENCY',
+                                              'ColumnName.PASS'])
 
         X = dataframe.append({
             'ColumnName.HAS_NOVEL_OBJECT': has_unknown_object,
             'ColumnName.MAX_REWARD_DIFFERENCE': max_reward_difference,
             'ColumnName.AVG_REWARD_DIFFERENCE': avg_reward_difference,
             'ColumnName.MAX_PDDL_INCONSISTENCY': max_pddl_inconsistency,
-            'ColumnName.AVG_PDDL_INCONSISTENCY': avg_pddl_inconsistency
+            'ColumnName.AVG_PDDL_INCONSISTENCY': avg_pddl_inconsistency,
+            'ColumnName.PASS': status
         }, ignore_index=True)
 
-        detection_threshold = settings.SB_LEVEL_NOVELTY_DETECTION_ENSEMBLE_THRESHOLD
 
-        if detection_threshold is None:
+        if settings.SB_LEVEL_NOVELTY_DETECTION_ENSEMBLE_THRESHOLD is None:
             is_novel_df = rf.predict(X)
-        else:
             predicted_probabilities = rf.predict_proba(X)
-            print(predicted_probabilities)
+        else:
+            detection_threshold = settings.SB_LEVEL_NOVELTY_DETECTION_ENSEMBLE_THRESHOLD
+            predicted_probabilities = rf.predict_proba(X)
             is_novel_df = (predicted_probabilities[:, 1] >= detection_threshold).astype('int')
-            print(is_novel_df)
+
+        logger.info("[hydra_agent_server] :: Novelty detection input vector: {}; predicted probabilities: {}".format(X.to_dict(), predicted_probabilities))
 
         if is_novel_df[0] == 0:
             return False
         else:
             return True
 
-    def _infer_novelty_existence(self):
+    def _infer_novelty_existence(self, success):
 
         print("Novelty existence is {}".format(self.novelty_existence))
         if (self.novelty_existence == 0) or (self.novelty_existence == 1):
             self._new_novelty_likelihood = self.novelty_existence
             return
 
-        if (not self._new_novelty_likelihood) and (settings.SB_LOOKBACK_ONLY_DETECTION) and (len(self.completed_levels) >= settings.SB_LOOKBACK_HORIZON):
+        if (not self._new_novelty_likelihood) and (settings.SB_LOOKBACK_ONLY_DETECTION) and (
+                len(self.completed_levels) >= settings.SB_LOOKBACK_HORIZON):
             # print("\n\nlast {} levels: {}".format(settings.SB_LOOKBACK_HORIZON, self.completed_levels[-settings.SB_LOOKBACK_HORIZON:]))
             if not any(self.completed_levels[-settings.SB_LOOKBACK_HORIZON:]):
                 self._new_novelty_likelihood = True
@@ -394,8 +403,9 @@ class SBHydraAgent(HydraAgent):
 
         '''looks at the history of detections in previous levels and returns true when novelty has been detected for 3 contiguous episodes'''
         # self.novelty_detections.append(self._detect_level_novelty())
-        self.novelty_detections.append(self._detect_level_novelty_with_ensemble())
-        if (not settings.SB_LOOKBACK_ONLY_DETECTION) and (not self._new_novelty_likelihood) and len(self.novelty_detections) > 2:
+        self.novelty_detections.append(self._detect_level_novelty_with_ensemble(success))
+        if (not settings.SB_LOOKBACK_ONLY_DETECTION) and (not self._new_novelty_likelihood) and len(
+                self.novelty_detections) > 2:
             self._new_novelty_likelihood = self.novelty_detections[-1] and self.novelty_detections[-2] and \
                                            self.novelty_detections[-3]
 
@@ -403,7 +413,7 @@ class SBHydraAgent(HydraAgent):
         """ This is called when a level has ended, either in a win or a loss outcome """
         self._need_to_repair = self.made_plan and not success
         self.completed_levels.append(success)
-        self._infer_novelty_existence()
+        self._infer_novelty_existence(success)
         self.stats_for_level[NOVELTY_LIKELIHOOD] = bool(self._new_novelty_likelihood)
         self.stats_for_level[PDDL_PROB] = self.level_novelty_indicators[PDDL_PROB]
         self.stats_for_level[REWARD_PROB] = self.level_novelty_indicators[REWARD_PROB]
@@ -432,7 +442,6 @@ class SBHydraAgent(HydraAgent):
         self.stats_for_level = dict()
         self.stats_for_level['planning times'] = []
         self.stats_for_level['expanded nodes'] = []
-        self.novelty_detections = []
         self.level_novelty_indicators = {
             PDDL_PROB: list(),
             UNKNOWN_OBJ: list(),
