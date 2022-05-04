@@ -148,7 +148,7 @@ class ExploreDoorTask(CreatePogoTask):
     def get_goals(self, world_state:PolycraftState, meta_model:PolycraftMetaModel):
         return [[Predicate.passed_door.name, PddlGameMapCellType.get_cell_object_name(self.door_cell)]]
 
-    def get_planner_heuristic(self, world_state:PolycraftState, meta_model:PolycraftMetaModel):
+    def get_planner_heuristic(self, world_state:PolycraftState):
         ''' Returns the heuristic to be used by the planner'''
         return OpenDoorHeuristic(self.door_cell)
 
@@ -209,7 +209,7 @@ class CollectFromSafeTask(CreatePogoTask):
         ''' Returns a list of actions for the agent to use when planning '''
         return [Function.cell_type.to_pddl(), Function.selectedItem.to_pddl()]
 
-    def get_planner_heuristic(self, world_state:PolycraftState, meta_model:PolycraftMetaModel):
+    def get_planner_heuristic(self, world_state:PolycraftState):
         ''' Returns the heuristic to be used by the planner'''
         return CollectFromSafeHeuristic(self.safe_cell)
 
@@ -263,7 +263,7 @@ class MakeCellAccessibleTask(CreatePogoTask):
         self.cell = cell
     def get_goals(self, world_state:PolycraftState, meta_model:PolycraftMetaModel):
         return [[Predicate.isAccessible.name, PddlGameMapCellType.get_cell_object_name(self.cell)]]
-    def get_planner_heuristic(self, world_state:PolycraftState, meta_model:PolycraftMetaModel):
+    def get_planner_heuristic(self, world_state:PolycraftState):
         ''' Returns the heuristic to be used by the planner'''
         return MakeCellAccessibleHeuristic(self.cell)
     def is_done(self, state:PolycraftState)->bool:
