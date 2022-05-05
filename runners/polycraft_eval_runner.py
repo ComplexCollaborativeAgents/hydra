@@ -70,11 +70,13 @@ def run():
                     world.poly_client._logger.info("Finished prior level, preparing for new one")
                     state = setup_for_new_level(agent,world)
         except Exception as e:
-            world.poly_client._logger.info(f"Something made the agent crash! {str(e)}")
+            world.poly_client._logger.info(f"Something made the agent crash! {str(e)}\n{e.__traceback__}")
             world.poly_client.REPORT_NOVELTY(level="1", confidence="100",
                                              user_msg='Agent crashed, probably an unknown object. ')
             world.poly_client.GIVE_UP()
-            raise e
+            world.poly_client.CHECK_COST()
+            state = setup_for_new_level(agent, world)
+            # raise e
 
 
 if __name__ == "__main__":
