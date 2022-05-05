@@ -44,29 +44,38 @@ def run():
 
     while is_running:
 
-        # Handle level change
-        if state.step_num < current_step_num:
-            world.poly_client._logger.info(f"State num mismatch ({state.step_num}<{current_step_num}) -> starting a new level...")
-            state = setup_for_new_level(agent, world)
-            current_step_num = state.step_num
+        try:
 
-        action = agent.choose_action(state)
-        state, reward = agent.do(action, world)
+            # Handle level change
+            if state.step_num < current_step_num:
+                world.poly_client._logger.info(f"State num mismatch ({state.step_num}<{current_step_num}) -> starting a new level...")
+                state = setup_for_new_level(agent, world)
+                current_step_num = state.step_num
+
+            action = agent.choose_action(state)
+            state, reward = agent.do(action, world)
 
 
 
-        world.poly_client._logger.info("State: {}\nReward: {}".format(state, reward))
+            world.poly_client._logger.info("State: {}\nReward: {}".format(state, reward))
 
-        # LaunchTournament.py handles detecting and advancing to next level
-        if state.is_terminal():
-            agent.novelty_detection(report_novelty=True)
-            if SINGLE_LEVEL_MODE:
-                world.poly_client._logger.info("Finished the level!")
-                return
-            else:
-                # Clean up old recipes and trades
-                world.poly_client._logger.info("Finished prior level, preparing for new one")
-                state = setup_for_new_level(agent,world)
+            # LaunchTournament.py handles detecting and advancing to next level
+            if state.is_terminal():
+                agent.novelty_detection(report_novelty=True)
+                if SINGLE_LEVEL_MODE:
+                    world.poly_client._logger.info("Finished the level!")
+                    return
+                else:
+                    # Clean up old recipes and trades
+                    world.poly_client._logger.info("Finished prior level, preparing for new one")
+                    state = setup_for_new_level(agent,world)
+        except Exception as e:
+            world.poly_client._logger.info(f"Something made the agent crash! {str(e)}")
+            world.poly_client.REPORT_NOVELTY(level="1", confidence="100",
+                                             user_msg='Agent crashed, probably an unknown object. ')
+            world.poly_client.GIVE_UP()
+            raise e
+
 
 if __name__ == "__main__":
     run()

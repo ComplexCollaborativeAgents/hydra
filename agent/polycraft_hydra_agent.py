@@ -208,6 +208,8 @@ class PolycraftHydraAgent(HydraAgent):
         self.failed_actions_in_level = 0  # Count how many actions have failed in a given level
         self.actions_since_planning = 0  # Count how many actions have been performed since we planned last
         self.novelty_existence = False  # Have we detected novelty the last time we checked?
+        self.level_started_time = None
+        self.give_up_time = 528  # TODO If we're 9.5 minutes into a game, something is probably wrong - fail elegantly.
 
     def start_level(self, env: Polycraft):
         """
@@ -215,6 +217,7 @@ class PolycraftHydraAgent(HydraAgent):
         level.
         These actions are needed before calling the planner
         """
+        self.level_started_time = time.time()
 
         # Explore the level
         env.init_state_information()
@@ -301,6 +304,13 @@ class PolycraftHydraAgent(HydraAgent):
 
     def choose_action(self, world_state: PolycraftState):
         """ Choose which action to perform in the given state """
+
+        if time.time() - self.level_started_time > self.give_up_time:
+            self.env.poly_client.REPORT_NOVELTY(level="1", confidence="50",
+                                                user_msg='Something that made the agent replan forever. ')
+            self.active_plan = [PolyGiveUp(), PolyNoAction()]
+
+            return self.active_plan.pop(0)
 
         if len(self.current_observation.actions) == 0:
             if self.active_plan is None or len(self.active_plan) == 0:
@@ -492,7 +502,7 @@ class PolycraftHydraAgent(HydraAgent):
         """ Computes the likelihood that the current observation is novel """
         if not only_current_state:
             novelties = set()
-            last_observation = self.observations_list[-1]
+            last_observation = self.current_observation
             for i, state in enumerate(last_observation.states):
                 novelties.update(self._detect_unknown_objects(state))
         else:
@@ -501,15 +511,12 @@ class PolycraftHydraAgent(HydraAgent):
         if len(novelties) > 0:
             novelty_characterization = "\n".join(novelties)
             novelty_likelihood = 1.0
-            if report_novelty:
-                self.env.poly_client.REPORT_NOVELTY(level="1", confidence=f"{novelty_likelihood}",
-                                                    user_msg=novelty_characterization)
             self.novelty_existence = True
         else:
             novelty_characterization = ""
             self.meta_model_repair.current_delta_t = settings.POLYCRAFT_DELTA_T
             self.meta_model_repair.current_meta_model = self.meta_model
-            curr_inconsistency = self.meta_model_repair.compute_consistency([], self.observations_list[-1],
+            curr_inconsistency = self.meta_model_repair.compute_consistency([], self.current_observation,
                                                                             max_iterations=50)
             if curr_inconsistency > settings.POLYCRAFT_CONSISTENCY_THRESHOLD:
                 novelty_likelihood = curr_inconsistency / settings.POLYCRAFT_CONSISTENCY_THRESHOLD
@@ -517,6 +524,10 @@ class PolycraftHydraAgent(HydraAgent):
             else:
                 novelty_likelihood = 0.0
                 self.novelty_existence = False
+
+        if self.novelty_existence and report_novelty:
+            self.env.poly_client.REPORT_NOVELTY(level="1", confidence=f"{novelty_likelihood}",
+                                                user_msg=novelty_characterization)
         return novelty_likelihood, novelty_characterization
 
     def _detect_unknown_objects(self, state: PolycraftState):
