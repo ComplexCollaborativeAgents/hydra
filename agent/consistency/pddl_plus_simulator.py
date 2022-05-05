@@ -51,7 +51,7 @@ class PddlPlusSimulator:
         return output
 
     def simulate(self, plan_to_simulate: PddlPlusPlan, problem: PddlPlusProblem, domain: PddlPlusDomain, delta_t: float,
-                 max_t: float = 1000, max_iterations: float = 1000):
+                 max_t: float = 1000, max_iterations: float = 200):
         """ Simulate running the given plan from the start state """
         self.problem = problem
         self.domain = domain

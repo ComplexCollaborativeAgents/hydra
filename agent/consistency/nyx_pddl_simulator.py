@@ -37,7 +37,7 @@ class NyxPddlPlusSimulator(PddlPlusSimulator):
                            meta_model: MetaModel,
                            delta_t: float = 0.05,
                            max_t: Optional[float] = None,
-                           max_iterations=1000) -> Tuple[Trace, PddlPlusPlan]:
+                           max_iterations=200) -> Tuple[Trace, PddlPlusPlan]:
         problem = meta_model.create_pddl_problem(observation.get_initial_state())
         domain = meta_model.create_pddl_domain(observation.get_initial_state())
         plan = observation.get_pddl_plan(meta_model)
@@ -50,7 +50,7 @@ class NyxPddlPlusSimulator(PddlPlusSimulator):
                  domain: PddlPlusDomain,
                  delta_t: float,
                  max_t: Optional[float] = None,
-                 max_iterations: int = 1000) -> SimulationOutput:
+                 max_iterations: int = 200) -> SimulationOutput:
         grounded_pddl = self.grounded_instance(domain, problem)
         return self.simulate_grounded_instance(plan_to_simulate,
                                                grounded_pddl,
@@ -63,7 +63,7 @@ class NyxPddlPlusSimulator(PddlPlusSimulator):
                                    grounded_pddl: PDDL.GroundedPDDLInstance,
                                    delta_t: float,
                                    max_t: Optional[float] = None,
-                                   max_iterations: int = 1000) -> SimulationOutput:
+                                   max_iterations: int = 200) -> SimulationOutput:
         nyx_constants.set_delta_t(delta_t)
         nyx_plan = self._nyx_plan(plan_to_simulate, grounded_pddl, delta_t, max_t=max_t)
         nyx_trace = nyx_plan.simulate(grounded_pddl.init_state,
