@@ -84,13 +84,13 @@ class CartpoleHydraAgent(HydraAgent):
 
             if self.replan_attempts<settings.CP_MAX_REPLAN_ATTEMPTS:
                 new_plan = self.planner.make_plan(state, 0)
-                self.current_observation = CartPoleObservation()
                 if len(new_plan) != 0:
+                    self.current_observation = CartPoleObservation()
                     self.plan = new_plan
                     self.plan_idx = 0
-                    self.replan_attempts = self.replan_attempts+1
-                else:
                     self.replan_attempts=0
+                else:
+                    self.replan_attempts = self.replan_attempts+1
 
         action = random.randint(0, 1)
         if self.plan_idx < len(self.plan):
@@ -196,7 +196,10 @@ class RepairingCartpoleHydraAgent(CartpoleHydraAgent):
             if self.novelty_info is not None:
                 self.log.info(f"Identified novelty info {self.novelty_info} - adapt meta-model repair accordingly")
                 self._update_meta_model_with_novelty_info()
-
+                if len(self.meta_model.repairable_constants)==0:
+                    self.log.info(f"According to the given novelty info ({self.novelty_info}), the meta model do not need repair, while consistency is not perfect. "
+                                  f"Avoiding repair - inconsistency is probably due to modeling inaccuracy we do not want to correct. ")
+                    return 1.0, {}  # We know there is some novelty, but we didn't repair due to the note above (in the log.info command)
             # Set the repair constants and deltas in the meta_model_repair object
             repair, consistency = self.meta_model_repair.repair(self.meta_model, last_observation,
                                                            delta_t=settings.CP_DELTA_T)
