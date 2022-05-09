@@ -75,7 +75,8 @@ class GroundedPDDLInstance:
     def _groundify(variables: dict, objects: dict):
         grounded_vars = []
         for var_name, type_pairs in variables.items():
-            grounded_type_instances = [objects[type_name] for _, type_name in type_pairs.items()]
+            grounded_type_instances = [objects[type_name] for _, type_name in type_pairs.items()] # if objects.get(type_name)]
+            # Only ground objects of a type if there are any objects of that type.
             for almost_grounded in itertools.product(*grounded_type_instances):
                 grounded_vars.append([var_name] + list(almost_grounded))
         return grounded_vars

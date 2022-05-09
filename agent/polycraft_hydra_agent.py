@@ -339,7 +339,7 @@ class PolycraftHydraAgent(HydraAgent):
         """ Generate a plan for the active task """
         if active_task is not None:
             self.set_active_task(active_task)
-        self._adapt_to_novel_objects(self.current_state)
+        self._detect_unknown_objects(self.current_state)
         return self.planner.make_plan(self.current_state)
 
     def should_replan(self):
@@ -482,22 +482,6 @@ class PolycraftHydraAgent(HydraAgent):
         if isinstance(self.planner, PolycraftPlanner):
             self.planner.meta_model = meta_model
 
-    def _adapt_to_novel_objects(self, state: PolycraftState):
-        """ Computes the novel blocks, items, and entities in the current state"""
-        for block_type in state.get_type_to_cells():
-            if block_type not in self.meta_model.block_type_to_idx:
-                logger.info(f"Novel block type detected - {block_type}")
-                self.meta_model.introduce_novel_block_type(block_type)
-        for item_type in state.get_item_to_count():
-            if item_type not in self.meta_model.item_type_to_idx:
-                logger.info(f"Novel item type detected - {item_type}")
-                self.meta_model.introduce_novel_inventory_item_type(item_type)
-        for entity, entity_attr in state.entities.items():
-            entity_type = entity_attr["type"]
-            if entity_type not in [entity.value for entity in EntityType]:
-                logger.info(f"Novel entity type detected - {entity_type}")
-                self.meta_model.introduce_novel_entity_type(entity_type)
-
     def novelty_detection(self, report_novelty=True, only_current_state=True):
         """ Computes the likelihood that the current observation is novel """
         if not only_current_state:
@@ -512,21 +496,27 @@ class PolycraftHydraAgent(HydraAgent):
             novelty_characterization = "\n".join(novelties)
             novelty_likelihood = 1.0
             self.novelty_existence = True
+            # new objects detected - no need to report them twice
+            report_novelty = False
         else:
             novelty_characterization = ""
             self.meta_model_repair.current_delta_t = settings.POLYCRAFT_DELTA_T
             self.meta_model_repair.current_meta_model = self.meta_model
-            curr_inconsistency = self.meta_model_repair.compute_consistency([], self.current_observation,
-                                                                            max_iterations=50)
-            if curr_inconsistency > settings.POLYCRAFT_CONSISTENCY_THRESHOLD:
-                novelty_likelihood = curr_inconsistency / settings.POLYCRAFT_CONSISTENCY_THRESHOLD
-                self.novelty_existence = True
-            else:
-                novelty_likelihood = 0.0
-                self.novelty_existence = False
+            logger.info(self.current_state.summary())
+            if len(self.current_observation.states) > 0:
+                curr_inconsistency = self.meta_model_repair.compute_consistency([], self.current_observation,
+                                                                                max_iterations=50)
+                if curr_inconsistency > settings.POLYCRAFT_CONSISTENCY_THRESHOLD:
+                    novelty_likelihood = curr_inconsistency / settings.POLYCRAFT_CONSISTENCY_THRESHOLD
+                    self.novelty_existence = True
+                    novelty_characterization = f'Plan simulation does not match observations. ' \
+                                               f'Mismatch value: {curr_inconsistency}'
+                else:
+                    novelty_likelihood = 0.0
+                    self.novelty_existence = False
 
         if self.novelty_existence and report_novelty:
-            self.env.poly_client.REPORT_NOVELTY(level="1", confidence=f"{novelty_likelihood}",
+            self.env.poly_client.REPORT_NOVELTY(level="0", confidence=f"{novelty_likelihood}",
                                                 user_msg=novelty_characterization)
         return novelty_likelihood, novelty_characterization
 
@@ -535,14 +525,23 @@ class PolycraftHydraAgent(HydraAgent):
         novelties = set()
         for block_type in state.get_type_to_cells():
             if block_type not in [tp.value for tp in BlockType]:
+                logger.info(f"Novel block type detected - {block_type}")
+                self.meta_model.introduce_novel_block_type(block_type)
                 novelties.add(f"Block type {block_type} unknown")
         for item_type in state.get_item_to_count():
             if item_type not in [tp.value for tp in ItemType]:
                 novelties.add(f"Item type {item_type} is unknown")
+                logger.info(f"Novel item type detected - {item_type}")
+                self.meta_model.introduce_novel_inventory_item_type(item_type)
         for entity, entity_attr in state.entities.items():
             entity_type = entity_attr["type"]
             if entity_type not in [entity.value for entity in EntityType]:
                 novelties.add(f"Entity type {entity_type} unknown")
+                logger.info(f"Novel entity type detected - {entity_type}")
+                self.meta_model.introduce_novel_entity_type(entity_type)
+        if len(novelties) > 0:
+            self.env.poly_client.REPORT_NOVELTY(level="1", confidence=f"{100}",
+                                                user_msg=str(novelties))
         return novelties
 
     def should_repair(self, state: PolycraftState):
@@ -553,7 +552,7 @@ class PolycraftHydraAgent(HydraAgent):
     def repair_meta_model(self, state: PolycraftState):
         """ Call the repair object to repair the current metamodel """
 
-        self._adapt_to_novel_objects(state)
+        self._detect_unknown_objects(state)
         try:
             repair, consistency = self.meta_model_repair.repair(self.meta_model, self.current_observation,
                                                                 delta_t=settings.POLYCRAFT_DELTA_T)
