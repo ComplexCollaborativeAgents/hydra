@@ -209,7 +209,8 @@ class PolycraftHydraAgent(HydraAgent):
         self.actions_since_planning = 0  # Count how many actions have been performed since we planned last
         self.novelty_existence = False  # Have we detected novelty the last time we checked?
         self.level_started_time = None
-        self.give_up_time = 528  # TODO If we're 9.5 minutes into a game, something is probably wrong - fail elegantly.
+        self.new_level_time = 600  # If the timeout for a game has passed, start a new game.
+        self.novelty_reported = False
 
     def start_level(self, env: Polycraft):
         """
@@ -261,6 +262,7 @@ class PolycraftHydraAgent(HydraAgent):
         self.actions_since_planning = 0  # Count how many actions have been performed since we planned last
         self.active_plan = None
 
+
     def _choose_exploration_task(self, world_state: PolycraftState):
         """ Choose an exploration task to perform """
         exploration_tasks = []
@@ -305,12 +307,13 @@ class PolycraftHydraAgent(HydraAgent):
     def choose_action(self, world_state: PolycraftState):
         """ Choose which action to perform in the given state """
 
-        if time.time() - self.level_started_time > self.give_up_time:
-            self.env.poly_client.REPORT_NOVELTY(level="1", confidence="50",
-                                                user_msg='Something that made the agent replan forever. ')
-            self.active_plan = [PolyGiveUp(), PolyNoAction()]
-
-            return self.active_plan.pop(0)
+        if time.time() - self.level_started_time > self.new_level_time:
+            if not self.novelty_reported:
+                self.env.poly_client.REPORT_NOVELTY(level="1", confidence="50",
+                                                    user_msg='Something that made the agent replan forever. ')
+                self.novelty_reported = True
+            self.active_plan = None
+            return PolyNoAction()
 
         if len(self.current_observation.actions) == 0:
             if self.active_plan is None or len(self.active_plan) == 0:
@@ -337,10 +340,17 @@ class PolycraftHydraAgent(HydraAgent):
 
     def plan(self, active_task=None) -> list:
         """ Generate a plan for the active task """
+        # Planning is the most time-intensive process, so check before and after to make sure we're not out.
         if active_task is not None:
             self.set_active_task(active_task)
         self._detect_unknown_objects(self.current_state)
-        return self.planner.make_plan(self.current_state)
+
+        # if time.time() - self.level_started_time > self.new_level_time:
+        #     return None
+        plan = self.planner.make_plan(self.current_state)
+        # if time.time() - self.level_started_time > self.new_level_time:
+        #     return None
+        return plan
 
     def should_replan(self):
         """ Decide if we need to update the active plan"""
@@ -515,9 +525,10 @@ class PolycraftHydraAgent(HydraAgent):
                     novelty_likelihood = 0.0
                     self.novelty_existence = False
 
-        if self.novelty_existence and report_novelty:
+        if self.novelty_existence and report_novelty and not self.novelty_reported:
             self.env.poly_client.REPORT_NOVELTY(level="0", confidence=f"{novelty_likelihood}",
                                                 user_msg=novelty_characterization)
+            self.novelty_reported = True
         return novelty_likelihood, novelty_characterization
 
     def _detect_unknown_objects(self, state: PolycraftState):
@@ -527,21 +538,22 @@ class PolycraftHydraAgent(HydraAgent):
             if block_type not in [tp.value for tp in BlockType]:
                 logger.info(f"Novel block type detected - {block_type}")
                 self.meta_model.introduce_novel_block_type(block_type)
-                novelties.add(f"Block type {block_type} unknown")
+                novelties.add(f"{block_type}")
         for item_type in state.get_item_to_count():
             if item_type not in [tp.value for tp in ItemType]:
-                novelties.add(f"Item type {item_type} is unknown")
+                novelties.add(f"{item_type}")
                 logger.info(f"Novel item type detected - {item_type}")
                 self.meta_model.introduce_novel_inventory_item_type(item_type)
         for entity, entity_attr in state.entities.items():
             entity_type = entity_attr["type"]
             if entity_type not in [entity.value for entity in EntityType]:
-                novelties.add(f"Entity type {entity_type} unknown")
+                novelties.add(f"{entity_type}")
                 logger.info(f"Novel entity type detected - {entity_type}")
                 self.meta_model.introduce_novel_entity_type(entity_type)
-        if len(novelties) > 0:
+        if len(novelties) > 0 and not self.novelty_reported:
             self.env.poly_client.REPORT_NOVELTY(level="1", confidence=f"{100}",
                                                 user_msg=str(novelties))
+            self.novelty_reported = True
         return novelties
 
     def should_repair(self, state: PolycraftState):

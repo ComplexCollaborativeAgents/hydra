@@ -319,50 +319,7 @@ class PolycraftState(State):
             diff_dict['step_cost'] = {'self': self.step_cost, 'other': other_state.step_cost}
 
         return diff_dict
-    #
-    # def get_types_in_state(self):
-    #     type_list = []
-    #     for door, room_cells in self.door_to_room_cells.items():
-    #         for _, cell_attr in room_cells.items():
-    #             type_list.append(cell_attr["name"])
-    #         for _, entity_attr in self.entities.items():
-    #             type_list.append(entity_attr["type"])
-    #         for _, entry_attr in self.inventory.items():
-    #             type_list.append(entry_attr["item"])
-    #     return type_list
-    #
-    # def new_objs_in_state(self, other_state):
-    #     diff_dict = {}
-    #     if self.game_map != other_state.game_map:
-    #         game_map_diff_dict = dict()
-    #         for cell in self.game_map:
-    #             if cell not in other_state.game_map:
-    #                 diff_dict[cell] = {'self': cell, 'other': None}
-    #         for cell in other_state.game_map:
-    #             if cell not in self.game_map:
-    #                 diff_dict[cell] = {'self': None, 'other': cell}
-    #         diff_dict['game_map'] = game_map_diff_dict
-    #
-    #     if self.inventory != other_state.inventory:
-    #         inventory_diff_dict = dict()
-    #         for item, item_attr in self.inventory.items():
-    #             if item not in other_state.inventory:
-    #                 inventory_diff_dict[item] = {'self': item_attr, 'other': None}
-    #         for item, item_attr in other_state.inventory.items():
-    #             if item not in self.inventory:
-    #                 inventory_diff_dict[item] = {'self': None, 'other': item_attr}
-    #         diff_dict['inventory'] = inventory_diff_dict
-    #
-    #     if self.entities != other_state.entities:
-    #         entities_diff_dict = dict()
-    #         for entity_id, entity_attr in self.entities.items():
-    #             if entity_id not in other_state.entities:
-    #                 entities_diff_dict[entity_id] = {'self': entity_attr, 'other': None}
-    #         for entity_id, entity_attr in other_state.entities.items():
-    #             if entity_id not in self.entities:
-    #                 entities_diff_dict[entity_id] = {'self': None, 'other': entity_attr}
-    #         diff_dict['entities'] = entities_diff_dict
-    #     return diff_dict
+
 
 class PolycraftAction(Action, TimedAction):
     ''' Polycraft World Action '''

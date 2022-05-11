@@ -386,8 +386,7 @@ class PolycraftMetaModel(MetaModel):
             return
         type_idx = max(self.block_type_to_idx.values()) + 1
         self.block_type_to_idx[block_type] = type_idx
-        self.break_block_to_outcome[block_type] = self.break_block_to_outcome[
-            BlockType.LOG.value]  # Assume unknown object behaves like a log
+        self.break_block_to_outcome[block_type] = (ItemType.LOG.value, 0)  # Assume unknown object create no items
         # Assume new item is not collectable
 
     def introduce_novel_inventory_item_type(self, item_type):

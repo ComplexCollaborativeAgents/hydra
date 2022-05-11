@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -e
+
 
 REGISTRY='registry.gitlab-external.parc.com:8443'
 REPO='hydra/polycraft_experiment'

@@ -42,7 +42,6 @@ class WaitForLogs(MacroAction):
     ''' Wait a predefined number of steps or until we see blocks of type log '''
     def __init__(self):
         super().__init__(max_steps = 10)
-        self.action_counter
 
     def _get_next_action(self, state:PolycraftState, env: Polycraft)->PolycraftAction:
         if len(state.get_cells_of_type(BlockType.LOG.value, only_accessible=False))>0:

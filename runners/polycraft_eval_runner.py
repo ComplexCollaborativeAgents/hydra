@@ -8,6 +8,7 @@ sys.path.insert(0, settings.ROOT_PATH)
 
 from worlds.polycraft_world import Polycraft, ServerMode
 from agent.polycraft_hydra_agent import PolycraftHydraAgent
+
 """
 Runner intended to interface with UTD's LaunchTournament.py (can be found in pal/PolycraftAIGym)
 LaunchTournament.py handles trial sets and most of simulation management, such as loading next levels
@@ -15,8 +16,10 @@ LaunchTournament.py handles trial sets and most of simulation management, such a
 
 RUNNER_MODE = ServerMode.TOURNAMENT
 
-SINGLE_LEVEL_MODE = False   # For testing purposes, load a single level and finish when it's done
-SINGLE_LEVEL_TO_RUN = pathlib.Path(settings.POLYCRAFT_NON_NOVELTY_LEVEL_DIR) / "POGO_L00_T01_S01_X0100_U9999_V0_G00066_I0366_N0.json"
+SINGLE_LEVEL_MODE = False  # For testing purposes, load a single level and finish when it's done
+SINGLE_LEVEL_TO_RUN = pathlib.Path(
+    settings.POLYCRAFT_NON_NOVELTY_LEVEL_DIR) / "POGO_L00_T01_S01_X0100_U9999_V0_G00066_I0366_N0.json"
+
 
 def setup_for_new_level(agent, world):
     world.init_state_information()
@@ -38,8 +41,8 @@ def run():
     # Start by sending a command over to signal agent ready (and get recipes)
     world.poly_client.CHECK_COST()
 
-     # act
-    state = setup_for_new_level(agent,world)
+    # act
+    state = setup_for_new_level(agent, world)
     current_step_num = state.step_num
 
     while is_running:
@@ -48,14 +51,13 @@ def run():
 
             # Handle level change
             if state.step_num < current_step_num:
-                world.poly_client._logger.info(f"State num mismatch ({state.step_num}<{current_step_num}) -> starting a new level...")
+                world.poly_client._logger.info(
+                    f"State num mismatch ({state.step_num}<{current_step_num}) -> starting a new level...")
                 state = setup_for_new_level(agent, world)
                 current_step_num = state.step_num
 
             action = agent.choose_action(state)
             state, reward = agent.do(action, world)
-
-
 
             world.poly_client._logger.info("State: {}\nReward: {}".format(state, reward))
 
@@ -68,15 +70,15 @@ def run():
                 else:
                     # Clean up old recipes and trades
                     world.poly_client._logger.info("Finished prior level, preparing for new one")
-                    state = setup_for_new_level(agent,world)
+                    state = setup_for_new_level(agent, world)
         except Exception as e:
-            world.poly_client._logger.info(f"Something made the agent crash! {str(e)}\n{e.__traceback__}")
+            world.poly_client._logger.info(f"Something made the agent crash! {str(e)}\n{str(e.__traceback__)}")
             world.poly_client.REPORT_NOVELTY(level="1", confidence="100",
                                              user_msg='Agent crashed, probably an unknown object. ')
             world.poly_client.GIVE_UP()
             world.poly_client.CHECK_COST()
             state = setup_for_new_level(agent, world)
-            # raise e
+            raise e
 
 
 if __name__ == "__main__":

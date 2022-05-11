@@ -1,5 +1,6 @@
 import settings
 from agent.consistency.consistency_estimator import ConsistencyEstimator, DEFAULT_DELTA_T
+from agent.consistency.observation import HydraObservation
 from agent.consistency.pddl_plus_simulator import PddlPlusSimulator, InconsistentPlanError
 from agent.consistency.sequence_consistency_estimator import SequenceConsistencyEstimator
 from agent.planning.polycraft_meta_model import PolycraftMetaModel
@@ -50,3 +51,6 @@ class PolycraftMetaModelRepair(GreedyBestFirstSearchMetaModelRepair):
                          consistency_threshold=consistency_threshold,
                          max_iterations=max_iterations,
                          time_limit=time_limit)
+
+    def compute_consistency(self, repair: list, observation: HydraObservation, max_iterations=50):
+        return super().compute_consistency(repair, observation, max_iterations)
