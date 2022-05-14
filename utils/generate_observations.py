@@ -7,46 +7,34 @@ import shutil
 import argparse
 from zipfile import ZipFile
 
+USE_RANDOM_SHOT = False
+USE_PLANNED_SHOT = True
+USE_DEFAULT_SHOT = True
 
-def main(config='all_level_0_novelties.xml'):
-    settings.DEBUG=True
-    # settings.SB_DEV_MODE=False
-    settings.NO_PLANNING=True
-    settings.NO_REPAIR=True
-    settings.SB_COLLECT_PERCEPTION_DATA=True
-
-    env = sb.ScienceBirds(None,launch=True,config=config)
+def main(config:str):
+    """ Do a single round of generation for a particular config file """
+    env = sb.ScienceBirds(launch=True,config=config)
     hydra = SBHydraAgent(env)
     hydra.main_loop()
     env.kill()
 
-def eval_m18_data():
-    """ Generates observation data for M18 evaluation """
-
-    # References config files from data/science_birds/m18
-    path_prefix = "M18"
-    config_files = ["100_level_3_type_7_novelties.xml"] 
-
-    for config_file in config_files:
-        settings.SB_DEFAULT_SHOT = ''
-        main(config=path.join(path_prefix, config_file))
-        settings.SB_DEFAULT_SHOT = 'RANDOM'
-        main(config=path.join(path_prefix, config_file))
-
-        # Copies the observations (which are dumped into agent/consistency/trace/observations) into its own file
-        # The observations from each config file are copied into their own directories under data/science_birds
-        shutil.copytree(path.join(settings.ROOT_PATH,"agent","consistency","trace"),
-                        path.join(settings.ROOT_PATH, "data", "science_birds", config_file[:-4]))
-
-        shutil.rmtree(path.join(settings.ROOT_PATH,"agent","consistency","trace"))
 
 if __name__ == '__main__':
     path_prefix = "Phase2"
-    config_files = ["test_mixed_novelties.xml"]
+
+    # By default, first one in the path_prefix directory
+    config_files = [os.listdir(path.join(settings.ROOT_PATH, "data", "science_birds", "config", path_prefix))[0]]
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-p', type=str, help='path prefix after hydra/data/science_birds/config', default=None, dest='path_prefix')
     parser.add_argument('-c', type=str, nargs='+', help='list of config files to run', default=None, dest='config_files')
+    parser.add_argument('--use_random', action='store_true', help='use random shots when generating observations', dest='use_random')
+    parser.add_argument('--no_random', action='store_false', help='do not use random shots when generating observations', dest='use_random')
+    parser.add_argument('--use_default', action='store_true', help='use default shots when generating observations', dest='use_default')
+    parser.add_argument('--no_default', action='store_false', help='do not use default shots when generating observations', dest='use_default')
+    parser.add_argument('--use_planned', action='store_true', help='use planned shots when generating observations', dest='use_planned')
+    parser.add_argument('--no_planned', action='store_false', help='do not use planned shots when generating observations', dest='use_planned')
+    parser.set_defaults(use_random=False, use_planned=True, use_default=True)
 
     args = parser.parse_args()
 
@@ -56,27 +44,69 @@ if __name__ == '__main__':
     if args.config_files is not None:
         print("Using args config_files: {}".format(args.config_files))
         config_files = args.config_files
+    if args.use_random is not None:
+        print("Using args random shot ({})...".format(args.use_random))
+        USE_RANDOM_SHOT = args.use_random
+    if args.use_default is not None:
+        print("Using args default shot ({})...".format(args.use_default))
+        USE_DEFAULT_SHOT = args.use_default
+    if args.use_planned is not None:
+        print("Using args planned shot ({})...".format(args.use_planned))
+        USE_PLANNED_SHOT = args.use_planned
 
     trace_dir = path.join(settings.ROOT_PATH,"agent","consistency","trace","observations")
 
+    # Iterate through each provided config file
     for config_file in config_files:
+        print("Generating observations for {}".format(config_file))
         output_dir = path.join(settings.ROOT_PATH, "data", "science_birds", config_file[:-4])
 
         if not path.isdir(output_dir):
             os.mkdir(output_dir)
 
-        settings.SB_DEFAULT_SHOT = ''
-        main(config=path.join(path_prefix, config_file))
+        if USE_DEFAULT_SHOT:
+            print("Generating default shot observations...")
+            settings.SB_DEFAULT_SHOT = ''
+            main(config=path.join(path_prefix, config_file))
 
-        copy_path_baseline =  path.join(output_dir, "baseline")
+            copy_path_default =  path.join(output_dir, "default")
 
-        shutil.copytree(trace_dir, copy_path_baseline)
-        shutil.rmtree(trace_dir)
+            if os.path.isdir(copy_path_default):
+                # Move each file from staging directory to the existing directory
+                for filename in os.listdir(trace_dir):
+                    shutil.move(os.path.join(trace_dir, filename), os.path.join(copy_path_default, filename))
+            else:
+                # Create new directory
+                shutil.copytree(trace_dir, copy_path_default)
 
-        # settings.SB_DEFAULT_SHOT = 'RANDOM'
-        # main(config=path.join(path_prefix, config_file))
+        if USE_RANDOM_SHOT:
+            print("Generating random shot observations...")
+            settings.SB_DEFAULT_SHOT = 'RANDOM'
+            main(config=path.join(path_prefix, config_file))
 
-        # copy_path_random = path.join(output_dir, "random")
+            copy_path_random = path.join(output_dir, "random")
 
-        # shutil.copytree(trace_dir, copy_path_random)
-        # shutil.rmtree(trace_dir)
+            if os.path.isdir(copy_path_random):
+                # Move each file from staging directory to the existing directory
+                for filename in os.listdir(trace_dir):
+                    shutil.move(os.path.join(trace_dir, filename), os.path.join(copy_path_random, filename))
+            else:
+                # Create new directory
+                shutil.copytree(trace_dir, copy_path_random)
+
+        if USE_PLANNED_SHOT:
+            print("Generating planned shot observations...")
+            main(config=path.join(path_prefix, config_file))
+
+            copy_path_planned = path.join(output_dir, "planned")
+
+            if os.path.isdir(copy_path_planned):
+                # Move each file from staging directory to the existing directory
+                for filename in os.listdir(trace_dir):
+                    shutil.move(os.path.join(trace_dir, filename), os.path.join(copy_path_planned, filename))
+            else:
+                # Create new directory
+                shutil.copytree(trace_dir, copy_path_planned)
+            shutil.rmtree(trace_dir)
+
+    print("Done.")
