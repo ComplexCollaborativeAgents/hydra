@@ -530,7 +530,8 @@ class SBHydraAgent(HydraAgent):
             ## TAP UPDATE
             if len(plan) > 1 and "bird_action" in plan[1].action_name:
                 t_time = int((plan[1].start_at - plan[0].start_at) * 1000)
-                sb_action = self.meta_model.create_sb_action(timed_action, processed_state, tap_timing=t_time)
+                sb_action = self.meta_model.create_sb_action(timed_action, processed_state, tap_timing=t_time - 500)
+                # "-500" is a magic number - caused by some mismatch between the planner and the game.
                 logger.info("[hydra_agent_server] :: Taking tap action: [{}] {}ms after launch. ".format(
                     str(plan[1].action_name), str(t_time)))
             else:

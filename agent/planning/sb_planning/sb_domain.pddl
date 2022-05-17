@@ -285,10 +285,10 @@
         :precondition (and
             (= (active_bird) (bird_id ?b))
             (> (v_bird ?b) 0)
-            (<= (- (x_bird ?b) (bird_radius ?b)) (+ (x_platform ?pl) (/ (platform_width ?pl) (meta_platform_size)) ) )
-            (>= (+ (x_bird ?b) (bird_radius ?b)) (- (x_platform ?pl) (/ (platform_width ?pl) (meta_platform_size)) ) )
-            (>= (+ (y_bird ?b) (bird_radius ?b)) (- (y_platform ?pl) (/ (platform_height ?pl) (meta_platform_size)) ) )
-            (<= (- (y_bird ?b) (bird_radius ?b)) (+ (y_platform ?pl) (/ (platform_height ?pl) (meta_platform_size)) ) )
+            (<= (- (x_bird ?b) (* (bird_radius ?b) 1.2)) (+ (x_platform ?pl) (/ (platform_width ?pl) (meta_platform_size)) ) )
+            (>= (+ (x_bird ?b) (* (bird_radius ?b) 1.2)) (- (x_platform ?pl) (/ (platform_width ?pl) (meta_platform_size)) ) )
+            (>= (+ (y_bird ?b) (* (bird_radius ?b) 1.2)) (- (y_platform ?pl) (/ (platform_height ?pl) (meta_platform_size)) ) )
+            (<= (- (y_bird ?b) (* (bird_radius ?b) 1.2)) (+ (y_platform ?pl) (/ (platform_height ?pl) (meta_platform_size)) ) )
         )
         :effect (and
             (assign (v_bird ?b) 0)
@@ -348,6 +348,7 @@
         :effect (and
       	    (assign (vx_bird ?b) 0)
       	    (assign (vy_bird ?b) 0)
+      	    (assign (bird_radius ?b) (/ (bird_radius ?b) 1.5))
       	    (bird_tapped ?b)
             (assign (bird_radius ?b) (/ (bird_radius ?b) 2))
   	    )

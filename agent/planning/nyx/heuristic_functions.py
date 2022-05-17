@@ -525,6 +525,15 @@ class SBHelpfulAngleHeuristic(SBBlockedPigsHeuristic):
                 # Haven't fired yet - want to have all angles available first.
                 # print(node.state_vars["['x_bird'" + active_bird_string] + self.deviation, node.state_vars["['y_bird'" + active_bird_string], node.state_vars["['vx_bird'" + active_bird_string])
                 return True
+
+            if node.state_vars["['bird_tapped'" + active_bird_string]:
+                x_0 = node.state_vars["['x_bird'" + active_bird_string]
+                y_0 = node.state_vars["['y_bird'" + active_bird_string]
+                targets_xy = [(self.pigs_x[o_id], self.pigs_y[o_id]) for o_id in self.pigs_x.keys()]
+                dists = [(pig[0] - x_0) ** 2 + (pig[1] - y_0) ** 2 for pig in targets_xy]
+                if min(dists) < 30 ** 2:
+                    return True
+
             # else
             x_t = node.state_vars["['x_bird'" + active_bird_string] + self.deviation
             y_t = node.state_vars["['y_bird'" + active_bird_string]
