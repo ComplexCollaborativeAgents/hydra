@@ -36,7 +36,7 @@ class SBState(State):
         self.sling = None
 
     def summary(self):
-        '''returns a summary of state'''
+        """returns a summary of state"""
         ret = {}
         for key, obj in self.objects.items():
             ret['{}_{}'.format(obj['type'],key)] = (obj['bbox'].centroid.x,obj['bbox'].centroid.y)

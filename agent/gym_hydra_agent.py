@@ -186,8 +186,8 @@ class RepairingGymHydraAgent(GymHydraAgent):
         self.consistency_checker = CartpoleConsistencyEstimator()
         self.desired_precision = 0.01
 
-    ''' Checks if the meta model should be repaired based on the given observation. Note: can also consider past observations'''
     def should_repair(self, observation):
+        """ Checks if the meta model should be repaired based on the given observation. Note: can also consider past observations"""
         if sum(observation.rewards)>195:
             return False
         else:
