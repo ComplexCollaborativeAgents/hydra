@@ -261,6 +261,7 @@ class PolycraftHydraAgent(HydraAgent):
         self.failed_actions_in_level = 0  # Count how many actions have failed in a given level
         self.actions_since_planning = 0  # Count how many actions have been performed since we planned last
         self.active_plan = None
+        self.set_active_task(PolycraftTask.CRAFT_POGO.create_instance())
 
 
     def _choose_exploration_task(self, world_state: PolycraftState):
@@ -310,7 +311,7 @@ class PolycraftHydraAgent(HydraAgent):
         if time.time() - self.level_started_time > self.new_level_time:
             if not self.novelty_reported:
                 self.env.poly_client.REPORT_NOVELTY(level="1", confidence="50",
-                                                    user_msg='Something that made the agent replan forever. ')
+                                                    user_msg='Something that made the agent plan for too long. ')
                 self.novelty_reported = True
             self.active_plan = None
             return PolyNoAction()
@@ -333,6 +334,14 @@ class PolycraftHydraAgent(HydraAgent):
         if self.active_plan is None:
             logger.info("No active plan or action has been assigned: choose a default action")
             return self._choose_default_action(world_state)
+
+        if time.time() - self.level_started_time > self.new_level_time:
+            if not self.novelty_reported:
+                self.env.poly_client.REPORT_NOVELTY(level="1", confidence="50",
+                                                    user_msg='Something that made the agent plan for too long. ')
+                self.novelty_reported = True
+            self.active_plan = None
+            return PolyNoAction()
 
         # Perform the next action in the plan
         assert (len(self.active_plan) > 0)
@@ -516,6 +525,7 @@ class PolycraftHydraAgent(HydraAgent):
             if len(self.current_observation.states) > 0:
                 curr_inconsistency = self.meta_model_repair.compute_consistency([], self.current_observation,
                                                                                 max_iterations=50)
+                logger.info(f'Computed inconsistency: {curr_inconsistency}')
                 if curr_inconsistency > settings.POLYCRAFT_CONSISTENCY_THRESHOLD:
                     novelty_likelihood = curr_inconsistency / settings.POLYCRAFT_CONSISTENCY_THRESHOLD
                     self.novelty_existence = True

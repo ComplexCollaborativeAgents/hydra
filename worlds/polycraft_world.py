@@ -15,6 +15,7 @@ import numpy as np
 import psutil
 import settings
 from agent.planning.pddl_plus import TimedAction
+from total_size import total_size
 from utils.host import Host
 from utils.state import Action, State, World
 
@@ -668,6 +669,8 @@ class Polycraft(World):
                 for door_cell_id, room_game_map in self.door_to_room_cells.items():
                     if cell_id in room_game_map:
                         room_game_map[cell_id] = cell_attr
+
+            logger.info(f'Door to room dictionary size: {total_size(self.door_to_room_cells)}')
 
             id = sensed['step']
             facing_block = sensed['blockInFront']

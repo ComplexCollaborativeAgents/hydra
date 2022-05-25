@@ -55,6 +55,9 @@ class GroundedPDDLInstance:
         if constants.TEMPORAL_DOMAIN:
             self.actions.add_happening(constants.TIME_PASSING_ACTION)
 
+        # with open('grounded_domain.txt', 'w') as gd_file:
+        #     gd_file.write(str(self))
+
     def enact_requirements(self):
         for requirement in self.domain.requirements:
             if requirement == ':time':
@@ -96,6 +99,22 @@ class GroundedPDDLInstance:
             for grounded_happening in happening.groundify(self.objects, self.domain.types):
                 preconditions_tree.add_happening(grounded_happening)
         return preconditions_tree
+
+    def __str__(self):
+        res = 'Domain: ' + self.domain.name + '\n'
+        res += 'Problem' + self.problem.name + '\n'
+        res += 'Initial state: ' + str(self.init_state) + '\n'
+        res += 'actions: \n'
+        for action in self.actions:
+            res += action.name + '\npreconditions: ' + str(action.preconditions) + '\neffects: ' + str(action.effects) + '\n'
+        res += 'events: \n'
+        for event in self.events:
+            res += event.name + '\npreconditions: ' + str(event.preconditions) + '\neffects: ' + str(event.effects) + '\n'
+        res += 'proccesses: \n'
+        for process in self.processes:
+            res += process.name + '\npreconditions: ' + str(process.preconditions) + '\neffects: ' + str(process.effects) + '\n'
+        return res
+
 
 class PDDL_Parser:
 

@@ -354,16 +354,14 @@ class MakeCellAccessibleHeuristic(AbstractHeuristic):
     def __init__(self, cell: str):
         super().__init__()
         self.cell = PddlGameMapCellType.get_cell_object_name(cell)
-        pddl_cell_name = {PddlGameMapCellType.get_cell_object_name(self.cell)}
+        self.pddl_cell_name = {PddlGameMapCellType.get_cell_object_name(self.cell)}
         self._is_accessible_var = f"['{Predicate.isAccessible.name}', '{pddl_cell_name}']"
 
     def evaluate(self, node):
-        if node.state_vars[self._passed_door_var]:
-            return 0
-        if node.state_vars[self._is_open_var]:
-            return 1
         if node.state_vars[self._is_accessible_var]:
-            return 2
+            return 0
+        if node.state_vars[self.pddl_cell_name] != BlockType.AIR:
+            return 1
         else:
             return 3  # Can improve this
 

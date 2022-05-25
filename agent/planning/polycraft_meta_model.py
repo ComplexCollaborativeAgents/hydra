@@ -601,11 +601,11 @@ class PolycraftMetaModel(MetaModel):
         # Add inventory items
         for item_type in self.item_type_to_idx.keys():
             count = world_state.count_items_of_type(item_type)
-            pddl_state.numeric_fluents[f"count_{item_type}"] = count
+            pddl_state.numeric_fluents[(f"count_{self._convert_element_naming(item_type)}",)] = count
 
         # Add selected item
         select_item = world_state.get_selected_item()
-        fluent_name = Function.selectedItem.name
+        fluent_name = (Function.selectedItem.name,)
         selected_item_idx = -1
         if select_item is not None and select_item in self.item_type_to_idx:
             selected_item_idx = self.item_type_to_idx[select_item]
