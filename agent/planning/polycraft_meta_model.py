@@ -44,8 +44,12 @@ class Predicate(enum.Enum):
 class Function(enum.Enum):
     """ Note: the first prameter in the list is needed: otherwise python will merge enum elements. """
     cell_type = ["cell_type", ("?c", PddlType.cell.name)]
+    cell_x = ["cell_x", ("?c", PddlType.cell.name)]
+    cell_z = ["cell_z", ("?c", PddlType.cell.name)]
     door_cell_type = ["door_cell_type", ("?c", PddlType.door_cell.name)]
     selectedItem = ["selectedItem"]
+    Steve_x = ["steve_x"]
+    Steve_z = ["steve_z"]
 
     def to_pddl(self) -> list:
         """ Returns this function in a list format as expected by the pddl domain object """
@@ -108,7 +112,7 @@ class PddlGameMapCellType(PolycraftObjectType):
     def __init__(self, type_idx=-1, relevant_attributes=None):
         super().__init__()
         if relevant_attributes is None:
-            relevant_attributes = [Predicate.isAccessible.name]
+            relevant_attributes = [Predicate.isAccessible.name, Function.cell_x.name, Function.cell_z.name]
         self.pddl_type = "cell"
         self.type_idx = type_idx
         self.relevant_attributes = relevant_attributes
