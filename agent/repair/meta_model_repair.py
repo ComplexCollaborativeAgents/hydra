@@ -7,15 +7,14 @@ logger = logging.getLogger("meta_model_repair")
 
 PLAN_FAILED_CONSISTENCY_VALUE = 1000  # A constant representing the inconsistency value of a meta model in which the executed plan is inconsistent
 
-''' An abstract class intended to repair a given PDDL+ meta model until it matches the observed behavior '''
-
 
 class MetaModelRepair:  # TODO: Remove this class
-    """ Repair the given domain and plan such that the given plan's expected outcome matches the observed outcome"""
 
     def repair(self,
                pddl_meta_model,
                observation, delta_t=1.0):
+        """ An abstract class intended to repair a given PDDL+ meta model until it matches the observed behavior """
+        """ Repair the given domain and plan such that the given plan's expected outcome matches the observed outcome"""
         simulator = CachingPddlPlusSimulator()
         sb_state = observation.state
         pddl_plan = observation.get_pddl_plan(pddl_meta_model)
@@ -42,10 +41,9 @@ class MetaModelRepair:  # TODO: Remove this class
 
         return pddl_meta_model
 
-    ''' The first parameter is a list of (state, time) pairs, the second is just a list of states. 
-     Checks if they can be aligned. '''
-
     def is_consistent(self, timed_state_seq: list, state_seq: list, delta_t=0.05):
+        """ The first parameter is a list of (state, time) pairs, the second is just a list of states.
+             Checks if they can be aligned. """
         raise NotImplementedError("Not yet")
 
     def choose_manipulator(self):
@@ -54,6 +52,7 @@ class MetaModelRepair:  # TODO: Remove this class
 
 class SimulationBasedMetaModelRepair(MetaModelRepair):
     """ A repair algorithm that is based on simulating the action and checking consistency with the observation """
+
     def __init__(self, fluents_to_repair,
                  consistency_estimator,
                  deltas,
@@ -79,7 +78,8 @@ class SimulationBasedMetaModelRepair(MetaModelRepair):
 
         try:
             expected_trace, plan = self.simulator.get_expected_trace(observation, self.current_meta_model,
-                                                                     self.current_delta_t, max_iterations=max_iterations)
+                                                                     self.current_delta_t,
+                                                                     max_iterations=max_iterations)
             observed_seq = observation.get_pddl_states_in_trace(self.current_meta_model)
             consistency = self.consistency_estimator.estimate_consistency(expected_trace, observed_seq,
                                                                           delta_t=self.current_delta_t)
@@ -100,9 +100,8 @@ class SimulationBasedMetaModelRepair(MetaModelRepair):
             self.current_meta_model.constant_numeric_fluents[self.fluents_to_repair[i]] = \
                 self.current_meta_model.constant_numeric_fluents[self.fluents_to_repair[i]] - change_to_fluent
 
-    ''' Return True if the incumbent is good enough '''
-
     def is_incumbent_good_enough(self, consistency: float):
+        """ Return True if the incumbent is good enough """
         return consistency < self.consistency_threshold
 
 
@@ -202,7 +201,8 @@ class GreedyBestFirstSearchMetaModelRepair(SimulationBasedMetaModelRepair):
                     new_repair = list(repair)
                     new_repair[i] = change_to_fluent
                     new_repairs.append(new_repair)
-            if repair[i] <= 0:  # Note: if repair has zero for the current fluent, add both +delta and -delta states to open
+            if repair[
+                i] <= 0:  # Note: if repair has zero for the current fluent, add both +delta and -delta states to open
                 change_to_fluent = repair[i] - self.deltas[i]
                 if self.current_meta_model.constant_numeric_fluents[
                     self.fluents_to_repair[i]] + change_to_fluent >= 0:  # Don't allow negative fluents TODO: Discuss

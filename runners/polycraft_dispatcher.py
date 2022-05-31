@@ -15,11 +15,11 @@ class PolycraftDispatcher():
         self.results = {}
 
     def experiment_start(self, trials: list = [], standalone=False):
-        ''' 
+        """ 
         Start the experiment.  
         standalone: boolean flag that signals to run without launching Polycraft.  Requires a running Polycraft instance before startup
         trials: a list that contains string paths towards each trial directory
-        '''
+        """
 
         # Load polycarft world
         mode = ServerMode.CLIENT
@@ -44,7 +44,7 @@ class PolycraftDispatcher():
                     self.trials[trial].append(os.path.join(trial, level))
 
     def run_trials(self):
-        ''' Run trials setup in "setup_trials" '''
+        """ Run trials setup in "setup_trials" """
 
         trial_num = 0
         for trial_path, trial_levels in self.trials.items():
@@ -52,7 +52,7 @@ class PolycraftDispatcher():
             self.trial_end()
 
     def trial_start(self, trial_number: int, novelty_description: dict, levels: list):
-        ''' Run multiple levels '''
+        """ Run multiple levels """
 
         novelty_description = None
 
@@ -68,7 +68,7 @@ class PolycraftDispatcher():
             self.episode_end()
 
     def episode_start(self, level_number: int, trial_number: int, novelty_description: dict):
-        ''' Run the agent in a single level until done '''
+        """ Run the agent in a single level until done """
 
         current_state = self.env.get_current_state()
         self.agent.start_level(self.env) # Agent performing exploratory actions
@@ -96,7 +96,7 @@ class PolycraftDispatcher():
             # self.env.poly_client.REPORT_NOVELTY(level, confidence, user_msg)
 
     def episode_end(self) -> dict:
-        ''' Cleanup level '''
+        """ Cleanup level """
 
         return
 

@@ -32,6 +32,8 @@ def check_numeric(token):
     try:
         float(token)
         return True
+    except TypeError as e:
+        raise TypeError(f'Got: {token}') from e
     except ValueError:
         return False
 
