@@ -673,9 +673,6 @@ class Polycraft(World):
             for cell_id, cell_attr in sensed_game_map.items():
                 for door_cell_id, room_game_map in self.door_to_room_cells.items():
                     if cell_id in room_game_map:
-                        cell_to_coordinates = [int(coord) for coord in cell_id.split(",")]
-                        cell_attr['cell_x'] = cell_to_coordinates[0]
-                        cell_attr['cell_z'] = cell_to_coordinates[2]
                         room_game_map[cell_id] = cell_attr
 
             logger.info(f'Door to room dictionary size: {total_size(self.door_to_room_cells)}')

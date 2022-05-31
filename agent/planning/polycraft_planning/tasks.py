@@ -23,9 +23,7 @@ class CreatePogoTask(Task):
 
     def get_relevant_functions(self, world_state: PolycraftState, meta_model):
         """ Returns a list of actions for the agent to use when planning """
-        return [Function.cell_type.to_pddl(), Function.selectedItem.to_pddl(),
-                Function.Steve_x.to_pddl(), Function.Steve_z.to_pddl(),
-                Function.cell_x.to_pddl(), Function.cell_z.to_pddl()]
+        return [Function.cell_type.to_pddl(), Function.selectedItem.to_pddl()]
 
     def create_relevant_actions(self, world_state: PolycraftState, meta_model: PolycraftMetaModel) -> list:
         action_generators = []
@@ -37,7 +35,6 @@ class CreatePogoTask(Task):
 
         action_generators.append(PddlPlaceTreeTapActionGenerator())
         action_generators.append(PddlCollectFromTreeTapActionGenerator())
-        action_generators.append(PddlMoveActionGenerator())
         return action_generators
 
     def _create_select_item_actions(self, meta_model):
@@ -150,9 +147,7 @@ class ExploreDoorTask(CreatePogoTask):
         """ Returns a list of actions for the agent to use when planning """
         return [Function.cell_type.to_pddl(),
                 Function.selectedItem.to_pddl(),
-                Function.door_cell_type.to_pddl(),
-                Function.Steve_x.to_pddl(), Function.Steve_z.to_pddl(),
-                Function.cell_x.to_pddl(), Function.cell_z.to_pddl()]
+                Function.door_cell_type.to_pddl()]
 
     def get_goals(self, world_state: PolycraftState, meta_model: PolycraftMetaModel):
         return [[Predicate.passed_door.name, PddlGameMapCellType.get_cell_object_name(self.door_cell)]]
@@ -168,7 +163,6 @@ class ExploreDoorTask(CreatePogoTask):
         action_generators.extend(self._create_collect_actions(meta_model))
         action_generators.extend([PddlMoveThroughDoorActionGenerator(),
                                   PddlUseDoorActionGenerator()])
-        action_generators.append(PddlMoveActionGenerator())
         return action_generators
 
     def create_relevant_events(self, world_state: PolycraftState, meta_model: PolycraftMetaModel):
@@ -219,9 +213,7 @@ class CollectFromSafeTask(CreatePogoTask):
 
     def get_relevant_functions(self, world_state: PolycraftState, meta_model):
         """ Returns a list of actions for the agent to use when planning """
-        return [Function.cell_type.to_pddl(), Function.selectedItem.to_pddl(),
-                Function.Steve_x.to_pddl(), Function.Steve_z.to_pddl(),
-                Function.cell_x.to_pddl(), Function.cell_z.to_pddl()]
+        return [Function.cell_type.to_pddl(), Function.selectedItem.to_pddl()]
 
     def get_planner_heuristic(self, world_state: PolycraftState):
         """ Returns the heuristic to be used by the planner"""
@@ -232,9 +224,6 @@ class CollectFromSafeTask(CreatePogoTask):
         action_generators.extend(self._create_select_item_actions(meta_model))
         action_generators.extend(self._create_break_block_actions(meta_model))
         action_generators.extend(self._create_collect_actions(meta_model))
-
-        action_generators.append(PddlMoveActionGenerator())
-
         action_generators.append(PddlOpenSafeAndCollectGenerator())
         return action_generators
 
@@ -379,45 +368,6 @@ class MakeCellAccessibleHeuristic(AbstractHeuristic):
 ########### Actions
 
 ###### PDDL ACTIONS, PROCESSES, AND EVENTS
-
-class PddlMoveActionGenerator(PddlPolycraftActionGenerator):
-    """
-    Creates actions for teleporting to any cell.
-    """
-
-    def __init__(self):
-        super().__init__("teleport_to")
-
-    def to_pddl(self, meta_model: MetaModel) -> PddlPlusWorldChange:
-        pddl_action = PddlPlusWorldChange(WorldChangeTypes.action)
-        pddl_action.name = self.pddl_name
-        pddl_action.parameters.append(["?to", "-", "cell"])
-
-        air_idx = meta_model.block_type_to_idx[BlockType.AIR.value]
-        pddl_action.preconditions.append(["=", ["cell_type", "?to"], f"{air_idx}"])
-        pddl_action.preconditions.append(["or",
-                                          ["and",
-                                           ["=", Function.Steve_x.to_pddl(),
-                                            ["+", [Function.cell_x.name, '?to'], "1"]],
-                                           ["=", Function.Steve_z.to_pddl(), [Function.cell_z.name, '?to']]],
-                                          ["and", ["=", Function.Steve_z.to_pddl(),
-                                                   ["+", [Function.cell_z.name, '?to'], "1"]],
-                                           ["=", Function.Steve_x.to_pddl(), [Function.cell_x.name, '?to']]],
-                                          ["and", ["=", Function.Steve_x.to_pddl(),
-                                                   ["-", [Function.cell_x.name, '?to'], "1"]],
-                                           ["=", Function.Steve_z.to_pddl(), [Function.cell_z.name, '?to']]],
-                                          ["and", ["=", Function.Steve_z.to_pddl(),
-                                                   ["-", [Function.cell_z.name, '?to'], "1"]],
-                                           ["=", Function.Steve_x.to_pddl(), [Function.cell_x.name, '?to']]]
-                                          ])
-
-        pddl_action.effects.append(["assign", Function.Steve_x.to_pddl(), [Function.cell_x.name, '?to']])
-        pddl_action.effects.append(["assign", Function.Steve_z.to_pddl(), [Function.cell_z.name, '?to']])
-        return pddl_action
-
-    def to_polycraft(self, parameter_binding: dict) -> PolycraftAction:
-        cell = parameter_binding["?to"]
-        return PolyTP(cell, dist=1)
 
 
 class PddlPlaceTreeTapActionGenerator(PddlPolycraftActionGenerator):
