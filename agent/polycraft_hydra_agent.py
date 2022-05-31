@@ -545,12 +545,12 @@ class PolycraftHydraAgent(HydraAgent):
         """ Returns a list of unknown object novelties identified in the given state """
         novelties = set()
         for block_type in state.get_type_to_cells():
-            if block_type not in [tp.value for tp in BlockType]:
+            if block_type not in [tp for tp in self.meta_model.block_type_to_idx]:
                 logger.info(f"Novel block type detected - {block_type}")
                 self.meta_model.introduce_novel_block_type(block_type)
                 novelties.add(f"{block_type}")
         for item_type in state.get_item_to_count():
-            if item_type not in [tp.value for tp in ItemType]:
+            if item_type not in [tp for tp in self.meta_model.item_type_to_idx]:
                 novelties.add(f"{item_type}")
                 logger.info(f"Novel item type detected - {item_type}")
                 self.meta_model.introduce_novel_inventory_item_type(item_type)
