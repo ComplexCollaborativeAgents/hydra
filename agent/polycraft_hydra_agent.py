@@ -375,6 +375,7 @@ class PolycraftHydraAgent(HydraAgent):
         """ Consider choosing an exploration action"""
         if self.failed_actions_in_level > 0 and \
                 self.failed_actions_in_level % self.exploration_rate == 0:
+            self.failed_actions_in_level = 0  # reset since we changed task.
             return True
         else:
             return False

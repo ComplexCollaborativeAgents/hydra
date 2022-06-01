@@ -21,15 +21,15 @@ class PddlType(enum.Enum):
 class Predicate(enum.Enum):
     """ Note: the first prameter in the list is needed: otherwise python will merge enum elements. """
     isAccessible = ["isAccessible", ("?c", PddlType.cell.name)]
-    adjacent = ["adjacent", ("?c1", PddlType.cell.name), ("?c2", PddlType.cell.name)]
+    # adjacent = ["adjacent", ("?c1", PddlType.cell.name), ("?c2", PddlType.cell.name)]
 
     door_is_accessible = ["door_is_accessible", ("?c", PddlType.door_cell.name)]
-    adjacent_to_door = ["adjacent_to_door", ("?c1", PddlType.cell.name), ("?c2", PddlType.door_cell.name)]
+    # adjacent_to_door = ["adjacent_to_door", ("?c1", PddlType.cell.name), ("?c2", PddlType.door_cell.name)]
     open = ["open", ("?c", PddlType.door_cell.name)]
     passed_door = ["passed_door", ("?c", PddlType.door_cell.name)]
 
     safe_is_accessible = ["safe_is_accessible", ("?c", PddlType.safe_cell.name)]
-    adjacent_to_safe = ["adjacent_to_safe", ("?c1", PddlType.cell.name), ("?c2", PddlType.safe_cell.name)]
+    # adjacent_to_safe = ["adjacent_to_safe", ("?c1", PddlType.cell.name), ("?c2", PddlType.safe_cell.name)]
     safe_collected = ["safe_collected", ("?c", PddlType.safe_cell.name)]
     safe_open = ["safe_open", ("?c", PddlType.safe_cell.name)]
 
@@ -139,17 +139,17 @@ class PddlGameMapCellType(PolycraftObjectType):
             if attribute in self.relevant_attributes:
                 fluent_to_value[(attribute, cell_name)] = attribute_value
 
-        # Cell adjacency info
-        world_state = params["world_state"]
-        active_cells = params["active_cells"]
-        known_cells = world_state.get_known_cells()
-        for adjacent_cell in get_adjacent_cells(cell_id):
-            if adjacent_cell in active_cells:
-                adjacent_cell_type = known_cells[adjacent_cell]["name"]
-                if adjacent_cell_type in [BlockType.BEDROCK.value, BlockType.WOODER_DOOR.value, BlockType.SAFE.value]:
-                    continue
-                adjacent_cell_name = PddlGameMapCellType.get_cell_object_name(adjacent_cell)
-                fluent_to_value[(Predicate.adjacent.name, cell_name, adjacent_cell_name)] = True
+        # # Cell adjacency info
+        # world_state = params["world_state"]
+        # active_cells = params["active_cells"]
+        # known_cells = world_state.get_known_cells()
+        # for adjacent_cell in get_adjacent_cells(cell_id):
+        #     if adjacent_cell in active_cells:
+        #         adjacent_cell_type = known_cells[adjacent_cell]["name"]
+        #         if adjacent_cell_type in [BlockType.BEDROCK.value, BlockType.WOODER_DOOR.value, BlockType.SAFE.value]:
+        #             continue
+        #         adjacent_cell_name = PddlGameMapCellType.get_cell_object_name(adjacent_cell)
+        #         fluent_to_value[(Predicate.adjacent.name, cell_name, adjacent_cell_name)] = True
         return fluent_to_value
 
 
@@ -174,16 +174,16 @@ class PddlDoorCellType(PddlGameMapCellType):
                     fluent_to_value[(Predicate.door_is_accessible.name, cell_name)] = True
 
         # Handle adjacency
-        world_state = params["world_state"]
-        active_cells = params["active_cells"]
-        known_cells = world_state.get_known_cells()
-        for adjacent_cell in get_adjacent_cells(cell_id):
-            if adjacent_cell in active_cells:
-                adjacent_cell_type = known_cells[adjacent_cell]["name"]
-                if adjacent_cell_type in [BlockType.BEDROCK.value, BlockType.WOODER_DOOR.value]:
-                    continue
-                adjacent_cell_name = PddlGameMapCellType.get_cell_object_name(adjacent_cell)
-                fluent_to_value[(Predicate.adjacent_to_door.name, adjacent_cell_name, cell_name)] = True
+        # world_state = params["world_state"]
+        # active_cells = params["active_cells"]
+        # known_cells = world_state.get_known_cells()
+        # for adjacent_cell in get_adjacent_cells(cell_id):
+        #     if adjacent_cell in active_cells:
+        #         adjacent_cell_type = known_cells[adjacent_cell]["name"]
+        #         if adjacent_cell_type in [BlockType.BEDROCK.value, BlockType.WOODER_DOOR.value]:
+        #             continue
+        #         adjacent_cell_name = PddlGameMapCellType.get_cell_object_name(adjacent_cell)
+        #         fluent_to_value[(Predicate.adjacent_to_door.name, adjacent_cell_name, cell_name)] = True
 
         return fluent_to_value
 
@@ -204,17 +204,17 @@ class PddlSafeCellType(PddlGameMapCellType):
             if attribute == Predicate.isAccessible.name:
                 fluent_to_value[(Predicate.safe_is_accessible.name, cell_name)] = attribute_value
 
-        # Handle adjacency
-        world_state = params["world_state"]
-        active_cells = params["active_cells"]
-        known_cells = world_state.get_known_cells()
-        for adjacent_cell in get_adjacent_cells(cell_id):
-            if adjacent_cell in active_cells:
-                adjacent_cell_type = known_cells[adjacent_cell]["name"]
-                if adjacent_cell_type in [BlockType.BEDROCK.value, BlockType.WOODER_DOOR.value, BlockType.SAFE.value]:
-                    continue
-                adjacent_cell_name = PddlGameMapCellType.get_cell_object_name(adjacent_cell)
-                fluent_to_value[(Predicate.adjacent_to_safe.name, adjacent_cell_name, cell_name)] = True
+        # # Handle adjacency
+        # world_state = params["world_state"]
+        # active_cells = params["active_cells"]
+        # known_cells = world_state.get_known_cells()
+        # for adjacent_cell in get_adjacent_cells(cell_id):
+        #     if adjacent_cell in active_cells:
+        #         adjacent_cell_type = known_cells[adjacent_cell]["name"]
+        #         if adjacent_cell_type in [BlockType.BEDROCK.value, BlockType.WOODER_DOOR.value, BlockType.SAFE.value]:
+        #             continue
+        #         adjacent_cell_name = PddlGameMapCellType.get_cell_object_name(adjacent_cell)
+        #         fluent_to_value[(Predicate.adjacent_to_safe.name, adjacent_cell_name, cell_name)] = True
 
         return fluent_to_value
 
@@ -341,8 +341,8 @@ class PolycraftMetaModel(MetaModel):
                          },
                          constant_boolean_fluents={})
 
-        self.domain_name = "polycraft"  # TODO: Move this to constructor
-        self.problem_name = "polycraft_prob"  # TODO: Move this to constructor
+        self.domain_name = "polycraft"
+        self.problem_name = "polycraft_prob"
 
         # Maps a cell type to what we get if we break it. The latter is in the form of a pair (item type, quantity).
         self.break_block_to_outcome = dict()
@@ -422,8 +422,7 @@ class PolycraftMetaModel(MetaModel):
 
         pddl_domain = PddlPlusDomain()
         pddl_domain.name = "polycraft"
-        pddl_domain.requirements = [":typing", ":disjunctive-preconditions", ":fluents", ":time",
-                                    ":negative-preconditions"]
+        pddl_domain.requirements = [":typing", ":disjunctive-preconditions", ":fluents", ":negative-preconditions"]
 
         # Add object types
         for object_type in self.active_task.get_relevant_types(world_state, self):
@@ -575,6 +574,9 @@ class PolycraftMetaModel(MetaModel):
                 cell_name = PddlGameMapCellType.get_cell_object_name(entity_cell)
                 pddl_problem.init.append([f"trader_{entity}_at", cell_name])
 
+        pddl_problem.init.append(["=", [Function.Steve_x.name, ], world_state.location["pos"][0]])
+        pddl_problem.init.append(["=", [Function.Steve_z.name, ], world_state.location["pos"][2]])
+
         # Add goal and metric
         for goal in self.active_task.get_goals(world_state, self):
             pddl_problem.goal.append(goal)
@@ -627,6 +629,9 @@ class PolycraftMetaModel(MetaModel):
                 entity_cell = coordinates_to_cell(entity_attr["pos"])
                 cell_name = PddlGameMapCellType.get_cell_object_name(entity_cell)
                 pddl_state.boolean_fluents.add(f"trader_{entity}_at" + cell_name)
+
+        pddl_state.numeric_fluents[(Function.Steve_x.name,)] = world_state.location["pos"][0]
+        pddl_state.numeric_fluents[(Function.Steve_z.name,)] = world_state.location["pos"][2]
 
         return pddl_state
 

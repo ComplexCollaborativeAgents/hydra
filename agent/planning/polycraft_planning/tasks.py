@@ -14,8 +14,7 @@ class CreatePogoTask(Task):
 
     def get_relevant_predicates(self, world_state: PolycraftState, meta_model):
         """ Returns a list of actions for the agent to use when planning """
-        predicates = [Predicate.isAccessible.to_pddl(),
-                      Predicate.adjacent.to_pddl()]
+        predicates = [Predicate.isAccessible.to_pddl()]
 
         for trader_id in set(world_state.trades.keys()):
             predicates.append([f"trader_{trader_id}_at", "?c", "-", "cell"])
@@ -34,10 +33,9 @@ class CreatePogoTask(Task):
         action_generators.extend(self._create_collect_actions(meta_model))
         action_generators.extend(self._create_craft_item_actions(world_state))
         action_generators.extend(self._create_trade_actions(world_state))
+        action_generators.extend(self._create_place_tree_tap_actions(world_state, meta_model))
 
-        action_generators.append(PddlPlaceTreeTapActionGenerator())
         action_generators.append(PddlCollectFromTreeTapActionGenerator())
-        action_generators.append(PddlTeleportActionGenerator())
         return action_generators
 
     def _create_select_item_actions(self, meta_model):
@@ -91,6 +89,21 @@ class CreatePogoTask(Task):
                                                          needs_iron_pickaxe=needs_iron_pickaxe))
         return pddl_actions
 
+    def _create_place_tree_tap_actions(self, world_state: PolycraftState, meta_model: PolycraftMetaModel):
+        # If we're already hard-coding to existing trees, why not hard-code to the surrounding cells too?
+        pddl_actions = []
+        directions = [[1, 0, 0], [-1, 0, 0], [0, 0, 1], [0, 0, -1]]
+        for cell, cell_attr in world_state.get_known_cells().items():
+            if cell_attr["name"] == BlockType.LOG.value:
+                coords = cell_to_coordinates(cell)
+                for delta in directions:
+                    air_cell_coords = [coord + d for coord, d in zip(coords, delta)]
+                    air_cell = coordinates_to_cell(air_cell_coords)
+                    pddl_actions.append(
+                        PddlPlaceTreeTapActionGenerator(cell, air_cell))
+
+        return pddl_actions
+
     def get_type_for_cell(self, cell_attr, meta_model) -> PddlGameMapCellType:
         """ Return a PddlGameMapCellType appropriate to generate objects representing this game map cell"""
         type_str = cell_attr['name']
@@ -140,9 +153,8 @@ class ExploreDoorTask(CreatePogoTask):
     def get_relevant_predicates(self, world_state: PolycraftState, meta_model):
         """ Returns a list of actions for the agent to use when planning """
         return [Predicate.isAccessible.to_pddl(),
-                Predicate.adjacent.to_pddl(),
                 Predicate.door_is_accessible.to_pddl(),
-                Predicate.adjacent_to_door.to_pddl(),
+                # Predicate.adjacent_to_door.to_pddl(),
                 Predicate.open.to_pddl(),
                 Predicate.passed_door.to_pddl()]
 
@@ -211,9 +223,8 @@ class CollectFromSafeTask(CreatePogoTask):
     def get_relevant_predicates(self, world_state: PolycraftState, meta_model):
         """ Returns a list of actions for the agent to use when planning """
         return [Predicate.isAccessible.to_pddl(),
-                Predicate.adjacent.to_pddl(),
                 Predicate.safe_is_accessible.to_pddl(),
-                Predicate.adjacent_to_safe.to_pddl(),
+                # Predicate.adjacent_to_safe.to_pddl(),
                 Predicate.safe_collected.to_pddl(),
                 Predicate.safe_open.to_pddl()]
 
@@ -396,6 +407,16 @@ class PddlTeleportActionGenerator(PddlPolycraftActionGenerator):
         air_idx = meta_model.block_type_to_idx[BlockType.AIR.value]
         pddl_action.preconditions.append(["=", ["cell_type", "?to"], f"{air_idx}"])
         pddl_action.preconditions.append([Predicate.isAccessible.name, '?to'])
+        pddl_action.preconditions.append(["or",
+                                          ["and", ["=", [Function.cell_x.name, "?to"], [Function.Steve_x.name]],
+                                           ["=", [Function.cell_z.name, "?to"], ["+", [Function.Steve_z.name], "1"]]],
+                                          ["and", ["=", [Function.cell_x.name, "?to"], [Function.Steve_x.name]],
+                                           ["=", [Function.cell_z.name, "?to"], ["-", [Function.Steve_z.name], "1"]]],
+                                          ["and", ["=", [Function.cell_z.name, "?to"], [Function.Steve_z.name]],
+                                           ["=", [Function.cell_x.name, "?to"], ["+", [Function.Steve_x.name], "1"]]],
+                                          ["and", ["=", [Function.cell_z.name, "?to"], [Function.Steve_z.name]],
+                                           ["=", [Function.cell_x.name, "?to"], ["-", [Function.Steve_x.name], "1"]]],
+                                          ])
 
         pddl_action.effects.append(["assign", Function.Steve_x.to_pddl(), [Function.cell_x.name, '?to']])
         pddl_action.effects.append(["assign", Function.Steve_z.to_pddl(), [Function.cell_z.name, '?to']])
@@ -408,6 +429,21 @@ class PddlTeleportActionGenerator(PddlPolycraftActionGenerator):
 
 class PddlPlaceTreeTapActionGenerator(PddlPolycraftActionGenerator):
     """ An action corresponding to placing a tree tap
+    New PDDL:
+            (:action place_tree_tap
+            :precondition (and
+                (isAccessible HARD_CODED_AIR)
+                (isAccessible HARD_CODED_TREE)
+                (cell_type HARD_CODED_AIR {BlockType.AIR.value})
+                (cell_type HARD_CODED_TREE {BlockType.LOG.value})
+                (>= (count_{ItemType.TREE_TAP.name}) 1)
+            )
+            :effect (and
+                (decrease (count_{ItemType.TREE_TAP}) 1)
+                (assign (cell_type HARD_CODED_AIR) {ItemType.TREE_TAP.value})
+            )
+        )
+    Old PDDL:
         (:action place_tree_tap
             :parameters (?at - cell ?near_to - cell)
             :precondition (and
@@ -425,30 +461,30 @@ class PddlPlaceTreeTapActionGenerator(PddlPolycraftActionGenerator):
         )
     """
 
-    def __init__(self):
-        super().__init__("place_tree_tap")
+    def __init__(self, tree_cell: str, air_cell: str):
+        super().__init__(f"place_tree_tap_{tree_cell}_{air_cell}")
+        self.tree = PddlGameMapCellType.get_cell_object_name(tree_cell)
+        self.tap_cell = PddlGameMapCellType.get_cell_object_name(air_cell)
+        self.tap_cell_binding = air_cell
 
-    def to_pddl(self, meta_model: MetaModel) -> PddlPlusWorldChange:
+    def to_pddl(self, meta_model: PolycraftMetaModel) -> PddlPlusWorldChange:
         pddl_action = PddlPlusWorldChange(WorldChangeTypes.action)
         pddl_action.name = self.pddl_name
-        pddl_action.parameters.append(["?at", "-", "cell", "?near_to", "-", "cell"])
-
         pddl_action.preconditions.append([">=", [f"count_{ItemType.TREE_TAP.value}", ], "1"])
         log_idx = meta_model.block_type_to_idx[BlockType.LOG.value]
-        pddl_action.preconditions.append(["=", ["cell_type", "?near_to"], f"{log_idx}"])
+        pddl_action.preconditions.append(["=", ["cell_type", self.tree], f"{log_idx}"])
         air_idx = meta_model.block_type_to_idx[BlockType.AIR.value]
-        pddl_action.preconditions.append(["=", ["cell_type", "?at"], f"{air_idx}"])
-        pddl_action.preconditions.append(["adjacent", "?at", "?near_to"])
-        pddl_action.preconditions.append([Predicate.isAccessible.name, "?at"])
-        pddl_action.preconditions.append([Predicate.isAccessible.name, "?near_to"])
+        pddl_action.preconditions.append(["=", ["cell_type", self.tap_cell], f"{air_idx}"])
+        pddl_action.preconditions.append([Predicate.isAccessible.name, self.tap_cell])
+        pddl_action.preconditions.append([Predicate.isAccessible.name, self.tree])
 
         pddl_action.effects.append(["decrease", [f"count_{ItemType.TREE_TAP.value}", ], "1"])
         tree_tap_idx = meta_model.block_type_to_idx[BlockType.TREE_TAP.value]
-        pddl_action.effects.append(["assign", ["cell_type", "?at"], f"{tree_tap_idx}"])
+        pddl_action.effects.append(["assign", ["cell_type", self.tap_cell], f"{tree_tap_idx}"])
         return pddl_action
 
     def to_polycraft(self, parameter_binding: dict) -> PolycraftAction:
-        return TeleportToAndPlaceTreeTap(parameter_binding["?at"])
+        return TeleportToAndPlaceTreeTap(self.tap_cell_binding)
 
 
 class PddlCollectActionGenerator(PddlPolycraftActionGenerator):
@@ -506,17 +542,13 @@ class PddlCollectFromTreeTapActionGenerator(PddlPolycraftActionGenerator):
     def __init__(self):
         super().__init__(f"collect_from_tree_tap")
 
-    def to_pddl(self, meta_model: MetaModel) -> PddlPlusWorldChange:
+    def to_pddl(self, meta_model: PolycraftMetaModel) -> PddlPlusWorldChange:
         pddl_action = PddlPlusWorldChange(WorldChangeTypes.action)
         pddl_action.name = self.pddl_name
-        pddl_action.parameters.append(["?c", "-", "cell", "?near_to", "-", "cell"])
+        pddl_action.parameters.append(["?c", "-", "cell"])
 
         tree_tap_idx = meta_model.block_type_to_idx[BlockType.TREE_TAP.value]
         pddl_action.preconditions.append(["=", ["cell_type", "?c"], f"{tree_tap_idx}"])
-        pddl_action.preconditions.append([Predicate.adjacent.name, "?c", "?near_to"])
-        log_idx = meta_model.block_type_to_idx[BlockType.LOG.value]
-        pddl_action.preconditions.append(["=", ["cell_type", "?near_to"], f"{log_idx}"])
-        pddl_action.preconditions.append([Predicate.isAccessible.name, "?c"])
 
         sack_of_pellets_per_collect = meta_model.collect_block_to_outcome[BlockType.TREE_TAP.value][1]
         pddl_action.effects.append(["increase", [f"count_{ItemType.SACK_POLYISOPRENE_PELLETS.value}", ],
@@ -708,56 +740,81 @@ class PddlTradeActionGenerator(PddlPolycraftActionGenerator):
         return TeleportToTraderAndTrade(self.trader_id, self.trade)
 
 
-class PddlPolycraftEvent():
+class PddlPolycraftEvent:
     """ A class representing a PDDL+ action in polycraft """
 
-    def to_pddl(self) -> PddlPlusWorldChange:
+    def to_pddl(self, meta_model: PolycraftMetaModel) -> PddlPlusWorldChange:
         """ This method should be implemented by sublcasses and output a string representation of the corresponding PDDL+ action """
         raise NotImplementedError()
 
 
 class CellAccessibleEvent(PddlPolycraftEvent):
-    def to_pddl(self, meta_model: MetaModel):
+    """
+    Marks a cell as newly accessible. General form:
+    paramters: cell
+    preconditions: not accessible
+                   next to Steve
+    effects: accessible
+    """
+
+    def to_pddl(self, meta_model: PolycraftMetaModel):
         pddl_event = PddlPlusWorldChange(WorldChangeTypes.event)
         pddl_event.name = "cell_accessible"
-        pddl_event.parameters.append(["?c1", "-", PddlType.cell.name, "?c2", "-", PddlType.cell.name])
-        pddl_event.preconditions.append(["not", [Predicate.isAccessible.name, "?c2"]])
-        pddl_event.preconditions.append([Predicate.adjacent.name, "?c1", "?c2"])
-        air_idx = meta_model.block_type_to_idx[BlockType.AIR.value]
-        pddl_event.preconditions.append(["=", [Function.cell_type.name, "?c1"], f"{air_idx}"])
-        pddl_event.preconditions.append([Predicate.isAccessible.name, "?c1"])
+        pddl_event.parameters.append(["?c", "-", PddlType.cell.name])
+        pddl_event.preconditions.append(["not", [Predicate.isAccessible.name, "?c"]])
+        pddl_event.preconditions.append(["or",
+                                         ["and", ["=", [Function.cell_x.name, "?c"], [Function.Steve_x.name]],
+                                          ["=", [Function.cell_z.name, "?c"], ["+", [Function.Steve_z.name], "1"]]],
+                                         ["and", ["=", [Function.cell_x.name, "?c"], [Function.Steve_x.name]],
+                                          ["=", [Function.cell_z.name, "?c"], ["-", [Function.Steve_z.name], "1"]]],
+                                         ["and", ["=", [Function.cell_z.name, "?c"], [Function.Steve_z.name]],
+                                          ["=", [Function.cell_x.name, "?c"], ["+", [Function.Steve_x.name], "1"]]],
+                                         ["and", ["=", [Function.cell_z.name, "?c"], [Function.Steve_z.name]],
+                                          ["=", [Function.cell_x.name, "?c"], ["-", [Function.Steve_x.name], "1"]]],
+                                         ])
 
         pddl_event.effects.append([Predicate.isAccessible.name, "?c2"])
         return pddl_event
 
 
 class DoorAccessibleEvent(PddlPolycraftEvent):
-    def to_pddl(self, meta_model: MetaModel):
+    def to_pddl(self, meta_model: PolycraftMetaModel):
         pddl_event = PddlPlusWorldChange(WorldChangeTypes.event)
         pddl_event.name = "door_accessible"
-        pddl_event.parameters.append(["?c1", "-", PddlType.cell.name,
-                                      "?c2", "-", PddlType.door_cell.name])
-        pddl_event.preconditions.append([Predicate.isAccessible.name, "?c1"])
-        pddl_event.preconditions.append(["not", [Predicate.door_is_accessible.name, "?c2"]])
+        pddl_event.parameters.append(["?c", "-", PddlType.door_cell.name])
+        pddl_event.preconditions.append(["not", [Predicate.door_is_accessible.name, "?c"]])
         air_idx = meta_model.block_type_to_idx[BlockType.AIR.value]
-        pddl_event.preconditions.append(["=", [Function.cell_type.name, "?c1"], f"{air_idx}"])
-        pddl_event.preconditions.append([Predicate.adjacent_to_door.name, "?c1", "?c2"])
-        pddl_event.effects.append([Predicate.door_is_accessible.name, "?c2"])
+        pddl_event.preconditions.append(["or",
+                                         ["and", ["=", [Function.cell_x.name, "?c"], [Function.Steve_x.name]],
+                                          ["=", [Function.cell_z.name, "?c"], ["+", [Function.Steve_z.name], "1"]]],
+                                         ["and", ["=", [Function.cell_x.name, "?c"], [Function.Steve_x.name]],
+                                          ["=", [Function.cell_z.name, "?c"], ["-", [Function.Steve_z.name], "1"]]],
+                                         ["and", ["=", [Function.cell_z.name, "?c"], [Function.Steve_z.name]],
+                                          ["=", [Function.cell_x.name, "?c"], ["+", [Function.Steve_x.name], "1"]]],
+                                         ["and", ["=", [Function.cell_z.name, "?c"], [Function.Steve_z.name]],
+                                          ["=", [Function.cell_x.name, "?c"], ["-", [Function.Steve_x.name], "1"]]],
+                                         ])
+        pddl_event.effects.append([Predicate.door_is_accessible.name, "?c"])
         return pddl_event
 
 
 class SafeAccessibleEvent(PddlPolycraftEvent):
-    def to_pddl(self, meta_model: MetaModel):
+    def to_pddl(self, meta_model: PolycraftMetaModel):
         pddl_event = PddlPlusWorldChange(WorldChangeTypes.event)
         pddl_event.name = "safe_accessible"
-        pddl_event.parameters.append(["?c1", "-", PddlType.cell.name,
-                                      "?c2", "-", PddlType.safe_cell.name])
-        pddl_event.preconditions.append([Predicate.isAccessible.name, "?c1"])
-        pddl_event.preconditions.append(["not", [Predicate.safe_is_accessible.name, "?c2"]])
-        air_idx = meta_model.block_type_to_idx[BlockType.AIR.value]
-        pddl_event.preconditions.append(["=", [Function.cell_type.name, "?c1"], f"{air_idx}"])
-        pddl_event.preconditions.append([Predicate.adjacent_to_safe.name, "?c1", "?c2"])
-        pddl_event.effects.append([Predicate.safe_is_accessible.name, "?c2"])
+        pddl_event.parameters.append(["?c", "-", PddlType.safe_cell.name])
+        pddl_event.preconditions.append(["not", [Predicate.safe_is_accessible.name, "?c"]])
+        pddl_event.preconditions.append(["or",
+                                         ["and", ["=", [Function.cell_x.name, "?c"], [Function.Steve_x.name]],
+                                          ["=", [Function.cell_z.name, "?c"], ["+", [Function.Steve_z.name], "1"]]],
+                                         ["and", ["=", [Function.cell_x.name, "?c"], [Function.Steve_x.name]],
+                                          ["=", [Function.cell_z.name, "?c"], ["-", [Function.Steve_z.name], "1"]]],
+                                         ["and", ["=", [Function.cell_z.name, "?c"], [Function.Steve_z.name]],
+                                          ["=", [Function.cell_x.name, "?c"], ["+", [Function.Steve_x.name], "1"]]],
+                                         ["and", ["=", [Function.cell_z.name, "?c"], [Function.Steve_z.name]],
+                                          ["=", [Function.cell_x.name, "?c"], ["-", [Function.Steve_x.name], "1"]]],
+                                         ])
+        pddl_event.effects.append([Predicate.safe_is_accessible.name, "?c"])
         return pddl_event
 
 
@@ -836,7 +893,7 @@ class PddlMoveThroughDoorActionGenerator(PddlPolycraftActionGenerator):
     def __init__(self):
         super().__init__("move_through_door")
 
-    def to_pddl(self, meta_model: MetaModel) -> PddlPlusWorldChange:
+    def to_pddl(self, meta_model: PolycraftMetaModel) -> PddlPlusWorldChange:
         pddl_action = PddlPlusWorldChange(WorldChangeTypes.action)
         pddl_action.name = self.pddl_name
         pddl_action.parameters.append(["?cell", "-", PddlType.door_cell.name])
