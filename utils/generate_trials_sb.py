@@ -22,7 +22,7 @@ NON_NOVEL_LEVELS = ['novelty_level_0']
 NOVELTY_TYPES = [
     "type1", "type2", "type4", "type5", "type6", "type7", "type8", "type9", "type10", 
     "type12", "type14", "type15", "type20"
-    "type22", "type23", "type24", "type25", "type50", "type90", "type110", "type130"
+    "type22", "type23", "type24", "type25", "type30", "type50", "type90", "type110", "type130"
 ]
 NON_NOVEL_TYPES = [
     "type2", "type4", "type5", "type6", "type7", 
@@ -30,7 +30,8 @@ NON_NOVEL_TYPES = [
     "type222", "type223", "type224", "type225", "type226", "type227",
     "type232", "type233", "type234", "type235", "type236", "type237",
     "type242", "type243", "type244", "type245", "type246", "type247",
-    "type252", "type253", "type254", "type255", "type256", "type257"  
+    "type252", "type253", "type254", "type255", "type256", "type257",
+    "type1150", "type1230", "type1320", "type1390", "type11130", "type12110",
 ]
 
 # Constants
