@@ -10,11 +10,11 @@ active_bird_id_string = ''
 # to override this variable and not run headless
 HEADLESS = True
 SCREENSHOT = False
-DEBUG = False
+DEBUG = True
 NO_PLANNING = False
 NO_REPAIR = False
 NO_PDDL_CONSISTENCY = False
-SB_DEV_MODE = False
+SB_DEV_MODE = True
 NOVELTY_POSSIBLE = True
 
 
@@ -26,7 +26,7 @@ SB_DELTA_T = 0.025  # time discretisation for UPMurphi
 SB_TIMEOUT = 30  # timeout for the planning phase (in seconds)
 SB_DEFAULT_SHOT = 'RANDOM_PIG'
 SB_PLANNER_SIMPLIFICATION_SEQUENCE = [1]  # the order of problem simplications attempted to generate a plan
-SB_COLLECT_PERCEPTION_DATA = False
+SB_COLLECT_PERCEPTION_DATA = True
 
 
 CP_PLANNER_MEMORY_LIMIT = 50  # memory limit for UPMurphi (in MB)

@@ -2,6 +2,7 @@
 # Four spaces as indentation [no tabs]
 import collections
 import copy
+import logging
 import time
 import matplotlib.pyplot as plt
 
@@ -67,6 +68,8 @@ class Planner:
         self.queue.push(state)
         while self.queue:
             state = self.queue.pop()
+            # if state.predecessor_action is not None:  # and state.predecessor_action.name != 'teleport_to':
+            #     logging.getLogger("Polycraft").info(f"Expanding state from action: {state.predecessor_action.name}")
             self.explored_states += 1
             if constants.PLOT_BIRD_NODE_ORDER:
                 active_bird_string = get_active_bird_string(state)

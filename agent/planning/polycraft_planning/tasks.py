@@ -312,25 +312,35 @@ class CraftPogoHeuristic(AbstractHeuristic):
     """ Heuristic for polycraft to be used by the Nyx planner """
 
     def __init__(self, world_state: PolycraftState):
-        # Get pogo recipe
-        pogo_recipe = world_state.get_recipe_for(ItemType.WOODEN_POGO_STICK.value)
-        pogo_ingredients = get_ingredients_for_recipe(pogo_recipe)
-        self.ingredients = list()
-        for item_type, quantity in pogo_ingredients.items():
-            pddl_item_type = f"count_{item_type.replace(':', '_')}"
-            self.ingredients.append((pddl_item_type, quantity))
+        self.initial_state = world_state
+
+    def missing_recipe_ingredients_recursive(self, node, item_type: str):
+        """
+        Returns a dictionary of {item_name: quantity} still required to craft the given item.
+        """
+        ingredients = dict()
+        recipe = self.initial_state.get_recipe_for(item_type)
+        if recipe is None:
+            ingredients[item_type] = 1
+        else:
+            step1_ingredients = get_ingredients_for_recipe(recipe)
+
+            new_ingredients = dict()
+            for ingredient, quantity in step1_ingredients.items():
+                quantity = quantity - node.state_vars[f"['count_{item_type.replace(':', '_')}']"]
+                if quantity > 0:
+                    more_ingdnts = missing_recipe_ingredients_recursive(self.initial_state, ingredient)
+                    for ingdnt in more_ingdnts.keys():
+                        new_ingredients[ingdnt] = more_ingdnts[ingdnt] * quantity
+
+            ingredients.update(new_ingredients)
+
+        return ingredients
 
     def evaluate(self, node):
         # Check if have ingredients of pogo stick
-        pogo_count = node.state_vars["['count_polycraft_wooden_pogo_stick']"]
-        if pogo_count > 0:
-            return 0
-
-        h_value = 1
-        for fluent, quantity in self.ingredients:
-            delta = quantity - node.state_vars[f"['{fluent}']"]
-            if delta > 0:
-                h_value = h_value + delta
+        ingredient_list = self.missing_recipe_ingredients_recursive(node, ItemType.WOODEN_POGO_STICK.value)
+        h_value = sum(ingredient_list.values())
         node.h = h_value
         return h_value
 

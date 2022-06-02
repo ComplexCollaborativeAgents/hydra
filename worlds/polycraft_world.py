@@ -76,7 +76,7 @@ class PolycraftState(State):
 
     def __init__(self, step_num: int, facing_block: str, location: dict, game_map: dict,
                  entities: dict, inventory: dict, current_item: str,
-                 recipes: list, trades: list, door_to_room_cells: dict, terminal: bool, step_cost: int = -1,
+                 recipes: list, trades: dict, door_to_room_cells: dict, terminal: bool, step_cost: int = -1,
                  viz: np.ndarray = None):
         super().__init__()
 
