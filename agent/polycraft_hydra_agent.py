@@ -317,7 +317,7 @@ class PolycraftHydraAgent(HydraAgent):
             self.active_plan = []
             return PolyNoAction()
 
-        if self.need_fresh_plan:
+        if len(self.current_observation.actions) == 0:
             if self.active_plan is None or len(self.active_plan) == 0:
                 logger.info("Running planner to generate initial plan")
                 self.active_plan = self.plan()
