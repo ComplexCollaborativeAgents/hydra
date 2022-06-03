@@ -243,7 +243,7 @@ def distance_to_nearest_pogoist(after_state, cell):
     return min_distance_to_pogoist
 
 
-def missing_recipe_ingredients_recursive(state: PolycraftState, item_type: str):
+def get_all_missing_recipe_ingredients(state: PolycraftState, item_type: str):
     """
     Returns a dictionary of {item_name: quantity} still required to craft the given item.
     """
@@ -258,7 +258,7 @@ def missing_recipe_ingredients_recursive(state: PolycraftState, item_type: str):
         for ingredient, quantity in step1_ingredients.items():
             quantity = quantity - state.count_items_of_type(ingredient)
             if quantity > 0:
-                more_ingdnts = missing_recipe_ingredients_recursive(state, ingredient)
+                more_ingdnts = get_all_missing_recipe_ingredients(state, ingredient)
                 for ingdnt in more_ingdnts.keys():
                     new_ingredients[ingdnt] = more_ingdnts[ingdnt] * quantity
 

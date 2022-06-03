@@ -10,11 +10,11 @@ active_bird_id_string = ''
 # to override this variable and not run headless
 HEADLESS = True
 SCREENSHOT = False
-DEBUG = True
+DEBUG = False
 NO_PLANNING = False
 NO_REPAIR = False
 NO_PDDL_CONSISTENCY = False
-SB_DEV_MODE = True
+SB_DEV_MODE = False
 NOVELTY_POSSIBLE = True
 
 

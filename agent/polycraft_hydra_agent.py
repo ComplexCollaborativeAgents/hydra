@@ -104,12 +104,12 @@ class PolycraftPlanner(HydraPlanner):
                     logger.info(f"Saving the state we failed to plan for in file {saved_state_file}")
                     with open(saved_state_file, "wb") as out_file:
                         pickle.dump(self.initial_state, out_file)
-                return None
+                return []
         except Exception as e_inst:
             logger.error(f"Exception while running planner. {e_inst}", stack_info=True)
             logger.exception(e_inst)
             print(e_inst)
-        return None
+        return []
 
     def write_pddl_file(self, pddl_problem: PddlPlusProblem, pddl_domain: PddlPlusDomain):
         problem_exporter = PddlProblemExporter()
@@ -202,7 +202,7 @@ class PolycraftHydraAgent(HydraAgent):
         super().__init__(planner, meta_model_repair)
         self.env = None
         self.exploration_rate = 10  # Number of failed actions to endure before trying one exploration task
-        self.active_plan = None
+        self.active_plan = []
         self.current_observation = None
         self.current_state = None  # Maintains the agent's knowledge about the current state
         self.failed_actions_in_level = 0  # Count how many actions have failed in a given level
@@ -260,7 +260,7 @@ class PolycraftHydraAgent(HydraAgent):
         self.env = env
         self.failed_actions_in_level = 0  # Count how many actions have failed in a given level
         self.actions_since_planning = 0  # Count how many actions have been performed since we planned last
-        self.active_plan = None
+        self.active_plan = []
         self.set_active_task(PolycraftTask.CRAFT_POGO.create_instance())
 
 
@@ -303,6 +303,7 @@ class PolycraftHydraAgent(HydraAgent):
                 exploration_tasks.append(CollectFromSafeTask(safe_cell))
 
         # No open door tasks? choose a random exploration task
+        logger.info(f"possible exploration tasks: {exploration_tasks}")
         return random.choice(exploration_tasks)
 
     def choose_action(self, world_state: PolycraftState):
@@ -313,10 +314,10 @@ class PolycraftHydraAgent(HydraAgent):
                 self.env.poly_client.REPORT_NOVELTY(level="1", confidence="50",
                                                     user_msg='Something that made the agent plan for too long. ')
                 self.novelty_reported = True
-            self.active_plan = None
+            self.active_plan = []
             return PolyNoAction()
 
-        if len(self.current_observation.actions) == 0:
+        if self.need_fresh_plan:
             if self.active_plan is None or len(self.active_plan) == 0:
                 logger.info("Running planner to generate initial plan")
                 self.active_plan = self.plan()
@@ -331,7 +332,7 @@ class PolycraftHydraAgent(HydraAgent):
             logger.info(f"Continue to perform the current plan. Next action is {self.active_plan[0]}")
 
         # If no plan found, choose default action
-        if self.active_plan is None:
+        if self.active_plan is None or len(self.active_plan) == 0:
             logger.info("No active plan or action has been assigned: choose a default action")
             return self._choose_default_action(world_state)
 
@@ -340,7 +341,7 @@ class PolycraftHydraAgent(HydraAgent):
                 self.env.poly_client.REPORT_NOVELTY(level="1", confidence="50",
                                                     user_msg='Something that made the agent plan for too long. ')
                 self.novelty_reported = True
-            self.active_plan = None
+            self.active_plan = [PolyNoAction()]
             return PolyNoAction()
 
         # Perform the next action in the plan
@@ -354,20 +355,18 @@ class PolycraftHydraAgent(HydraAgent):
             self.set_active_task(active_task)
         self._detect_unknown_objects(self.current_state)
 
-        # if time.time() - self.level_started_time > self.new_level_time:
-        #     return None
         plan = self.planner.make_plan(self.current_state)
-        # if time.time() - self.level_started_time > self.new_level_time:
-        #     return None
         return plan
 
     def should_replan(self):
         """ Decide if we need to update the active plan"""
         if self.active_plan is None or len(self.active_plan) == 0:
+            logger.info("should replan: no plan")
             return True
         if len(self.current_observation.actions) > 0:
             last_action = self.current_observation.actions[-1]
             if not last_action.success:
+                logger.info("should replan: last action failed")
                 return True
         return False
 
@@ -375,14 +374,17 @@ class PolycraftHydraAgent(HydraAgent):
         """ Consider choosing an exploration action"""
         if self.failed_actions_in_level > 0 and \
                 self.failed_actions_in_level % self.exploration_rate == 0:
-            self.failed_actions_in_level = 0  # reset since we changed task.
+            self.failed_actions_in_level = 0  # reset since we are changing task.
+            logger.info("Exploration chosen")
             return True
         else:
+            logger.info("Proceeding to main task")
             return False
 
     def replan(self, world_state: PolycraftState):
         """ Create a new plan after the active plan failed """
         if self.should_repair(world_state):
+            logger.info("Repairing model!")
             self.repair_meta_model(world_state)
 
         if not self._should_explore(world_state):
@@ -470,6 +472,12 @@ class PolycraftHydraAgent(HydraAgent):
         self.current_state = next_state
         self.current_observation.states.append(self.current_state)
         self.current_observation.rewards.append(step_cost)
+
+        if len(self.active_plan) == 0:
+            self.current_observation = PolycraftObservation()  # Plan ended, start a new observation set
+            self.current_observation.states.append(self.current_state)
+            self.current_observation.rewards.append(step_cost)
+            self.observations_list.append(self.current_observation)
         return next_state, step_cost
 
     def _update_current_state(self, new_state: PolycraftState):
@@ -577,6 +585,7 @@ class PolycraftHydraAgent(HydraAgent):
 
         self._detect_unknown_objects(state)
         try:
+            # self.meta_model.set_active_task(CreatePogoTask())
             repair, consistency = self.meta_model_repair.repair(self.meta_model, self.current_observation,
                                                                 delta_t=settings.POLYCRAFT_DELTA_T)
             repair_description = ["Repair %s, %.2f" % (fluent, repair[i])
