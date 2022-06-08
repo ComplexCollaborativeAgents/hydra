@@ -3,6 +3,7 @@ from agent.planning.nyx.abstract_heuristic import AbstractHeuristic
 from agent.planning.polycraft_meta_model import PddlPolycraftActionGenerator
 from agent.planning.polycraft_planning.actions import *
 from worlds.polycraft_actions import PolySelectItem, PolyPlaceTreeTap, PolyCraftItem
+import agent.planning.nyx.syntax.state as SearchState
 
 
 class CreatePogoTask(Task):
@@ -34,7 +35,7 @@ class CreatePogoTask(Task):
         action_generators.extend(self._create_craft_item_actions(world_state))
         action_generators.extend(self._create_trade_actions(world_state))
         action_generators.extend(self._create_place_tree_tap_actions(world_state, meta_model))
-
+        action_generators.append(PddlTeleportActionGenerator())
         action_generators.append(PddlCollectFromTreeTapActionGenerator())
         return action_generators
 
@@ -372,14 +373,17 @@ class CraftPogoHeuristic(AbstractHeuristic):
 
         return h_value
 
-    def evaluate(self, node):
+    def evaluate(self, node:SearchState):
         # Check if have ingredients of pogo stick
         pogo_count = node.state_vars["['count_polycraft_wooden_pogo_stick']"]
+        h_value = 0
         if pogo_count > 0:
             h_value = 0
         else:
-            h_value = 1 + self._still_missing_ingredients(node, ItemType.WOODEN_POGO_STICK.value)
-            # logger.info(f"my value: {h_value}, Roni's: {self.evaluate1(node)}")
+            if node.predecessor is not None and node.predecessor.predecessor is not None \
+                    and node.predecessor_action.name == node.predecessor.predecessor_action.name:
+                h_value += 9999  # Some value to prevent these state being explored unless other routes don't exist.
+            h_value += 1 + self._still_missing_ingredients(node, ItemType.WOODEN_POGO_STICK.value)
         node.h = h_value
         return h_value
 
@@ -530,6 +534,7 @@ class PddlPlaceTreeTapActionGenerator(PddlPolycraftActionGenerator):
         pddl_action.effects.append(["decrease", [f"count_{ItemType.TREE_TAP.value}", ], "1"])
         tree_tap_idx = meta_model.block_type_to_idx[BlockType.TREE_TAP.value]
         pddl_action.effects.append(["assign", ["cell_type", self.tap_cell], f"{tree_tap_idx}"])
+
         return pddl_action
 
     def to_polycraft(self, parameter_binding: dict) -> PolycraftAction:
@@ -566,6 +571,8 @@ class PddlCollectActionGenerator(PddlPolycraftActionGenerator):
         pddl_action.preconditions.append(["isAccessible", "?c"])
 
         pddl_action.effects.append(["increase", [f"count_{self.item_type_to_collect}", ], str(self.quantity)])
+        pddl_action.effects.append(["assign", Function.Steve_x.to_pddl(), [Function.cell_x.name, '?c']])
+        pddl_action.effects.append(["assign", Function.Steve_z.to_pddl(), [Function.cell_z.name, '?c']])
         return pddl_action
 
     def to_polycraft(self, parameter_binding: dict) -> PolycraftAction:
@@ -649,6 +656,8 @@ class PddlBreakActionGenerator(PddlPolycraftActionGenerator):
         pddl_action.effects.append(["increase", [f"count_{self.item_type_to_collect}", ], str(self.items_per_block)])
         air_cell_idx = meta_model.block_type_to_idx[BlockType.AIR.value]
         pddl_action.effects.append(["assign", ["cell_type", "?c"], f"{air_cell_idx}"])
+        pddl_action.effects.append(["assign", Function.Steve_x.to_pddl(), [Function.cell_x.name, '?c']])
+        pddl_action.effects.append(["assign", Function.Steve_z.to_pddl(), [Function.cell_z.name, '?c']])
         return pddl_action
 
     def to_polycraft(self, parameter_binding: dict) -> PolycraftAction:
@@ -822,7 +831,7 @@ class CellAccessibleEvent(PddlPolycraftEvent):
                                           ["=", [Function.cell_x.name, "?c"], ["-", [Function.Steve_x.name], "1"]]],
                                          ])
 
-        pddl_event.effects.append([Predicate.isAccessible.name, "?c2"])
+        pddl_event.effects.append([Predicate.isAccessible.name, "?c"])
         return pddl_event
 
 

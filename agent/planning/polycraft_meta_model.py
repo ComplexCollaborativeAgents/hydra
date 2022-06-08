@@ -8,7 +8,7 @@ from worlds.polycraft_world import PolycraftAction
 
 logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("Polycraft")
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 
 
 # CONSTANTS
@@ -334,7 +334,7 @@ class PolycraftMetaModel(MetaModel):
                              'break_diamond_outcome_num',
                              'collect_sap_outcome_num'],
                          constant_numeric_fluents={
-                             'break_log_outcome_num': 1,
+                             'break_log_outcome_num': 2,
                              'break_platinum_outcome_num': 1,
                              'break_diamond_outcome_num': 9,
                              'collect_sap_outcome_num': 1
