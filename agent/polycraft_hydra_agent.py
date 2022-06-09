@@ -390,7 +390,7 @@ class PolycraftHydraAgent(HydraAgent):
         if not self._should_explore(world_state):
             task = PolycraftTask.CRAFT_POGO.create_instance()
             plan = self.plan(active_task=task)
-            if plan is not None:
+            if plan is not None and plan:
                 logger.info(f"Found a plan for main task ({task})")
                 return plan
             else:
@@ -403,7 +403,7 @@ class PolycraftHydraAgent(HydraAgent):
                 logger.info(f"Chosen exploration task {task} but it is not feasible in the current state")
                 return None
             plan = self.plan(active_task=task)
-            if plan is not None:
+            if plan is not None and plan:
                 logger.info(f"Found a plan for exploration task {task}")
                 return plan
             else:

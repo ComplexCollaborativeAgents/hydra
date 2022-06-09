@@ -679,8 +679,6 @@ class Polycraft(World):
                         cell_attr['cell_z'] = cell_to_coordinates[2]
                         room_game_map[cell_id] = cell_attr
 
-            logger.info(f'Door to room dictionary size: {total_size(self.door_to_room_cells)}')
-
             id = sensed['step']
             facing_block = sensed['blockInFront']
             inventory = sensed['inventory']

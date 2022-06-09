@@ -9,11 +9,13 @@ from worlds.polycraft_world import *
 class MacroAction(PolycraftAction):
     """ A macro action is a generator of basic PolycraftActions based on the current state """
 
-    def __init__(self, max_steps: int = 1):
+    def __init__(self, max_steps: int = 1, max_failures: int = 3):
         super().__init__()
         self.actions_done = []  # a list of the actions performed in this macro action. Useful for debugging.
         self._is_done = False
         self.max_steps = max_steps  # Maximal number of steps (actions) required to do this macro action is expected
+        self.max_failures = max_failures
+        self.current_failures = 0
 
     def _get_next_action(self, state: PolycraftState, env: Polycraft) -> PolycraftAction:
         raise NotImplementedError("Subclasses of MacroAction should implement this and set self.next_action in it")
@@ -26,12 +28,14 @@ class MacroAction(PolycraftAction):
         logger.info(f"Doing macro action {self} until done")
         result = None
         i = 0
-        while i < self.max_steps:
+        while i < self.max_steps and self.current_failures < self.max_failures:
             next_action = self._get_next_action(state, env)
             next_state = state
             if next_action is not None:
                 next_state, step_cost = env.act(state, next_action)
                 result = next_action.response
+                if not next_action.is_success(result):
+                    self.current_failures += 1
                 self.actions_done.append(next_action)
             if self.is_done():
                 return result

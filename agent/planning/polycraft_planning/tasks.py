@@ -357,23 +357,26 @@ class CraftPogoHeuristic(AbstractHeuristic):
         else:
             step1_ingredients = get_ingredients_for_recipe(recipe)
 
-            new_ingredients = dict()
             for ingredient, quantity in step1_ingredients.items():
-                if ingredient == ItemType.SACK_POLYISOPRENE_PELLETS:
-                    # Extra steps for placing and collecting tree tap
-                    h_value += 2
-                    ingredient = ItemType.TREE_TAP
                 fluent = f"['count_{ingredient.replace(':', '_')}']"
                 quantity = quantity - node.state_vars[fluent]
                 # logging.getLogger('Polycraft').info(f'Yoni: need {step1_ingredients[ingredient]} {fluent}, still {quantity} more')
                 if quantity > 0:
+                    if ingredient == ItemType.SACK_POLYISOPRENE_PELLETS:
+                        # Extra steps for placing and collecting tree tap
+                        h_value += 2
+                        ingredient = ItemType.TREE_TAP.value
+                        fluent = f"['count_{ingredient.replace(':', '_')}']"
+                        quantity = quantity - node.state_vars[fluent]
+                        if quantity <= 0:
+                            continue
                     num_out = get_outputs_of_recipe(recipe)[item_type]
                     # One step for the crafting, multipy by how many times we will need to craft it.
                     h_value += 1 + self._still_missing_ingredients(node, ingredient) * (quantity / num_out)
 
         return h_value
 
-    def evaluate(self, node:SearchState):
+    def evaluate(self, node: SearchState):
         # Check if have ingredients of pogo stick
         pogo_count = node.state_vars["['count_polycraft_wooden_pogo_stick']"]
         h_value = 0
