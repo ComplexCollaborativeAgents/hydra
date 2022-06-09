@@ -211,6 +211,7 @@ class PolycraftHydraAgent(HydraAgent):
         self.level_started_time = None
         self.new_level_time = 600  # If the timeout for a game has passed, start a new game.
         self.novelty_reported = False
+        self.objects_to_explore = []
 
     def start_level(self, env: Polycraft):
         """
@@ -263,6 +264,29 @@ class PolycraftHydraAgent(HydraAgent):
         self.active_plan = []
         self.set_active_task(PolycraftTask.CRAFT_POGO.create_instance())
 
+    def _choose_exploration_action(self, world_state: PolycraftState):
+        exploration_actions = []
+        # Try out new objects
+        for obj in self.objects_to_explore:
+            if obj in world_state.get_type_to_cells():
+                cells = world_state.get_cells_of_type(obj, only_accessible=True)
+                if cells:
+                    cell_to_break = cells[0]
+                    exploration_actions.append((obj, TeleportToBreakAndCollect(cell_to_break)))
+            elif obj in world_state.get_item_to_count():
+                exploration_actions.append((obj, SelectAndUse(obj)))
+            else:
+                # Must be an entity
+                exploration_actions.append((obj, TeleportToAndInteract(obj,
+                                                               coordinates_to_cell(world_state.entities[obj]['pos']))))
+
+        # Prefer new objects
+        if len(exploration_actions) > 0:
+            obj, action = random.choice(exploration_actions)
+            self.objects_to_explore.remove(obj)
+            return action
+        # else
+        return None
 
     def _choose_exploration_task(self, world_state: PolycraftState):
         """ Choose an exploration task to perform """
@@ -398,6 +422,10 @@ class PolycraftHydraAgent(HydraAgent):
 
         # Either decided to explore or failed to find a plan to craft the pogo: explore
         for i in range(settings.POLYCRAFT_MAX_EXPLORATION_PLANNING_ATTEMPTS):
+            action = self._choose_exploration_action(world_state)
+            if action is not None:
+                return [action]
+            # else
             task = self._choose_exploration_task(world_state)
             if not task.is_feasible(world_state):
                 logger.info(f"Chosen exploration task {task} but it is not feasible in the current state")
@@ -558,17 +586,20 @@ class PolycraftHydraAgent(HydraAgent):
                 logger.info(f"Novel block type detected - {block_type}")
                 self.meta_model.introduce_novel_block_type(block_type)
                 novelties.add(f"{block_type}")
+                self.objects_to_explore.append(block_type)
         for item_type in state.get_item_to_count():
             if item_type not in [tp for tp in self.meta_model.item_type_to_idx]:
                 novelties.add(f"{item_type}")
                 logger.info(f"Novel item type detected - {item_type}")
                 self.meta_model.introduce_novel_inventory_item_type(item_type)
+                self.objects_to_explore.append(item_type)
         for entity, entity_attr in state.entities.items():
             entity_type = entity_attr["type"]
             if entity_type not in [entity.value for entity in EntityType]:
                 novelties.add(f"{entity_type}")
                 logger.info(f"Novel entity type detected - {entity_type}")
                 self.meta_model.introduce_novel_entity_type(entity_type)
+                self.objects_to_explore.append(entity_type)
         if len(novelties) > 0 and not self.novelty_reported:
             self.env.poly_client.REPORT_NOVELTY(level="1", confidence=f"{100}",
                                                 user_msg=str(novelties))

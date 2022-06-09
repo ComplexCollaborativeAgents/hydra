@@ -44,6 +44,21 @@ class MacroAction(PolycraftAction):
         return result
 
 
+class SelectAndUse(MacroAction):
+    """ Attempt to select an item and then use it. TODO and then figure out what happened and add it to the metamodel"""
+
+    def __init__(self, item: str):
+        super(SelectAndUse, self).__init__(max_steps=2)
+        self.item = item
+
+    def _get_next_action(self, state: PolycraftState, env: Polycraft) -> PolycraftAction:
+        if self.actions_done:
+            self._is_done = True
+            return PolyUseItem(item_name=self.item)
+        else:
+            return PolySelectItem(item_name=self.item)
+
+
 class WaitForLogs(MacroAction):
     """ Wait a predefined number of steps or until we see blocks of type log """
 
@@ -60,7 +75,7 @@ class BreakAndCollect(MacroAction):
     MAX_COLLECT_RANGE_AFTER_BREAK = 4
     MAX_STEPS = 4 ** MAX_COLLECT_RANGE_AFTER_BREAK
 
-    """ Teleport near a brick, break it, and collect the resulting item """
+    """ Break a block and collect the resulting item """
 
     def __init__(self, cell: str):
         super().__init__(max_steps=BreakAndCollect.MAX_STEPS)
@@ -190,6 +205,18 @@ class TeleportToAndDo(MacroAction):
             return PolyTurn(turn_angle)
 
         return self._action_at_cell(state)
+
+
+class TeleportToAndInteract(TeleportToAndDo):
+    """ Teleports to a presumably unknown entity and attempts to interact with it"""
+
+    def __init__(self, entity, cell):
+        super(TeleportToAndInteract, self).__init__(cell=cell, max_steps=TeleportAndFaceCell.MAX_STEPS + 1)
+        self.entity = entity
+
+    def _action_at_cell(self, state: PolycraftState):
+        self._is_done = True
+        return PolyInteract(self.entity)
 
 
 class ExploreRoom(PolycraftAction):
