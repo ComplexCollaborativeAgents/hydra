@@ -333,6 +333,8 @@ class SBOneBirdHeuristic(AbstractHeuristic):
             # passed pig, but might still be close enough to hit
             if min(dists) < 50 ** 2:
                 tot_speed = pow(bird_coords[2] ** 2 + bird_coords[3] ** 2, 0.5)
+                if tot_speed == 0.0:
+                    return pow(min(dists), 0.5)
                 return pow(min(dists), 0.5)/(tot_speed * constants.DELTA_T)
             return SBOneBirdHeuristic.LARGE_VALUE
         value = max(0, math.sqrt(dists[closest_ind]) / (speed_in_direction * constants.DELTA_T))
