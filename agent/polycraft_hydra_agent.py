@@ -210,7 +210,8 @@ class PolycraftHydraAgent(HydraAgent):
         self.novelty_existence = False  # Have we detected novelty the last time we checked?
         self.level_started_time = None
         self.new_level_time = 600  # If the timeout for a game has passed, start a new game.
-        self.novelty_reported = False
+        self.novelty_reported = False  # have we reported novelty?
+        self.novelty_explored = False  # after exploring a new type of brick\item\entity, should attempt to repair.
         self.objects_to_explore = []
 
     def start_level(self, env: Polycraft):
@@ -284,6 +285,7 @@ class PolycraftHydraAgent(HydraAgent):
         if len(exploration_actions) > 0:
             obj, action = random.choice(exploration_actions)
             self.objects_to_explore.remove(obj)
+            self.novelty_explored = True
             return action
         # else
         return None
@@ -291,6 +293,7 @@ class PolycraftHydraAgent(HydraAgent):
     def _choose_exploration_task(self, world_state: PolycraftState):
         """ Choose an exploration task to perform """
         exploration_tasks = []
+
         # Explore other rooms
         for door_cell, room_cells in world_state.door_to_room_cells.items():
             if len(room_cells) == 1:  # Room not explored
@@ -431,6 +434,8 @@ class PolycraftHydraAgent(HydraAgent):
                 logger.info(f"Chosen exploration task {task} but it is not feasible in the current state")
                 return None
             plan = self.plan(active_task=task)
+            # After exploring try to create pogostick again
+            self.set_active_task(PolycraftTask.CRAFT_POGO.create_instance())
             if plan is not None and plan:
                 logger.info(f"Found a plan for exploration task {task}")
                 return plan
@@ -608,6 +613,10 @@ class PolycraftHydraAgent(HydraAgent):
 
     def should_repair(self, state: PolycraftState):
         """ Choose if the agent should repair its metamodel based on the given observation """
+        if self.novelty_explored:
+            # There is a novelty we explored since last check, need to repair based on what we discoverd.
+            self.novelty_explored = False  # done with this novelty
+            return True
         self.novelty_detection(report_novelty=True, only_current_state=False)
         return self.novelty_existence
 
