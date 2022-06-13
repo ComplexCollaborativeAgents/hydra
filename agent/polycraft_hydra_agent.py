@@ -181,7 +181,7 @@ class PolycraftPlanner(HydraPlanner):
                 # print(str(i) + " =====> " + str(line))
                 if "No Plan Found!" in line:
                     logger.info("No plan found")
-                    return None
+                    return []
 
                 action_in_plan = None
                 for action_name in pddl_action_names:
@@ -317,56 +317,54 @@ class PolycraftHydraAgent(HydraAgent):
 
         # Open safe
         safe_cells = world_state.get_cells_of_type(BlockType.SAFE.value)
-        for safe_cell in safe_cells:
-            safe_ok = True
-            # The following lines removed to accommodate the "thief" novelty
-            # for old_action in self.current_observation.actions:
-            #     if isinstance(old_action, OpenSafeAndCollect):
-            #         if old_action.cell==safe_cell and old_action.safe_opened:
-            #             logger.info(f"Safe {safe_cell} has already been opened - no need to re-explore it")
-            #             safe_ok=False
-            #             break
-            if safe_ok:
-                exploration_tasks.append(CollectFromSafeTask(safe_cell))
+        if len(self.observations_list) > 2:
+            # Only go to safe if we haven't checked in last three tasks?
+            for safe_cell in safe_cells:
+                safe_ok = True
+                # The following lines removed to accommodate the "thief" novelty
+                for back_index in range(-1, -4, -1):
+                    for old_action in self.observations_list[back_index]:
+                        if isinstance(old_action, OpenSafeAndCollect):
+                            if old_action.cell == safe_cell and old_action.safe_opened:
+                                logger.info(f"Safe {safe_cell} has already been opened - no need to re-explore it")
+                                safe_ok = False
+                                break
+                if safe_ok:
+                    exploration_tasks.append(CollectFromSafeTask(safe_cell))
 
         # No open door tasks? choose a random exploration task
         logger.info(f"possible exploration tasks: {exploration_tasks}")
         return random.choice(exploration_tasks)
 
+    def level_timed_out(self):
+        """ Checks whether the level should time out, returns True if we should give up. """
+        if time.time() - self.level_started_time > self.new_level_time:
+            if not self.novelty_reported:
+                self.env.poly_client.REPORT_NOVELTY(level="1", confidence="50",
+                                                    user_msg='Something that made the agent plan for too long. ')
+                self.novelty_reported = True
+            logger.info("Level timed out!")
+            return True
+        return False
+
     def choose_action(self, world_state: PolycraftState):
         """ Choose which action to perform in the given state """
 
-        if time.time() - self.level_started_time > self.new_level_time:
-            if not self.novelty_reported:
-                self.env.poly_client.REPORT_NOVELTY(level="1", confidence="50",
-                                                    user_msg='Something that made the agent plan for too long. ')
-                self.novelty_reported = True
+        if self.level_timed_out():
             self.active_plan = []
             return PolyNoAction()
 
-        if len(self.current_observation.actions) == 0 and len(self.active_plan) > 0:
-            logger.info("Initial plan set externally (should be used only for testing and debugging")
-        elif self.active_plan is None or len(self.active_plan) == 0:
-            if len(self.current_observation.actions) > 0:
-                last_action = self.current_observation.actions[-1]
-                if not last_action.success:
-                    logger.info("Need to plan: last action failed")
-                else:
-                    logger.info("previous plan ended, creating new plan")
-            else:
-                logger.info("Running planner to generate initial plan")
-            self.active_plan = self.plan()
+        if len(self.active_plan) == 0:
+            logger.info("No current plan, plan to create pogostick")
+            self.set_active_task(PolycraftTask.CRAFT_POGO.create_instance())
+            self.active_plan = self.plan_logic(world_state)
 
-        if time.time() - self.level_started_time > self.new_level_time:
-            if not self.novelty_reported:
-                self.env.poly_client.REPORT_NOVELTY(level="1", confidence="50",
-                                                    user_msg='Something that made the agent plan for too long. ')
-                self.novelty_reported = True
+        if self.level_timed_out():
             self.active_plan = []
             return PolyNoAction()
 
         # If no plan found, choose default action
-        if self.active_plan is None or len(self.active_plan) == 0:
+        if len(self.active_plan) == 0:
             logger.info("No active plan or action has been assigned: choose a default action")
             return self._choose_default_action(world_state)
         else:
@@ -397,7 +395,7 @@ class PolycraftHydraAgent(HydraAgent):
             logger.info("Proceeding to main task")
             return False
 
-    def replan(self, world_state: PolycraftState):
+    def plan_logic(self, world_state: PolycraftState):
         """ Create a new plan after the active plan failed """
         if self.should_repair(world_state):
             logger.info("Repairing model!")
@@ -406,7 +404,7 @@ class PolycraftHydraAgent(HydraAgent):
         if not self._should_explore(world_state):
             task = PolycraftTask.CRAFT_POGO.create_instance()
             plan = self.plan(active_task=task)
-            if plan is not None and plan:
+            if len(plan) > 0:
                 logger.info(f"Found a plan for main task ({task})")
                 return plan
             else:
@@ -424,14 +422,13 @@ class PolycraftHydraAgent(HydraAgent):
                 return None
             plan = self.plan(active_task=task)
             # After exploring try to create pogostick again
-            self.set_active_task(PolycraftTask.CRAFT_POGO.create_instance())
-            if plan is not None and plan:
+            if len(plan) > 0:
                 logger.info(f"Found a plan for exploration task {task}")
                 return plan
             else:
                 logger.info(f"Failed to find a plan for exploration task {task}")
         logger.info("No plan found for any task :(")
-        return None
+        return []
 
     def set_active_task(self, task: PolycraftTask):
         """ Sets the active task, generate a plan to achieve it and updates the active plan """
@@ -605,6 +602,8 @@ class PolycraftHydraAgent(HydraAgent):
         if self.novelty_explored:
             # There is a novelty we explored since last check, need to repair based on what we discoverd.
             self.novelty_explored = False  # done with this novelty
+            return True
+        elif self.failed_actions_in_level > 0 and self.failed_actions_in_level % self.exploration_rate == 0:
             return True
         self.novelty_detection(report_novelty=True, only_current_state=False)
         return self.novelty_existence

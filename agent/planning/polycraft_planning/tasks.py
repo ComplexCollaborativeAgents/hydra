@@ -461,8 +461,8 @@ class PddlTeleportActionGenerator(PddlPolycraftActionGenerator):
         pddl_action.parameters.append(["?to", "-", "cell"])
 
         air_idx = meta_model.block_type_to_idx[BlockType.AIR.value]
-        pddl_action.preconditions.append(["=", ["cell_type", "?to"], f"{air_idx}"])
         pddl_action.preconditions.append([Predicate.isAccessible.name, '?to'])
+        pddl_action.preconditions.append(["=", [Function.cell_type.name, "?to"], f"{air_idx}"])
         pddl_action.preconditions.append(["or",
                                           ["and", ["=", [Function.cell_x.name, "?to"], [Function.Steve_x.name]],
                                            ["=", [Function.cell_z.name, "?to"], ["+", [Function.Steve_z.name], "1"]]],
@@ -526,17 +526,17 @@ class PddlPlaceTreeTapActionGenerator(PddlPolycraftActionGenerator):
     def to_pddl(self, meta_model: PolycraftMetaModel) -> PddlPlusWorldChange:
         pddl_action = PddlPlusWorldChange(WorldChangeTypes.action)
         pddl_action.name = self.pddl_name
-        pddl_action.preconditions.append([">=", [f"count_{ItemType.TREE_TAP.value}", ], "1"])
-        log_idx = meta_model.block_type_to_idx[BlockType.LOG.value]
-        pddl_action.preconditions.append(["=", ["cell_type", self.tree], f"{log_idx}"])
-        air_idx = meta_model.block_type_to_idx[BlockType.AIR.value]
-        pddl_action.preconditions.append(["=", ["cell_type", self.tap_cell], f"{air_idx}"])
-        pddl_action.preconditions.append([Predicate.isAccessible.name, self.tap_cell])
         pddl_action.preconditions.append([Predicate.isAccessible.name, self.tree])
+        log_idx = meta_model.block_type_to_idx[BlockType.LOG.value]
+        pddl_action.preconditions.append(["=", [Function.cell_type.name, self.tree], f"{log_idx}"])
+        pddl_action.preconditions.append([Predicate.isAccessible.name, self.tap_cell])
+        air_idx = meta_model.block_type_to_idx[BlockType.AIR.value]
+        pddl_action.preconditions.append(["=", [Function.cell_type.name, self.tap_cell], f"{air_idx}"])
+        pddl_action.preconditions.append([">=", [f"count_{ItemType.TREE_TAP.value}", ], "1"])
 
         pddl_action.effects.append(["decrease", [f"count_{ItemType.TREE_TAP.value}", ], "1"])
         tree_tap_idx = meta_model.block_type_to_idx[BlockType.TREE_TAP.value]
-        pddl_action.effects.append(["assign", ["cell_type", self.tap_cell], f"{tree_tap_idx}"])
+        pddl_action.effects.append(["assign", [Function.cell_type.name, self.tap_cell], f"{tree_tap_idx}"])
 
         return pddl_action
 
@@ -564,14 +564,14 @@ class PddlCollectActionGenerator(PddlPolycraftActionGenerator):
         self.collect_from_block_type = collect_from_block_type
         self.quantity = quantity
 
-    def to_pddl(self, meta_model: MetaModel) -> PddlPlusWorldChange:
+    def to_pddl(self, meta_model: PolycraftMetaModel) -> PddlPlusWorldChange:
         pddl_action = PddlPlusWorldChange(WorldChangeTypes.action)
         pddl_action.name = self.pddl_name
         pddl_action.parameters.append(["?c", "-", "cell"])
 
+        pddl_action.preconditions.append([Predicate.isAccessible.name, "?c"])
         cell_type_idx = meta_model.block_type_to_idx[self.collect_from_block_type]
-        pddl_action.preconditions.append(["=", ["cell_type", "?c"], f"{cell_type_idx}"])
-        pddl_action.preconditions.append(["isAccessible", "?c"])
+        pddl_action.preconditions.append(["=", [Function.cell_type.name, "?c"], f"{cell_type_idx}"])
 
         pddl_action.effects.append(["increase", [f"count_{self.item_type_to_collect}", ], str(self.quantity)])
         pddl_action.effects.append(["assign", Function.Steve_x.to_pddl(), [Function.cell_x.name, '?c']])
@@ -607,7 +607,7 @@ class PddlCollectFromTreeTapActionGenerator(PddlPolycraftActionGenerator):
         pddl_action.parameters.append(["?c", "-", "cell"])
 
         tree_tap_idx = meta_model.block_type_to_idx[BlockType.TREE_TAP.value]
-        pddl_action.preconditions.append(["=", ["cell_type", "?c"], f"{tree_tap_idx}"])
+        pddl_action.preconditions.append(["=", [Function.cell_type.name, "?c"], f"{tree_tap_idx}"])
 
         sack_of_pellets_per_collect = meta_model.collect_block_to_outcome[BlockType.TREE_TAP.value][1]
         pddl_action.effects.append(["increase", [f"count_{ItemType.SACK_POLYISOPRENE_PELLETS.value}", ],
@@ -649,12 +649,13 @@ class PddlBreakActionGenerator(PddlPolycraftActionGenerator):
         pddl_action.name = self.pddl_name
         pddl_action.parameters.append(["?c", "-", "cell"])
 
+        pddl_action.preconditions.append([Predicate.isAccessible.name, "?c"])
         cell_type_idx = meta_model.block_type_to_idx[self.block_type_to_break]
-        pddl_action.preconditions.append(["=", ["cell_type", "?c"], f"{cell_type_idx}"])
+        pddl_action.preconditions.append(["=", [Function.cell_type.name, "?c"], f"{cell_type_idx}"])
         if self.needs_iron_pickaxe:
             iron_pickaxe_idx = meta_model.item_type_to_idx[ItemType.IRON_PICKAXE.value]
             pddl_action.preconditions.append(["=", ["selectedItem", ], f"{iron_pickaxe_idx}"])
-        pddl_action.preconditions.append([Predicate.isAccessible.name, "?c"])
+
 
         pddl_action.effects.append(["increase", [f"count_{self.item_type_to_collect}", ], str(self.items_per_block)])
         air_cell_idx = meta_model.block_type_to_idx[BlockType.AIR.value]
@@ -741,8 +742,9 @@ class PddlOpenSafeAndCollectGenerator(PddlPolycraftActionGenerator):
         pddl_action.name = self.pddl_name
         pddl_action.parameters.append(["?c", "-", PddlType.safe_cell.name])
 
-        pddl_action.preconditions.append([">=", [f"count_{ItemType.KEY.value}"], "1"])
         pddl_action.preconditions.append([Predicate.safe_is_accessible.name, "?c"])
+        pddl_action.preconditions.append([">=", [f"count_{ItemType.KEY.value}"], "1"])
+
 
         pddl_action.effects.append([Predicate.safe_collected.name, "?c"])
 
@@ -780,6 +782,8 @@ class PddlTradeActionGenerator(PddlPolycraftActionGenerator):
         pddl_action.name = self.pddl_name
         pddl_action.parameters.append(["?trader_loc", "-", "cell"])
 
+        pddl_action.preconditions.append([Predicate.isAccessible.name, "?trader_loc"])
+
         for input in self.trade["inputs"]:
             item_type = input['Item']
             quantity = input['stackSize']
@@ -787,8 +791,6 @@ class PddlTradeActionGenerator(PddlPolycraftActionGenerator):
             pddl_action.effects.append(["decrease", [f"count_{item_type}"], str(quantity)])
 
         pddl_action.preconditions.append([f"trader_{self.trader_id}_at", "?trader_loc"])
-
-        pddl_action.preconditions.append([Predicate.isAccessible.name, "?trader_loc"])
 
         for output in self.trade["outputs"]:
             item_type = output['Item']
@@ -839,10 +841,14 @@ class CellAccessibleEvent(PddlPolycraftEvent):
 
 
 class DoorAccessibleEvent(PddlPolycraftEvent):
+    """
+    Make a door accessible
+    """
     def to_pddl(self, meta_model: PolycraftMetaModel):
         pddl_event = PddlPlusWorldChange(WorldChangeTypes.event)
         pddl_event.name = "door_accessible"
         pddl_event.parameters.append(["?c", "-", PddlType.door_cell.name])
+
         pddl_event.preconditions.append(["not", [Predicate.door_is_accessible.name, "?c"]])
         air_idx = meta_model.block_type_to_idx[BlockType.AIR.value]
         pddl_event.preconditions.append(["or",
@@ -855,11 +861,15 @@ class DoorAccessibleEvent(PddlPolycraftEvent):
                                          ["and", ["=", [Function.cell_z.name, "?c"], [Function.Steve_z.name]],
                                           ["=", [Function.cell_x.name, "?c"], ["-", [Function.Steve_x.name], "1"]]],
                                          ])
+
         pddl_event.effects.append([Predicate.door_is_accessible.name, "?c"])
         return pddl_event
 
 
 class SafeAccessibleEvent(PddlPolycraftEvent):
+    """
+    Make a safe accessible
+    """
     def to_pddl(self, meta_model: PolycraftMetaModel):
         pddl_event = PddlPlusWorldChange(WorldChangeTypes.event)
         pddl_event.name = "safe_accessible"
@@ -918,15 +928,16 @@ class PddlCraftActionGenerator(PddlPolycraftActionGenerator):
         pddl_action = PddlPlusWorldChange(WorldChangeTypes.action)
         pddl_action.name = self.pddl_name
 
+        if self.needs_crafting_table:  # TODO: Not robust to problems with multiple crafting tables Yoni: Isn't it?
+            pddl_action.parameters.append(["?from", "-", "cell"])
+
+            pddl_action.preconditions.append([Predicate.isAccessible.name, "?from"])
+            crafting_table_idx = meta_model.block_type_to_idx[BlockType.CRAFTING_TABLE.value]
+            pddl_action.preconditions.append(["=", ["cell_type", "?from", ], f"{crafting_table_idx}"])
+
         for item_type, quantity in get_ingredients_for_recipe(self.recipe).items():
             pddl_action.preconditions.append([">=", [f"count_{item_type}"], str(quantity)])
             pddl_action.effects.append(["decrease", [f"count_{item_type}"], str(quantity)])
-
-        if self.needs_crafting_table:  # TODO: Not robust to problems with multiple crafting tables
-            pddl_action.parameters.append(["?from", "-", "cell"])
-            crafting_table_idx = meta_model.block_type_to_idx[BlockType.CRAFTING_TABLE.value]
-            pddl_action.preconditions.append(["=", ["cell_type", "?from", ], f"{crafting_table_idx}"])
-            pddl_action.preconditions.append([Predicate.isAccessible.name, "?from"])
 
         for item_type, quantity in get_outputs_of_recipe(self.recipe).items():
             pddl_action.effects.append(["increase", [f"count_{item_type}"], str(quantity)])
@@ -958,8 +969,10 @@ class PddlMoveThroughDoorActionGenerator(PddlPolycraftActionGenerator):
         pddl_action = PddlPlusWorldChange(WorldChangeTypes.action)
         pddl_action.name = self.pddl_name
         pddl_action.parameters.append(["?cell", "-", PddlType.door_cell.name])
+
         pddl_action.preconditions.append([Predicate.door_is_accessible.name, "?cell"])
         pddl_action.preconditions.append([Predicate.open.name, "?cell"])
+
         pddl_action.effects.append([Predicate.passed_door.name, "?cell"])
         return pddl_action
 

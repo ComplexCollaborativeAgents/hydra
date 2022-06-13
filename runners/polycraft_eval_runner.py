@@ -63,7 +63,7 @@ def run():
 
             # LaunchTournament.py handles detecting and advancing to next level
             if state.is_terminal():
-                agent.novelty_detection(report_novelty=True)
+                # agent.novelty_detection(report_novelty=True)
                 if SINGLE_LEVEL_MODE:
                     world.poly_client._logger.info("Finished the level!")
                     return
