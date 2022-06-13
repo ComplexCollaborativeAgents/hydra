@@ -43,7 +43,7 @@ class PolycraftConsistencyEstimator(MetaModelBasedConsistencyEstimator):
 class PolycraftMetaModelRepair(GreedyBestFirstSearchMetaModelRepair):
     """ The meta model repair used for ScienceBirds. """
 
-    def __init__(self, meta_model=PolycraftMetaModel(),
+    def __init__(self, meta_model,
                  consistency_threshold=settings.POLYCRAFT_CONSISTENCY_THRESHOLD,
                  time_limit=settings.POLYCRAFT_REPAIR_TIMEOUT,
                  max_iterations=settings.POLYCRAFT_REPAIR_MAX_ITERATIONS):

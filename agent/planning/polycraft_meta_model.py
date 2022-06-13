@@ -333,6 +333,9 @@ class PolycraftMetaModel(MetaModel):
                              'break_platinum_outcome_num',
                              'break_diamond_outcome_num',
                              'collect_sap_outcome_num'],
+                         repair_deltas=[
+                             1, 1, 1, 1
+                         ],
                          constant_numeric_fluents={
                              'break_log_outcome_num': 2,
                              'break_platinum_outcome_num': 1,
@@ -392,13 +395,16 @@ class PolycraftMetaModel(MetaModel):
             return
         type_idx = max(self.block_type_to_idx.values()) + 1
         self.block_type_to_idx[block_type] = type_idx
-        self.break_block_to_outcome[block_type] = (block_type, 0)  # Assume unknown object create no items
+        self.break_block_to_outcome[block_type] = (block_type, 0)
+        # Assume unknown object creates items, but set initial number to 0
         fluent_name = 'break_' + self._convert_element_naming(block_type) + '_outcome_num'
+        self.introduce_novel_inventory_item_type(block_type, False)
         self.constant_numeric_fluents[fluent_name] = 0
         self.repairable_constants.append(fluent_name)
+        self.repair_deltas.append(1)
         # Assume new item is not collectable
 
-    def introduce_novel_inventory_item_type(self, item_type):
+    def introduce_novel_inventory_item_type(self, item_type, selectable=True):
         """ Introduce new item type."""
         if item_type in self.item_type_to_idx:
             logger.info(f"Item type {item_type} already known")
@@ -406,8 +412,8 @@ class PolycraftMetaModel(MetaModel):
         type_idx = max(self.item_type_to_idx.values()) + 1
         self.item_type_to_idx[item_type] = type_idx
 
-        if item_type not in self.selectable_items:
-            self.selectable_items.append(item_type)  # Assume unknown item is selectable
+        if item_type not in self.selectable_items and selectable:
+            self.selectable_items.append(item_type)  # Assume unknown item is selectable unless told otherwise
 
     def introduce_novel_entity_type(self, entity_type):
         """ Introduce novel entity type"""

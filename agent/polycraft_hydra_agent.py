@@ -35,7 +35,7 @@ class PolycraftObservation(HydraObservation):
         return self.states[0]
 
     def get_pddl_states_in_trace(self,
-                                 meta_model: PolycraftMetaModel = PolycraftMetaModel()) -> list:
+                                 meta_model: PolycraftMetaModel) -> list:
         # TODO: Refactor and move this to the meta model?
         """ Returns a sequence of PDDL states that are the observed intermediate states """
         observed_state_seq = []
@@ -44,7 +44,7 @@ class PolycraftObservation(HydraObservation):
             observed_state_seq.append(pddl)
         return observed_state_seq
 
-    def get_pddl_plan(self, meta_model: PolycraftMetaModel = PolycraftMetaModel):
+    def get_pddl_plan(self, meta_model: PolycraftMetaModel):
         """ Returns a PDDL+ plan object with the actions we performed """
         return PddlPlusPlan(self.actions)
 
@@ -197,8 +197,8 @@ class PolycraftPlanner(HydraPlanner):
 class PolycraftHydraAgent(HydraAgent):
     """ A Hydra agent for Polycraft of all the Hydra agents """
 
-    def __init__(self, planner: HydraPlanner = PolycraftPlanner(),
-                 meta_model_repair: MetaModelRepair = PolycraftMetaModelRepair()):
+    def __init__(self, planner: HydraPlanner = PolycraftPlanner()):
+        meta_model_repair = PolycraftMetaModelRepair(planner.meta_model)
         super().__init__(planner, meta_model_repair)
         self.env = None
         self.exploration_rate = 10  # Number of failed actions to endure before trying one exploration task
@@ -344,32 +344,33 @@ class PolycraftHydraAgent(HydraAgent):
             self.active_plan = []
             return PolyNoAction()
 
-        if len(self.current_observation.actions) == 0:
-            if self.active_plan is None or len(self.active_plan) == 0:
-                logger.info("Running planner to generate initial plan")
-                self.active_plan = self.plan()
+        if len(self.current_observation.actions) == 0 and len(self.active_plan) > 0:
+            logger.info("Initial plan set externally (should be used only for testing and debugging")
+        elif self.active_plan is None or len(self.active_plan) == 0:
+            if len(self.current_observation.actions) > 0:
+                last_action = self.current_observation.actions[-1]
+                if not last_action.success:
+                    logger.info("Need to plan: last action failed")
+                else:
+                    logger.info("previous plan ended, creating new plan")
             else:
-                logger.info("Initial plan set externally (should be used only for testing and debugging")
-
-        if self.should_replan():
-            logger.info("Replanning...")
-            self.active_plan = self.replan(world_state)
-            self.actions_since_planning = 0
-        else:
-            logger.info(f"Continue to perform the current plan. Next action is {self.active_plan[0]}")
-
-        # If no plan found, choose default action
-        if self.active_plan is None or len(self.active_plan) == 0:
-            logger.info("No active plan or action has been assigned: choose a default action")
-            return self._choose_default_action(world_state)
+                logger.info("Running planner to generate initial plan")
+            self.active_plan = self.plan()
 
         if time.time() - self.level_started_time > self.new_level_time:
             if not self.novelty_reported:
                 self.env.poly_client.REPORT_NOVELTY(level="1", confidence="50",
                                                     user_msg='Something that made the agent plan for too long. ')
                 self.novelty_reported = True
-            self.active_plan = [PolyNoAction()]
+            self.active_plan = []
             return PolyNoAction()
+
+        # If no plan found, choose default action
+        if self.active_plan is None or len(self.active_plan) == 0:
+            logger.info("No active plan or action has been assigned: choose a default action")
+            return self._choose_default_action(world_state)
+        else:
+            logger.info(f"Continue to perform the current plan. Next action is {self.active_plan[0]}")
 
         # Perform the next action in the plan
         assert (len(self.active_plan) > 0)
@@ -384,18 +385,6 @@ class PolycraftHydraAgent(HydraAgent):
 
         plan = self.planner.make_plan(self.current_state)
         return plan
-
-    def should_replan(self):
-        """ Decide if we need to update the active plan"""
-        if self.active_plan is None or len(self.active_plan) == 0:
-            logger.info("should replan: no plan")
-            return True
-        if len(self.current_observation.actions) > 0:
-            last_action = self.current_observation.actions[-1]
-            if not last_action.success:
-                logger.info("should replan: last action failed")
-                return True
-        return False
 
     def _should_explore(self, world_state: PolycraftState):
         """ Consider choosing an exploration action"""
