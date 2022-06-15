@@ -1,3 +1,5 @@
+import logging
+
 from agent.planning.meta_model import *
 from agent.planning.meta_model import MetaModel
 from agent.planning.pddl_plus import PddlPlusWorldChange
@@ -8,7 +10,7 @@ from worlds.polycraft_world import PolycraftAction
 
 logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("Polycraft")
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 
 
 # CONSTANTS
@@ -241,7 +243,7 @@ class Task:
         """ Returns the metric the planner seeks to optimize """
         raise NotImplementedError()
 
-    def get_planner_heuristic(self, world_state: PolycraftState):
+    def get_planner_heuristic(self, world_state: PolycraftState, metamodel):
         """ Returns the heuristic to be used by the planner"""
         raise NotImplementedError()
 
@@ -644,8 +646,8 @@ class PolycraftMetaModel(MetaModel):
 
         return pddl_state
 
-    def get_nyx_heuristic(self, world_state):
-        return self.active_task.get_planner_heuristic(world_state)
+    def get_nyx_heuristic(self, world_state, meta_model):
+        return self.active_task.get_planner_heuristic(world_state, meta_model)
 
     #
     # def _extract_landmarks(self,world_state: PolycraftState, pddl_problem:PddlPlusProblem, pddl_domain: PddlPlusDomain):

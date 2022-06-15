@@ -81,7 +81,7 @@ class PolycraftPlanner(HydraPlanner):
         self.pddl_problem = self.meta_model.create_pddl_problem(state)
         self.pddl_domain = self.meta_model.create_pddl_domain(state)
         self.write_pddl_file(self.pddl_problem, self.pddl_domain)
-        nyx_heuristics.active_heuristic = self.meta_model.get_nyx_heuristic(state)
+        nyx_heuristics.active_heuristic = self.meta_model.get_nyx_heuristic(state, self.meta_model)
         logger.info(f"Planning to achieve task {self.meta_model.active_task}")
 
         # For debug purposes, print a summary of the current state
@@ -212,7 +212,8 @@ class PolycraftHydraAgent(HydraAgent):
         self.new_level_time = 600  # If the timeout for a game has passed, start a new game.
         self.novelty_reported = False  # have we reported novelty?
         self.novelty_explored = False  # after exploring a new type of brick\item\entity, should attempt to repair.
-        self.objects_to_explore = []
+        self.objects_to_explore = []  # New objects that might be worth exploring
+        self.unknown_traders = []  # Traders we haven't asked for recipes yet
 
     def start_level(self, env: Polycraft):
         """
@@ -221,6 +222,7 @@ class PolycraftHydraAgent(HydraAgent):
         These actions are needed before calling the planner
         """
         self.level_started_time = time.time()
+        self.env = env
 
         # Explore the level
         env.init_state_information()
@@ -230,42 +232,48 @@ class PolycraftHydraAgent(HydraAgent):
         current_state = env.get_current_state()
 
         # Try to interact with all other agents
-        for entity_id, entity_attr in current_state.entities.items():
-            if entity_attr['type'] == 'EntityTrader':
-                # If trader not accessible, mark getting to it as a possible exploration task
-                trader_cell = coordinates_to_cell(entity_attr['pos'])
-                if not current_state.game_map[trader_cell]['isAccessible']:
-                    continue
-
-                # Move to trader
-                tp_action = PolyEntityTP(entity_id, dist=1)
-                current_state, step_cost = env.act(current_state, tp_action)
-
-                if not tp_action.success:
-                    trader_cell = coordinates_to_cell(entity_attr['pos'])
-                    cell_accessible = current_state.game_map[trader_cell]['isAccessible']
-                    logger.info(
-                        f"Entity {entity_id} is at cell {trader_cell} whose accessibility is {cell_accessible}, "
-                        f"but TP_TO failed.")
-                else:
-                    # Interact with it
-                    interact_action = PolyInteract(entity_id)
-                    current_state, step_cost = env.act(current_state, interact_action)
-                    assert (interact_action.success)
-                    env.current_trades[entity_id] = interact_action.response['trades']['trades']
+        for entity_id in current_state.entities.keys():
+            self._interact_with_enttiy(entity_id, current_state)
 
         # Initialize the current observation and active plan objects
         self.current_state = env.get_current_state()
         self.current_observation = PolycraftObservation()  # Start a new observation object for this level
         self.current_observation.states.append(current_state)
         self.observations_list.append(self.current_observation)
-        self.env = env
+
         self.failed_actions_in_level = 0  # Count how many actions have failed in a given level
         self.actions_since_planning = 0  # Count how many actions have been performed since we planned last
         self.active_plan = []
         self.set_active_task(PolycraftTask.CRAFT_POGO.create_instance())
 
+    def _interact_with_enttiy(self, entity_id, current_state):
+        """ Interacts with an entity. If the entity is a trader, attempt to log possible trades. """
+        # Move to entity
+        tp_action = PolyEntityTP(entity_id, dist=1)
+        current_state, step_cost = self.env.act(current_state, tp_action)
+
+        if not tp_action.success:
+            trader_cell = coordinates_to_cell(current_state.entities[entity_id]['pos'])
+            cell_accessible = current_state.game_map[trader_cell]['isAccessible']
+            logger.info(
+                f"Entity {entity_id} is at cell {trader_cell} whose accessibility is {cell_accessible}, "
+                f"but TP_TO failed.")
+        else:
+            # Interact with it
+            interact_action = PolyInteract(entity_id)
+            current_state, step_cost = self.env.act(current_state, interact_action)
+            assert interact_action.success
+            if interact_action.response.get('trades') is not None:
+                # Discovered possible trades!
+                self.env.current_trades[entity_id] = interact_action.response['trades']['trades']
+            elif current_state.entities[entity_id]['type'] == 'EntityTrader':
+                # Entity is a trader, but might be busy. Mark for trying again later.
+                self.unknown_traders.append(entity_id)
+
     def _choose_exploration_action(self, world_state: PolycraftState):
+        """
+        If there are new objects to explore, choose one.
+        """
         exploration_actions = []
         # Try out new objects
         for obj in self.objects_to_explore:
@@ -323,8 +331,9 @@ class PolycraftHydraAgent(HydraAgent):
                 safe_ok = True
                 # The following lines removed to accommodate the "thief" novelty
                 for back_index in range(-1, -4, -1):
-                    for old_action in self.observations_list[back_index]:
-                        if isinstance(old_action, OpenSafeAndCollect):
+                    for old_action in self.observations_list[back_index].actions:
+                        if str(old_action).find('OpenSafeAndCollect') > -1:
+                            logger.info(f'Safe {old_action.cell} already accessed, and is {old_action.safe_opened}')
                             if old_action.cell == safe_cell and old_action.safe_opened:
                                 logger.info(f"Safe {safe_cell} has already been opened - no need to re-explore it")
                                 safe_ok = False
@@ -412,6 +421,10 @@ class PolycraftHydraAgent(HydraAgent):
 
         # Either decided to explore or failed to find a plan to craft the pogo: explore
         for i in range(settings.POLYCRAFT_MAX_EXPLORATION_PLANNING_ATTEMPTS):
+            # First, explore any trades we've missed.
+            if len(self.unknown_traders) > 0:
+                self._interact_with_enttiy(self.unknown_traders.pop(), world_state)
+                break
             action = self._choose_exploration_action(world_state)
             if action is not None:
                 return [action]
