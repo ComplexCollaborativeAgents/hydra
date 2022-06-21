@@ -22,10 +22,9 @@ class PolyDifficulty(Enum):
 NUM_TRIALS = 2      # Number of trials to generate
 NUM_LEVELS = 40     # Levels per trial
 LEVELS_BEFORE_NOVELTY = 20   # Levels before novelty is introduced
-REPETITION = 10   # If not set to None, the same sampled level will be used this many times before another is selected.
-DIFFICULTY = PolyDifficulty.EASY     # E = Easy, M = Medium, H = Hard, A = All/Mixed difficulty
+REPETITION = 10   # If not set to None, the same sampled level will be used this many times before another is selected.   
 OUTPUT_DIR = settings.ROOT_PATH
-DIFFICUTIES = ['E']
+DIFFICUTIES = ['E'] # E = Easy, M = Medium, H = Hard, A = All/Mixed difficulty
 NON_NOVEL_TO_USE = { # level and type of non-novel levels to use
     'L00': {
         'T01':[

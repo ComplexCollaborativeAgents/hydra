@@ -40,7 +40,7 @@ def main():
 
     dispatcher = PolycraftDispatcher(agent=agent)
     try:
-        dispatcher.experiment_start(trials=trials)
+        dispatcher.experiment_start(trials=trials, standalone=False)
 
         dispatcher.run_trials()
     finally:

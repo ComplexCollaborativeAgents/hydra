@@ -1,27 +1,47 @@
 import pathlib
+from typing import List, Dict
 
 from worlds.polycraft_world import *
 from agent.hydra_agent import HydraAgent
 from agent.polycraft_hydra_agent import PolycraftHydraAgent
+from utils.generate_trials_polycraft import generate_trial_sets
 
 
 class PolycraftDispatcher():
+    env:Polycraft
+    agent:PolycraftHydraAgent
+    trials:Dict[str, List]
+    results:Dict[str, Dict[str, List]]
+
     def __init__(self, agent: PolycraftHydraAgent):
         self.env = None
         self.agent = agent
 
+        # Current loaded trials, with key/value pairs: <trial_id>/<List of paths to .json levels>
         self.trials = {}
 
+        # Results of the most recent trial set
         self.results = {}
 
-    def experiment_start(self, trials: list = [], standalone=False):
+        #
+        self.trial_params = {
+            'num_trials'
+        }
+
+    def set_trial_sets(self, trial_sets:Dict[str, List[str]]):
+        """
+        Sets the set of trials to run
+        """
+        self.trials = trial_sets
+
+    def experiment_start(self, trials:List[str]=[], standalone:bool=False):
         ''' 
         Start the experiment.  
-        standalone: boolean flag that signals to run without launching Polycraft.  Requires a running Polycraft instance before startup
-        trials: a list that contains string paths towards each trial directory
+        :param standalone: boolean flag that signals to run without launching Polycraft.  If true, requires a running Polycraft instance before startup
+        :param trials: a list that contains string paths towards each trial directory
         '''
 
-        # Load polycarft world
+        # Load polycraft world
         mode = ServerMode.CLIENT
         if not standalone:
             mode = ServerMode.SERVER
@@ -30,44 +50,53 @@ class PolycraftDispatcher():
 
         if len(trials) > 0:
             # Setup trials
-            self.setup_trials(trials)
+            self.trials = self.setup_trials(trials)
 
-    def setup_trials(self, trials: list):
+    def setup_trials(self, trials:List[str]) -> Dict[str, List]:
+        """
+        Collect a set of trials from the list of paths.  Used for initializing provided trial sets.
+        :param trials: List of paths to directories that contain .json levels
+        :returns: A dictionary with key/value pairings: <trial_id>/<List of .json level paths>
+        """
+        trial_set = {}
 
-        # TODO: create a mix and match trial generator that has pre novelty and post novelty
         for trial in trials:
             # collect all trial filenames
-            self.trials[trial] = []
+            trial_set[trial] = []
             for level in os.listdir(trial): # Make sure to only add the .json files
                 suffix = pathlib.Path(level).suffix
                 if suffix == ".json":
-                    self.trials[trial].append(os.path.join(trial, level))
+                    trial_set[trial].append(os.path.join(trial, level))
+
+        return trial_set
 
     def run_trials(self):
         ''' Run trials setup in "setup_trials" '''
 
         trial_num = 0
-        for trial_path, trial_levels in self.trials.items():
-            self.trial_start(trial_num, {}, trial_levels)
-            self.trial_end()
+        for trial_id, trial_levels in self.trials.items():
+            # TODO: include novelty characterization? (also detection stats too)
+            self.trial_start(trial_id, trial_num, {}, trial_levels)
+            self.trial_end(trial_id)
+            trial_num += 1
 
-    def trial_start(self, trial_number: int, novelty_description: dict, levels: list):
+    def trial_start(self, trial_id: str, trial_number:int, novelty_description: dict, levels: list):
         ''' Run multiple levels '''
 
         novelty_description = None
 
-        self.results[trial_number] = []
+        self.results[trial_id] = []
 
         for level_num, level in enumerate(levels):
             self.env.init_selected_level(level)
             
-            result = self.episode_start(level_num, trial_number, novelty_description)
+            result = self.episode_start(level_num, trial_id, trial_number, novelty_description)
 
-            self.results[trial_number].append(result)
+            self.results[trial_id].append(result)
             
             self.episode_end()
 
-    def episode_start(self, level_number: int, trial_number: int, novelty_description: dict):
+    def episode_start(self, level_number: int, trial_id:str, trial_number: int, novelty_description: dict):
         ''' Run the agent in a single level until done '''
 
         current_state = self.env.get_current_state()
@@ -78,11 +107,13 @@ class PolycraftDispatcher():
             # Check if level is done
             if current_state.is_terminal():
                 return {
+                    'trial_id': trial_id,
                     'trial_number': trial_number,
                     'level': self.env.current_level,
                     'episode_number': level_number,
                     'step_cost': self.env.get_level_total_step_cost(),
                     'novelty': novelty,
+                    'passed': current_state.passed,
                     'novelty_description': novelty_description
                 }
 
@@ -97,19 +128,17 @@ class PolycraftDispatcher():
 
     def episode_end(self) -> dict:
         ''' Cleanup level '''
-
         return
 
-    def trial_end(self):
+    def trial_end(self, trial_id:str, trial_number:int):
         # Cleanup
-        print("?")
+        print("------------ [{}] {} TRIAL END ------------".format(trial_number, trial_id))
 
     def experiment_end(self):
         # Cleanup
 
-        print(self.results)
-
-        self.trials = {}
+        print("------------ EXPERIMENT END ------------")
+        print(json.dumps(self.results, indent=4))
 
         if self.env is not None:
             self.env.kill()

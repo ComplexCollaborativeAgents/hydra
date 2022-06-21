@@ -22,7 +22,7 @@ import worlds.polycraft_interface.client.polycraft_interface as poly
 
 logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("Polycraft")
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 
 
 # Useful constants
@@ -75,7 +75,9 @@ class PolycraftState(State):
 
     def __init__(self, step_num: int, facing_block: str, location: dict, game_map: dict,
                  entities: dict, inventory: dict, current_item: str,
-                 recipes: list, trades: list, door_to_room_cells: dict, terminal: bool, step_cost: int = -1, viz: np.ndarray=None):
+                 recipes: list, trades: list, door_to_room_cells: dict, terminal: bool, 
+                 passed: bool,
+                 step_cost: int = -1, viz: np.ndarray=None):
         super().__init__()
 
         self.step_num = step_num
@@ -86,6 +88,7 @@ class PolycraftState(State):
         self.inventory = inventory  # Formatted as {SLOT_NUM:{ATTRIBUTES}, "selectedItem":{ATTRIBUTES}}
         self.current_item = current_item
         self.terminal = terminal
+        self.passed = passed
         self.step_cost = step_cost  # TODO Remove this
         self.door_to_room_cells = door_to_room_cells  # Maps a room id to the door through which to enter to it
         self.recipes = recipes
@@ -676,8 +679,10 @@ class Polycraft(World):
             pos = sensed['player']
 
             terminal = sensed['gameOver']
+            passed = False
             if 'goal' in sensed:
                 terminal = sensed['gameOver'] or sensed['goal']['goalAchieved']
+                passed = sensed['goal']['goalAchieved']
             entities = sensed['entities']
             viz = None
 
@@ -688,7 +693,7 @@ class Polycraft(World):
                                    copy.deepcopy(self.current_recipes),
                                    copy.deepcopy(self.current_trades),
                                    copy.deepcopy(self.door_to_room_cells),
-                                   terminal=terminal,
+                                   terminal, passed,
                                    step_cost=self.get_level_total_step_cost(),
                                    viz=viz)
 
