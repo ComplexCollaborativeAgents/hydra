@@ -64,7 +64,7 @@ class Function(enum.Enum):
 ###### PDDL OBJECTS AND FLUENTS
 
 ##### Classes and constructs to help build meta models
-class PolycraftObjectType:
+class PolycraftObjectType:  #TODO each meta-model file has it's own definition of this class - consolidate
     """ A generator for Pddl Objects. Accepts an object from the domain and adds the corresponding objects and fluents to the PDDL problem. """
 
     def __init__(self):

@@ -123,9 +123,9 @@ class CreatePogoTask(Task):
     def get_metric(self, world_state: PolycraftState, meta_model: PolycraftMetaModel):
         return 'minimize(total-time)'
 
-    def get_planner_heuristic(self, world_state: PolycraftState):
+    def get_planner_heuristic(self, world_state: PolycraftState, metamodel:PolycraftMetaModel):
         """ Returns the heuristic to be used by the planner"""
-        return CraftPogoHeuristic(world_state)
+        return CraftPogoHeuristic(world_state, metamodel)
 
     def is_done(self, state: PolycraftState) -> bool:
         """ Checks if the task has been successfully completed """
@@ -170,7 +170,7 @@ class ExploreDoorTask(CreatePogoTask):
     def get_goals(self, world_state: PolycraftState, meta_model: PolycraftMetaModel):
         return [[Predicate.passed_door.name, PddlGameMapCellType.get_cell_object_name(self.door_cell)]]
 
-    def get_planner_heuristic(self, world_state: PolycraftState):
+    def get_planner_heuristic(self, world_state: PolycraftState, metamodel):
         """ Returns the heuristic to be used by the planner"""
         return OpenDoorHeuristic(self.door_cell)
 
@@ -235,7 +235,7 @@ class CollectFromSafeTask(CreatePogoTask):
                 Function.Steve_x.to_pddl(), Function.Steve_z.to_pddl(),
                 Function.cell_x.to_pddl(), Function.cell_z.to_pddl()]
 
-    def get_planner_heuristic(self, world_state: PolycraftState):
+    def get_planner_heuristic(self, world_state: PolycraftState, metamodel):
         """ Returns the heuristic to be used by the planner"""
         return CollectFromSafeHeuristic(self.safe_cell)
 
@@ -295,7 +295,7 @@ class MakeCellAccessibleTask(CreatePogoTask):
     def get_goals(self, world_state: PolycraftState, meta_model: PolycraftMetaModel):
         return [[Predicate.isAccessible.name, PddlGameMapCellType.get_cell_object_name(self.cell)]]
 
-    def get_planner_heuristic(self, world_state: PolycraftState):
+    def get_planner_heuristic(self, world_state: PolycraftState, metamodel):
         """ Returns the heuristic to be used by the planner"""
         return MakeCellAccessibleHeuristic(self.cell)
 
@@ -322,8 +322,9 @@ class CraftPogoHeuristic(AbstractHeuristic):
     #         self.ingredients.append((pddl_item_type, quantity))
     #
 
-    def __init__(self, world_state: PolycraftState):
+    def __init__(self, world_state: PolycraftState, metamodel: PolycraftMetaModel):
         self.initial_state = world_state
+        self.metamodel = metamodel
     #     pogo_recipe = world_state.get_recipe_for(ItemType.WOODEN_POGO_STICK.value)
     #     pogo_ingredients = get_ingredients_for_recipe(pogo_recipe)
     #     self.ingredients = list()
@@ -346,14 +347,42 @@ class CraftPogoHeuristic(AbstractHeuristic):
     #         node.h = h_value
     #     return h_value
 
-    def _still_missing_ingredients(self, node, item_type: str):
+    def _count_cells_of_type(self, node, type_str):
+        type_id = self.metamodel.block_type_to_idx[type_str]
+        accessible, total = 0, 0
+        for fluent, value in node.state_vars.items():
+            if fluent.find(Function.cell_type.name) > -1 and value == type_id:
+                total += 1
+                match = re.search('cell_\d{2}_\d{2}_\d{2}', fluent)
+                acc_fluent = f"['{Predicate.isAccessible.name.lower()}', '{fluent[match.start():match.end()]}']"
+                if node.state_vars[acc_fluent]:
+                    accessible += 1
+        return accessible, total
+
+    def _still_missing_ingredients(self, node, item_type: str, needed: int):
         """
         Returns a dictionary of {item_name: quantity} still required to craft the given item.
         """
         h_value = 0
         recipe = self.initial_state.get_recipe_for(item_type)
         if recipe is None:
-            h_value += 1
+            # assume item must be mined from some block
+            for source, results in self.metamodel.break_block_to_outcome.items():
+                # search through all minable block types
+                item, count = results
+                if item == item_type:
+                    h_value += 1 if count == 0 else 1 / count
+                    # More accurate count of how many block we need to mine
+                    source_cells_accbl, source_cells_tot = self._count_cells_of_type(node, source)
+                    # If source is inaccessible, need extra step to make accessible.
+                    # If no sources exist, maybe can make some somehow?
+                    if source_cells_tot == 0:
+                        h_value += 1
+                    elif source_cells_accbl == 0:
+                        h_value += 1
+            if h_value == 0:
+                # No known source - should still return some value?
+                h_value += 1
         else:
             step1_ingredients = get_ingredients_for_recipe(recipe)
 
@@ -372,9 +401,9 @@ class CraftPogoHeuristic(AbstractHeuristic):
                             continue
                     num_out = get_outputs_of_recipe(recipe)[item_type]
                     # One step for the crafting, multipy by how many times we will need to craft it.
-                    h_value += 1 + self._still_missing_ingredients(node, ingredient) * (quantity / num_out)
+                    h_value += 1 + self._still_missing_ingredients(node, ingredient, quantity) / num_out
 
-        return h_value
+        return h_value * needed
 
     def evaluate(self, node: SearchState):
         # Check if have ingredients of pogo stick
@@ -386,7 +415,7 @@ class CraftPogoHeuristic(AbstractHeuristic):
             if node.predecessor is not None and node.predecessor.predecessor is not None \
                     and node.predecessor_action.name == node.predecessor.predecessor_action.name:
                 h_value += 9999  # Some value to prevent these state being explored unless other routes don't exist.
-            h_value += 1 + self._still_missing_ingredients(node, ItemType.WOODEN_POGO_STICK.value)
+            h_value += 1 + self._still_missing_ingredients(node, ItemType.WOODEN_POGO_STICK.value, 1)
         node.h = h_value
         return h_value
 
