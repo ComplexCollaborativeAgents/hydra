@@ -9,11 +9,13 @@ from worlds.polycraft_world import *
 class MacroAction(PolycraftAction):
     """ A macro action is a generator of basic PolycraftActions based on the current state """
 
-    def __init__(self, max_steps: int = 1):
+    def __init__(self, max_steps: int = 1, max_failures: int = 3):
         super().__init__()
         self.actions_done = []  # a list of the actions performed in this macro action. Useful for debugging.
         self._is_done = False
         self.max_steps = max_steps  # Maximal number of steps (actions) required to do this macro action is expected
+        self.max_failures = max_failures
+        self.current_failures = 0
 
     def _get_next_action(self, state: PolycraftState, env: Polycraft) -> PolycraftAction:
         raise NotImplementedError("Subclasses of MacroAction should implement this and set self.next_action in it")
@@ -26,18 +28,35 @@ class MacroAction(PolycraftAction):
         logger.info(f"Doing macro action {self} until done")
         result = None
         i = 0
-        while i < self.max_steps:
+        while i < self.max_steps and self.current_failures < self.max_failures:
             next_action = self._get_next_action(state, env)
             next_state = state
             if next_action is not None:
                 next_state, step_cost = env.act(state, next_action)
                 result = next_action.response
+                if not next_action.is_success(result):
+                    self.current_failures += 1
                 self.actions_done.append(next_action)
             if self.is_done():
                 return result
             i = i + 1
             state = next_state
         return result
+
+
+class SelectAndUse(MacroAction):
+    """ Attempt to select an item and then use it. TODO and then figure out what happened and add it to the metamodel"""
+
+    def __init__(self, item: str):
+        super(SelectAndUse, self).__init__(max_steps=2)
+        self.item = item
+
+    def _get_next_action(self, state: PolycraftState, env: Polycraft) -> PolycraftAction:
+        if self.actions_done:
+            self._is_done = True
+            return PolyUseItem(item_name=self.item)
+        else:
+            return PolySelectItem(item_name=self.item)
 
 
 class WaitForLogs(MacroAction):
@@ -56,7 +75,7 @@ class BreakAndCollect(MacroAction):
     MAX_COLLECT_RANGE_AFTER_BREAK = 4
     MAX_STEPS = 4 ** MAX_COLLECT_RANGE_AFTER_BREAK
 
-    """ Teleport near a brick, break it, and collect the resulting item """
+    """ Break a block and collect the resulting item """
 
     def __init__(self, cell: str):
         super().__init__(max_steps=BreakAndCollect.MAX_STEPS)
@@ -186,6 +205,18 @@ class TeleportToAndDo(MacroAction):
             return PolyTurn(turn_angle)
 
         return self._action_at_cell(state)
+
+
+class TeleportToAndInteract(TeleportToAndDo):
+    """ Teleports to a presumably unknown entity and attempts to interact with it"""
+
+    def __init__(self, entity, cell):
+        super(TeleportToAndInteract, self).__init__(cell=cell, max_steps=TeleportAndFaceCell.MAX_STEPS + 1)
+        self.entity = entity
+
+    def _action_at_cell(self, state: PolycraftState):
+        self._is_done = True
+        return PolyInteract(self.entity)
 
 
 class ExploreRoom(PolycraftAction):

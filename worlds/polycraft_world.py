@@ -76,7 +76,7 @@ class PolycraftState(State):
 
     def __init__(self, step_num: int, facing_block: str, location: dict, game_map: dict,
                  entities: dict, inventory: dict, current_item: str,
-                 recipes: list, trades: list, door_to_room_cells: dict, terminal: bool, step_cost: int = -1,
+                 recipes: list, trades: dict, door_to_room_cells: dict, terminal: bool, step_cost: int = -1,
                  viz: np.ndarray = None):
         super().__init__()
 
@@ -371,6 +371,7 @@ class Polycraft(World):
     """
 
     def __init__(self, client_config: str = None, polycraft_mode: ServerMode = ServerMode.SERVER):
+        super().__init__()
         self.ready_for_cmds = None
         self.last_cmd_success = None
         self.door_to_room_cells = None
@@ -673,9 +674,10 @@ class Polycraft(World):
             for cell_id, cell_attr in sensed_game_map.items():
                 for door_cell_id, room_game_map in self.door_to_room_cells.items():
                     if cell_id in room_game_map:
+                        cell_to_coordinates = [int(coord) for coord in cell_id.split(",")]
+                        cell_attr['cell_x'] = cell_to_coordinates[0]
+                        cell_attr['cell_z'] = cell_to_coordinates[2]
                         room_game_map[cell_id] = cell_attr
-
-            logger.info(f'Door to room dictionary size: {total_size(self.door_to_room_cells)}')
 
             id = sensed['step']
             facing_block = sensed['blockInFront']

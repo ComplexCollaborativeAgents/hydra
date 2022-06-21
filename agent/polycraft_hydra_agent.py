@@ -35,7 +35,7 @@ class PolycraftObservation(HydraObservation):
         return self.states[0]
 
     def get_pddl_states_in_trace(self,
-                                 meta_model: PolycraftMetaModel = PolycraftMetaModel()) -> list:
+                                 meta_model: PolycraftMetaModel) -> list:
         # TODO: Refactor and move this to the meta model?
         """ Returns a sequence of PDDL states that are the observed intermediate states """
         observed_state_seq = []
@@ -44,7 +44,7 @@ class PolycraftObservation(HydraObservation):
             observed_state_seq.append(pddl)
         return observed_state_seq
 
-    def get_pddl_plan(self, meta_model: PolycraftMetaModel = PolycraftMetaModel):
+    def get_pddl_plan(self, meta_model: PolycraftMetaModel):
         """ Returns a PDDL+ plan object with the actions we performed """
         return PddlPlusPlan(self.actions)
 
@@ -81,7 +81,7 @@ class PolycraftPlanner(HydraPlanner):
         self.pddl_problem = self.meta_model.create_pddl_problem(state)
         self.pddl_domain = self.meta_model.create_pddl_domain(state)
         self.write_pddl_file(self.pddl_problem, self.pddl_domain)
-        nyx_heuristics.active_heuristic = self.meta_model.get_nyx_heuristic(state)
+        nyx_heuristics.active_heuristic = self.meta_model.get_nyx_heuristic(state, self.meta_model)
         logger.info(f"Planning to achieve task {self.meta_model.active_task}")
 
         # For debug purposes, print a summary of the current state
@@ -104,12 +104,12 @@ class PolycraftPlanner(HydraPlanner):
                     logger.info(f"Saving the state we failed to plan for in file {saved_state_file}")
                     with open(saved_state_file, "wb") as out_file:
                         pickle.dump(self.initial_state, out_file)
-                return None
+                return []
         except Exception as e_inst:
             logger.error(f"Exception while running planner. {e_inst}", stack_info=True)
             logger.exception(e_inst)
             print(e_inst)
-        return None
+        return []
 
     def write_pddl_file(self, pddl_problem: PddlPlusProblem, pddl_domain: PddlPlusDomain):
         problem_exporter = PddlProblemExporter()
@@ -181,7 +181,7 @@ class PolycraftPlanner(HydraPlanner):
                 # print(str(i) + " =====> " + str(line))
                 if "No Plan Found!" in line:
                     logger.info("No plan found")
-                    return None
+                    return []
 
                 action_in_plan = None
                 for action_name in pddl_action_names:
@@ -197,12 +197,12 @@ class PolycraftPlanner(HydraPlanner):
 class PolycraftHydraAgent(HydraAgent):
     """ A Hydra agent for Polycraft of all the Hydra agents """
 
-    def __init__(self, planner: HydraPlanner = PolycraftPlanner(),
-                 meta_model_repair: MetaModelRepair = PolycraftMetaModelRepair()):
+    def __init__(self, planner: HydraPlanner = PolycraftPlanner()):
+        meta_model_repair = PolycraftMetaModelRepair(planner.meta_model)
         super().__init__(planner, meta_model_repair)
         self.env = None
         self.exploration_rate = 10  # Number of failed actions to endure before trying one exploration task
-        self.active_plan = None
+        self.active_plan = []
         self.current_observation = None
         self.current_state = None  # Maintains the agent's knowledge about the current state
         self.failed_actions_in_level = 0  # Count how many actions have failed in a given level
@@ -210,7 +210,10 @@ class PolycraftHydraAgent(HydraAgent):
         self.novelty_existence = False  # Have we detected novelty the last time we checked?
         self.level_started_time = None
         self.new_level_time = 600  # If the timeout for a game has passed, start a new game.
-        self.novelty_reported = False
+        self.novelty_reported = False  # have we reported novelty?
+        self.novelty_explored = False  # after exploring a new type of brick\item\entity, should attempt to repair.
+        self.objects_to_explore = []  # New objects that might be worth exploring
+        self.unknown_traders = []  # Traders we haven't asked for recipes yet
 
     def start_level(self, env: Polycraft):
         """
@@ -219,6 +222,7 @@ class PolycraftHydraAgent(HydraAgent):
         These actions are needed before calling the planner
         """
         self.level_started_time = time.time()
+        self.env = env
 
         # Explore the level
         env.init_state_information()
@@ -228,45 +232,76 @@ class PolycraftHydraAgent(HydraAgent):
         current_state = env.get_current_state()
 
         # Try to interact with all other agents
-        for entity_id, entity_attr in current_state.entities.items():
-            if entity_attr['type'] == 'EntityTrader':
-                # If trader not accessible, mark getting to it as a possible exploration task
-                trader_cell = coordinates_to_cell(entity_attr['pos'])
-                if not current_state.game_map[trader_cell]['isAccessible']:
-                    continue
-
-                # Move to trader
-                tp_action = PolyEntityTP(entity_id, dist=1)
-                current_state, step_cost = env.act(current_state, tp_action)
-
-                if not tp_action.success:
-                    trader_cell = coordinates_to_cell(entity_attr['pos'])
-                    cell_accessible = current_state.game_map[trader_cell]['isAccessible']
-                    logger.info(
-                        f"Entity {entity_id} is at cell {trader_cell} whose accessibility is {cell_accessible}, "
-                        f"but TP_TO failed.")
-                else:
-                    # Interact with it
-                    interact_action = PolyInteract(entity_id)
-                    current_state, step_cost = env.act(current_state, interact_action)
-                    assert (interact_action.success)
-                    env.current_trades[entity_id] = interact_action.response['trades']['trades']
+        for entity_id in current_state.entities.keys():
+            self._interact_with_enttiy(entity_id, current_state)
 
         # Initialize the current observation and active plan objects
         self.current_state = env.get_current_state()
         self.current_observation = PolycraftObservation()  # Start a new observation object for this level
         self.current_observation.states.append(current_state)
         self.observations_list.append(self.current_observation)
-        self.env = env
+
         self.failed_actions_in_level = 0  # Count how many actions have failed in a given level
         self.actions_since_planning = 0  # Count how many actions have been performed since we planned last
-        self.active_plan = None
+        self.active_plan = []
         self.set_active_task(PolycraftTask.CRAFT_POGO.create_instance())
 
+    def _interact_with_enttiy(self, entity_id, current_state):
+        """ Interacts with an entity. If the entity is a trader, attempt to log possible trades. """
+        # Move to entity
+        tp_action = PolyEntityTP(entity_id, dist=1)
+        current_state, step_cost = self.env.act(current_state, tp_action)
+
+        if not tp_action.success:
+            trader_cell = coordinates_to_cell(current_state.entities[entity_id]['pos'])
+            cell_accessible = current_state.game_map[trader_cell]['isAccessible']
+            logger.info(
+                f"Entity {entity_id} is at cell {trader_cell} whose accessibility is {cell_accessible}, "
+                f"but TP_TO failed.")
+        else:
+            # Interact with it
+            interact_action = PolyInteract(entity_id)
+            current_state, step_cost = self.env.act(current_state, interact_action)
+            assert interact_action.success
+            if interact_action.response.get('trades') is not None:
+                # Discovered possible trades!
+                self.env.current_trades[entity_id] = interact_action.response['trades']['trades']
+            elif current_state.entities[entity_id]['type'] == 'EntityTrader':
+                # Entity is a trader, but might be busy. Mark for trying again later.
+                self.unknown_traders.append(entity_id)
+
+    def _choose_exploration_action(self, world_state: PolycraftState):
+        """
+        If there are new objects to explore, choose one.
+        """
+        exploration_actions = []
+        # Try out new objects
+        for obj in self.objects_to_explore:
+            if obj in world_state.get_type_to_cells():
+                cells = world_state.get_cells_of_type(obj, only_accessible=True)
+                if cells:
+                    cell_to_break = cells[0]
+                    exploration_actions.append((obj, TeleportToBreakAndCollect(cell_to_break)))
+            elif obj in world_state.get_item_to_count():
+                exploration_actions.append((obj, SelectAndUse(obj)))
+            else:
+                # Must be an entity
+                exploration_actions.append((obj, TeleportToAndInteract(obj,
+                                                               coordinates_to_cell(world_state.entities[obj]['pos']))))
+
+        # Prefer new objects
+        if len(exploration_actions) > 0:
+            obj, action = random.choice(exploration_actions)
+            self.objects_to_explore.remove(obj)
+            self.novelty_explored = True
+            return action
+        # else
+        return None
 
     def _choose_exploration_task(self, world_state: PolycraftState):
         """ Choose an exploration task to perform """
         exploration_tasks = []
+
         # Explore other rooms
         for door_cell, room_cells in world_state.door_to_room_cells.items():
             if len(room_cells) == 1:  # Room not explored
@@ -290,58 +325,59 @@ class PolycraftHydraAgent(HydraAgent):
 
         # Open safe
         safe_cells = world_state.get_cells_of_type(BlockType.SAFE.value)
-        for safe_cell in safe_cells:
-            safe_ok = True
-            # The following lines removed to accommodate the "thief" novelty
-            # for old_action in self.current_observation.actions:
-            #     if isinstance(old_action, OpenSafeAndCollect):
-            #         if old_action.cell==safe_cell and old_action.safe_opened:
-            #             logger.info(f"Safe {safe_cell} has already been opened - no need to re-explore it")
-            #             safe_ok=False
-            #             break
-            if safe_ok:
-                exploration_tasks.append(CollectFromSafeTask(safe_cell))
+        if len(self.observations_list) > 2:
+            # Only go to safe if we haven't checked in last three tasks?
+            for safe_cell in safe_cells:
+                safe_ok = True
+                # The following lines removed to accommodate the "thief" novelty
+                for back_index in range(-1, -4, -1):
+                    for old_action in self.observations_list[back_index].actions:
+                        if str(old_action).find('OpenSafeAndCollect') > -1:
+                            logger.info(f'Safe {old_action.cell} already accessed, and is {old_action.safe_opened}')
+                            if old_action.cell == safe_cell and old_action.safe_opened:
+                                logger.info(f"Safe {safe_cell} has already been opened - no need to re-explore it")
+                                safe_ok = False
+                                break
+                if safe_ok:
+                    exploration_tasks.append(CollectFromSafeTask(safe_cell))
 
         # No open door tasks? choose a random exploration task
+        logger.info(f"possible exploration tasks: {exploration_tasks}")
         return random.choice(exploration_tasks)
+
+    def level_timed_out(self):
+        """ Checks whether the level should time out, returns True if we should give up. """
+        if time.time() - self.level_started_time > self.new_level_time:
+            if not self.novelty_reported:
+                self.env.poly_client.REPORT_NOVELTY(level="1", confidence="50",
+                                                    user_msg='Something that made the agent plan for too long. ')
+                self.novelty_reported = True
+            logger.info("Level timed out!")
+            return True
+        return False
 
     def choose_action(self, world_state: PolycraftState):
         """ Choose which action to perform in the given state """
 
-        if time.time() - self.level_started_time > self.new_level_time:
-            if not self.novelty_reported:
-                self.env.poly_client.REPORT_NOVELTY(level="1", confidence="50",
-                                                    user_msg='Something that made the agent plan for too long. ')
-                self.novelty_reported = True
-            self.active_plan = None
+        if self.level_timed_out():
+            self.active_plan = []
             return PolyNoAction()
 
-        if len(self.current_observation.actions) == 0:
-            if self.active_plan is None or len(self.active_plan) == 0:
-                logger.info("Running planner to generate initial plan")
-                self.active_plan = self.plan()
-            else:
-                logger.info("Initial plan set externally (should be used only for testing and debugging")
+        if len(self.active_plan) == 0:
+            logger.info("No current plan, plan to create pogostick")
+            self.set_active_task(PolycraftTask.CRAFT_POGO.create_instance())
+            self.active_plan = self.plan_logic(world_state)
 
-        if self.should_replan():
-            logger.info("Replanning...")
-            self.active_plan = self.replan(world_state)
-            self.actions_since_planning = 0
-        else:
-            logger.info(f"Continue to perform the current plan. Next action is {self.active_plan[0]}")
+        if self.level_timed_out():
+            self.active_plan = []
+            return PolyNoAction()
 
         # If no plan found, choose default action
-        if self.active_plan is None:
+        if len(self.active_plan) == 0:
             logger.info("No active plan or action has been assigned: choose a default action")
             return self._choose_default_action(world_state)
-
-        if time.time() - self.level_started_time > self.new_level_time:
-            if not self.novelty_reported:
-                self.env.poly_client.REPORT_NOVELTY(level="1", confidence="50",
-                                                    user_msg='Something that made the agent plan for too long. ')
-                self.novelty_reported = True
-            self.active_plan = None
-            return PolyNoAction()
+        else:
+            logger.info(f"Continue to perform the current plan. Next action is {self.active_plan[0]}")
 
         # Perform the next action in the plan
         assert (len(self.active_plan) > 0)
@@ -354,40 +390,30 @@ class PolycraftHydraAgent(HydraAgent):
             self.set_active_task(active_task)
         self._detect_unknown_objects(self.current_state)
 
-        # if time.time() - self.level_started_time > self.new_level_time:
-        #     return None
         plan = self.planner.make_plan(self.current_state)
-        # if time.time() - self.level_started_time > self.new_level_time:
-        #     return None
         return plan
-
-    def should_replan(self):
-        """ Decide if we need to update the active plan"""
-        if self.active_plan is None or len(self.active_plan) == 0:
-            return True
-        if len(self.current_observation.actions) > 0:
-            last_action = self.current_observation.actions[-1]
-            if not last_action.success:
-                return True
-        return False
 
     def _should_explore(self, world_state: PolycraftState):
         """ Consider choosing an exploration action"""
         if self.failed_actions_in_level > 0 and \
                 self.failed_actions_in_level % self.exploration_rate == 0:
+            self.failed_actions_in_level = 0  # reset since we are changing task.
+            logger.info("Exploration chosen")
             return True
         else:
+            logger.info("Proceeding to main task")
             return False
 
-    def replan(self, world_state: PolycraftState):
+    def plan_logic(self, world_state: PolycraftState):
         """ Create a new plan after the active plan failed """
         if self.should_repair(world_state):
+            logger.info("Repairing model!")
             self.repair_meta_model(world_state)
 
         if not self._should_explore(world_state):
             task = PolycraftTask.CRAFT_POGO.create_instance()
             plan = self.plan(active_task=task)
-            if plan is not None:
+            if len(plan) > 0:
                 logger.info(f"Found a plan for main task ({task})")
                 return plan
             else:
@@ -395,18 +421,27 @@ class PolycraftHydraAgent(HydraAgent):
 
         # Either decided to explore or failed to find a plan to craft the pogo: explore
         for i in range(settings.POLYCRAFT_MAX_EXPLORATION_PLANNING_ATTEMPTS):
+            # First, explore any trades we've missed.
+            if len(self.unknown_traders) > 0:
+                self._interact_with_enttiy(self.unknown_traders.pop(), world_state)
+                break
+            action = self._choose_exploration_action(world_state)
+            if action is not None:
+                return [action]
+            # else
             task = self._choose_exploration_task(world_state)
             if not task.is_feasible(world_state):
                 logger.info(f"Chosen exploration task {task} but it is not feasible in the current state")
                 return None
             plan = self.plan(active_task=task)
-            if plan is not None:
+            # After exploring try to create pogostick again
+            if len(plan) > 0:
                 logger.info(f"Found a plan for exploration task {task}")
                 return plan
             else:
                 logger.info(f"Failed to find a plan for exploration task {task}")
         logger.info("No plan found for any task :(")
-        return None
+        return []
 
     def set_active_task(self, task: PolycraftTask):
         """ Sets the active task, generate a plan to achieve it and updates the active plan """
@@ -469,6 +504,12 @@ class PolycraftHydraAgent(HydraAgent):
         self.current_state = next_state
         self.current_observation.states.append(self.current_state)
         self.current_observation.rewards.append(step_cost)
+
+        if len(self.active_plan) == 0:
+            self.current_observation = PolycraftObservation()  # Plan ended, start a new observation set
+            self.current_observation.states.append(self.current_state)
+            self.current_observation.rewards.append(step_cost)
+            self.observations_list.append(self.current_observation)
         return next_state, step_cost
 
     def _update_current_state(self, new_state: PolycraftState):
@@ -549,17 +590,20 @@ class PolycraftHydraAgent(HydraAgent):
                 logger.info(f"Novel block type detected - {block_type}")
                 self.meta_model.introduce_novel_block_type(block_type)
                 novelties.add(f"{block_type}")
+                self.objects_to_explore.append(block_type)
         for item_type in state.get_item_to_count():
             if item_type not in [tp for tp in self.meta_model.item_type_to_idx]:
                 novelties.add(f"{item_type}")
                 logger.info(f"Novel item type detected - {item_type}")
                 self.meta_model.introduce_novel_inventory_item_type(item_type)
+                self.objects_to_explore.append(item_type)
         for entity, entity_attr in state.entities.items():
             entity_type = entity_attr["type"]
             if entity_type not in [entity.value for entity in EntityType]:
                 novelties.add(f"{entity_type}")
                 logger.info(f"Novel entity type detected - {entity_type}")
                 self.meta_model.introduce_novel_entity_type(entity_type)
+                self.objects_to_explore.append(entity_type)
         if len(novelties) > 0 and not self.novelty_reported:
             self.env.poly_client.REPORT_NOVELTY(level="1", confidence=f"{100}",
                                                 user_msg=str(novelties))
@@ -568,6 +612,12 @@ class PolycraftHydraAgent(HydraAgent):
 
     def should_repair(self, state: PolycraftState):
         """ Choose if the agent should repair its metamodel based on the given observation """
+        if self.novelty_explored:
+            # There is a novelty we explored since last check, need to repair based on what we discoverd.
+            self.novelty_explored = False  # done with this novelty
+            return True
+        elif self.failed_actions_in_level > 0 and self.failed_actions_in_level % self.exploration_rate == 0:
+            return True
         self.novelty_detection(report_novelty=True, only_current_state=False)
         return self.novelty_existence
 
@@ -576,6 +626,7 @@ class PolycraftHydraAgent(HydraAgent):
 
         self._detect_unknown_objects(state)
         try:
+            # self.meta_model.set_active_task(CreatePogoTask())
             repair, consistency = self.meta_model_repair.repair(self.meta_model, self.current_observation,
                                                                 delta_t=settings.POLYCRAFT_DELTA_T)
             repair_description = ["Repair %s, %.2f" % (fluent, repair[i])

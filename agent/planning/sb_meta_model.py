@@ -545,26 +545,18 @@ class ScienceBirdsMetaModel(MetaModel):
                              'redBird_ice_damage_factor': 1.5,
                              'redBird_wood_damage_factor': 0.5,
                              'redBird_stone_damage_factor': 0.3,
-                             'redBird_unknown_damage_factor': 0.5,
                              'yellowBird_ice_damage_factor': 0.4,
                              'yellowBird_wood_damage_factor': 2,
                              'yellowBird_stone_damage_factor': 0.5,
-                             'yellowBird_unknown_damage_factor': 2,
                              'blueBird_ice_damage_factor': 2,
                              'blueBird_wood_damage_factor': 0.5,
                              'blueBird_stone_damage_factor': 0.1,
-                             'blueBird_wood_unknown_factor': 0.5,
                              'blackBird_ice_damage_factor': 1,
                              'blackBird_wood_damage_factor': 1,
                              'blackBird_stone_damage_factor': 0.2,
-                             'blackBird_unknown_damage_factor': 1,
                              'birdWhite_ice_damage_factor': 0.5,
                              'birdWhite_wood_damage_factor': 0.5,
                              'birdWhite_stone_damage_factor': 0.5,
-                             'birdWhite_unknown_damage_factor': 0.5,
-                             'unknown_ice_damage_factor': 1.5,
-                             'unknown_wood_damage_factor': 0.5,
-                             'unknown_stone_damage_factor': 0.3,
                          },
                          constant_boolean_fluents={
                              'angle_adjusted': False,
@@ -760,6 +752,23 @@ class ScienceBirdsMetaModel(MetaModel):
                     if block[1]['type'] in ['ice', 'wood', 'stone']:
                         block_str = block[1]['type'] + '_' + block[0]
                         bird_str = type_str + '_' + obj[0]
+                        fluent_string = type_str + '_' + block[1]['type'] + '_damage_factor'
+                        if self.constant_numeric_fluents.get(fluent_string) is None:
+                            # Default assumed value is unknown bird = red, unknown block = wood
+                            if type_str == 'unknown':
+                                bird_type = 'redBird'
+                            else:
+                                bird_type = type_str
+                            if block[1]['type'] == 'unknown':
+                                block_type = 'wood'
+                            else:
+                                block_type = block[1]['type']
+                            default_factor = bird_type + '_' + block_type + '_damage_factor'
+                            if not self.constant_numeric_fluents.get(default_factor):
+                                # This is some edge perception case like birds being identified as wood, e.g. 11:130
+                                default_factor = 'redBird_wood_damage_factor'
+                            self.constant_numeric_fluents[fluent_string] = self.constant_numeric_fluents[default_factor]
+                            self.repairable_constants.append(fluent_string)
                         pddl_problem.init.append(['=',
                                                   ['bird_block_damage', bird_str, block_str],
                                                   self.constant_numeric_fluents[type_str + '_' + block[1]['type'] + '_damage_factor']])

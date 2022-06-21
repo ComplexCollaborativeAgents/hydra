@@ -142,6 +142,7 @@ class SBOneBirdHeuristic(AbstractHeuristic):
         active_bird_string = get_active_bird_string(node)
         if active_bird_string is None:
             if node.predecessor_action == constants.TIME_PASSING_ACTION:
+                # Time has passed but nothing is moving - this shot has ended.
                 if node.predecessor.state_vars == node.state_vars:
                     node.h = np.inf
                     return node.h
