@@ -93,10 +93,10 @@ class PolycraftState(State):
         self.door_to_room_cells = door_to_room_cells  # Maps a room id to the door through which to enter to it
         self.recipes = recipes
         self.trades = trades
-        self.viz = viz # flattened array of integers representing the visualization of the player character at the given state
+        self.viz = viz  # flattened array of integers representing the visualization of the player character at the given state
 
     def get_known_cells(self) -> dict:
-        ''' Returns a game-map-like dictionary containing all the cells from all the rooms '''
+        """ Returns a game-map-like dictionary containing all the cells from all the rooms """
         cell_to_attr = dict()
         for door, room_cells in self.door_to_room_cells.items():
             for cell, cell_attr in room_cells.items():
@@ -104,7 +104,7 @@ class PolycraftState(State):
         return cell_to_attr
 
     def get_cells_of_type(self, item_type: str, only_accessible=False):
-        ''' returns a list of cells that are of the given type '''
+        """ returns a list of cells that are of the given type """
         cells = []
         for cell, cell_attr in self.get_known_cells().items():
             if cell_attr["name"] == item_type:
@@ -118,7 +118,7 @@ class PolycraftState(State):
                                                                                       self.location, self.inventory)
 
     def get_type_to_cells(self):
-        ''' Returns a dictionary of cell type to the list of cells of that type '''
+        """ Returns a dictionary of cell type to the list of cells of that type """
         type_to_cells = dict()
         for cell, cell_attr in self.get_known_cells().items():
             cell_type = cell_attr["name"]
@@ -128,7 +128,7 @@ class PolycraftState(State):
         return type_to_cells
 
     def get_item_to_count(self):
-        ''' Return a map of inventory item type to count, excluding the selected item '''
+        """ Return a map of inventory item type to count, excluding the selected item """
         item_to_count = dict()
         for entry, entry_attr in self.inventory.items():
             if entry == "selectedItem":  # Do not consider the selected item
@@ -147,7 +147,7 @@ class PolycraftState(State):
         return item_to_count
 
     def get_inventory_entries_of_type(self, item_type: str):
-        ''' Returns the inventory entries that contain an item of the given type '''
+        """ Returns the inventory entries that contain an item of the given type """
         entries = []
         for entry, entry_attr in self.inventory.items():
             if entry == "selectedItem":  # Do not consider the selected item
@@ -157,7 +157,7 @@ class PolycraftState(State):
         return entries
 
     def get_entities_of_type(self, entity_type: str):
-        ''' Return all the entities of a given type '''
+        """ Return all the entities of a given type """
         entities_to_return = []
         for entity, entity_attr in self.entities.items():
             if entity_attr["type"] == entity_type:
@@ -165,7 +165,7 @@ class PolycraftState(State):
         return entities_to_return
 
     def count_items_of_type(self, item_type: str):
-        ''' Counts the number of items of a given type '''
+        """ Counts the number of items of a given type """
         count = 0
         inventory_entries = self.get_inventory_entries_of_type(item_type)
         for entry in inventory_entries:
@@ -174,21 +174,21 @@ class PolycraftState(State):
         return count
 
     def is_facing_type(self, item_type: str):
-        ''' checks if Steve is facing a cell of the given type '''
+        """ checks if Steve is facing a cell of the given type """
         return self.facing_block["name"] == item_type
 
     def has_item(self, item_type: str, count: int = 1):
-        ''' Checks if we have enough items of the given type '''
+        """ Checks if we have enough items of the given type """
         return len(self.get_inventory_entries_of_type(item_type)) > count - 1
 
     def get_selected_item(self):
-        ''' Returns the type of item currently selected '''
+        """ Returns the type of item currently selected """
         if "selectedItem" not in self.inventory:
             return None
         return self.inventory["selectedItem"]["item"]
 
     def get_all_recipes_for(self, item_name) -> list():
-        ''' Return all the recipe that output an item of the given type '''
+        """ Return all the recipe that output an item of the given type """
         recipes = list()
         for i, recipe in enumerate(self.recipes):
             for recipe_output in recipe['outputs']:
@@ -197,7 +197,7 @@ class PolycraftState(State):
         return recipes
 
     def get_recipe_for(self, item_name) -> list():
-        ''' Return a single recipe that output an item of the given type '''
+        """ Return a single recipe that output an item of the given type """
         recipes = list()
         for i, recipe in enumerate(self.recipes):
             for recipe_output in recipe['outputs']:
@@ -205,8 +205,8 @@ class PolycraftState(State):
                     return recipe
 
     def get_all_trades_for(self, input_items, output_item):
-        ''' Return a list of (trader_id, trade) tuples for trades
-        in which we obtain the output item using only items from the input items '''
+        """ Return a list of (trader_id, trade) tuples for trades
+        in which we obtain the output item using only items from the input items """
         results = []
         for trader_entity_id, trades in self.trades.items():
             for trade in trades:
@@ -223,8 +223,8 @@ class PolycraftState(State):
         return results
 
     def get_trade_for(self, item_to_get, items_to_give):
-        ''' Return a singe tuple (trader_id, trade) tuples for trades
-        in which we obtain the output item using only items from the input items '''
+        """ Return a singe tuple (trader_id, trade) tuples for trades
+        in which we obtain the output item using only items from the input items """
         for trader_entity_id, trades in self.trades.items():
             for trade in trades:
                 outputs = trade['outputs']
@@ -241,7 +241,7 @@ class PolycraftState(State):
         return None
 
     def summary(self) -> str:
-        '''returns a summary of state'''
+        """returns a summary of state"""
         summary_lines = []
         # The inventory
         summary_lines.append("Inventory:")
@@ -272,7 +272,7 @@ class PolycraftState(State):
         return self.terminal
 
     def diff(self, other_state):
-        ''' Return the differences between the states '''
+        """ Return the differences between the states """
         diff_dict = {}
         if self.facing_block != other_state.facing_block:
             diff_dict['facing_block'] = {'self': self.facing_block, 'other': other_state.facing_block}
@@ -325,7 +325,7 @@ class PolycraftState(State):
 
 
 class PolycraftAction(Action, TimedAction):
-    ''' Polycraft World Action '''
+    """ Polycraft World Action """
 
     def __init__(self):
         TimedAction.__init__(self, type(self).__name__, 0.0)
@@ -357,8 +357,8 @@ class PolycraftAction(Action, TimedAction):
         raise NotImplementedError("Subclasses of PolycraftAction should implement this")
 
     def can_do(self, state: PolycraftState, env) -> bool:
-        ''' Checks if this action can be done in the given state at the given environment
-            Useful for adding control measures to be considered during execution '''
+        """ Checks if this action can be done in the given state at the given environment
+            Useful for adding control measures to be considered during execution """
         return True
 
 
@@ -372,6 +372,12 @@ class Polycraft(World):
     """
 
     def __init__(self, client_config: str = None, polycraft_mode: ServerMode = ServerMode.SERVER):
+        super().__init__()
+        self.ready_for_cmds = None
+        self.last_cmd_success = None
+        self.door_to_room_cells = None
+        self.current_trades = None
+        self.current_recipes = None
         self.id = 2229
         self.world_mode = polycraft_mode
         self.poly_server_process = None  # Subprocess running the polycraft instance
@@ -396,7 +402,7 @@ class Polycraft(World):
         self.create_interface(client_config)
 
     def init_state_information(self):
-        ''' Initialize information about the current state in the current episode (level) '''
+        """ Initialize information about the current state in the current episode (level) """
 
         # Represent the current knowledge of the world. TODO: Think about moving this to the agent.
         self.current_recipes = list()
@@ -452,7 +458,7 @@ class Polycraft(World):
 
         return next_line
 
-    def wait_for_server_output(self, output:str):
+    def wait_for_server_output(self, output: str):
         """ Waits for a particular message to be recieved from the server before continuing. """
         while True:
             try:
@@ -461,9 +467,8 @@ class Polycraft(World):
             except KeyboardInterrupt as err:
                 self.kill(exit_program=True)
 
-    
     def kill(self, exit_program=False):
-        ''' Perform cleanup '''
+        """ Perform cleanup """
 
         # Disconnect client from polycraft
         if self.poly_client is not None:
@@ -627,7 +632,7 @@ class Polycraft(World):
             self.kill(exit_program=True)
 
     def act(self, state: PolycraftState, action: PolycraftAction) -> tuple:
-        ''' returns the state and step cost / reward '''
+        """ returns the state and step cost / reward """
         # Match action with low level command in polycraft_interface.py
         results = None
         if isinstance(action, PolycraftAction):
@@ -656,7 +661,7 @@ class Polycraft(World):
 
         return self.get_current_state(), action.get_cost(results)
 
-    def get_current_state(self, get_viz:bool=False) -> PolycraftState:
+    def get_current_state(self, get_viz: bool = False) -> PolycraftState:
         """
         Query polycraft instance using low level interface and return State
         """
@@ -670,6 +675,9 @@ class Polycraft(World):
             for cell_id, cell_attr in sensed_game_map.items():
                 for door_cell_id, room_game_map in self.door_to_room_cells.items():
                     if cell_id in room_game_map:
+                        cell_to_coordinates = [int(coord) for coord in cell_id.split(",")]
+                        cell_attr['cell_x'] = cell_to_coordinates[0]
+                        cell_attr['cell_z'] = cell_to_coordinates[2]
                         room_game_map[cell_id] = cell_attr
 
             id = sensed['step']

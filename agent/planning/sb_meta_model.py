@@ -556,7 +556,7 @@ class ScienceBirdsMetaModel(MetaModel):
                              'blackBird_stone_damage_factor': 0.2,
                              'birdWhite_ice_damage_factor': 0.5,
                              'birdWhite_wood_damage_factor': 0.5,
-                             'birdWhite_stone_damage_factor': 0.5
+                             'birdWhite_stone_damage_factor': 0.5,
                          },
                          constant_boolean_fluents={
                              'angle_adjusted': False,
@@ -752,6 +752,23 @@ class ScienceBirdsMetaModel(MetaModel):
                     if block[1]['type'] in ['ice', 'wood', 'stone']:
                         block_str = block[1]['type'] + '_' + block[0]
                         bird_str = type_str + '_' + obj[0]
+                        fluent_string = type_str + '_' + block[1]['type'] + '_damage_factor'
+                        if self.constant_numeric_fluents.get(fluent_string) is None:
+                            # Default assumed value is unknown bird = red, unknown block = wood
+                            if type_str == 'unknown':
+                                bird_type = 'redBird'
+                            else:
+                                bird_type = type_str
+                            if block[1]['type'] == 'unknown':
+                                block_type = 'wood'
+                            else:
+                                block_type = block[1]['type']
+                            default_factor = bird_type + '_' + block_type + '_damage_factor'
+                            if not self.constant_numeric_fluents.get(default_factor):
+                                # This is some edge perception case like birds being identified as wood, e.g. 11:130
+                                default_factor = 'redBird_wood_damage_factor'
+                            self.constant_numeric_fluents[fluent_string] = self.constant_numeric_fluents[default_factor]
+                            self.repairable_constants.append(fluent_string)
                         pddl_problem.init.append(['=',
                                                   ['bird_block_damage', bird_str, block_str],
                                                   self.constant_numeric_fluents[type_str + '_' + block[1]['type'] + '_damage_factor']])

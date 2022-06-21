@@ -2,6 +2,7 @@
 # Four spaces as indentation [no tabs]
 import collections
 import copy
+import logging
 import time
 import matplotlib.pyplot as plt
 
@@ -67,6 +68,8 @@ class Planner:
         self.queue.push(state)
         while self.queue:
             state = self.queue.pop()
+            # if state.predecessor_action is not None:  # and state.predecessor_action.name != 'teleport_to':
+            #     logging.getLogger("Polycraft").info(f"Expanding state from action: {state.predecessor_action.name}")
             self.explored_states += 1
             if constants.PLOT_BIRD_NODE_ORDER:
                 active_bird_string = get_active_bird_string(state)
@@ -115,6 +118,11 @@ class Planner:
                     new_state.predecessor_action = aa
                 else:
                     new_state = state.apply_happening(aa, from_state=from_state)
+
+                happenings_list = grounded_instance.events.get_applicable(new_state)
+                for hp in happenings_list:
+                    new_state = new_state.apply_happening(hp, from_state=from_state,
+                                                          create_new_state=new_state is state)
 
                 visited_state = VisitedState(new_state)
                 new_state_hash = hash(visited_state)
@@ -183,7 +191,7 @@ class Planner:
 
 
     def enqueue_goal(self, n_state):
-        ''' changing enqueue to bisect.insort ==> needs performance comparison '''
+        """ changing enqueue to bisect.insort ==> needs performance comparison """
         # print("\n\nNEW STATE METRIC: " + str(n_state.metric))
 
         if constants.METRIC_MINIMIZE:

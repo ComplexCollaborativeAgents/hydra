@@ -71,7 +71,7 @@ class PolycraftDispatcher():
         return trial_set
 
     def run_trials(self):
-        ''' Run trials setup in "setup_trials" '''
+        """ Run trials setup in "setup_trials" """
 
         trial_num = 0
         for trial_id, trial_levels in self.trials.items():
@@ -80,8 +80,13 @@ class PolycraftDispatcher():
             self.trial_end(trial_id)
             trial_num += 1
 
+<<<<<<< HEAD
     def trial_start(self, trial_id: str, trial_number:int, novelty_description: dict, levels: list):
         ''' Run multiple levels '''
+=======
+    def trial_start(self, trial_number: int, novelty_description: dict, levels: list):
+        """ Run multiple levels """
+>>>>>>> master
 
         novelty_description = None
 
@@ -96,8 +101,13 @@ class PolycraftDispatcher():
             
             self.episode_end()
 
+<<<<<<< HEAD
     def episode_start(self, level_number: int, trial_id:str, trial_number: int, novelty_description: dict):
         ''' Run the agent in a single level until done '''
+=======
+    def episode_start(self, level_number: int, trial_number: int, novelty_description: dict):
+        """ Run the agent in a single level until done """
+>>>>>>> master
 
         current_state = self.env.get_current_state()
         self.agent.start_level(self.env) # Agent performing exploratory actions
@@ -127,7 +137,12 @@ class PolycraftDispatcher():
             # self.env.poly_client.REPORT_NOVELTY(level, confidence, user_msg)
 
     def episode_end(self) -> dict:
+<<<<<<< HEAD
         ''' Cleanup level '''
+=======
+        """ Cleanup level """
+
+>>>>>>> master
         return
 
     def trial_end(self, trial_id:str, trial_number:int):

@@ -1,3 +1,5 @@
+import logging
+
 from agent.planning.meta_model import *
 from agent.planning.meta_model import MetaModel
 from agent.planning.pddl_plus import PddlPlusWorldChange
@@ -7,8 +9,8 @@ from agent.planning.pddl_plus import *
 from worlds.polycraft_world import PolycraftAction
 
 logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
-logger = logging.getLogger("polycraft_meta_model")
-logger.setLevel(logging.INFO)
+logger = logging.getLogger("Polycraft")
+logger.setLevel(logging.DEBUG)
 
 
 # CONSTANTS
@@ -19,22 +21,22 @@ class PddlType(enum.Enum):
 
 
 class Predicate(enum.Enum):
-    ''' Note: the first prameter in the list is needed: otherwise python will merge enum elements. '''
+    """ Note: the first prameter in the list is needed: otherwise python will merge enum elements. """
     isAccessible = ["isAccessible", ("?c", PddlType.cell.name)]
-    adjacent = ["adjacent", ("?c1", PddlType.cell.name), ("?c2", PddlType.cell.name)]
+    # adjacent = ["adjacent", ("?c1", PddlType.cell.name), ("?c2", PddlType.cell.name)]
 
     door_is_accessible = ["door_is_accessible", ("?c", PddlType.door_cell.name)]
-    adjacent_to_door = ["adjacent_to_door", ("?c1", PddlType.cell.name), ("?c2", PddlType.door_cell.name)]
+    # adjacent_to_door = ["adjacent_to_door", ("?c1", PddlType.cell.name), ("?c2", PddlType.door_cell.name)]
     open = ["open", ("?c", PddlType.door_cell.name)]
     passed_door = ["passed_door", ("?c", PddlType.door_cell.name)]
 
     safe_is_accessible = ["safe_is_accessible", ("?c", PddlType.safe_cell.name)]
-    adjacent_to_safe = ["adjacent_to_safe", ("?c1", PddlType.cell.name), ("?c2", PddlType.safe_cell.name)]
+    # adjacent_to_safe = ["adjacent_to_safe", ("?c1", PddlType.cell.name), ("?c2", PddlType.safe_cell.name)]
     safe_collected = ["safe_collected", ("?c", PddlType.safe_cell.name)]
     safe_open = ["safe_open", ("?c", PddlType.safe_cell.name)]
 
     def to_pddl(self) -> list:
-        ''' Returns this predicate in a list format as expected by the pddl domain object '''
+        """ Returns this predicate in a list format as expected by the pddl domain object """
         predicate_as_list = [self.name]
         for (param_name, param_type) in self.value[1:]:
             predicate_as_list.extend([param_name, "-", param_type])
@@ -42,13 +44,17 @@ class Predicate(enum.Enum):
 
 
 class Function(enum.Enum):
-    ''' Note: the first prameter in the list is needed: otherwise python will merge enum elements. '''
+    """ Note: the first prameter in the list is needed: otherwise python will merge enum elements. """
     cell_type = ["cell_type", ("?c", PddlType.cell.name)]
+    cell_x = ["cell_x", ("?c", PddlType.cell.name)]
+    cell_z = ["cell_z", ("?c", PddlType.cell.name)]
     door_cell_type = ["door_cell_type", ("?c", PddlType.door_cell.name)]
     selectedItem = ["selectedItem"]
+    Steve_x = ["steve_x"]
+    Steve_z = ["steve_z"]
 
     def to_pddl(self) -> list:
-        ''' Returns this function in a list format as expected by the pddl domain object '''
+        """ Returns this function in a list format as expected by the pddl domain object """
         function_as_list = [self.name]
         for (param_name, param_type) in self.value[1:]:
             function_as_list.extend([param_name, "-", param_type])
@@ -58,19 +64,19 @@ class Function(enum.Enum):
 ###### PDDL OBJECTS AND FLUENTS
 
 ##### Classes and constructs to help build meta models
-class PolycraftObjectType():
-    ''' A generator for Pddl Objects. Accepts an object from the domain and adds the corresponding objects and fluents to the PDDL problem. '''
+class PolycraftObjectType:  #TODO each meta-model file has it's own definition of this class - consolidate
+    """ A generator for Pddl Objects. Accepts an object from the domain and adds the corresponding objects and fluents to the PDDL problem. """
 
     def __init__(self):
         self.hyper_parameters = dict()
         self.pddl_type = "object"  # This the PDDL+ type of this object.
 
     def get_object_name(self, obj):
-        ''' Return the object name in PDDL '''
+        """ Return the object name in PDDL """
         raise NotImplementedError("Subclass should implement this: generate a pddl name for the given world object")
 
     def add_object_to_pddl(self, obj, prob: PddlPlusProblem, params: dict):
-        ''' Populate a PDDL+ problem with details about this object '''
+        """ Populate a PDDL+ problem with details about this object """
         obj_name = self.get_object_name(obj)
         if self.pddl_type is not None:  # None type means this object should not be added to the problem objects list.
             prob.objects.append([obj_name, self.pddl_type])
@@ -88,7 +94,7 @@ class PolycraftObjectType():
                 prob.init.append(['=', fluent_name_as_list, fluent_value])
 
     def add_object_to_state(self, pddl_state: PddlPlusState, obj, state_params: dict):
-        ''' Populate a PDDL+ state with details about this object '''
+        """ Populate a PDDL+ state with details about this object """
         fluent_to_value = self._compute_obj_fluents(obj, state_params)
         for fluent_name, fluent_value in fluent_to_value.items():
             # If attribute is Boolean no need for an "=" sign
@@ -100,29 +106,31 @@ class PolycraftObjectType():
                 pddl_state.numeric_fluents[fluent_name] = fluent_value
 
     def _compute_obj_fluents(self, obj, params: dict) -> dict:
-        ''' Maps fluent_name to fluent_value for all fluents created for this object'''
+        """ Maps fluent_name to fluent_value for all fluents created for this object"""
         raise NotImplementedError("Subclass should implement. Return a dict mapping fluent name to value")
 
 
 class PddlGameMapCellType(PolycraftObjectType):
-    def __init__(self, type_idx=-1, relevant_attributes: list = [Predicate.isAccessible.name]):
+    def __init__(self, type_idx=-1, relevant_attributes=None):
         super().__init__()
+        if relevant_attributes is None:
+            relevant_attributes = [Predicate.isAccessible.name, Function.cell_x.name, Function.cell_z.name]
         self.pddl_type = "cell"
         self.type_idx = type_idx
         self.relevant_attributes = relevant_attributes
 
     @staticmethod
     def get_cell_object_name(cell_id: str):
-        ''' Return the object name in PDDL for the given cell '''
+        """ Return the object name in PDDL for the given cell """
         return "cell_{}".format("_".join(cell_id.split(",")))
 
     def get_object_name(self, obj):
-        ''' Return the object name in PDDL '''
+        """ Return the object name in PDDL """
         (cell_id, cell_attr) = obj
         return PddlGameMapCellType.get_cell_object_name(cell_id)
 
     def _compute_obj_fluents(self, obj, params: dict) -> dict:
-        ''' Maps fluent_name to fluent_value for all fluents created for this object'''
+        """ Maps fluent_name to fluent_value for all fluents created for this object"""
         cell_name = self.get_object_name(obj)
         fluent_to_value = dict()
         fluent_to_value[(Function.cell_type.name, cell_name)] = self.type_idx
@@ -133,17 +141,17 @@ class PddlGameMapCellType(PolycraftObjectType):
             if attribute in self.relevant_attributes:
                 fluent_to_value[(attribute, cell_name)] = attribute_value
 
-        # Cell adjacency info
-        world_state = params["world_state"]
-        active_cells = params["active_cells"]
-        known_cells = world_state.get_known_cells()
-        for adjacent_cell in get_adjacent_cells(cell_id):
-            if adjacent_cell in active_cells:
-                adjacent_cell_type = known_cells[adjacent_cell]["name"]
-                if adjacent_cell_type in [BlockType.BEDROCK.value, BlockType.WOODER_DOOR.value, BlockType.SAFE.value]:
-                    continue
-                adjacent_cell_name = PddlGameMapCellType.get_cell_object_name(adjacent_cell)
-                fluent_to_value[(Predicate.adjacent.name, cell_name, adjacent_cell_name)] = True
+        # # Cell adjacency info
+        # world_state = params["world_state"]
+        # active_cells = params["active_cells"]
+        # known_cells = world_state.get_known_cells()
+        # for adjacent_cell in get_adjacent_cells(cell_id):
+        #     if adjacent_cell in active_cells:
+        #         adjacent_cell_type = known_cells[adjacent_cell]["name"]
+        #         if adjacent_cell_type in [BlockType.BEDROCK.value, BlockType.WOODER_DOOR.value, BlockType.SAFE.value]:
+        #             continue
+        #         adjacent_cell_name = PddlGameMapCellType.get_cell_object_name(adjacent_cell)
+        #         fluent_to_value[(Predicate.adjacent.name, cell_name, adjacent_cell_name)] = True
         return fluent_to_value
 
 
@@ -153,7 +161,7 @@ class PddlDoorCellType(PddlGameMapCellType):
         self.pddl_type = PddlType.door_cell.name
 
     def _compute_obj_fluents(self, obj, params: dict) -> dict:
-        ''' Maps fluent_name to fluent_value for all fluents created for this object'''
+        """ Maps fluent_name to fluent_value for all fluents created for this object"""
         cell_name = self.get_object_name(obj)
         fluent_to_value = dict()
         fluent_to_value[(Function.door_cell_type.name, cell_name)] = self.type_idx
@@ -168,16 +176,16 @@ class PddlDoorCellType(PddlGameMapCellType):
                     fluent_to_value[(Predicate.door_is_accessible.name, cell_name)] = True
 
         # Handle adjacency
-        world_state = params["world_state"]
-        active_cells = params["active_cells"]
-        known_cells = world_state.get_known_cells()
-        for adjacent_cell in get_adjacent_cells(cell_id):
-            if adjacent_cell in active_cells:
-                adjacent_cell_type = known_cells[adjacent_cell]["name"]
-                if adjacent_cell_type in [BlockType.BEDROCK.value, BlockType.WOODER_DOOR.value]:
-                    continue
-                adjacent_cell_name = PddlGameMapCellType.get_cell_object_name(adjacent_cell)
-                fluent_to_value[(Predicate.adjacent_to_door.name, adjacent_cell_name, cell_name)] = True
+        # world_state = params["world_state"]
+        # active_cells = params["active_cells"]
+        # known_cells = world_state.get_known_cells()
+        # for adjacent_cell in get_adjacent_cells(cell_id):
+        #     if adjacent_cell in active_cells:
+        #         adjacent_cell_type = known_cells[adjacent_cell]["name"]
+        #         if adjacent_cell_type in [BlockType.BEDROCK.value, BlockType.WOODER_DOOR.value]:
+        #             continue
+        #         adjacent_cell_name = PddlGameMapCellType.get_cell_object_name(adjacent_cell)
+        #         fluent_to_value[(Predicate.adjacent_to_door.name, adjacent_cell_name, cell_name)] = True
 
         return fluent_to_value
 
@@ -188,7 +196,7 @@ class PddlSafeCellType(PddlGameMapCellType):
         self.pddl_type = PddlType.safe_cell.name
 
     def _compute_obj_fluents(self, obj, params: dict) -> dict:
-        ''' Maps fluent_name to fluent_value for all fluents created for this object'''
+        """ Maps fluent_name to fluent_value for all fluents created for this object"""
         cell_name = self.get_object_name(obj)
         fluent_to_value = dict()
 
@@ -198,74 +206,74 @@ class PddlSafeCellType(PddlGameMapCellType):
             if attribute == Predicate.isAccessible.name:
                 fluent_to_value[(Predicate.safe_is_accessible.name, cell_name)] = attribute_value
 
-        # Handle adjacency
-        world_state = params["world_state"]
-        active_cells = params["active_cells"]
-        known_cells = world_state.get_known_cells()
-        for adjacent_cell in get_adjacent_cells(cell_id):
-            if adjacent_cell in active_cells:
-                adjacent_cell_type = known_cells[adjacent_cell]["name"]
-                if adjacent_cell_type in [BlockType.BEDROCK.value, BlockType.WOODER_DOOR.value, BlockType.SAFE.value]:
-                    continue
-                adjacent_cell_name = PddlGameMapCellType.get_cell_object_name(adjacent_cell)
-                fluent_to_value[(Predicate.adjacent_to_safe.name, adjacent_cell_name, cell_name)] = True
+        # # Handle adjacency
+        # world_state = params["world_state"]
+        # active_cells = params["active_cells"]
+        # known_cells = world_state.get_known_cells()
+        # for adjacent_cell in get_adjacent_cells(cell_id):
+        #     if adjacent_cell in active_cells:
+        #         adjacent_cell_type = known_cells[adjacent_cell]["name"]
+        #         if adjacent_cell_type in [BlockType.BEDROCK.value, BlockType.WOODER_DOOR.value, BlockType.SAFE.value]:
+        #             continue
+        #         adjacent_cell_name = PddlGameMapCellType.get_cell_object_name(adjacent_cell)
+        #         fluent_to_value[(Predicate.adjacent_to_safe.name, adjacent_cell_name, cell_name)] = True
 
         return fluent_to_value
 
 
 class Task:
-    ''' A task that the polycraft agent can aim to do '''
+    """ A task that the polycraft agent can aim to do """
 
     def __str__(self):
         return self.__class__.__name__
 
     def create_relevant_actions(self, world_state: PolycraftState, meta_model):
-        ''' Returns a list of actions for the agent to use when planning '''
+        """ Returns a list of actions for the agent to use when planning """
         raise NotImplementedError()
 
     def create_relevant_events(self, world_state: PolycraftState, meta_model):
-        ''' Returns a list of events for the agent to consider when planning'''
+        """ Returns a list of events for the agent to consider when planning"""
         raise NotImplementedError()
 
     def get_goals(self, world_state: PolycraftState, meta_model):
-        ''' Returns the goal to achieve '''
+        """ Returns the goal to achieve """
         raise NotImplementedError()
 
     def get_metric(self, world_state: PolycraftState, meta_model):
-        ''' Returns the metric the planner seeks to optimize '''
+        """ Returns the metric the planner seeks to optimize """
         raise NotImplementedError()
 
-    def get_planner_heuristic(self, world_state: PolycraftState):
-        ''' Returns the heuristic to be used by the planner'''
+    def get_planner_heuristic(self, world_state: PolycraftState, metamodel):
+        """ Returns the heuristic to be used by the planner"""
         raise NotImplementedError()
 
     def get_relevant_types(self, world_state: PolycraftState, meta_model):
-        ''' Returns a list of actions for the agent to use when planning '''
+        """ Returns a list of actions for the agent to use when planning """
         raise NotImplementedError()
 
     def get_relevant_predicates(self, world_state: PolycraftState, meta_model):
-        ''' Returns a list of actions for the agent to use when planning '''
+        """ Returns a list of actions for the agent to use when planning """
         raise NotImplementedError()
 
     def get_relevant_functions(self, world_state: PolycraftState, meta_model):
-        ''' Returns a list of actions for the agent to use when planning '''
+        """ Returns a list of actions for the agent to use when planning """
         raise NotImplementedError()
 
     def get_type_for_cell(self, cell_attr, meta_model) -> PddlGameMapCellType:
-        ''' Return a PddlGameMapCellType appropriate to generate objects representing this game map cell'''
+        """ Return a PddlGameMapCellType appropriate to generate objects representing this game map cell"""
         raise NotImplementedError()
 
     def is_done(self, state: PolycraftState) -> bool:
-        ''' Checks if the task has been succesfully completed '''
+        """ Checks if the task has been succesfully completed """
         raise NotImplementedError()
 
     def is_feasible(self, state: PolycraftState) -> bool:
-        ''' Checks if the task can be achived in the current state '''
+        """ Checks if the task can be achived in the current state """
         return True
 
 
 class PddlPolycraftAction(PolycraftAction):
-    ''' Wrapper for Polycraft World Action that also stores the grounded pddl action that corresponds to this action '''
+    """ Wrapper for Polycraft World Action that also stores the grounded pddl action that corresponds to this action """
 
     def __init__(self, poly_action, pddl_name, binding):
         super().__init__()
@@ -293,19 +301,19 @@ class PddlPolycraftAction(PolycraftAction):
 
 
 class PddlPolycraftActionGenerator():
-    ''' An object that bridges between pddl actions and polycraft actions'''
+    """ An object that bridges between pddl actions and polycraft actions"""
 
     def __init__(self, pddl_name):
         self.pddl_name = pddl_name  # The name of this PDDL action
 
-    ''' A class representing a PDDL+ action in polycraft '''
+    """ A class representing a PDDL+ action in polycraft """
 
     def to_pddl(self, meta_model: MetaModel) -> PddlPlusWorldChange:
-        ''' This method should be implemented by sublcasses and output a string representation of the corresponding PDDL+ action '''
+        """ This method should be implemented by sublcasses and output a string representation of the corresponding PDDL+ action """
         raise NotImplementedError()
 
     def to_polycraft(self, parameter_binding: dict) -> PolycraftAction:
-        ''' This method should be implemented by sublcasses and output a string representation of the corresponding PDDL+ action '''
+        """ This method should be implemented by sublcasses and output a string representation of the corresponding PDDL+ action """
         raise NotImplementedError()
 
     def to_pddl_polycraft(self, parameter_binding: dict) -> PddlPolycraftAction:
@@ -315,7 +323,7 @@ class PddlPolycraftActionGenerator():
 
 
 class PolycraftMetaModel(MetaModel):
-    ''' Sets the default meta-model'''
+    """ Sets the default meta-model"""
 
     def __init__(self, active_task: Task = None):
         super().__init__(docker_path=settings.POLYCRAFT_PLANNING_DOCKER_PATH,
@@ -327,16 +335,19 @@ class PolycraftMetaModel(MetaModel):
                              'break_platinum_outcome_num',
                              'break_diamond_outcome_num',
                              'collect_sap_outcome_num'],
+                         repair_deltas=[
+                             1, 1, 1, 1
+                         ],
                          constant_numeric_fluents={
-                             'break_log_outcome_num': 1,
+                             'break_log_outcome_num': 2,
                              'break_platinum_outcome_num': 1,
                              'break_diamond_outcome_num': 9,
                              'collect_sap_outcome_num': 1
                          },
                          constant_boolean_fluents={})
 
-        self.domain_name = "polycraft"  # TODO: Move this to constructor
-        self.problem_name = "polycraft_prob"  # TODO: Move this to constructor
+        self.domain_name = "polycraft"
+        self.problem_name = "polycraft_prob"
 
         # Maps a cell type to what we get if we break it. The latter is in the form of a pair (item type, quantity).
         self.break_block_to_outcome = dict()
@@ -386,38 +397,43 @@ class PolycraftMetaModel(MetaModel):
             return
         type_idx = max(self.block_type_to_idx.values()) + 1
         self.block_type_to_idx[block_type] = type_idx
-        self.break_block_to_outcome[block_type] = (ItemType.LOG.value, 0)  # Assume unknown object create no items
+        self.break_block_to_outcome[block_type] = (block_type, 0)
+        # Assume unknown object creates items, but set initial number to 0
+        fluent_name = 'break_' + self._convert_element_naming(block_type) + '_outcome_num'
+        self.introduce_novel_inventory_item_type(block_type, False)
+        self.constant_numeric_fluents[fluent_name] = 0
+        self.repairable_constants.append(fluent_name)
+        self.repair_deltas.append(1)
         # Assume new item is not collectable
 
-    def introduce_novel_inventory_item_type(self, item_type):
-        ''' Introduce new item type.'''
+    def introduce_novel_inventory_item_type(self, item_type, selectable=True):
+        """ Introduce new item type."""
         if item_type in self.item_type_to_idx:
             logger.info(f"Item type {item_type} already known")
             return
         type_idx = max(self.item_type_to_idx.values()) + 1
         self.item_type_to_idx[item_type] = type_idx
 
-        if item_type not in self.selectable_items:
-            self.selectable_items.append(item_type)  # Assume unknown item is selectable
+        if item_type not in self.selectable_items and selectable:
+            self.selectable_items.append(item_type)  # Assume unknown item is selectable unless told otherwise
 
     def introduce_novel_entity_type(self, entity_type):
-        ''' Introduce novel entity type'''
+        """ Introduce novel entity type"""
         logger.info(f"Currently ignoring novel entity type {entity_type}")
 
     def set_active_task(self, task: Task):
-        ''' Sets the active task for which to create PDDL domains and problems '''
+        """ Sets the active task for which to create PDDL domains and problems """
         self.active_task = task
 
     def create_pddl_domain(self, world_state: PolycraftState) -> PddlPlusDomain:
-        ''' Create a PDDL+ domain for the given observed state '''
+        """ Create a PDDL+ domain for the given observed state """
         # domain_file = "{}/{}".format(str(self.docker_path), "polycraft_domain_template.pddl")
         # domain_parser = PddlDomainParser()
         # pddl_domain = PddlPlusDomain()
 
         pddl_domain = PddlPlusDomain()
         pddl_domain.name = "polycraft"
-        pddl_domain.requirements = [":typing", ":disjunctive-preconditions", ":fluents", ":time",
-                                    ":negative-preconditions"]
+        pddl_domain.requirements = [":typing", ":disjunctive-preconditions", ":fluents", ":negative-preconditions"]
 
         # Add object types
         for object_type in self.active_task.get_relevant_types(world_state, self):
@@ -449,7 +465,7 @@ class PolycraftMetaModel(MetaModel):
         return self.active_task.create_relevant_actions(state, self)
 
     def _convert_polycraft_naming_in_domain(self, pddl_domain: PddlPlusDomain):
-        ''' Change the elements in the domain so that they fit the pddl convention of not using ":" '''
+        """ Change the elements in the domain so that they fit the pddl convention of not using ":" """
         for i, pddl_element in enumerate(pddl_domain.functions):
             pddl_domain.functions[i] = self._convert_element_naming(pddl_element)
         for i, pddl_element in enumerate(pddl_domain.predicates):
@@ -464,21 +480,21 @@ class PolycraftMetaModel(MetaModel):
             self._convert_world_change_naming(pddl_element)
 
     def _convert_polycraft_naming_in_problem(self, pddl_problem: PddlPlusProblem):
-        ''' Change the elements in the problem so that they fit the pddl convention of not using ":" '''
+        """ Change the elements in the problem so that they fit the pddl convention of not using ":" """
         for i, init_elment in enumerate(pddl_problem.init):
             pddl_problem.init[i] = self._convert_element_naming(init_elment)
         for i, goal_elment in enumerate(pddl_problem.goal):
             pddl_problem.goal[i] = self._convert_element_naming(goal_elment)
 
     def _convert_world_change_naming(self, world_change: PddlPlusWorldChange):
-        ''' Change the elements in this world change so that they fit the pddl convention of not using ":" '''
+        """ Change the elements in this world change so that they fit the pddl convention of not using ":" """
         world_change.name = self._convert_element_naming(world_change.name)
         self._convert_element_naming(world_change.effects)
         self._convert_element_naming(world_change.preconditions)
         self._convert_element_naming(world_change.parameters)
 
     def _convert_element_naming(self, element):
-        ''' Recursive replace of : to _ to change polycraft naming to pddl '''
+        """ Recursive replace of : to _ to change polycraft naming to pddl """
         if type(element) == str:
             return element.replace(":", "_")
         if type(element) != list:
@@ -488,7 +504,7 @@ class PolycraftMetaModel(MetaModel):
         return element
 
     def _should_ignore_cell(self, cell: str, world_state: PolycraftState):
-        ''' An optimization step: identify cells that are not needed for the problem solving '''
+        """ An optimization step: identify cells that are not needed for the problem solving """
         cell_types_to_ignore = [BlockType.BEDROCK.value]
         known_cells = world_state.get_known_cells()
         type_str = known_cells[cell]['name']
@@ -518,7 +534,7 @@ class PolycraftMetaModel(MetaModel):
             return False
 
     def create_pddl_problem(self, world_state: PolycraftState):
-        ''' Creates a PDDL problem file in which the given world state is the initial state '''
+        """ Creates a PDDL problem file in which the given world state is the initial state """
         pddl_problem = PddlPlusProblem()
         pddl_problem.domain = self.domain_name
         pddl_problem.name = self.problem_name
@@ -569,6 +585,9 @@ class PolycraftMetaModel(MetaModel):
                 cell_name = PddlGameMapCellType.get_cell_object_name(entity_cell)
                 pddl_problem.init.append([f"trader_{entity}_at", cell_name])
 
+        pddl_problem.init.append(["=", [Function.Steve_x.name, ], world_state.location["pos"][0]])
+        pddl_problem.init.append(["=", [Function.Steve_z.name, ], world_state.location["pos"][2]])
+
         # Add goal and metric
         for goal in self.active_task.get_goals(world_state, self):
             pddl_problem.goal.append(goal)
@@ -577,7 +596,7 @@ class PolycraftMetaModel(MetaModel):
         return pddl_problem
 
     def create_pddl_state(self, world_state: PolycraftState) -> PddlPlusState:
-        ''' Translate the given observed world state to a PddlPlusState object '''
+        """ Translate the given observed world state to a PddlPlusState object """
 
         pddl_state = PddlPlusState()
         # A dictionary with global problem parameters
@@ -590,22 +609,23 @@ class PolycraftMetaModel(MetaModel):
         for cell, cell_attr in known_cells.items():
             # Pruning cells to gain efficiency
             if not self._should_ignore_cell(cell, world_state):
-                active_cells.append((cell, cell_attr))
+                active_cells.append(cell)
         problem_params["active_cells"] = active_cells
 
         # Add fluents for the active game map cells to the problem
         for cell in active_cells:
-            type = self.active_task.get_type_for_cell(cell[1], self)
-            type.add_object_to_state(pddl_state, cell, problem_params)
+            cell_attr = known_cells[cell]
+            type = self.active_task.get_type_for_cell(cell_attr, self)
+            type.add_object_to_state(pddl_state, (cell, cell_attr), problem_params)
 
         # Add inventory items
         for item_type in self.item_type_to_idx.keys():
             count = world_state.count_items_of_type(item_type)
-            pddl_state.numeric_fluents[f"count_{item_type}"] = count
+            pddl_state.numeric_fluents[(f"count_{self._convert_element_naming(item_type)}",)] = count
 
         # Add selected item
         select_item = world_state.get_selected_item()
-        fluent_name = Function.selectedItem.name
+        fluent_name = (Function.selectedItem.name,)
         selected_item_idx = -1
         if select_item is not None and select_item in self.item_type_to_idx:
             selected_item_idx = self.item_type_to_idx[select_item]
@@ -621,10 +641,13 @@ class PolycraftMetaModel(MetaModel):
                 cell_name = PddlGameMapCellType.get_cell_object_name(entity_cell)
                 pddl_state.boolean_fluents.add(f"trader_{entity}_at" + cell_name)
 
+        pddl_state.numeric_fluents[(Function.Steve_x.name,)] = world_state.location["pos"][0]
+        pddl_state.numeric_fluents[(Function.Steve_z.name,)] = world_state.location["pos"][2]
+
         return pddl_state
 
-    def get_nyx_heuristic(self, world_state):
-        return self.active_task.get_planner_heuristic(world_state)
+    def get_nyx_heuristic(self, world_state, meta_model):
+        return self.active_task.get_planner_heuristic(world_state, meta_model)
 
     #
     # def _extract_landmarks(self,world_state: PolycraftState, pddl_problem:PddlPlusProblem, pddl_domain: PddlPlusDomain):

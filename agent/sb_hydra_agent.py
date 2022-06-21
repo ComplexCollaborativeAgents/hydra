@@ -401,7 +401,7 @@ class SBHydraAgent(HydraAgent):
                 self._new_novelty_likelihood = True
                 return
 
-        '''looks at the history of detections in previous levels and returns true when novelty has been detected for 3 contiguous episodes'''
+        """looks at the history of detections in previous levels and returns true when novelty has been detected for 3 contiguous episodes"""
         # self.novelty_detections.append(self._detect_level_novelty())
         self.novelty_detections.append(self._detect_level_novelty_with_ensemble(success))
         if (not settings.SB_LOOKBACK_ONLY_DETECTION) and (not self._new_novelty_likelihood) and len(

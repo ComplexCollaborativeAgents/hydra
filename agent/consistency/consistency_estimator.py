@@ -12,20 +12,20 @@ DEFAULT_DELTA_T = settings.SB_DELTA_T
 DEFAULT_PLOT_OBS_VS_EXP = False
 CONSISTENCY_CHECK_FAILED_VALUE = 1000
 
-'''
-An abstract class for checking if a given sequence of (state, time) pairs can be consistent with a given sequence of states.  
-'''
 
 
 class ConsistencyEstimator:
     """
-    The first parameter is a list of (state,time) pairs of the expected (simulated) plan.
-    the second is a list of observed (actually happened) states.
-    Returns a positive number  that represents the possible consistency between the sequences,
-    where zero means fully consistent.
+        An abstract class for checking if a given sequence of (state, time) pairs can be consistent with a given sequence of states.
     """
 
     def estimate_consistency(self, simulation_trace: list, state_seq: list, delta_t: float):
+        """
+            The first parameter is a list of (state,time) pairs of the expected (simulated) plan.
+            the second is a list of observed (actually happened) states.
+            Returns a positive number  that represents the possible consistency between the sequences,
+            where zero means fully consistent.
+            """
         raise NotImplementedError()
 
 
@@ -35,9 +35,9 @@ class MetaModelBasedConsistencyEstimator(ConsistencyEstimator):
     """
     PLAN_FAILED_CONSISTENCY_VALUE = 1000  # A constant representing the inconsistency value of a meta model in which the executed plan is inconsistent
 
-    ''' Computes the consistency of a given observation w.r.t the given meta model using the given simulator '''
 
     def compute_consistency(self, observation, meta_model, simulator: PddlPlusSimulator, delta_t):
+        """ Computes the consistency of a given observation w.r.t the given meta model using the given simulator """
         try:
             expected_trace, plan = simulator.get_expected_trace(observation, meta_model, delta_t)
             observed_seq = observation.get_pddl_states_in_trace(meta_model)
@@ -67,9 +67,9 @@ class NumericFluentsConsistencyEstimator(MetaModelBasedConsistencyEstimator):
         self.obs_prefix = obs_prefix
         self.consistency_threshold = consistency_threshold
 
-    ''' Returns a value indicating the estimated consistency. '''
 
     def estimate_consistency(self, simulation_trace: list, state_seq: list, delta_t: float = DEFAULT_DELTA_T):
+        """ Returns a value indicating the estimated consistency. """
         # Only consider states with some info regarding the relevant fluents
         states_with_info = []
         for state in state_seq:
@@ -146,11 +146,11 @@ class NumericFluentsConsistencyEstimator(MetaModelBasedConsistencyEstimator):
             fluent_to_expected_values[fluent_name] = fitted_values
         return all_t_values, fluent_to_expected_values
 
-    ''' Compute the t value that best fits the given state. Returns
-    this t and the error at that time, i.e., the difference between 
-    the state's fluent values and their expected values at the best fit time. '''
 
     def _compute_best_fit(self, state, t_values, fluent_to_expected_values):
+        """ Compute the t value that best fits the given state. Returns
+            this t and the error at that time, i.e., the difference between
+            the state's fluent values and their expected values at the best fit time. """
         best_fit_error = float('inf')
         best_t = -1
         for t in range(len(t_values)):

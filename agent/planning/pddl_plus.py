@@ -1,8 +1,8 @@
-'''
+"""
 Utility file for handling PDDL+ domains and problems.
 
 Using code from https://norvig.com/lispy.html by Peter Norvig
-'''
+"""
 from enum import Enum
 from collections import defaultdict
 
@@ -12,8 +12,8 @@ def get_numeric_fluent(fluent_list, fluent_name):
     Return a numeric fluent from the list of fluents
     """
     for fluent in fluent_list:
-        if fluent[
-            0] == "=":  # Note: I intentionally not added an AND with the next if, to not fall for cases where len(fluent)==1
+        if fluent[0] == "=":
+            # Note: I intentionally not added an AND with the next if, to not fall for cases where len(fluent)==1
             if fluents_names_equals(fluent[1], fluent_name):
                 return fluent
     raise ValueError("Fluent %s not found in list" % fluent_name)
@@ -45,11 +45,9 @@ class WorldChangeTypes(Enum):
     action = 3
 
 
-
-
-
-class PddlPlusWorldChange():
+class PddlPlusWorldChange:
     """ A class that represents an event, process, or action"""
+
     def __init__(self, type: WorldChangeTypes):
         self.name = None
         self.type = type
@@ -61,17 +59,17 @@ class PddlPlusWorldChange():
         return str(self.name)
 
 
-class PddlPlusProblem():
+class PddlPlusProblem:
     def __init__(self):
         self.name = None
         self.domain = None
         self.objects = list()
-        self.init = list()
+        self.init = list()  # TODO make this a PDDLState instead of a list
         self.goal = list()
         self.metric = None
 
     def __eq__(self, other):
-        if isinstance(other, PddlPlusProblem) == False:
+        if not isinstance(other, PddlPlusProblem):
             return False
         if self.name != other.name:
             return False
@@ -98,8 +96,6 @@ class PddlPlusProblem():
         if self.metric != other.metric:
             return False
         return True
-
-
 
     def get_init_state(self):
         """ Get the initial state in PDDL+ format"""
@@ -135,7 +131,7 @@ class PddlPlusState:
     def __init__(self, fluent_list: list = None):
         """ Creates a PDDL+ state object initialized by a list of fluent given in the PddlPlusProblem format of lists"""
         self.numeric_fluents = defaultdict(
-            lambda: 0)  # Default value of non-existing fluents is zero in current planner.
+            lambda: 0.0)  # Default value of non-existing fluents is zero in current planner.
         self.boolean_fluents = set()
         if fluent_list is not None:
             self.load_from_fluent_list(fluent_list)
@@ -155,24 +151,22 @@ class PddlPlusState:
             return True
         return False
 
-    ''' Loads the PddlPlusState object with a list of tuples as imported from PDDL file. 
-        A tuple representing a numeric variable is of the form (=, object_list, value). 
-        A tuple representing a boolean variable is of the form (object_list) or (not object_list)'''
-
     def load_from_fluent_list(self, fluent_list: list):
+        """ Loads the PddlPlusState object with a list of tuples as imported from PDDL file.
+        A tuple representing a numeric variable is of the form (=, object_list, value).
+        A tuple representing a boolean variable is of the form (object_list) or (not object_list)"""
         for fluent in fluent_list:
             if fluent[0] == "=":  # This is a numeric fluent
                 fluent_name = tuple(fluent[1])
-                self.numeric_fluents[fluent_name] = float(
-                    fluent[2])  # Wrapping in tuple to be hashable, converting to float (not string)
+                self.numeric_fluents[fluent_name] = float(fluent[2])
+                # Wrapping in tuple to be hashable, converting to float (not string)
             else:  # This is a boolean fluent
                 if fluent[0] != "not":
                     fluent_name = tuple(fluent)
                     self.boolean_fluents.add(fluent_name)  # Wrapping in tuple to be hashable
 
-    ''' Returns this state as a list of fluents, compatible with PddlProblem'''
-
     def save_as_fluent_list(self):
+        """ Returns this state as a list of fluents, compatible with PddlProblem"""
         fluent_list = []
         for fluent_name in self.numeric_fluents:
             fluent_value = self.get_value(fluent_name)
@@ -194,10 +188,11 @@ class PddlPlusState:
             assert False
         return self.numeric_fluents[numeric_fluent_name]
 
-    ''' Returns the set of bird objects alive in this state. 
-     Bird is identified by the x_bird fluent. Returns a set of bird names. '''
 
     def get_birds(self):
+        # TODO this blongs is a SB specific sub-class, not here
+        """ Returns the set of bird objects alive in this state.
+             Bird is identified by the x_bird fluent. Returns a set of bird names. """
         birds = set()
         for fluent_name in self.numeric_fluents:
             # We expect every bird has an x coordinate in a fluent of the form (x_bird, birdname)
@@ -206,6 +201,7 @@ class PddlPlusState:
         return birds
 
     def get_agents(self):
+        # TODO this blongs is a SB specific sub-class, not here
         agents = set()
         for fluent_name in self.numeric_fluents:
             # We expect every agent has an x coordinate in a fluent of the form (x_agent, agentname)
@@ -213,24 +209,27 @@ class PddlPlusState:
                 agents.add(fluent_name[1])
         return agents
 
-    ''' Returns the active bird'''
 
     def get_active_bird(self):
+        """ Returns the active bird"""
+        # TODO this blongs is a SB specific sub-class, not here
         active_bird_id = int(self['active_bird'])
         return self.get_bird(active_bird_id)
 
-    ''' Get the bird with the given bird id'''
 
     def get_bird(self, bird_id: int):
+        """ Get the bird with the given bird id"""
+        # TODO this blongs is a SB specific sub-class, not here
         for bird in self.get_birds():  # TODO: Can change this to be more efficient
             if bird_id == int(self[("bird_id", bird)]):
                 return bird
         raise ValueError("Bird %d not found in state" % bird_id)
 
-    ''' Returns the set of bird objects alive in this state. 
-     Bird is identified by the x_bird fluent. Returns a set of bird names. '''
 
     def get_pigs(self):
+        """ Returns the set of bird objects alive in this state.
+             Bird is identified by the x_bird fluent. Returns a set of bird names. """
+        # TODO this blongs is a SB specific sub-class, not here
         pigs = set()
         for fluent_name in self.numeric_fluents:
             # We expect every bird has an x coordinate in a fluent of the form (x_bird, birdname)
@@ -238,10 +237,11 @@ class PddlPlusState:
                 pigs.add(fluent_name[1])
         return pigs
 
-    ''' Returns the set of bird objects alive in this state. 
-     Bird is identified by the x_bird fluent. Returns a set of bird names. '''
 
     def get_platforms(self):
+        """ Returns the set of bird objects alive in this state.
+             Bird is identified by the x_bird fluent. Returns a set of bird names. """
+        # TODO this blongs is a SB specific sub-class, not here
         platforms = set()
         for fluent_name in self.numeric_fluents:
             # We expect every bird has an x coordinate in a fluent of the form (x_platform, platform_name)
@@ -249,10 +249,11 @@ class PddlPlusState:
                 platforms.add(fluent_name[1])
         return platforms
 
-    ''' Returns the set of block objects present in this state. 
-     Block is identified by the x_block fluent. Returns a set of block names. '''
 
     def get_blocks(self):
+        """ Returns the set of block objects present in this state.
+             Block is identified by the x_block fluent. Returns a set of block names. """
+        # TODO this blongs is a SB specific sub-class, not here
         blocks = set()
         for fluent_name in self.numeric_fluents:
             # We expect every bird has an x coordinate in a fluent of the form (x_block, block_name)
@@ -279,9 +280,9 @@ class PddlPlusState:
             string_buffer = "%s %s\n" % (string_buffer, str(fluent_name))
         return string_buffer
 
-    ''' Export as a string in PDDL (lisp) format '''
 
     def to_pddl(self):
+        """ Export as a string in PDDL (lisp) format """
         string_buffer = ""
         for fluent_name in self.numeric_fluents:
             string_buffer = "%s (=%s %s)\n" % (string_buffer, str(fluent_name), self.numeric_fluents[fluent_name])
@@ -306,16 +307,18 @@ class PddlPlusState:
         return new_state
 
 
-''' Class responsible for all groundings'''
 
 
-class PddlPlusGrounder():
+class PddlPlusGrounder:
+    # TODO is this still in use?
+    """ Class responsible for all groundings"""
+
     def __init__(self, no_dummy_objects=False):
         self.no_dummy_objects = no_dummy_objects
 
-    ''' Recursively ground the given element with the given binding '''
 
     def ground_element(self, element, binding):
+        """ Recursively ground the given element with the given binding """
         if isinstance(element, list):
             grounded_element = list()
             for sub_element in element:
@@ -342,9 +345,9 @@ class PddlPlusGrounder():
 
         return grounded_world_change
 
-    ''' Created a grounded version of this domain '''
 
     def ground_domain(self, domain: PddlPlusDomain, problem: PddlPlusProblem):
+        """ Created a grounded version of this domain """
 
         grounded_domain = PddlPlusDomain()
         grounded_domain.name = domain.name
@@ -365,7 +368,7 @@ class PddlPlusGrounder():
 
         return grounded_domain
 
-    ''' Ground a list of world_change objects to the given problem '''
+    """ Ground a list of world_change objects to the given problem """
 
     def __ground_world_change_lists(self, world_change_list, problem):
         grounded_world_change_list = list()
@@ -378,8 +381,8 @@ class PddlPlusGrounder():
                 grounded_world_change_list.append(self.ground_world_change(world_change, binding))
         return grounded_world_change_list
 
-    ''' Extracts from a raw list of the form [?x - typex y? - type?] a list of the form [(?x typex)(?y typey)] 
-    TODO: Think about where this really should go '''
+    """ Extracts from a raw list of the form [?x - typex y? - type?] a list of the form [(?x typex)(?y typey)] 
+    TODO: Think about where this really should go """
 
     def __get_typed_parameter_list(self, element: list):
         i = 0
@@ -391,20 +394,20 @@ class PddlPlusGrounder():
             i = i + 3
         return typed_parameters
 
-    ''' Extract the list of typed parameters of the given predict'''
+    """ Extract the list of typed parameters of the given predict"""
 
     def __get_predicate_parameters(self, predicate):
         parameter_list = predicate[1:]
         return self.__get_typed_parameter_list(parameter_list)
 
-    ''' Enumerate all possible bindings of the given parameters to the given problem '''
+    """ Enumerate all possible bindings of the given parameters to the given problem """
 
     def __get_possible_bindings(self, parameters, problem: PddlPlusProblem):
         all_bindings = list()
         self.__recursive_get_possible_bindings(parameters, problem, dict(), all_bindings)
         return all_bindings
 
-    ''' Recursive method to find all bindings '''
+    """ Recursive method to find all bindings """
 
     def __recursive_get_possible_bindings(self, parameters, problem, binding, bindings):
         for object in problem.objects:
@@ -419,13 +422,13 @@ class PddlPlusGrounder():
                 else:
                     self.__recursive_get_possible_bindings(parameters[1:], problem, binding, bindings)
 
-    ''' Checks if one can bound the given parameter to the given object '''
+    """ Checks if one can bound the given parameter to the given object """
 
     def __can_bind(self, parameter, object):
         return object[-1] == parameter[-1]
 
 
-''' An action with a time stamp saying when it should start'''
+""" An action with a time stamp saying when it should start"""
 
 
 class TimedAction():
@@ -437,7 +440,7 @@ class TimedAction():
         return "t=%s, %s" % (self.start_at, self.action_name)
 
 
-''' Just a list of timed actions '''
+""" Just a list of timed actions """
 
 
 class PddlPlusPlan(list):
@@ -449,7 +452,7 @@ class PddlPlusPlan(list):
             self.append(action)
 
 
-''' Check if a given string is a float. TODO: Replace this with a more elegant python way of doing this.'''
+""" Check if a given string is a float. TODO: Replace this with a more elegant python way of doing this."""
 
 
 def is_float(text: str):
@@ -458,8 +461,6 @@ def is_float(text: str):
         return True
     except:
         return False
-
-
 
 
 def is_op(op_name: str):
