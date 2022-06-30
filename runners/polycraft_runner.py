@@ -15,7 +15,7 @@ LOG_PATH = pathlib.Path(settings.ROOT_PATH) / 'runners' / 'log' / 'hydra-polycra
 def config_logging():
     logger = logging.getLogger()
     fh = logging.FileHandler(LOG_PATH)
-    fh.setLevel(logging.DEBUG)
+    fh.setLevel(logging.INFO)
     formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     fh.setFormatter(formatter)
     logger.addHandler(fh)
@@ -40,7 +40,7 @@ def main():
 
     dispatcher = PolycraftDispatcher(agent=agent)
     try:
-        dispatcher.experiment_start(trials=trials, standalone=False)
+        dispatcher.experiment_start(trials=trials, standalone=True)
 
         dispatcher.run_trials()
     finally:

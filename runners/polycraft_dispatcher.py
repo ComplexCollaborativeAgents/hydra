@@ -1,10 +1,14 @@
 import pathlib
+import logging
 from typing import List, Dict
 
 from worlds.polycraft_world import *
-from agent.hydra_agent import HydraAgent
 from agent.polycraft_hydra_agent import PolycraftHydraAgent
-from utils.generate_trials_polycraft import generate_trial_sets
+
+# Logger
+logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger("polycraft_dispatcher")
+logger.setLevel(logging.INFO)
 
 
 class PolycraftDispatcher():
@@ -77,16 +81,13 @@ class PolycraftDispatcher():
         for trial_id, trial_levels in self.trials.items():
             # TODO: include novelty characterization? (also detection stats too)
             self.trial_start(trial_id, trial_num, {}, trial_levels)
-            self.trial_end(trial_id)
+            self.trial_end(trial_id, trial_num)
             trial_num += 1
 
-<<<<<<< HEAD
     def trial_start(self, trial_id: str, trial_number:int, novelty_description: dict, levels: list):
         ''' Run multiple levels '''
-=======
-    def trial_start(self, trial_number: int, novelty_description: dict, levels: list):
-        """ Run multiple levels """
->>>>>>> master
+
+        logger.info("------------ [{}] TRIAL {} START ------------".format(trial_id, trial_number))
 
         novelty_description = None
 
@@ -101,18 +102,15 @@ class PolycraftDispatcher():
             
             self.episode_end()
 
-<<<<<<< HEAD
     def episode_start(self, level_number: int, trial_id:str, trial_number: int, novelty_description: dict):
         ''' Run the agent in a single level until done '''
-=======
-    def episode_start(self, level_number: int, trial_number: int, novelty_description: dict):
-        """ Run the agent in a single level until done """
->>>>>>> master
+
+        logger.info("------------ [{}] EPISODE {} START ------------".format(trial_number, level_number))
 
         current_state = self.env.get_current_state()
         self.agent.start_level(self.env) # Agent performing exploratory actions
         while True:
-            novelty = 0
+            novelty = self.agent.novelty_existence  # NOTE: This may be subject to change
 
             # Check if level is done
             if current_state.is_terminal():
@@ -137,23 +135,18 @@ class PolycraftDispatcher():
             # self.env.poly_client.REPORT_NOVELTY(level, confidence, user_msg)
 
     def episode_end(self) -> dict:
-<<<<<<< HEAD
         ''' Cleanup level '''
-=======
-        """ Cleanup level """
-
->>>>>>> master
         return
 
     def trial_end(self, trial_id:str, trial_number:int):
         # Cleanup
-        print("------------ [{}] {} TRIAL END ------------".format(trial_number, trial_id))
+        logger.info("------------ [{}] {} TRIAL END ------------".format(trial_number, trial_id))
 
     def experiment_end(self):
         # Cleanup
 
-        print("------------ EXPERIMENT END ------------")
-        print(json.dumps(self.results, indent=4))
+        logger.info("------------ EXPERIMENT END ------------")
+        logger.info(json.dumps(self.results, indent=4))
 
         if self.env is not None:
             self.env.kill()
