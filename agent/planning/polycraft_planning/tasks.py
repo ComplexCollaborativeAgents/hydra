@@ -1,3 +1,5 @@
+from math import ceil
+
 from agent.planning.polycraft_meta_model import *
 from agent.planning.nyx.abstract_heuristic import AbstractHeuristic
 from agent.planning.polycraft_meta_model import PddlPolycraftActionGenerator
@@ -359,9 +361,104 @@ class CraftPogoHeuristic(AbstractHeuristic):
                     accessible += 1
         return accessible, total
 
-    def _still_missing_ingredients(self, node, item_type: str, needed: int):
+    def _get_inventory(self, search_node: SearchState):
+        inventory = dict()
+        for var, val in search_node.state_vars.items():
+            if var[0:8] == "['count_":
+                item_name = var[8:-2].replace('_', ":")
+                inventory[item_name] = val
+        return inventory
+
+    def _count_recipe_prime_ingredients(self, item_type: str, inventory: dict):
+        """ Counts the total number of prime ingredients (not produced by a recipe) needed to create an item, less the
+        items currently in the inventory. """
+        if item_type in inventory.keys() and inventory[item_type] > 0:
+            # Already have item
+            return dict()
+        recipe = self.initial_state.get_recipe_for(item_type)
+        if recipe is None:
+            # Not produced by recipe - mined\collected
+            return {item_type: 1}
+        # else
+        items = dict()
+        step1_ingredients = get_ingredients_for_recipe(recipe)
+        for ingredient, quantity in step1_ingredients.items():
+            if ingredient not in inventory.keys():
+                inventory[ingredient] = 0
+            if inventory[ingredient] >= quantity:
+                # Have enough, skip this branch
+                inventory[ingredient] -= quantity
+                continue
+            # Don't have enough of ingredient, update how much we need and get it
+            quantity -= inventory[ingredient]
+            inventory[ingredient] = 0
+            new_items = self._count_recipe_prime_ingredients(ingredient, inventory)
+            for n_item, n_quant in new_items.items():
+                if n_item in items:
+                    items[n_item] += quantity * n_quant
+                else:
+                    items[n_item] = quantity * n_quant
+        return items
+
+    def _count_creation_steps(self, search_node, item_type: str, needed: int):
         """
-        Returns a dictionary of {item_name: quantity} still required to craft the given item.
+        Counts the number of steps needed to create an item, disregarding mining costs (assuming you have all the
+        required prime ingredients in inventory).
+        """
+        steps = 0
+        recipe = self.initial_state.get_recipe_for(item_type)
+        if recipe is None:
+            return steps
+        else:
+            step1_ingredients = get_ingredients_for_recipe(recipe)
+
+            for ingredient, quantity in step1_ingredients.items():
+                fluent = f"['count_{ingredient.replace(':', '_')}']"
+                quantity = quantity - search_node.state_vars[fluent]
+                if quantity > 0:
+                    if ingredient == ItemType.SACK_POLYISOPRENE_PELLETS:
+                        # Extra steps for placing and collecting tree tap
+                        steps += 2
+                        ingredient = ItemType.TREE_TAP.value
+                        fluent = f"['count_{ingredient.replace(':', '_')}']"
+                        quantity = quantity - search_node.state_vars[fluent]
+                        if quantity <= 0:
+                            continue
+                    num_out = get_outputs_of_recipe(recipe)[item_type]
+                    # One step for the crafting, multipy by how many times we will need to craft it.
+                    steps += 1 + self._count_creation_steps(search_node, ingredient, quantity) / num_out
+
+        return steps * needed
+
+    def _cost_to_create_item(self, search_node: SearchState, item_type: str):
+        """
+        returns the expected cost in search steps to create one item of given type, including recipe cost and ingredient
+        mining cost.
+        """
+        h_value = 0
+        inventory = self._get_inventory(search_node)
+        prime_inds = self._count_recipe_prime_ingredients(item_type, inventory)
+        # items to be mined from some kind of block
+        for source, results in self.metamodel.break_block_to_outcome.items():
+            # search through all minable block types
+            item, count = results
+            if item in prime_inds.keys():
+                fluent = f"['count_{item.replace(':', '_')}']"
+                inds_still_needed = max(0, prime_inds[item] - search_node.state_vars[fluent])
+                source_cells_needed = ceil(inds_still_needed / count)
+                source_cells_accbl, source_cells_tot = self._count_cells_of_type(search_node, source)
+                h_value += source_cells_needed  # need to mine this many cells
+                h_value += source_cells_tot - source_cells_accbl  # need to make these cells accessible
+                h_value += max(0, source_cells_needed - source_cells_tot)  # cells that need to be created somehow
+
+        creation_steps = self._count_creation_steps(search_node, item_type, 1)
+        h_value += creation_steps
+        return h_value
+
+    def _only_count_once_heuristic(self, node, item_type: str, needed: int):
+        """
+        No-so-accurate heuristic - doesn't take into account needing the same ingredients for multiple
+        recipes in the tree.
         """
         h_value = 0
         recipe = self.initial_state.get_recipe_for(item_type)
@@ -389,7 +486,6 @@ class CraftPogoHeuristic(AbstractHeuristic):
             for ingredient, quantity in step1_ingredients.items():
                 fluent = f"['count_{ingredient.replace(':', '_')}']"
                 quantity = quantity - node.state_vars[fluent]
-                # logging.getLogger('Polycraft').info(f'Yoni: need {step1_ingredients[ingredient]} {fluent}, still {quantity} more')
                 if quantity > 0:
                     if ingredient == ItemType.SACK_POLYISOPRENE_PELLETS:
                         # Extra steps for placing and collecting tree tap
@@ -401,23 +497,28 @@ class CraftPogoHeuristic(AbstractHeuristic):
                             continue
                     num_out = get_outputs_of_recipe(recipe)[item_type]
                     # One step for the crafting, multipy by how many times we will need to craft it.
-                    h_value += 1 + self._still_missing_ingredients(node, ingredient, quantity) / num_out
+                    h_value += 1 + self._old_h_value(node, ingredient, quantity) / num_out
 
         return h_value * needed
 
     def evaluate(self, node: SearchState):
-        # Check if have ingredients of pogo stick
+        # Check if we have ingredients of pogo stick
         pogo_count = node.state_vars["['count_polycraft_wooden_pogo_stick']"]
-        h_value = 0
+        n_value = 0
+        o_value = 0
         if pogo_count > 0:
-            h_value = 0
+            n_value = 0
+            o_value = 0
         else:
             if node.predecessor is not None and node.predecessor.predecessor is not None \
                     and node.predecessor_action.name == node.predecessor.predecessor_action.name:
-                h_value += 9999  # Some value to prevent these state being explored unless other routes don't exist.
-            h_value += 1 + self._still_missing_ingredients(node, ItemType.WOODEN_POGO_STICK.value, 1)
-        node.h = h_value
-        return h_value
+                n_value += 9999
+                o_value += 9999
+                # Some value to prevent these state being explored unless other routes don't exist.
+            n_value += self._cost_to_create_item(node, ItemType.WOODEN_POGO_STICK.value)
+
+        node.h = n_value
+        return n_value
 
 
 class OpenDoorHeuristic(AbstractHeuristic):
