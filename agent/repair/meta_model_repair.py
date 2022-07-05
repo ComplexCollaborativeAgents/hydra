@@ -15,15 +15,15 @@ class MetaModelRepair:  # TODO: Remove this class
                observation, delta_t=1.0):
         """ An abstract class intended to repair a given PDDL+ meta model until it matches the observed behavior """
         """ Repair the given domain and plan such that the given plan's expected outcome matches the observed outcome"""
-        simulator = CachingPddlPlusSimulator()
+        simulator = NyxPddlPlusSimulator()
         sb_state = observation.state
         pddl_plan = observation.get_pddl_plan(pddl_meta_model)
         observed_states = observation.get_pddl_states_in_trace(pddl_meta_model)
 
         pddl_domain = pddl_meta_model.create_pddl_domain(sb_state)
         pddl_problem = pddl_meta_model.create_pddl_problem(sb_state)
-        pddl_domain = PddlPlusGrounder().ground_domain(pddl_domain,
-                                                       pddl_problem)  # Simulator accepts only grounded domains
+        # pddl_domain = PddlPlusGrounder().ground_domain(pddl_domain,
+        #                                                pddl_problem)  # Simulator accepts only grounded domains
 
         (_, _, expected_obs) = simulator.simulate(pddl_plan, pddl_problem, pddl_domain, delta_t)
 
@@ -196,16 +196,16 @@ class GreedyBestFirstSearchMetaModelRepair(SimulationBasedMetaModelRepair):
         for i, fluent in enumerate(self.fluents_to_repair):
             if repair[i] >= 0:
                 change_to_fluent = repair[i] + self.deltas[i]
-                if self.current_meta_model.constant_numeric_fluents[
-                    self.fluents_to_repair[i]] + change_to_fluent >= 0:  # Don't allow negative fluents TODO: Discuss
+                if self.current_meta_model.constant_numeric_fluents[self.fluents_to_repair[i]] + change_to_fluent >= 0:
+                    # Don't allow negative fluents TODO: Better would be "don't allow fluent to change sign"
                     new_repair = list(repair)
                     new_repair[i] = change_to_fluent
                     new_repairs.append(new_repair)
-            if repair[
-                i] <= 0:  # Note: if repair has zero for the current fluent, add both +delta and -delta states to open
+            if repair[i] <= 0:
+                # Note: if repair has zero for the current fluent, add both +delta and -delta states to open
                 change_to_fluent = repair[i] - self.deltas[i]
-                if self.current_meta_model.constant_numeric_fluents[
-                    self.fluents_to_repair[i]] + change_to_fluent >= 0:  # Don't allow negative fluents TODO: Discuss
+                if self.current_meta_model.constant_numeric_fluents[self.fluents_to_repair[i]] + change_to_fluent >= 0:
+                    # Don't allow negative fluents TODO: Better would be "don't allow fluent to change sign"
                     new_repair = list(repair)
                     new_repair[i] = change_to_fluent
                     new_repairs.append(new_repair)

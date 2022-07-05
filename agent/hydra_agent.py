@@ -19,6 +19,7 @@ class HydraPlanner:
     """ A superclass of all the Hydra Planners"""
     def __init__(self, meta_model: MetaModel):
         self.meta_model = meta_model
+        self.explored_states = 0
 
 
     def make_plan(self,state,prob_complexity=0):

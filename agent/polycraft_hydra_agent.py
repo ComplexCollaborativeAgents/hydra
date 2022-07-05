@@ -1,4 +1,5 @@
 import datetime
+import time
 
 import settings
 from agent.consistency.observation import HydraObservation
@@ -60,6 +61,7 @@ class PolycraftPlanner(HydraPlanner):
     def __init__(self, meta_model=PolycraftMetaModel(active_task=PolycraftTask.CRAFT_POGO.create_instance()),
                  planning_path=settings.POLYCRAFT_PLANNING_DOCKER_PATH):
         super().__init__(meta_model)
+        self.explored_states = None
         self.pddl_domain = None
         self.pddl_problem = None
         self.initial_state = None
@@ -89,7 +91,7 @@ class PolycraftPlanner(HydraPlanner):
 
         try:
             nyx.constants.MAX_GENERATED_NODES = settings.POLYCRAFT_MAX_GENERATED_NODES
-            nyx.runner(self.pddl_domain_file,
+            _, self.explored_states = nyx.runner(self.pddl_domain_file,
                        self.pddl_problem_file,
                        ['-vv', '-to:%s' % str(self.timeout), '-noplan', '-search:gbfs', '-custom_heuristic:3', '-th:10',
                         # '-th:%s' % str(self.meta_model.constant_numeric_fluents['time_limit']),
@@ -215,6 +217,27 @@ class PolycraftHydraAgent(HydraAgent):
         self.objects_to_explore = []  # New objects that might be worth exploring
         self.unknown_traders = []  # Traders we haven't asked for recipes yet
 
+        # Tracking variables for statistics
+        self.agent_stats = list()
+        self.stats_for_level = dict()
+        self._set_up_new_level_stats()
+
+    def _set_up_new_level_stats(self):
+        """
+        Add the 'stats_for_level' dictionary to the agent_stats list and resets it for a new level.
+        """
+        # If this is the first level, don't reset the dictionary (no need for an empty one before the first level).
+        if len(self.agent_stats) > 0:
+            self.stats_for_level = dict()
+        self.agent_stats.append(self.stats_for_level)
+        self.stats_for_level['planning times'] = []
+        self.stats_for_level['expanded nodes'] = []
+        self.stats_for_level['Plan action count'] = []
+        self.stats_for_level['repair_calls'] = 0
+        self.stats_for_level['repair_time'] = []
+        self.stats_for_level['novelty_likelihood'] = 0
+        self.stats_for_level['unknown_object'] = None
+
     def start_level(self, env: Polycraft):
         """
         Initialize datastructures for a new level and perform exploratory actions to get familiar with the current
@@ -230,6 +253,8 @@ class PolycraftHydraAgent(HydraAgent):
         env.populate_door_to_room_cells()
 
         current_state = env.get_current_state()
+
+        self._set_up_new_level_stats()
 
         # Try to interact with all other agents
         for entity_id in current_state.entities.keys():
@@ -390,7 +415,11 @@ class PolycraftHydraAgent(HydraAgent):
             self.set_active_task(active_task)
         self._detect_unknown_objects(self.current_state)
 
+        start_time = time.perf_counter()
         plan = self.planner.make_plan(self.current_state)
+        self.stats_for_level['planning times'].append(time.perf_counter() - start_time)
+        self.stats_for_level['expanded nodes'].append(self.planner.explored_states)
+        self.stats_for_level['Plan action count'].append(len(plan))
         return plan
 
     def _should_explore(self, world_state: PolycraftState):
@@ -580,6 +609,7 @@ class PolycraftHydraAgent(HydraAgent):
             self.env.poly_client.REPORT_NOVELTY(level="0", confidence=f"{novelty_likelihood}",
                                                 user_msg=novelty_characterization)
             self.novelty_reported = True
+        self.stats_for_level['novelty_likelihood'] = novelty_likelihood
         return novelty_likelihood, novelty_characterization
 
     def _detect_unknown_objects(self, state: PolycraftState):
@@ -605,6 +635,7 @@ class PolycraftHydraAgent(HydraAgent):
                 self.meta_model.introduce_novel_entity_type(entity_type)
                 self.objects_to_explore.append(entity_type)
         if len(novelties) > 0 and not self.novelty_reported:
+            self.stats_for_level['unknown_object'] = novelties
             self.env.poly_client.REPORT_NOVELTY(level="1", confidence=f"{100}",
                                                 user_msg=str(novelties))
             self.novelty_reported = True
@@ -625,14 +656,17 @@ class PolycraftHydraAgent(HydraAgent):
         """ Call the repair object to repair the current metamodel """
 
         self._detect_unknown_objects(state)
+        self.stats_for_level['repair_calls'] += 1
         try:
             # self.meta_model.set_active_task(CreatePogoTask())
+            start_time = time.perf_counter()
             repair, consistency = self.meta_model_repair.repair(self.meta_model, self.current_observation,
                                                                 delta_t=settings.POLYCRAFT_DELTA_T)
             repair_description = ["Repair %s, %.2f" % (fluent, repair[i])
                                   for i, fluent in enumerate(self.meta_model_repair.fluents_to_repair)]
             logger.info(
                 "Repair done! Consistency: %.2f, Repair:\n %s" % (consistency, "\n".join(repair_description)))
+            self.stats_for_level['repair_time'].append(time.perf_counter() - start_time)
         except:
             # TODO: fix this hack, catch correct exception
             import traceback
