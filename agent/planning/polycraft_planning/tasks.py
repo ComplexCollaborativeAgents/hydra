@@ -455,7 +455,7 @@ class CraftPogoHeuristic(AbstractHeuristic):
         h_value += creation_steps
         return h_value
 
-    def _only_count_once_heuristic(self, node, item_type: str, needed: int):
+    def _only_count_once_heuristic(self, node, item_type: str, needed: int = 1):
         """
         No-so-accurate heuristic - doesn't take into account needing the same ingredients for multiple
         recipes in the tree.
@@ -497,7 +497,7 @@ class CraftPogoHeuristic(AbstractHeuristic):
                             continue
                     num_out = get_outputs_of_recipe(recipe)[item_type]
                     # One step for the crafting, multipy by how many times we will need to craft it.
-                    h_value += 1 + self._old_h_value(node, ingredient, quantity) / num_out
+                    h_value += 1 + self._only_count_once_heuristic(node, ingredient, quantity) / num_out
 
         return h_value * needed
 
@@ -515,7 +515,7 @@ class CraftPogoHeuristic(AbstractHeuristic):
                 n_value += 9999
                 o_value += 9999
                 # Some value to prevent these state being explored unless other routes don't exist.
-            n_value += self._cost_to_create_item(node, ItemType.WOODEN_POGO_STICK.value)
+            n_value += self._only_count_once_heuristic(node, ItemType.WOODEN_POGO_STICK.value)
 
         node.h = n_value
         return n_value

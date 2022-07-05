@@ -15,15 +15,15 @@ class MetaModelRepair:  # TODO: Remove this class
                observation, delta_t=1.0):
         """ An abstract class intended to repair a given PDDL+ meta model until it matches the observed behavior """
         """ Repair the given domain and plan such that the given plan's expected outcome matches the observed outcome"""
-        simulator = CachingPddlPlusSimulator()
+        simulator = NyxPddlPlusSimulator()
         sb_state = observation.state
         pddl_plan = observation.get_pddl_plan(pddl_meta_model)
         observed_states = observation.get_pddl_states_in_trace(pddl_meta_model)
 
         pddl_domain = pddl_meta_model.create_pddl_domain(sb_state)
         pddl_problem = pddl_meta_model.create_pddl_problem(sb_state)
-        pddl_domain = PddlPlusGrounder().ground_domain(pddl_domain,
-                                                       pddl_problem)  # Simulator accepts only grounded domains
+        # pddl_domain = PddlPlusGrounder().ground_domain(pddl_domain,
+        #                                                pddl_problem)  # Simulator accepts only grounded domains
 
         (_, _, expected_obs) = simulator.simulate(pddl_plan, pddl_problem, pddl_domain, delta_t)
 

@@ -145,8 +145,8 @@ class ScienceBirdsConsistencyEstimator(MetaModelBasedConsistencyEstimator):
         self.use_simplified_problems = use_simplified_problems
         self.consistency_estimators.extend(consistency_estimators)
 
-    def compute_consistency(self, observation, meta_model: ScienceBirdsMetaModel, simulator: PddlPlusSimulator,
-                            delta_t):
+    def compute_consistency(self, observation, meta_model: ScienceBirdsMetaModel,
+                            simulator: PddlPlusSimulator = NyxPddlPlusSimulator(), delta_t: float = 0.025):
         """
         Computes the consistency of a given observation w.r.t the given meta model using the given simulator
         NOTICE: Using here the simplified problem due to SB domain's complexity
