@@ -1,11 +1,11 @@
-import matplotlib
+import math
 
-from agent.consistency.nyx_pddl_simulator import NyxPddlPlusSimulator
-from agent.consistency.pddl_plus_simulator import *
-from agent.perception.perception import *
-from tests import test_utils
-from agent.consistency.fast_pddl_simulator import *
+import matplotlib
 import numpy as np
+
+from agent.consistency.fast_pddl_simulator import *
+from agent.consistency.nyx_pddl_simulator import NyxPddlPlusSimulator
+from tests import test_utils
 
 # Defaults
 DEFAULT_DELTA_T = settings.SB_DELTA_T
@@ -13,43 +13,90 @@ DEFAULT_PLOT_OBS_VS_EXP = False
 CONSISTENCY_CHECK_FAILED_VALUE = 1000
 
 
-
 class ConsistencyEstimator:
-    """
-        An abstract class for checking if a given sequence of (state, time) pairs can be consistent with a given sequence of states.
-    """
+    """ Checks if a given sequence of (state, time) pairs can be consistent with a given sequence of states. """
 
-    def estimate_consistency(self, simulation_trace: list, state_seq: list, delta_t: float):
-        """
-            The first parameter is a list of (state,time) pairs of the expected (simulated) plan.
-            the second is a list of observed (actually happened) states.
-            Returns a positive number  that represents the possible consistency between the sequences,
-            where zero means fully consistent.
-            """
-        raise NotImplementedError()
-
-
-class MetaModelBasedConsistencyEstimator(ConsistencyEstimator):
-    """
-    A consistency estimator that is based on checking the consistency of the observation with an available meta model
-    """
     PLAN_FAILED_CONSISTENCY_VALUE = 1000  # A constant representing the inconsistency value of a meta model in which the executed plan is inconsistent
 
+    def __init__(self, fluent_names, obs_prefix=50, discount_factor=0.9, consistency_threshold=0.01):
+        """ Specify which fluents to check, and the size of the observed sequence prefix to consider.
+        This is because we acknowledge that later in the observations, our model is less accurate. """
 
-    def compute_consistency(self, observation, meta_model, simulator: PddlPlusSimulator, delta_t):
-        """ Computes the consistency of a given observation w.r.t the given meta model using the given simulator """
-        try:
-            expected_trace, plan = simulator.get_expected_trace(observation, meta_model, delta_t)
-            observed_seq = observation.get_pddl_states_in_trace(meta_model)
-            consistency = self.estimate_consistency(expected_trace, observed_seq, delta_t)
-        except InconsistentPlanError:  # Sometimes the repair makes the executed plan be inconsistent, e.g., its preconditions are not satisfied
-            consistency = MetaModelBasedConsistencyEstimator.PLAN_FAILED_CONSISTENCY_VALUE
-        return consistency
+        self.fluent_names = []
+        for fluent_name in fluent_names:
+            if isinstance(fluent_name, list):
+                fluent_name = tuple(
+                    fluent_name)  # Need a hashable object, to turn it to tuples. TODO: Change all fluent names to tuples
+            self.fluent_names.append(fluent_name)
+
+        self.discount_factor = discount_factor
+        self.obs_prefix = obs_prefix
+        self.consistency_threshold = consistency_threshold
+
+    def consistency_from_trace(self, simulation_trace: list, state_seq: list, delta_t: float = DEFAULT_DELTA_T):
+        """
+        The first parameter is a list of (state,time) pairs of the expected (simulated) plan.
+        the second is a list of observed (actually happened) states.
+        Returns a positive number  that represents the possible consistency between the sequences,
+        where zero means fully consistent.
+        """
+
+        if len(simulation_trace) < len(state_seq):
+            return len(state_seq) - len(simulation_trace)
+
+        # Compute consistency of every observed state
+        consistency_per_state = self.compute_consistency_per_state(simulation_trace, state_seq)
+
+        # Aggregate the consistency
+        discount = 1.0
+        max_error = 0
+
+        for i, consistency in enumerate(consistency_per_state):
+            if i > self.obs_prefix:
+                break
+            if consistency > self.consistency_threshold:
+                weighted_error = consistency * discount
+                if max_error < weighted_error:
+                    max_error = weighted_error
+
+            discount = discount * self.discount_factor
+
+        return max_error
+
+    def compute_consistency_per_state(self, expected_state_seq: list, observed_states: list):
+        """ Returns a vector of values, one per observed state, indicating how much it is consistent with the simulation.
+        The first parameter is a list of (state,time) pairs, the second is just a list of states
+        Current implementation ignores order, and just looks for the best time for each state in the state_seq,
+        and ignore cases where the fluent is not in the un-timed state seqq aiming to minimize its distance from the fitted piecewise-linear interpolation.
+        """
+
+        # If we expected the trade to end before it really did - this is inconsistent
+        assert len(expected_state_seq) >= len(observed_states)
+
+        exp_to_obs_step_ratio = 1
+        consistency_per_state = []
+        for obs_index, obs_state in enumerate(observed_states):
+            exp_state = expected_state_seq[int(exp_to_obs_step_ratio * obs_index)][0]
+            error = 0
+            for fluent_name in self.fluent_names:
+                if fluent_name not in obs_state:  # TODO: A design choice. Ignore missing fluent values
+                    continue
+                if fluent_name not in exp_state:
+                    continue
+
+                exp_fluent_value = float(exp_state[fluent_name])
+                obs_fluent_value = float(obs_state[fluent_name])
+                error = error + (exp_fluent_value - obs_fluent_value) * (exp_fluent_value - obs_fluent_value)
+            consistency_per_state.append(math.sqrt(error))
+            if obs_index >= self.obs_prefix:  # We only consider a limited prefix of the observed sequence of states
+                break
+        return consistency_per_state
 
 
-class NumericFluentsConsistencyEstimator(MetaModelBasedConsistencyEstimator):
+class TimeIndependentConsistencyEstimator(ConsistencyEstimator):
     """
-    Checks consistency by considering the value of a set of numeric fluents
+    Computes inconsistency of a set of fluents, where the timing information of the simulated and observed traces might
+    not match.
     """
 
     def __init__(self, fluent_names, obs_prefix=100, discount_factor=0.25, consistency_threshold=20):
@@ -57,18 +104,9 @@ class NumericFluentsConsistencyEstimator(MetaModelBasedConsistencyEstimator):
         Specify which fluents to check, and the size of the observed sequence prefix to consider.
         This is because we acknowledge that later in the observations, our model is less accurate.
         """
-        self.fluent_names = []
-        for fluent_name in fluent_names:
-            if isinstance(fluent_name, list):
-                fluent_name = tuple(fluent_name)
-            self.fluent_names.append(fluent_name)
+        super().__init__(fluent_names, obs_prefix, discount_factor, consistency_threshold)
 
-        self.discount_factor = discount_factor
-        self.obs_prefix = obs_prefix
-        self.consistency_threshold = consistency_threshold
-
-
-    def estimate_consistency(self, simulation_trace: list, state_seq: list, delta_t: float = DEFAULT_DELTA_T):
+    def consistency_from_trace(self, simulation_trace: list, state_seq: list, delta_t: float = DEFAULT_DELTA_T):
         """ Returns a value indicating the estimated consistency. """
         # Only consider states with some info regarding the relevant fluents
         states_with_info = []
@@ -83,7 +121,7 @@ class NumericFluentsConsistencyEstimator(MetaModelBasedConsistencyEstimator):
         state_seq = states_with_info
 
         # Compute consistency of every observed state
-        consistency_per_state = self.compute_consistency_per_state(simulation_trace, state_seq, delta_t)
+        consistency_per_state = self._compute_consistency_per_state(simulation_trace, state_seq, delta_t)
 
         # Aggregate the consistency
         discount = 1.0
@@ -100,8 +138,8 @@ class NumericFluentsConsistencyEstimator(MetaModelBasedConsistencyEstimator):
 
         return max_error
 
-    def compute_consistency_per_state(self, expected_state_seq: list, observed_states: list,
-                                      delta_t: float = DEFAULT_DELTA_T):
+    def _compute_consistency_per_state(self, expected_state_seq: list, observed_states: list,
+                                       delta_t: float = DEFAULT_DELTA_T):
         """ 
         Returns a vector of values, one per observed state, indicating how much it is consistent with the simulation.
         The first parameter is a list of (state,time) pairs, the second is just a list of states 
@@ -209,23 +247,31 @@ def diff_pddl_states(state1, state2):
     return diff_list
 
 
+def get_traces_from_simulator(observation, meta_model, simulator: PddlPlusSimulator, delta_t):
+    """ Generates simulation and observation traces for a given observation object """
+    expected_trace, plan = simulator.get_expected_trace(observation, meta_model, delta_t)
+    observed_seq = observation.get_pddl_states_in_trace(meta_model)
+    return expected_trace, observed_seq
+
+
 def check_obs_consistency(observation,
                           meta_model,
-                          consistency_checker: MetaModelBasedConsistencyEstimator,
+                          consistency_checker: ConsistencyEstimator,
                           simulator: PddlPlusSimulator = NyxPddlPlusSimulator(),
                           plot_obs_vs_exp=DEFAULT_PLOT_OBS_VS_EXP,
                           speedup_factor=1.0):
     """
     Checks if an observation is consistent with a given metamodel
     """
-
+    # THIS FUNCTION ONLY USED IN TESTS
     if plot_obs_vs_exp:
         matplotlib.interactive(True)
         plot_axes = test_utils.plot_observation(observation)
         test_utils.plot_expected_trace_for_obs(meta_model, observation, ax=plot_axes)
     try:
-        consistency_value = consistency_checker.compute_consistency(observation, meta_model, simulator,
-                                                                    meta_model.delta_t * speedup_factor)
+        simulation_trace, observed_trace = get_traces_from_simulator(observation, meta_model, simulator,
+                                                                     meta_model.delta_t * speedup_factor)
+        consistency_value = consistency_checker.consistency_from_trace(simulation_trace, observed_trace, meta_model.delta_t * speedup_factor)
     except ValueError:
         consistency_value = CONSISTENCY_CHECK_FAILED_VALUE
     return consistency_value

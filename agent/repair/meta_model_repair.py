@@ -77,12 +77,12 @@ class SimulationBasedMetaModelRepair(MetaModelRepair):
         self._do_change(repair)
 
         try:
-            expected_trace, plan = self.simulator.get_expected_trace(observation, self.current_meta_model,
+            expected_trace, _ = self.simulator.get_expected_trace(observation, self.current_meta_model,
                                                                      self.current_delta_t,
                                                                      max_iterations=max_iterations)
             observed_seq = observation.get_pddl_states_in_trace(self.current_meta_model)
-            consistency = self.consistency_estimator.estimate_consistency(expected_trace, observed_seq,
-                                                                          delta_t=self.current_delta_t)
+            consistency = self.consistency_estimator.consistency_from_trace(expected_trace, observed_seq,
+                                                                            delta_t=self.current_delta_t)
         except InconsistentPlanError:  # Sometimes the repair makes the executed plan be inconsistent #TODO: Discuss this
             consistency = PLAN_FAILED_CONSISTENCY_VALUE
         except ZeroDivisionError:  # Sometimes the repair causes the simulator to reach zero division #TODO: Discuss this
