@@ -3,6 +3,7 @@ import os
 import logging
 import pathlib
 import pandas
+import numpy as np
 
 from typing import List
 
@@ -90,7 +91,7 @@ class NoveltyExperimentRunnerPolycraft:
         trial = pandas.DataFrame(columns=['trial_num', 'trial_type', 'novelty_level', 'novelty_type', 'novelty_subtype',
                                               'episode_type', 'episode_num', 'novelty_probability',
                                               'novelty_threshold', 'novelty', 'novelty_characterization',
-                                              'novelty_detection', 'performance', 'pass', 'num_repairs', 'repair_time'])
+                                              'predicted_novel', 'performance', 'pass', 'num_repairs', 'repair_time'])
 
         trial_num, num_levels, novelty, n_type, n_stype, difficulty = unpack_trial_id(trial_id)
         
@@ -106,15 +107,15 @@ class NoveltyExperimentRunnerPolycraft:
                 'novelty_subtype': [n_stype],           # Novelty subtype
                 'episode_type': [is_novelty],           # Ground truth of novelty existence
                 'episode_num': [episode_num],           # Episode number
-                'novelty_probability': ['None'],        # Agent supplied novelty probability
+                'novelty_probability': [results['novelty_likelihood']],        # Agent supplied novelty probability
                 'novelty_threshold': ['None'],          # Agent supplied novelty threshold (NOTE in sb runner, used in comparison to say whether or not novelty was detected)
                 'novelty': ['None'],                    # Not used
                 'novelty_characterization': ['None'],   # Agent supplied description of novelty
-                'novelty_detection': [results['novelty']], # Agent detected novelty
+                'predicted_novel': [results['novelty']], # Agent detected novelty
                 'performance': [results['step_cost']],  # Step cost of the agent
                 'pass': [results['passed']],            # Whether the agent passed or not
-                'num_repairs': ['None'],                # Agent supplied number of repairs done for this episode
-                'repair_time': ['None']                 # Agent supplied time it took to repair for this episode
+                'num_repairs': [results['repair_calls']],                # Agent supplied number of repairs done for this episode
+                'repair_time': [results['repair_time']]                 # Agent supplied time it took to repair for this episode
             })
 
             trial = trial.append(df)
@@ -124,7 +125,7 @@ class NoveltyExperimentRunnerPolycraft:
     def process_experiment(self):
         experiment_df = pandas.DataFrame(columns=['trial_num', 'trial_type', 'novelty_level', 'novelty_type', 'novelty_subtype', 'episode_type',
                                                   'episode_num', 'novelty_probability',
-                                                  'novelty_threshold', 'novelty', 'novelty_characterization', 'novelty_detection',
+                                                  'novelty_threshold', 'novelty', 'novelty_characterization', 'predicted_novel',
                                                   'performance', 'pass', 'num_repairs', 'repair_time', 'pddl_novelty_likelihood', 'unknown_object', 'reward_estimator_likelihood'])
 
         experiment_results_path = os.path.join(RESULTS_PATH, "{}.csv".format(EXPERIMENT_NAME))
@@ -139,6 +140,36 @@ class NoveltyExperimentRunnerPolycraft:
             # Export results to file
             with open(experiment_results_path, "a") as f:
                 trial_df.to_csv(f, index=False, header=False)
+
+    @staticmethod
+    def categorize_examples_for_predicted_novel(dataframe):
+        dataframe['TN'] = np.where((dataframe['episode_type'] == NON_NOVELTY_PERFORMANCE) & (dataframe['predicted_novel'] == False), 1, 0)
+        dataframe['FP'] = np.where((dataframe['episode_type'] == NON_NOVELTY_PERFORMANCE) & (dataframe['predicted_novel'] == True), 1, 0)
+        dataframe['TP'] = np.where((dataframe['episode_type'] == NOVELTY) & (dataframe['predicted_novel'] == True), 1, 0)
+        dataframe['FN'] = np.where((dataframe['episode_type'] == NOVELTY) & (dataframe['predicted_novel'] == False), 1, 0)
+        return dataframe
+
+    @staticmethod
+    def get_trials_summary(dataframe):
+        # print(dataframe)
+        trials = dataframe[['trial_num', 'trial_type', 'pass', 'FN', 'FP', 'TN', 'TP', 'performance']]
+        trials['passed'] = np.where(trials['pass'] == 'Pass', 1, 0)
+        # print(trials)
+
+        grouped = trials.groupby(['trial_type', 'trial_num'])
+
+        # print("AFTER group output: \n{}".format(grouped))
+
+        aggregate = grouped.agg({'FN': np.sum, 'FP': np.sum, 'TN': np.sum, 'TP': np.sum, 'performance': np.mean, 'passed': np.sum})
+        
+        # print("AFTER aggregate output: \n{}".format(aggregate))
+
+        aggregate['is_CDT'] = np.where((aggregate['TP'] > 1) & (aggregate['FP'] == 0), True, False)
+        
+        # print("AFTER CDT: {}".format(trials))
+        cdt = aggregate[aggregate['is_CDT'] == True]
+
+        return aggregate, cdt
 
 if __name__ == "__main__":
     runner = NoveltyExperimentRunnerPolycraft()

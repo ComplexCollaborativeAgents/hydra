@@ -15,7 +15,7 @@ import agent.planning.nyx.heuristic_functions as nyx_heuristics
 import re
 
 logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
-logger = logging.getLogger("Polycraft")
+logger = logging.getLogger("polycraft_hydra_agent")
 
 
 RE_EXTRACT_ACTION_PATTERN = re.compile(

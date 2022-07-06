@@ -114,6 +114,11 @@ class PolycraftDispatcher():
 
             # Check if level is done
             if current_state.is_terminal():
+                planning_times = str(self.agent.stats_for_level['planning times'])
+                repair_calls = self.agent.stats_for_level['repair_calls']
+                repair_time = str(self.agent.stats_for_level['repair_time'])
+                novelty_likelihood = self.agent.stats_for_level['novelty_likelihood']
+
                 return {
                     'trial_id': trial_id,
                     'trial_number': trial_number,
@@ -121,8 +126,12 @@ class PolycraftDispatcher():
                     'episode_number': level_number,
                     'step_cost': self.env.get_level_total_step_cost(),
                     'novelty': novelty,
+                    'novelty_description': novelty_description,
+                    'novelty_likelihood': novelty_likelihood,
                     'passed': current_state.passed,
-                    'novelty_description': novelty_description
+                    'planning_times': planning_times,
+                    'repair_calls': repair_calls,
+                    'repair_time': repair_time
                 }
 
             # Agent chooses an action and performs it
@@ -133,6 +142,8 @@ class PolycraftDispatcher():
 
             # If detected novelty, report it as follows
             # self.env.poly_client.REPORT_NOVELTY(level, confidence, user_msg)
+
+            # Check if the process has timeout
 
     def episode_end(self) -> dict:
         ''' Cleanup level '''
