@@ -243,6 +243,14 @@ def distance_to_nearest_pogoist(after_state, cell):
     return min_distance_to_pogoist
 
 
+def distance_from_steve(after_state, cell):
+    """ Compute the distance between steve and the cell"""
+    steve_cell = coordinates_to_cell(after_state.location["pos"])
+    cell_coord = cell_to_coordinates(cell)
+    dist = compute_cell_distance(cell_coord, steve_cell)
+    return dist
+
+
 def get_all_missing_recipe_ingredients(state: PolycraftState, item_type: str):
     """
     Returns a dictionary of {item_name: quantity} still required to craft the given item.

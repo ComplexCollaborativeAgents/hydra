@@ -313,43 +313,17 @@ class MakeCellAccessibleTask(CreatePogoTask):
 
 class CraftPogoHeuristic(AbstractHeuristic):
     """ Heuristic for polycraft to be used by the Nyx planner """
-    #
-    # def __init__(self, world_state: PolycraftState):
-    #     # Get pogo recipe
-    #     pogo_recipe = world_state.get_recipe_for(ItemType.WOODEN_POGO_STICK.value)
-    #     pogo_ingredients = get_ingredients_for_recipe(pogo_recipe)
-    #     self.ingredients = list()
-    #     for item_type, quantity in pogo_ingredients.items():
-    #         pddl_item_type = f"count_{item_type.replace(':', '_')}"
-    #         self.ingredients.append((pddl_item_type, quantity))
-    #
 
     def __init__(self, world_state: PolycraftState, metamodel: PolycraftMetaModel):
         self.initial_state = world_state
         self.metamodel = metamodel
-    #     pogo_recipe = world_state.get_recipe_for(ItemType.WOODEN_POGO_STICK.value)
-    #     pogo_ingredients = get_ingredients_for_recipe(pogo_recipe)
-    #     self.ingredients = list()
-    #     for item_type, quantity in pogo_ingredients.items():
-    #         pddl_item_type = f"count_{item_type.replace(':', '_')}"
-    #         self.ingredients.append((pddl_item_type, quantity))
-    #
-    # def evaluate1(self, node):
-    #     # Check if have ingredients of pogo stick
-    #     pogo_count = node.state_vars["['count_polycraft_wooden_pogo_stick']"]
-    #     if pogo_count > 0:
-    #         h_value = 0
-    #     else:
-    #         h_value = 1
-    #         for fluent, quantity in self.ingredients:
-    #             delta = quantity - node.state_vars[f"['{fluent}']"]
-    #             # logging.getLogger('Polycraft').info(f'Roni: need {quantity} {fluent}, still {delta} more')
-    #             if delta > 0:
-    #                 h_value = h_value + delta
-    #         node.h = h_value
-    #     return h_value
 
+    # # The next few functions make a heuristic that should dominate '_only_count_once_heuristic', but empirically
+    # #  performs less well.
     def _count_cells_of_type(self, node, type_str):
+        """
+        Returns the number of accessible cells of a given type, and the total number
+        """
         type_id = self.metamodel.block_type_to_idx[type_str]
         accessible, total = 0, 0
         for fluent, value in node.state_vars.items():
@@ -362,6 +336,9 @@ class CraftPogoHeuristic(AbstractHeuristic):
         return accessible, total
 
     def _get_inventory(self, search_node: SearchState):
+        """
+        Retrieves the player's current inventory (as a dictionary)
+        """
         inventory = dict()
         for var, val in search_node.state_vars.items():
             if var[0:8] == "['count_":
@@ -370,8 +347,12 @@ class CraftPogoHeuristic(AbstractHeuristic):
         return inventory
 
     def _count_recipe_prime_ingredients(self, item_type: str, inventory: dict):
-        """ Counts the total number of prime ingredients (not produced by a recipe) needed to create an item, less the
-        items currently in the inventory. """
+        """
+         Counts the total number of prime ingredients (not produced by a recipe) needed to create an item, less the
+        items currently in the inventory.
+        This is calculated recursively to avoid double-counting, e.g. if logs are needed on several branches of the
+        recipe tree, we only count for the ones we still need.
+        """
         if item_type in inventory.keys() and inventory[item_type] > 0:
             # Already have item
             return dict()
@@ -402,7 +383,7 @@ class CraftPogoHeuristic(AbstractHeuristic):
 
     def _count_creation_steps(self, search_node, item_type: str, needed: int):
         """
-        Counts the number of steps needed to create an item, disregarding mining costs (assuming you have all the
+        Counts the number of steps still needed to create an item, disregarding mining costs (assuming you have all the
         required prime ingredients in inventory).
         """
         steps = 0
@@ -455,10 +436,12 @@ class CraftPogoHeuristic(AbstractHeuristic):
         h_value += creation_steps
         return h_value
 
+    ## Current heuristic - empirically seems to work best.
     def _only_count_once_heuristic(self, node, item_type: str, needed: int = 1):
         """
         No-so-accurate heuristic - doesn't take into account needing the same ingredients for multiple
-        recipes in the tree.
+        recipes in the tree (e.g. if you need 2 logs in two recipes\branches and you have 2 logs, the cost for logs
+        will be computed as 0).
         """
         h_value = 0
         recipe = self.initial_state.get_recipe_for(item_type)
@@ -505,16 +488,15 @@ class CraftPogoHeuristic(AbstractHeuristic):
         # Check if we have ingredients of pogo stick
         pogo_count = node.state_vars["['count_polycraft_wooden_pogo_stick']"]
         n_value = 0
-        o_value = 0
         if pogo_count > 0:
             n_value = 0
-            o_value = 0
         else:
             if node.predecessor is not None and node.predecessor.predecessor is not None \
                     and node.predecessor_action.name == node.predecessor.predecessor_action.name:
                 n_value += 9999
-                o_value += 9999
                 # Some value to prevent these state being explored unless other routes don't exist.
+                # One of the situations we want to avoid is teleporting back and forth - so if the last action was
+                # teleporting, don't teleport again.
             n_value += self._only_count_once_heuristic(node, ItemType.WOODEN_POGO_STICK.value)
 
         node.h = n_value
@@ -533,7 +515,7 @@ class OpenDoorHeuristic(AbstractHeuristic):
         self._passed_door_var = f"['{Predicate.passed_door.name}', '{pddl_door_cell_name}']"
 
     def evaluate(self, node):
-        # Check if have ingredients of pogo stick
+        # Some indication of remaining steps to open the door.
         if node.state_vars[self._passed_door_var]:
             return 0
         if node.state_vars[self._is_open_var]:
@@ -564,13 +546,17 @@ class MakeCellAccessibleHeuristic(AbstractHeuristic):
         self.pddl_cell_name = {PddlGameMapCellType.get_cell_object_name(self.cell)}
         self._is_accessible_var = f"['{Predicate.isAccessible.name}', '{self.pddl_cell_name}']"
 
+    def _steve_distance(self, node):
+        steve_pos = node.state_vars[f"['{Function.Steve_x.name}']"], 0, node.state_vars[f"['{Function.Steve_z.name}']"]
+        dist = compute_cell_distance(steve_pos, cell_to_coordinates(self.cell))
+
     def evaluate(self, node):
+        # Can improve this, but the cost of calculation might not be worthwhile (e.g. how many surrounding cells we need
+        #  to dig through)
         if node.state_vars[self._is_accessible_var]:
             return 0
-        if node.state_vars[self.pddl_cell_name] != BlockType.AIR:
-            return 1
         else:
-            return 3  # Can improve this
+            return self._steve_distance(node)
 
 
 ########### Actions
