@@ -1,15 +1,23 @@
 import settings
-from agent.consistency.consistency_estimator import DEFAULT_DELTA_T, ConsistencyEstimator
+from agent.consistency.consistency_estimator import DEFAULT_DELTA_T, AspectConsistency, DomainConsistency
 from agent.consistency.observation import HydraObservation
 from agent.repair.meta_model_repair import GreedyBestFirstSearchMetaModelRepair
 
 
-class PolycraftConsistencyEstimator(ConsistencyEstimator):
+class PolycraftConsistencyEstimator(DomainConsistency):
+    """
+    Total inconsistency for a polycraft game.
+    TODO: nearby blocks? suggeted repair fluents??
+    """
+    def __init__(self):
+        super().__init__([PolycraftInventoryConsistency()])
+
+
+class PolycraftInventoryConsistency(AspectConsistency):
     def __init__(self, fluent_names=None, obs_prefix=100, discount_factor=0.9, consistency_threshold=0.01):
         if fluent_names is None:
             fluent_names = [('selectedItem',)]
         super().__init__(fluent_names, obs_prefix, discount_factor, consistency_threshold)
-
 
     def consistency_from_trace(self, simulation_trace: list, state_seq: list, delta_t: float = DEFAULT_DELTA_T):
         """ Estimate consistency based on relevant values """
@@ -20,7 +28,7 @@ class PolycraftConsistencyEstimator(ConsistencyEstimator):
         self.fluent_names.extend(
             (fl[0],) for fl in simulation_trace[0].state.numeric_fluents.keys() if fl[0].startswith('count_'))
         # How is our agent's position stored?
-        return ConsistencyEstimator.consistency_from_trace(self, simulation_trace, state_seq, delta_t)
+        return self.consistency_from_matched_trace(simulation_trace, state_seq, delta_t)
 
 
 class PolycraftMetaModelRepair(GreedyBestFirstSearchMetaModelRepair):

@@ -1,10 +1,11 @@
+import settings
 from agent.repair.focused_repair import *
 
 logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("sb_repair")
 
 
-class BirdLocationConsistencyEstimator(TimeIndependentConsistencyEstimator):
+class BirdLocationConsistencyEstimator(AspectConsistency):
     """
     Checks consistency by considering the location of the birds 
     """
@@ -18,6 +19,9 @@ class BirdLocationConsistencyEstimator(TimeIndependentConsistencyEstimator):
         """
         Estimate consistency by considering the location of the birds in the observed state seq
         """
+        return self._trajectory_compare(simulation_trace, state_seq, delta_t)
+
+    def _trajectory_compare(self, simulation_trace: list, state_seq: list, delta_t: float = DEFAULT_DELTA_T):
         # Get birds
         birds = set()
         for [state, _, _] in simulation_trace:
@@ -31,13 +35,14 @@ class BirdLocationConsistencyEstimator(TimeIndependentConsistencyEstimator):
             self.fluent_names.append(('x_bird', bird))
             self.fluent_names.append(('y_bird', bird))
 
-        return TimeIndependentConsistencyEstimator.consistency_from_trace(self, simulation_trace, state_seq, delta_t)
+        return self.consistency_from_unmatched_trace(simulation_trace, state_seq, delta_t)
 
 
-class PigDeadConsistencyEstimator(ConsistencyEstimator):
+class PigDeadConsistencyEstimator(AspectConsistency):
     """
     Are the pigs we expected to be dead actually dead?
     """
+
     def __init__(self, fluent_names=None):
         if fluent_names is None:
             fluent_names = []
@@ -49,6 +54,9 @@ class PigDeadConsistencyEstimator(ConsistencyEstimator):
         state_seq: observations (what actually happened)
         delta_t: time step for simulation (useful, innit?)
         """
+        return self._last_frame_check(simulation_trace, state_seq, None)
+
+    def _last_frame_check(self, simulation_trace: list, state_seq: list, fluents):
         live_pigs = 0
         last_state_in_obs = state_seq[-1]
         live_pigs_in_obs = last_state_in_obs.get_pigs()
@@ -60,7 +68,7 @@ class PigDeadConsistencyEstimator(ConsistencyEstimator):
         return live_pigs
 
 
-class BlockNotDeadConsistencyEstimator(ConsistencyEstimator):
+class BlockNotDeadConsistencyEstimator(AspectConsistency):
     """
     Checks consistency by considering which blocks are alive
     """
@@ -74,8 +82,11 @@ class BlockNotDeadConsistencyEstimator(ConsistencyEstimator):
 
     def consistency_from_trace(self, simulation_trace: list, state_seq: list, delta_t: float = settings.SB_DELTA_T):
         """
-        Estimate consistency by considering the location of the birds in the observed state seq
+        Estimate consistency by considering which blocks are or aren't destroyed.
         """
+        return self._last_frame_check(simulation_trace, state_seq, None)
+
+    def _last_frame_check(self, simulation_trace: list, state_seq: list, fluents):
         # TODO: Next "if" statement should never be called but it is: check out why
         if len(state_seq) == 0:
             return 0
@@ -103,7 +114,7 @@ class BlockNotDeadConsistencyEstimator(ConsistencyEstimator):
         return 0
 
 
-class ExternalAgentLocationConsistencyEstimator(TimeIndependentConsistencyEstimator):
+class ExternalAgentLocationConsistencyEstimator(AspectConsistency):
     """
     Checks consistency by considering the location of the birds
     """
@@ -113,13 +124,16 @@ class ExternalAgentLocationConsistencyEstimator(TimeIndependentConsistencyEstima
             fluent_names = []
         super().__init__(fluent_names, obs_prefix, discount_factor, consistency_threshold)
 
-    ''' Estimate consistency by considering the location of the birds in the observed state seq '''
-
     def consistency_from_trace(self, simulation_trace: list, state_seq: list, delta_t: float = DEFAULT_DELTA_T):
+        """ Estimate consistency by considering the location of the external agents in the observed state seq """
+        return self._trajectory_compare(simulation_trace, state_seq, delta_t)
+
+    def _trajectory_compare(self, simulation_trace: list, state_seq: list, delta_t: float = DEFAULT_DELTA_T):
+
         # Get birds
         agents = set()
         for [state, _, _] in simulation_trace:
-            if len(agents) == 0:  # TODO: Discuss how to make this work. Currently a new bird suddenly appears
+            if len(agents) == 0:  # TODO: Are the agents not in the first frame?
                 agents = state.get_agents()
             else:
                 break
@@ -129,67 +143,58 @@ class ExternalAgentLocationConsistencyEstimator(TimeIndependentConsistencyEstima
             self.fluent_names.append(('x_agent', ag))
             self.fluent_names.append(('y_agent', ag))
 
-        return TimeIndependentConsistencyEstimator.consistency_from_trace(self, simulation_trace, state_seq, delta_t)
+        return self.consistency_from_unmatched_trace(simulation_trace, state_seq, delta_t)
 
 
-class ScienceBirdsConsistencyEstimator(ConsistencyEstimator):
+class ScienceBirdsConsistencyEstimator(DomainConsistency):
     """
     Checks consistency for SB
     """
 
-    def __init__(self, fluent_names=None, use_simplified_problems=True, consistency_estimators=None):
+    def __init__(self, use_simplified_problems=True):
         # ExternalAgentLocationConsistencyEstimator(), BirdLocationConsistencyEstimator()
-        if fluent_names is None:
-            fluent_names = []
-        super().__init__(fluent_names)
-        if consistency_estimators is None:
-            consistency_estimators = [BirdLocationConsistencyEstimator(), BlockNotDeadConsistencyEstimator(),
-                                      PigDeadConsistencyEstimator()]
-        self.consistency_estimators = list()
+        super().__init__([BirdLocationConsistencyEstimator(), BlockNotDeadConsistencyEstimator(),
+                          PigDeadConsistencyEstimator()])
         self.use_simplified_problems = use_simplified_problems
-        self.consistency_estimators.extend(consistency_estimators)
 
-    def traces_from_simulator(self, observation, meta_model: ScienceBirdsMetaModel,
-                              simulator: PddlPlusSimulator = NyxPddlPlusSimulator(), delta_t: float = 0.025):
+    def get_traces_from_simulator(self, observation, meta_model, simulator: PddlPlusSimulator, delta_t):
+        problem = meta_model.create_pddl_problem(observation.get_initial_state())
+        if self.use_simplified_problems:
+            problem = meta_model.create_simplified_problem(problem)
+        domain = meta_model.create_pddl_domain(observation.get_initial_state())
+        # domain = PddlPlusGrounder().ground_domain(domain, problem)  # Simulator accepts only grounded domains
+        plan = observation.get_pddl_plan(meta_model)
+        (_, _, expected_trace,) = simulator.simulate(plan, problem, domain, delta_t=delta_t)
+        observed_seq = observation.get_pddl_states_in_trace(meta_model)
+        return expected_trace, observed_seq
+
+    def consistency_from_simulator(self, observation, meta_model: ScienceBirdsMetaModel,
+                                   simulator: PddlPlusSimulator = NyxPddlPlusSimulator(),
+                                   delta_t: float = settings.SB_DELTA_T):
         """
         Computes the consistency of a given observation w.r.t the given meta model using the given simulator
         NOTICE: Using here the simplified problem due to SB domain's complexity
         """
         # TODO remove\rename\remodel this function appropriately.
         try:
-            problem = meta_model.create_pddl_problem(observation.get_initial_state())
-            if self.use_simplified_problems:
-                problem = meta_model.create_simplified_problem(problem)
-            domain = meta_model.create_pddl_domain(observation.get_initial_state())
-            # domain = PddlPlusGrounder().ground_domain(domain, problem)  # Simulator accepts only grounded domains
-            plan = observation.get_pddl_plan(meta_model)
-            (_, _, expected_trace,) = simulator.simulate(plan, problem, domain, delta_t=delta_t)
-
-            observed_seq = observation.get_pddl_states_in_trace(meta_model)
+            expected_trace, observed_seq = self.get_traces_from_simulator(observation, meta_model, simulator, delta_t)
             consistency = self.consistency_from_trace(expected_trace, observed_seq, delta_t)
-        except InconsistentPlanError as e:  # Sometimes the repair makes the executed plan be inconsistent, e.g., its preconditions are not satisfied
-            consistency = ConsistencyEstimator.PLAN_FAILED_CONSISTENCY_VALUE
+        except InconsistentPlanError as e:
+            # Sometimes the repair makes the executed plan be inconsistent, e.g., its preconditions are not satisfied
+            consistency = AspectConsistency.PLAN_FAILED_CONSISTENCY_VALUE
             logger.info(f'Could not compute consistency! {str(e)}')
         except KeyError as e:
-            consistency = ConsistencyEstimator.PLAN_FAILED_CONSISTENCY_VALUE
+            consistency = AspectConsistency.PLAN_FAILED_CONSISTENCY_VALUE
             logger.info(f'Inconsistency calculator: No {str(e)} found, that is pretty inconsistent. ')
         except IndexError as e:
             consistency = 0
             logger.info('No observations to check, can not compute inconsistency. ')
         return consistency
 
-    def consistency_from_trace(self, simulation_trace: list, state_seq: list, delta_t: float = DEFAULT_DELTA_T):
-        max_inconsistency = 0
-        for consistency_estimator in self.consistency_estimators:
-            inconsistency = consistency_estimator.consistency_from_trace(simulation_trace, state_seq, delta_t)
-            if inconsistency > max_inconsistency:
-                max_inconsistency = inconsistency
-
-        return max_inconsistency
-
 
 class ScienceBirdsMetaModelRepair(GreedyBestFirstSearchMetaModelRepair):
     """ The meta model repair used for ScienceBirds. """
+
     # THIS CLASS ONLY USED IN TESTS
     def __init__(self, meta_model=ScienceBirdsMetaModel(),
                  consistency_threshold=settings.SB_CONSISTENCY_THRESHOLD,

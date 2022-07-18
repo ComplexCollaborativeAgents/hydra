@@ -39,33 +39,146 @@ def _print_fluents_values(state_seq:list, fluent_names:list):
         line = ",".join(["%.2f" % state[fluent_name] for fluent_name in fluent_names])
         print("%s" % line)
 
-''' Test the single numeric fluent consistency checker, for the case where the numeric fluent is not constant,
- and the outcome of the tests should be that the sequences are inconsistent. '''
-def test_multiple_numeric_fluent_inconsistent():
-    # Get expected timed state sequence according to the model (plan, problem, domain)
-    (plan, problem, domain) = _load_plan_problem_domain()
-    timed_state_seq = test_utils.simulate_plan_trace(plan, problem, domain, DEFAULT_DELTA_T)
-
-    # Modify the model
-    manipulator = ManipulateInitNumericFluent([GRAVITY],GRAVITY_CHANGE)
-    manipulator.apply_change(domain, problem)
-
-    # Get the new expected timed state sequence, according to the modified model
-    simulation_trace = test_utils.simulate_plan_trace(plan, problem, domain, DEFAULT_DELTA_T)
-    # Assert new timed state sequence is different from the original timed state sequence
-    diff_list = diff_traces(timed_state_seq, simulation_trace)
-    logging.info("\n".join(diff_list))
-    assert len(diff_list)>0
-
-    # Create a un-timed state sequence, to simulate how the SB observations would look like.
-    modified_state_seq = [state for (state, t, _) in simulation_trace]
-
-    # Assert the un-timed sequence created by the modified model is inconsistent with the timed sequence created by the original model
-    consistency_checker = TimeIndependentConsistencyEstimator([X_BIRD_FLUENT, Y_BIRD_FLUENT],
-                                                              obs_prefix=float('inf'),
-                                                              discount_factor=1.0)
-    consistent_score = consistency_checker.consistency_from_trace(timed_state_seq, modified_state_seq)
-    assert consistent_score > PRECISION
+#
+# class TimeIndependentConsistencyEstimator(ConsistencyEstimator):
+#     """
+#     Computes inconsistency of a set of fluents, where the timing information of the simulated and observed traces might
+#     not match.
+#     """
+#
+#     def __init__(self, fluent_names, obs_prefix=100, discount_factor=0.25, consistency_threshold=20):
+#         """
+#         Specify which fluents to check, and the size of the observed sequence prefix to consider.
+#         This is because we acknowledge that later in the observations, our model is less accurate.
+#         """
+#         super().__init__(fluent_names, obs_prefix, discount_factor, consistency_threshold)
+#
+#     def consistency_from_trace(self, simulation_trace: list, state_seq: list, delta_t: float = DEFAULT_DELTA_T):
+#         """ Returns a value indicating the estimated consistency. """
+#         # Only consider states with some info regarding the relevant fluents
+#         states_with_info = []
+#         for state in state_seq:
+#             has_info = False
+#             for fluent_name in self.fluent_names:
+#                 if fluent_name in state:
+#                     has_info = True
+#                     break
+#             if has_info:
+#                 states_with_info.append(state)
+#         state_seq = states_with_info
+#
+#         # Compute consistency of every observed state
+#         consistency_per_state = self._compute_consistency_per_state(simulation_trace, state_seq, delta_t)
+#
+#         # Aggregate the consistency
+#         discount = 1.0
+#         max_error = 0
+#         for i, consistency in enumerate(consistency_per_state):
+#             if i > self.obs_prefix:
+#                 break
+#             if consistency > self.consistency_threshold:
+#                 weighted_error = consistency * discount
+#                 if max_error < weighted_error:
+#                     max_error = weighted_error
+#
+#             discount = discount * self.discount_factor
+#
+#         return max_error
+#
+#     def _compute_consistency_per_state(self, expected_state_seq: list, observed_states: list,
+#                                        delta_t: float = DEFAULT_DELTA_T):
+#         """
+#         Returns a vector of values, one per observed state, indicating how much it is consistent with the simulation.
+#         The first parameter is a list of (state,time) pairs, the second is just a list of states
+#         Current implementation ignores order, and just looks for the best time for each state in the state_seq,
+#         and ignore cases where the fluent is not in the un-timed state seqq aiming to minimize its distance from the fitted
+#         piecewise-linear interpolation.
+#         """
+#         t_values, fluent_to_expected_values = self._fit_expected_values(expected_state_seq, delta_t=delta_t)
+#         consistency_per_state = []
+#         for i, state in enumerate(observed_states):
+#             (best_fit_t, min_error) = self._compute_best_fit(state, t_values, fluent_to_expected_values)
+#             consistency_per_state.append(min_error)
+#             if i >= self.obs_prefix:  # We only consider a limited prefix of the observed sequence of states
+#                 break
+#         return consistency_per_state
+#
+#     def _fit_expected_values(self, simulation_trace, delta_t=0.01):
+#         """
+#         Create a piecewise linear interpolation for the given timed_state_seq
+#         """
+#         # Get values over time for each fluent
+#         fluent_to_values = dict()
+#         fluent_to_times = dict()
+#         for (state, t, _) in simulation_trace:
+#             for fluent_name in self.fluent_names:
+#                 if fluent_name in state.numeric_fluents:
+#                     fluent_value = state[fluent_name]
+#                     if fluent_name not in fluent_to_times:
+#                         fluent_to_times[fluent_name] = []
+#                         fluent_to_values[fluent_name] = []
+#                     fluent_to_times[fluent_name].append(t)
+#                     fluent_to_values[fluent_name].append(float(fluent_value))
+#
+#                     # Fit a piecewise linear function to each fluent
+#         max_t = max([fluent_to_times[fluent_name][-1] for fluent_name in fluent_to_times])
+#         fluent_to_expected_values = dict()
+#         all_t_values = np.arange(0, max_t, delta_t)
+#         for fluent_name in self.fluent_names:
+#             t_values = fluent_to_times[fluent_name]
+#             fluent_values = fluent_to_values[fluent_name]
+#             fitted_values = np.interp(all_t_values, t_values, fluent_values)
+#             fluent_to_expected_values[fluent_name] = fitted_values
+#         return all_t_values, fluent_to_expected_values
+#
+#     def _compute_best_fit(self, state, t_values, fluent_to_expected_values):
+#         """ Compute the t value that best fits the given state. Returns
+#             this t and the error at that time, i.e., the difference between
+#             the state's fluent values and their expected values at the best fit time. """
+#         best_fit_error = float('inf')
+#         best_t = -1
+#         for t in range(len(t_values)):
+#             error_at_t = 0
+#             for fluent_name in self.fluent_names:
+#                 if fluent_name not in state:  # TODO: A design choice. Ignore missing fluent values
+#                     continue
+#                 fluent_value = float(state[fluent_name])
+#                 consistent_fluent_value = fluent_to_expected_values[fluent_name][t]
+#                 fluent_error = abs(fluent_value - consistent_fluent_value)
+#                 if fluent_error > error_at_t:
+#                     error_at_t = fluent_error
+#             if error_at_t < best_fit_error:
+#                 best_fit_error = error_at_t
+#                 best_t = t
+#         return best_t, best_fit_error
+#
+# ''' Test the single numeric fluent consistency checker, for the case where the numeric fluent is not constant,
+#  and the outcome of the tests should be that the sequences are inconsistent. '''
+# def test_multiple_numeric_fluent_inconsistent():
+#     # Get expected timed state sequence according to the model (plan, problem, domain)
+#     (plan, problem, domain) = _load_plan_problem_domain()
+#     timed_state_seq = test_utils.simulate_plan_trace(plan, problem, domain, DEFAULT_DELTA_T)
+#
+#     # Modify the model
+#     manipulator = ManipulateInitNumericFluent([GRAVITY],GRAVITY_CHANGE)
+#     manipulator.apply_change(domain, problem)
+#
+#     # Get the new expected timed state sequence, according to the modified model
+#     simulation_trace = test_utils.simulate_plan_trace(plan, problem, domain, DEFAULT_DELTA_T)
+#     # Assert new timed state sequence is different from the original timed state sequence
+#     diff_list = diff_traces(timed_state_seq, simulation_trace)
+#     logging.info("\n".join(diff_list))
+#     assert len(diff_list)>0
+#
+#     # Create a un-timed state sequence, to simulate how the SB observations would look like.
+#     modified_state_seq = [state for (state, t, _) in simulation_trace]
+#
+#     # Assert the un-timed sequence created by the modified model is inconsistent with the timed sequence created by the original model
+#     consistency_checker = TimeIndependentConsistencyEstimator([X_BIRD_FLUENT, Y_BIRD_FLUENT],
+#                                                               obs_prefix=float('inf'),
+#                                                               discount_factor=1.0)
+#     consistent_score = consistency_checker.consistency_from_trace(timed_state_seq, modified_state_seq)
+#     assert consistent_score > PRECISION
 
 
 ''' Test the single numeric fluent consistency checker, for the case where the numeric fluent is not constant,

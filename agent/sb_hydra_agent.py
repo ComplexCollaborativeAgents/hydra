@@ -281,9 +281,9 @@ class SBHydraAgent(HydraAgent):
                 pddl_prob = UNDEFINED
             else:
 
-                pddl_prob = self.consistency_estimator.traces_from_simulator(observation, self.meta_model,
-                                                                             NyxPddlPlusSimulator(),
-                                                                             self.meta_model.delta_t)
+                pddl_prob = self.consistency_estimator.consistency_from_simulator(observation, self.meta_model,
+                                                                                  NyxPddlPlusSimulator(),
+                                                                                  self.meta_model.delta_t)
             self.level_novelty_indicators[PDDL_PROB].append(pddl_prob)
 
         difference = self.reward_estimator.compute_estimated_reward_difference(observation)
