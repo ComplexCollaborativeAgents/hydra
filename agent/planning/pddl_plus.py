@@ -188,26 +188,27 @@ class PddlPlusState:
             assert False
         return self.numeric_fluents[numeric_fluent_name]
 
+    def get_objects(self, name):
+        """
+        Gets all objects of a given Science bird type, e.g. bird, agent, platform or pig.
+        """
+        # TODO this blongs is a SB specific sub-class, not here
+        objects = set()
+        for fluent_name in self.numeric_fluents:
+            # We expect every bird has an x coordinate in a fluent of the form (x_bird, birdname)
+            if len(fluent_name) == 2 and fluent_name[0] == "x_" + name:
+                objects.add(fluent_name[1])
+        return objects
 
     def get_birds(self):
         # TODO this blongs is a SB specific sub-class, not here
         """ Returns the set of bird objects alive in this state.
              Bird is identified by the x_bird fluent. Returns a set of bird names. """
-        birds = set()
-        for fluent_name in self.numeric_fluents:
-            # We expect every bird has an x coordinate in a fluent of the form (x_bird, birdname)
-            if len(fluent_name) == 2 and fluent_name[0] == "x_bird":
-                birds.add(fluent_name[1])
-        return birds
+        return self.get_objects('bird')
 
     def get_agents(self):
         # TODO this blongs is a SB specific sub-class, not here
-        agents = set()
-        for fluent_name in self.numeric_fluents:
-            # We expect every agent has an x coordinate in a fluent of the form (x_agent, agentname)
-            if len(fluent_name) == 2 and fluent_name[0] == "x_agent":
-                agents.add(fluent_name[1])
-        return agents
+        return self.get_objects('agent')
 
 
     def get_active_bird(self):
@@ -230,36 +231,21 @@ class PddlPlusState:
         """ Returns the set of bird objects alive in this state.
              Bird is identified by the x_bird fluent. Returns a set of bird names. """
         # TODO this blongs is a SB specific sub-class, not here
-        pigs = set()
-        for fluent_name in self.numeric_fluents:
-            # We expect every bird has an x coordinate in a fluent of the form (x_bird, birdname)
-            if len(fluent_name) == 2 and fluent_name[0] == "x_pig":
-                pigs.add(fluent_name[1])
-        return pigs
+        return self.get_objects('pig')
 
 
     def get_platforms(self):
         """ Returns the set of bird objects alive in this state.
              Bird is identified by the x_bird fluent. Returns a set of bird names. """
         # TODO this blongs is a SB specific sub-class, not here
-        platforms = set()
-        for fluent_name in self.numeric_fluents:
-            # We expect every bird has an x coordinate in a fluent of the form (x_platform, platform_name)
-            if len(fluent_name) == 2 and fluent_name[0] == "x_platform":
-                platforms.add(fluent_name[1])
-        return platforms
+        return self.get_objects('platform')
 
 
     def get_blocks(self):
         """ Returns the set of block objects present in this state.
              Block is identified by the x_block fluent. Returns a set of block names. """
         # TODO this blongs is a SB specific sub-class, not here
-        blocks = set()
-        for fluent_name in self.numeric_fluents:
-            # We expect every bird has an x coordinate in a fluent of the form (x_block, block_name)
-            if len(fluent_name) == 2 and fluent_name[0] == "x_block":
-                blocks.add(fluent_name[1])
-        return blocks
+        return self.get_objects('block')
 
     # Deep compare
     def __eq__(self, other):

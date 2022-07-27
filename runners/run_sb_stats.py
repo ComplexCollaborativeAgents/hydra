@@ -47,7 +47,7 @@ NOVELTY_SET = {11: [50], 0: [1150]}
 # NOVELTY_SET = {23: [1], 0: [232, 233, 234, 235, 236, 237]}  # Wiktor
 # NOVELTY_SET = {24: [1], 0: [242, 243, 244, 245, 246, 247]}  # Jacob
 # NOVELTY_SET = {25: [1], 0: [252, 253, 254, 255, 256, 257]}  # Shiwali - I have updated the threshold
-SAMPLES = 5
+SAMPLES = 25
 
 AGENT = AgentType.RepairingHydra
 

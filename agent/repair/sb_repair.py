@@ -5,39 +5,6 @@ logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s
 logger = logging.getLogger("sb_repair")
 
 
-class BirdLocationConsistencyEstimator(AspectConsistency):
-    """
-    Checks consistency by considering the location of the birds 
-    """
-
-    def __init__(self, fluent_names=None, obs_prefix=100, discount_factor=0.9, consistency_threshold=20):
-        if fluent_names is None:
-            fluent_names = []
-        super().__init__(fluent_names, obs_prefix, discount_factor, consistency_threshold)
-
-    def consistency_from_trace(self, simulation_trace: list, state_seq: list, delta_t: float = DEFAULT_DELTA_T):
-        """
-        Estimate consistency by considering the location of the birds in the observed state seq
-        """
-        return self._trajectory_compare(simulation_trace, state_seq, delta_t)
-
-    def _trajectory_compare(self, simulation_trace: list, state_seq: list, delta_t: float = DEFAULT_DELTA_T):
-        # Get birds
-        birds = set()
-        for [state, _, _] in simulation_trace:
-            if len(birds) == 0:  # TODO: Discuss how to make this work. Currently a new bird suddenly appears
-                birds = state.get_birds()
-            else:
-                break
-
-        self.fluent_names = []
-        for bird in birds:
-            self.fluent_names.append(('x_bird', bird))
-            self.fluent_names.append(('y_bird', bird))
-
-        return self.consistency_from_unmatched_trace(simulation_trace, state_seq, delta_t)
-
-
 class PigDeadConsistencyEstimator(AspectConsistency):
     """
     Are the pigs we expected to be dead actually dead?
@@ -46,7 +13,7 @@ class PigDeadConsistencyEstimator(AspectConsistency):
     def __init__(self, fluent_names=None):
         if fluent_names is None:
             fluent_names = []
-        super().__init__(fluent_names)
+        super().__init__(fluent_names, fluent_template='pig')
 
     def consistency_from_trace(self, simulation_trace: list, state_seq: list, delta_t: float = settings.SB_DELTA_T):
         """
@@ -54,18 +21,8 @@ class PigDeadConsistencyEstimator(AspectConsistency):
         state_seq: observations (what actually happened)
         delta_t: time step for simulation (useful, innit?)
         """
-        return self._last_frame_check(simulation_trace, state_seq, None)
-
-    def _last_frame_check(self, simulation_trace: list, state_seq: list, fluents):
-        live_pigs = 0
-        last_state_in_obs = state_seq[-1]
-        live_pigs_in_obs = last_state_in_obs.get_pigs()
-        last_state_in_sim = simulation_trace[-1][0]
-        pigs_in_sim = last_state_in_sim.get_pigs()
-        for pig in pigs_in_sim:
-            if last_state_in_sim.is_true(('pig_dead', pig)) and pig in live_pigs_in_obs:
-                live_pigs += 50
-        return live_pigs
+        pigs_not_dead = self._objects_in_last_frame(simulation_trace, state_seq, in_sim=True, in_obs=False)
+        return pigs_not_dead * 50
 
 
 class BlockNotDeadConsistencyEstimator(AspectConsistency):
@@ -78,40 +35,17 @@ class BlockNotDeadConsistencyEstimator(AspectConsistency):
     def __init__(self, fluent_names=None):
         if fluent_names is None:
             fluent_names = []
-        super().__init__(fluent_names)
+        super().__init__(fluent_names, fluent_template='block')
 
     def consistency_from_trace(self, simulation_trace: list, state_seq: list, delta_t: float = settings.SB_DELTA_T):
         """
         Estimate consistency by considering which blocks are or aren't destroyed.
         """
-        return self._last_frame_check(simulation_trace, state_seq, None)
-
-    def _last_frame_check(self, simulation_trace: list, state_seq: list, fluents):
-        # TODO: Next "if" statement should never be called but it is: check out why
-        if len(state_seq) == 0:
-            return 0
-        last_state_in_obs = state_seq[-1]
-        live_blocks_in_obs = last_state_in_obs.get_blocks()
         last_state_in_sim = simulation_trace[-1][0]
         blocks_in_sim = last_state_in_sim.get_blocks()
-        # Make sure very block that is assumed to be dead in sim is indeed not alive in obs
-
-        blocks_not_dead = 0.0
-        for block in blocks_in_sim:
-            life_fluent = ('block_life', block)
-            life_value = last_state_in_sim[life_fluent]
-            if life_value <= 0:
-                if block in live_blocks_in_obs:
-                    logger.debug("Block %s is alive but sim. thinks it is dead (life value=%.2f)" % (block, life_value))
-                    blocks_not_dead = blocks_not_dead + 1
-
-        # Rationale: having more blocks make the life of a block less predictable
-        if blocks_not_dead > 0:
-            return BlockNotDeadConsistencyEstimator.MIN_BLOCK_NOT_DEAD \
-                   + blocks_not_dead / len(blocks_in_sim) * BlockNotDeadConsistencyEstimator.MAX_INCREMENT
-
-        # TODO: Consider checking also the reverse condition
-        return 0
+        blocks_not_dead = self._objects_in_last_frame(simulation_trace, state_seq, in_sim=False, in_obs=True)
+        return BlockNotDeadConsistencyEstimator.MIN_BLOCK_NOT_DEAD \
+               + blocks_not_dead / len(blocks_in_sim) * BlockNotDeadConsistencyEstimator.MAX_INCREMENT
 
 
 class ExternalAgentLocationConsistencyEstimator(AspectConsistency):
@@ -119,31 +53,27 @@ class ExternalAgentLocationConsistencyEstimator(AspectConsistency):
     Checks consistency by considering the location of the birds
     """
 
-    def __init__(self, fluent_names=None, obs_prefix=100, discount_factor=0.9, consistency_threshold=20):
-        if fluent_names is None:
-            fluent_names = []
-        super().__init__(fluent_names, obs_prefix, discount_factor, consistency_threshold)
+    def __init__(self):
+        super().__init__([], 'agent')
 
     def consistency_from_trace(self, simulation_trace: list, state_seq: list, delta_t: float = DEFAULT_DELTA_T):
         """ Estimate consistency by considering the location of the external agents in the observed state seq """
         return self._trajectory_compare(simulation_trace, state_seq, delta_t)
 
-    def _trajectory_compare(self, simulation_trace: list, state_seq: list, delta_t: float = DEFAULT_DELTA_T):
 
-        # Get birds
-        agents = set()
-        for [state, _, _] in simulation_trace:
-            if len(agents) == 0:  # TODO: Are the agents not in the first frame?
-                agents = state.get_agents()
-            else:
-                break
+class BirdLocationConsistencyEstimator(AspectConsistency):
+    """
+    Checks consistency by considering the location of the birds
+    """
 
-        self.fluent_names = []
-        for ag in agents:
-            self.fluent_names.append(('x_agent', ag))
-            self.fluent_names.append(('y_agent', ag))
+    def __init__(self):
+        super().__init__([], 'bird')
 
-        return self.consistency_from_unmatched_trace(simulation_trace, state_seq, delta_t)
+    def consistency_from_trace(self, simulation_trace: list, state_seq: list, delta_t: float = DEFAULT_DELTA_T):
+        """
+        Estimate consistency by considering the location of the birds in the observed state seq
+        """
+        return self._trajectory_compare(simulation_trace, state_seq, delta_t)
 
 
 class ScienceBirdsConsistencyEstimator(DomainConsistency):

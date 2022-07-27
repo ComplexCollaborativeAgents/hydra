@@ -27,11 +27,13 @@ class AspectConsistency:
     default_discount_factor = 0.9
     default_consistency_threshold = 0.01
 
-    def __init__(self, fluent_names, obs_prefix=default_obs_prefix, discount_factor=default_discount_factor,
+    def __init__(self, fluent_names, fluent_template=None, obs_prefix=default_obs_prefix,
+                 discount_factor=default_discount_factor,
                  consistency_threshold=default_consistency_threshold):
         """ Specify which fluents to check, and the size of the observed sequence prefix to consider.
         This is because we acknowledge that later in the observations, our model is less accurate. """
 
+        self.fluent_template = fluent_template
         self.fluent_names = []
         for fluent_name in fluent_names:
             if isinstance(fluent_name, list):
@@ -211,14 +213,27 @@ class AspectConsistency:
         """
         raise NotImplementedError()
 
-    def _last_frame_check(self, simulation_trace: list, state_seq: list, fluents):
+    def _objects_in_last_frame(self, simulation_trace: list, observations: list, in_sim=True, in_obs=True):
         """
-        Compares fluent values in the last frame only. Useful for e.g. PigsDead and BlocksDead, but must be overridden
-        to have correct behavior.
+        Compares the objects matching the given fluent pattern in the last frame.
+        Returns the total delta according to flags:
+        in_sim: objects that are 'alive' in simulation but 'dead' in observation
+        in_obs: objects that are 'dead' in simulation but 'alive' in observation
+        Default is both.
         """
-        # Sadly, it does not make sense to extract any code from the aspects that use this form. They just have to
-        #  override.
-        pass
+        non_matching_obj = 0
+        last_state_in_obs = observations[-1]
+        obs_objs = last_state_in_obs.get_objects(self.fluent_template)
+        last_state_in_sim = simulation_trace[-1][0]
+        sim_objs = last_state_in_sim.get_objects(self.fluent_template)
+        for obj in sim_objs:
+            # All object fluents exist in the simulation, but the object might be 'dead'
+            if in_sim and last_state_in_sim[(self.fluent_template + '_life', obj)] > 0 and obj not in obs_objs:
+                non_matching_obj += 1
+            if in_obs and last_state_in_sim[(self.fluent_template + '_life', obj)] <= 0 and obj in obs_objs:
+                non_matching_obj += 1
+        return non_matching_obj
+
 
     def filter_trace(self, simulation_trace: list, state_seq: list, filter_func=lambda x: True):
         """
@@ -234,9 +249,21 @@ class AspectConsistency:
         """
         Compares fluents along a trajectory, optionally filtering according to some conditional function.
         """
-        # Sadly, it does not make sense to extract any code from the aspects that use this form. They just have to
-        #  override.
-        pass
+        # Get objects
+        objects = set()
+        ob_name = self.fluent_template
+        for [state, _, _] in simulation_trace:
+            if len(objects) == 0:  # TODO: Are some objects not in the first frame?
+                objects = state.get_objects(ob_name)
+            else:
+                break
+
+        self.fluent_names = []
+        for obj in objects:
+            self.fluent_names.append(('x_' + ob_name, obj))
+            self.fluent_names.append(('y_' + ob_name, obj))
+
+        return self.consistency_from_unmatched_trace(simulation_trace, state_seq, delta_t)
 
     def _align_timestamps(self, observations, simulation):
         """
