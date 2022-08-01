@@ -176,77 +176,25 @@ def estimate_launch_angle(slingshot, targetPoint, meta_model):
         return default_min_angle, default_max_angle
 
 
-''' A generator for Pddl Objects '''
-
-
-class PddlObjectType:
-    """ Accepts an object from SBState.objects """
-
-    def __init__(self):
-        self.hyper_parameters = dict()
-        self.pddl_type = "object"  # This the PDDL+ type of this object.
-
-    def _compute_obj_attributes(self, obj, problem_params: dict):
-        """ Subclasses should override this setting all attributes of that object """
-        return dict()
-
-    def _compute_observable_obj_attributes(self, obj, problem_params: dict):
-        """ Subclasses should override this setting all attributes of that object that can be observed"""
-        return dict()
-
-    def add_object_to_problem(self, prob: PddlPlusProblem, obj, problem_params: dict):
-        """ Populate a PDDL+ problem with details about this object """
-        name = self._get_name(obj)
-        prob.objects.append([name, self.pddl_type])
-        attributes = self._compute_obj_attributes(obj, problem_params)
-        for attribute in attributes:
-            value = attributes[attribute]
-            # If attribute is Boolean no need for an "=" sign
-            if isinstance(value, bool):
-                if value:
-                    prob.init.append([attribute, name])
-                else:  # value == False
-                    prob.init.append(['not', [attribute, name]])
-            else:  # Attribute is a number
-                prob.init.append(['=', [attribute, name], value])
-
-    def add_object_to_state(self, pddl_state: PddlPlusState, obj, state_params: dict):
-        """ Populate a PDDL+ state with details about this object """
-        name = self._get_name(obj)
-        attributes = self._compute_observable_obj_attributes(obj, state_params)
-        for attribute in attributes:
-            value = attributes[attribute]
-            fluent_name = (attribute, name)
-            # If attribute is Boolean no need for an "=" sign
-            if isinstance(value, bool):
-                if value:
-                    pddl_state.boolean_fluents.add(fluent_name)
-                # TODO: Think how to handle booean fluents with False value. Not as trivial as it sounds
-            else:  # Attribute is a number
-                pddl_state.numeric_fluents[fluent_name] = value
-
+class SBPddlObjectType(PddlObjectType):
     def _get_name(self, obj):
         obj_type = obj[1]['type']
         return '{}_{}'.format(obj_type, obj[0])
 
 
-''' The slingshot is currently not directly modeled in our model, so its object is currently ignored. 
-TODO: Reconsider this design choice. '''
-
-
+# The slingshot is currently not directly modeled in our model, so its object is currently ignored.
+# TODO: Reconsider this design choice.
 class SlingshotType:
     """ Populate a PDDL+ problem with details about this object """
 
     def add_object_to_problem(self, prob: PddlPlusProblem, obj, problem_params: dict):
         return  # Do nothing, slingshot is currently not directly modeled as an object
 
-    ''' Populate a PDDL+ state with details about this object '''
-
     def add_object_to_state(self, pddl_state: PddlPlusState, obj, state_params: dict):
         return  # Do nothing, slingshot is currently not directly modeled as an object
 
 
-class PigType(PddlObjectType):
+class PigType(SBPddlObjectType):
     def __init__(self, life_multiplier=1.0):
         super(PigType, self).__init__()
         self.pddl_type = "pig"
@@ -276,7 +224,7 @@ class PigType(PddlObjectType):
         return obj_attributes
 
 
-class AgentType(PddlObjectType):
+class AgentType(SBPddlObjectType):
     def __init__(self):
         super(AgentType, self).__init__()
         self.pddl_type = "external_agent"
@@ -322,7 +270,7 @@ class AgentType(PddlObjectType):
         return obj_attributes
 
 
-class BirdType(PddlObjectType):
+class BirdType(SBPddlObjectType):
     def __init__(self):
         super(BirdType, self).__init__()
         self.pddl_type = "bird"
@@ -398,7 +346,7 @@ class BirdType(PddlObjectType):
         return obj_attributes
 
 
-class PlatformType(PddlObjectType):
+class PlatformType(SBPddlObjectType):
     def __init__(self):
         super(PlatformType, self).__init__()
         self.pddl_type = "platform"
@@ -419,7 +367,7 @@ class PlatformType(PddlObjectType):
         return self._compute_observable_obj_attributes(obj, problem_params)
 
 
-class BlockType(PddlObjectType):
+class BlockType(SBPddlObjectType):
     def __init__(self, block_life_multiplier=1.0, block_mass_coeff=1.0):
         super(BlockType, self).__init__()
         self.pddl_type = "block"
@@ -519,7 +467,7 @@ class ScienceBirdsMetaModel(MetaModel):
 
                          ],
                          repair_deltas=[
-                             1, 1, 1, 1,  50, 0.1 # 50, 10
+                             1, 1, 1, 1, 50, 0.1  # 50, 10
                          ],
                          constant_numeric_fluents={
                              'active_bird': 0,
@@ -739,7 +687,6 @@ class ScienceBirdsMetaModel(MetaModel):
                     # while iterating through all objects store platforms so they can be used to define borders for the worm agent (in the subsequent loop through level objects)
                     just_in_case_platforms.append(objj)
 
-
         # Add objects to problem
         for obj in sb_state.objects.items():
             # Get type
@@ -771,7 +718,8 @@ class ScienceBirdsMetaModel(MetaModel):
                             self.repairable_constants.append(fluent_string)
                         pddl_problem.init.append(['=',
                                                   ['bird_block_damage', bird_str, block_str],
-                                                  self.constant_numeric_fluents[type_str + '_' + block[1]['type'] + '_damage_factor']])
+                                                  self.constant_numeric_fluents[
+                                                      type_str + '_' + block[1]['type'] + '_damage_factor']])
                         # TODO handle unknown bird and block types?
             else:
                 if type_str in self.object_types:

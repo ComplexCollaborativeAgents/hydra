@@ -8,6 +8,15 @@ logger = logging.getLogger("meta_model_repair")
 PLAN_FAILED_CONSISTENCY_VALUE = 1000  # A constant representing the inconsistency value of a meta model in which the executed plan is inconsistent
 
 
+### New code
+
+
+
+
+
+### End new code
+
+
 class MetaModelRepair:  # TODO: Remove this class
 
     def repair(self,

@@ -78,7 +78,7 @@ def run():
             world.poly_client.GIVE_UP()
             world.poly_client.CHECK_COST()
             state = setup_for_new_level(agent, world)
-            # raise e
+            raise e
 
 
 if __name__ == "__main__":

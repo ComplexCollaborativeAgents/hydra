@@ -64,53 +64,8 @@ class Function(enum.Enum):
 ###### PDDL OBJECTS AND FLUENTS
 
 ##### Classes and constructs to help build meta models
-class PolycraftObjectType:  #TODO each meta-model file has it's own definition of this class - consolidate
-    """ A generator for Pddl Objects. Accepts an object from the domain and adds the corresponding objects and fluents to the PDDL problem. """
 
-    def __init__(self):
-        self.hyper_parameters = dict()
-        self.pddl_type = "object"  # This the PDDL+ type of this object.
-
-    def get_object_name(self, obj):
-        """ Return the object name in PDDL """
-        raise NotImplementedError("Subclass should implement this: generate a pddl name for the given world object")
-
-    def add_object_to_pddl(self, obj, prob: PddlPlusProblem, params: dict):
-        """ Populate a PDDL+ problem with details about this object """
-        obj_name = self.get_object_name(obj)
-        if self.pddl_type is not None:  # None type means this object should not be added to the problem objects list.
-            prob.objects.append([obj_name, self.pddl_type])
-        fluent_to_value = self._compute_obj_fluents(obj, params)
-        for fluent_name, fluent_value in fluent_to_value.items():
-            fluent_name_as_list = list(fluent_name)
-            # If attribute is Boolean no need for an "=" sign
-            if isinstance(fluent_value, bool):
-                if fluent_value == True:
-
-                    prob.init.append(fluent_name_as_list)
-                else:  # value == False
-                    prob.init.append(['not', fluent_name_as_list])
-            else:  # Attribute is a number
-                prob.init.append(['=', fluent_name_as_list, fluent_value])
-
-    def add_object_to_state(self, pddl_state: PddlPlusState, obj, state_params: dict):
-        """ Populate a PDDL+ state with details about this object """
-        fluent_to_value = self._compute_obj_fluents(obj, state_params)
-        for fluent_name, fluent_value in fluent_to_value.items():
-            # If attribute is Boolean no need for an "=" sign
-            if isinstance(fluent_value, bool):
-                if fluent_value == True:
-                    pddl_state.boolean_fluents.add(fluent_name)
-                # TODO: Think how to handle booean fluents with False value. Not as trivial as it sounds
-            else:  # Attribute is a number
-                pddl_state.numeric_fluents[fluent_name] = fluent_value
-
-    def _compute_obj_fluents(self, obj, params: dict) -> dict:
-        """ Maps fluent_name to fluent_value for all fluents created for this object"""
-        raise NotImplementedError("Subclass should implement. Return a dict mapping fluent name to value")
-
-
-class PddlGameMapCellType(PolycraftObjectType):
+class PddlGameMapCellType(PddlObjectType):
     def __init__(self, type_idx=-1, relevant_attributes=None):
         super().__init__()
         if relevant_attributes is None:
@@ -124,22 +79,21 @@ class PddlGameMapCellType(PolycraftObjectType):
         """ Return the object name in PDDL for the given cell """
         return "cell_{}".format("_".join(cell_id.split(",")))
 
-    def get_object_name(self, obj):
+    def _get_name(self, obj):
         """ Return the object name in PDDL """
         (cell_id, cell_attr) = obj
         return PddlGameMapCellType.get_cell_object_name(cell_id)
 
-    def _compute_obj_fluents(self, obj, params: dict) -> dict:
+    def _compute_obj_attributes(self, obj, params: dict) -> dict:
         """ Maps fluent_name to fluent_value for all fluents created for this object"""
-        cell_name = self.get_object_name(obj)
         fluent_to_value = dict()
-        fluent_to_value[(Function.cell_type.name, cell_name)] = self.type_idx
+        fluent_to_value[Function.cell_type.name] = self.type_idx
 
         (cell_id, cell_attr) = obj
         for attribute, attribute_value in cell_attr.items():
             # If attribute is Boolean no need for an "=" sign
             if attribute in self.relevant_attributes:
-                fluent_to_value[(attribute, cell_name)] = attribute_value
+                fluent_to_value[attribute] = attribute_value
 
         # # Cell adjacency info
         # world_state = params["world_state"]
@@ -160,20 +114,19 @@ class PddlDoorCellType(PddlGameMapCellType):
         super().__init__(type_idx, [])
         self.pddl_type = PddlType.door_cell.name
 
-    def _compute_obj_fluents(self, obj, params: dict) -> dict:
+    def _compute_obj_attributes(self, obj, params: dict) -> dict:
         """ Maps fluent_name to fluent_value for all fluents created for this object"""
-        cell_name = self.get_object_name(obj)
         fluent_to_value = dict()
-        fluent_to_value[(Function.door_cell_type.name, cell_name)] = self.type_idx
+        fluent_to_value[Function.door_cell_type.name] = self.type_idx
 
         (cell_id, cell_attr) = obj
         for attribute, attribute_value in cell_attr.items():
             # If attribute is Boolean no need for an "=" sign
             if attribute == Predicate.isAccessible.name:
-                fluent_to_value[(Predicate.door_is_accessible.name, cell_name)] = attribute_value
+                fluent_to_value[Predicate.door_is_accessible.name] = attribute_value
             elif attribute == Predicate.open.name:
                 if attribute_value.upper() == "TRUE":
-                    fluent_to_value[(Predicate.door_is_accessible.name, cell_name)] = True
+                    fluent_to_value[Predicate.door_is_accessible.name] = True
 
         # Handle adjacency
         # world_state = params["world_state"]
@@ -195,16 +148,15 @@ class PddlSafeCellType(PddlGameMapCellType):
         super().__init__(type_idx, [])
         self.pddl_type = PddlType.safe_cell.name
 
-    def _compute_obj_fluents(self, obj, params: dict) -> dict:
+    def _compute_obj_attributes(self, obj, params: dict) -> dict:
         """ Maps fluent_name to fluent_value for all fluents created for this object"""
-        cell_name = self.get_object_name(obj)
         fluent_to_value = dict()
 
         (cell_id, cell_attr) = obj
         for attribute, attribute_value in cell_attr.items():
             # If attribute is Boolean no need for an "=" sign
             if attribute == Predicate.isAccessible.name:
-                fluent_to_value[(Predicate.safe_is_accessible.name, cell_name)] = attribute_value
+                fluent_to_value[Predicate.safe_is_accessible.name] = attribute_value
 
         # # Handle adjacency
         # world_state = params["world_state"]
@@ -300,7 +252,7 @@ class PddlPolycraftAction(PolycraftAction):
         return self.poly_action.can_do(state, env)
 
 
-class PddlPolycraftActionGenerator():
+class PddlPolycraftActionGenerator:
     """ An object that bridges between pddl actions and polycraft actions"""
 
     def __init__(self, pddl_name):
@@ -309,11 +261,13 @@ class PddlPolycraftActionGenerator():
     """ A class representing a PDDL+ action in polycraft """
 
     def to_pddl(self, meta_model: MetaModel) -> PddlPlusWorldChange:
-        """ This method should be implemented by sublcasses and output a string representation of the corresponding PDDL+ action """
+        """ This method should be implemented by sublcasses and output a string representation of the corresponding
+        PDDL+ action """
         raise NotImplementedError()
 
     def to_polycraft(self, parameter_binding: dict) -> PolycraftAction:
-        """ This method should be implemented by sublcasses and output a string representation of the corresponding PDDL+ action """
+        """ This method should be implemented by sublcasses and output a string representation of the corresponding
+        PDDL+ action """
         raise NotImplementedError()
 
     def to_pddl_polycraft(self, parameter_binding: dict) -> PddlPolycraftAction:
@@ -354,14 +308,17 @@ class PolycraftMetaModel(MetaModel):
         self.break_block_to_outcome[BlockType.LOG.value] = (ItemType.LOG.value,
                                                             self.constant_numeric_fluents['break_log_outcome_num'])
         self.break_block_to_outcome[BlockType.BLOCK_OF_PLATINUM.value] = (ItemType.BLOCK_OF_PLATINUM.value,
-                                                                          self.constant_numeric_fluents['break_platinum_outcome_num'])
+                                                                          self.constant_numeric_fluents[
+                                                                              'break_platinum_outcome_num'])
         self.break_block_to_outcome[BlockType.DIAMOND_ORE.value] = (ItemType.DIAMOND.value,
-                                                                    self.constant_numeric_fluents['break_diamond_outcome_num'])
+                                                                    self.constant_numeric_fluents[
+                                                                        'break_diamond_outcome_num'])
 
         # Maps a cell type to what we get if we collect from it. The latter is in the form of a pair (item type, quantity).
         self.collect_block_to_outcome = dict()
         self.collect_block_to_outcome[BlockType.TREE_TAP.value] = (ItemType.SACK_POLYISOPRENE_PELLETS.value,
-                                                                   self.constant_numeric_fluents['collect_sap_outcome_num'])
+                                                                   self.constant_numeric_fluents[
+                                                                       'collect_sap_outcome_num'])
         self.collect_block_to_outcome[BlockType.PLASTIC_CHEST.value] = (ItemType.KEY.value, 1)
 
         # List of cell types that require an iron pickaxe to break
@@ -390,6 +347,7 @@ class PolycraftMetaModel(MetaModel):
             type_idx = type_idx + 1
 
         self.active_task = active_task
+        self.current_domain = {self.active_task: None}
 
     def introduce_novel_block_type(self, block_type):
         if block_type in self.block_type_to_idx:
@@ -430,35 +388,39 @@ class PolycraftMetaModel(MetaModel):
         # domain_file = "{}/{}".format(str(self.docker_path), "polycraft_domain_template.pddl")
         # domain_parser = PddlDomainParser()
         # pddl_domain = PddlPlusDomain()
+        if self.current_domain.get(self.active_task) is None:
+            # First time creating a domain for this task - create from scratch
+            # TODO: apply updates\MMOs already applied to other domains.
+            pddl_domain = PddlPlusDomain()
+            pddl_domain.name = "polycraft"
+            pddl_domain.requirements = [":typing", ":disjunctive-preconditions", ":fluents", ":negative-preconditions"]
 
-        pddl_domain = PddlPlusDomain()
-        pddl_domain.name = "polycraft"
-        pddl_domain.requirements = [":typing", ":disjunctive-preconditions", ":fluents", ":negative-preconditions"]
+            # Add object types
+            for object_type in self.active_task.get_relevant_types(world_state, self):
+                pddl_domain.types.append(object_type.name)
 
-        # Add object types
-        for object_type in self.active_task.get_relevant_types(world_state, self):
-            pddl_domain.types.append(object_type.name)
+            # Add predicates
+            for predicate_as_list in self.active_task.get_relevant_predicates(world_state, self):
+                pddl_domain.predicates.append(predicate_as_list)
 
-        # Add predicates
-        for predicate_as_list in self.active_task.get_relevant_predicates(world_state, self):
-            pddl_domain.predicates.append(predicate_as_list)
+            # Add functions
+            for function_as_list in self.active_task.get_relevant_functions(world_state, self):
+                pddl_domain.functions.append(function_as_list)
 
-        # Add functions
-        for function_as_list in self.active_task.get_relevant_functions(world_state, self):
-            pddl_domain.functions.append(function_as_list)
+            for item in self.item_type_to_idx:
+                pddl_domain.functions.append([f"count_{item}", ])
 
-        for item in self.item_type_to_idx:
-            pddl_domain.functions.append([f"count_{item}", ])
+            # Add actions
+            for action_generator in self.get_action_generators(world_state):
+                pddl_domain.actions.append(action_generator.to_pddl(self))
 
-        # Add actions
-        for action_generator in self.get_action_generators(world_state):
-            pddl_domain.actions.append(action_generator.to_pddl(self))
+            # Add events
+            for event_generator in self.active_task.create_relevant_events(world_state, self):
+                pddl_domain.events.append(event_generator.to_pddl(self))
 
-        # Add events
-        for event_generator in self.active_task.create_relevant_events(world_state, self):
-            pddl_domain.events.append(event_generator.to_pddl(self))
-
-        self._convert_polycraft_naming_in_domain(pddl_domain)
+            self._convert_polycraft_naming_in_domain(pddl_domain)
+        else:
+            pddl_domain = self.current_domain[self.active_task]
         return pddl_domain
 
     def get_action_generators(self, state):
@@ -560,7 +522,7 @@ class PolycraftMetaModel(MetaModel):
         for cell in active_cells:
             cell_attr = known_cells[cell]
             type = self.active_task.get_type_for_cell(cell_attr, self)
-            type.add_object_to_pddl((cell, cell_attr), pddl_problem, problem_params)
+            type.add_object_to_problem(pddl_problem, (cell, cell_attr), problem_params)
 
         # Add inventory items
         for item_type in self.item_type_to_idx.keys():

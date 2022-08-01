@@ -285,7 +285,7 @@ class CollectFromSafeTask(CreatePogoTask):
             type = PddlSafeCellType(type_idx=self.block_type_to_idx[type_str])
         else:
             type = PddlGameMapCellType(type_idx=self.block_type_to_idx[type_str])
-        type.add_object_to_pddl((cell, cell_attr), pddl_problem, problem_params)
+        type.add_object_to_problem((cell, cell_attr), pddl_problem, problem_params)
 
 
 class MakeCellAccessibleTask(CreatePogoTask):
