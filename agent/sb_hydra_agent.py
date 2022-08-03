@@ -3,9 +3,9 @@ import datetime
 import numpy
 import pandas
 
-from agent.gym_hydra_agent import REPAIR_CALLS, REPAIR_TIME, logger
+
 from agent.hydra_agent import HydraAgent
-from agent.hydra_agent import logger, PDDL_PROB, NOVELTY_EXISTENCE_NOT_GIVEN, NOVELTY_LIKELIHOOD
+from agent.hydra_agent import PDDL_PROB, NOVELTY_EXISTENCE_NOT_GIVEN, NOVELTY_LIKELIHOOD
 from agent.planning.nyx.syntax import constants
 from agent.planning.sb_planner import SBPlanner
 from agent.repair.meta_model_repair import *
@@ -15,8 +15,10 @@ from utils.point2D import Point2D
 from worlds.science_birds_interface.client.agent_client import GameState
 
 # from state_prediction.anomaly_detector_fc_multichannel import FocusedSBAnomalyDetector
-
 logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
+
+REPAIR_CALLS = "repair_calls"
+REPAIR_TIME = "repair_time"
 logger = logging.getLogger("hydra_agent")
 
 from agent.reward_estimation.reward_estimator import RewardEstimator

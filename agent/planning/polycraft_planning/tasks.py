@@ -498,7 +498,16 @@ class CraftPogoHeuristic(AbstractHeuristic):
                 # One of the situations we want to avoid is teleporting back and forth - so if the last action was
                 # teleporting, don't teleport again.
             n_value += self._only_count_once_heuristic(node, ItemType.WOODEN_POGO_STICK.value)
-
+        # How do we get a count of all the cells, all the accessible cells of any type?
+        total, accessible = 0, 0
+        for fluent, value in node.state_vars.items():
+            if fluent.find(Function.cell_type.name) > -1:
+                total += 1
+                match = re.search('cell_\d{2}_\d{2}_\d{2}', fluent)
+                acc_fluent = f"['{Predicate.isAccessible.name.lower()}', '{fluent[match.start():match.end()]}']"
+                if node.state_vars[acc_fluent]:
+                    accessible += 1
+        n_value += accessible / total
         node.h = n_value
         return n_value
 
