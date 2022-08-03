@@ -84,5 +84,5 @@ class PolycraftTournamentRunner:
 
 
 if __name__ == "__main__":
-    runner = PolycraftTournamentRunner()
+    runner = PolycraftTournamentRunner(RUNNER_MODE, SINGLE_LEVEL_MODE)
     runner.run()
