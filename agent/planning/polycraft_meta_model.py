@@ -9,8 +9,8 @@ from agent.planning.pddl_plus import *
 from worlds.polycraft_world import PolycraftAction
 
 logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
-logger = logging.getLogger("Polycraft")
-logger.setLevel(logging.INFO)
+logger = logging.getLogger("PolycraftPDDL")
+logger.setLevel(logging.DEBUG)
 
 
 # CONSTANTS
