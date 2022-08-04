@@ -14,9 +14,6 @@ DEFAULT_PLOT_OBS_VS_EXP = False
 CONSISTENCY_CHECK_FAILED_VALUE = 1000
 
 
-#### Begin new code
-
-
 class AspectConsistency:
     """
     Computes inconsistency estimate for a particular aspect of a domain\problem, e.g. pigsDead or InventoryValues.
@@ -104,7 +101,8 @@ class AspectConsistency:
                 break
         return consistency_per_state
 
-    def consistency_from_unmatched_trace(self, simulation_trace: list, state_seq: list, delta_t: float = DEFAULT_DELTA_T):
+    def consistency_from_unmatched_trace(self, simulation_trace: list, state_seq: list,
+                                         delta_t: float = DEFAULT_DELTA_T):
         """
          Computes an inconsistency value from traces that do not have matching timestamps.
         """
@@ -139,7 +137,7 @@ class AspectConsistency:
         return max_error
 
     def _compute_consistency_per_unmatched_state(self, expected_state_seq: list, observed_states: list,
-                                       delta_t: float = DEFAULT_DELTA_T):
+                                                 delta_t: float = DEFAULT_DELTA_T):
         """
         Computes inconsistency values for observations that do not have matching timestamps as the simulation.
         Current implementation ignores order, and just looks for the best time for each state in the state_seq,
@@ -234,7 +232,6 @@ class AspectConsistency:
                 non_matching_obj += 1
         return non_matching_obj
 
-
     def filter_trace(self, simulation_trace: list, state_seq: list, filter_func=lambda x: True):
         """
         Filters trajectories according to given function.
@@ -247,8 +244,9 @@ class AspectConsistency:
 
     def _trajectory_compare(self, simulation_trace: list, state_seq: list, delta_t: float = DEFAULT_DELTA_T):
         """
-        Compares fluents along a trajectory, optionally filtering according to some conditional function.
+        Compares fluents along a trajectory.
         """
+        # in future: optionally filtering according to some conditional function.
         # Get objects
         objects = set()
         ob_name = self.fluent_template
@@ -295,6 +293,10 @@ class DomainConsistency:
     def __init__(self, aspect_estimators: List[AspectConsistency]):
         self.aspect_estimators = aspect_estimators
 
+    def consistency_from_observations(self, meta_model, simulator, observation, delta_t):
+        expected_states, observed_states = self.get_traces_from_simulator(observation, meta_model, simulator, delta_t)
+        return self.consistency_from_trace(expected_states, observed_states, delta_t)
+
     def get_traces_from_simulator(self, observation, meta_model, simulator: PddlPlusSimulator, delta_t):
         """ Generates simulation and observation traces for a given observation object """
         expected_trace, plan = simulator.get_expected_trace(observation, meta_model, delta_t)
@@ -326,6 +328,7 @@ class DomainConsistency:
         """
         # Following Roni's idea.
         pass
+
 
 ### End new code
 
@@ -472,8 +475,9 @@ def check_obs_consistency(observation,
         plot_axes = test_utils.plot_observation(observation)
         test_utils.plot_expected_trace_for_obs(meta_model, observation, ax=plot_axes)
     try:
-        simulation_trace, observed_trace = consistency_checker.get_traces_from_simulator(observation, meta_model, simulator,
-                                                                     meta_model.delta_t * speedup_factor)
+        simulation_trace, observed_trace = consistency_checker.get_traces_from_simulator(observation, meta_model,
+                                                                                         simulator,
+                                                                                         meta_model.delta_t * speedup_factor)
         consistency_value = consistency_checker.consistency_from_trace(simulation_trace, observed_trace,
                                                                        meta_model.delta_t * speedup_factor)
     except ValueError:
