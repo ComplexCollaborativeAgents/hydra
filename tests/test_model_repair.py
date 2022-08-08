@@ -71,8 +71,8 @@ def test_repair_gravity_in_agent(save_obs=False,plot_obs_vs_exp=False):
             # No need to fix the model - we're winning! #TODO: This is an assumption: better to replace this with a good novelty detection mechanism
         else:
             consistency = check_obs_consistency(observation, meta_model, consistency_checker)
-            meta_model_repair = GreedyBestFirstSearchMetaModelRepair(fluents_to_repair, consistency_checker, repair_deltas,
-                                                                     consistency_threshold=desired_precision)
+            meta_model_repair = GreedyBestFirstSearchConstantFluentMetaModelRepair(fluents_to_repair, consistency_checker, repair_deltas,
+                                                                                   consistency_threshold=desired_precision)
             repair, _ = meta_model_repair.repair(meta_model, observation, delta_t=DEFAULT_DELTA_T)
             logger.info("Repair done (%s), iteration %d" % (repair,iteration))
             consistency_after = check_obs_consistency(observation, meta_model, consistency_checker)
@@ -93,8 +93,8 @@ def test_repair_gravity_offline():
     repair_deltas = [1.0,]
     desired_precision = 20
     consistency_estimator = ScienceBirdsConsistencyEstimator()
-    meta_model_repair = GreedyBestFirstSearchMetaModelRepair(fluents_to_repair, consistency_estimator, repair_deltas,
-                                                             consistency_threshold=desired_precision)
+    meta_model_repair = GreedyBestFirstSearchConstantFluentMetaModelRepair(fluents_to_repair, consistency_estimator, repair_deltas,
+                                                                           consistency_threshold=desired_precision)
 
     _test_repair_gravity_offline(meta_model_repair)
 

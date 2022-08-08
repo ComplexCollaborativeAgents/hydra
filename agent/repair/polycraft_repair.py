@@ -1,7 +1,7 @@
 import settings
 from agent.consistency.consistency_estimator import DEFAULT_DELTA_T, AspectConsistency, DomainConsistency
 from agent.consistency.observation import HydraObservation
-from agent.repair.meta_model_repair import GreedyBestFirstSearchContantFluentMetaModelRepair
+from agent.repair.meta_model_repair import GreedyBestFirstSearchConstantFluentMetaModelRepair
 
 
 class PolycraftConsistencyEstimator(DomainConsistency):
@@ -31,7 +31,7 @@ class PolycraftInventoryConsistency(AspectConsistency):
         return self.consistency_from_matched_trace(simulation_trace, state_seq, delta_t)
 
 
-class PolycraftMetaModelRepair(GreedyBestFirstSearchContantFluentMetaModelRepair):
+class PolycraftMetaModelRepair(GreedyBestFirstSearchConstantFluentMetaModelRepair):
     """ The meta model repair used for ScienceBirds. """
 
     def __init__(self, meta_model,

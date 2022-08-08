@@ -122,7 +122,7 @@ class ScienceBirdsConsistencyEstimator(DomainConsistency):
         return consistency
 
 
-class ScienceBirdsMetaModelRepair(GreedyBestFirstSearchContantFluentMetaModelRepair):
+class ScienceBirdsMetaModelRepair(GreedyBestFirstSearchConstantFluentMetaModelRepair):
     """ The meta model repair used for ScienceBirds. """
 
     # THIS CLASS ONLY USED IN TESTS

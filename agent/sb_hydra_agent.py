@@ -654,12 +654,12 @@ class RepairingSBHydraAgent(SBHydraAgent):
         self.revision_attempts = 0
 
         self.meta_model = ScienceBirdsMetaModel()
-        self.meta_model_repair = GreedyBestFirstSearchContantFluentMetaModelRepair(self.meta_model, ScienceBirdsConsistencyEstimator(),self.meta_model.repairable_constants,
+        self.meta_model_repair = GreedyBestFirstSearchConstantFluentMetaModelRepair(self.meta_model, ScienceBirdsConsistencyEstimator(), self.meta_model.repairable_constants,
 
-                                                                                   self.meta_model.repair_deltas,
-                                                                                   settings.SB_CONSISTENCY_THRESHOLD,
-                                                                                   settings.SB_REPAIR_MAX_ITERATIONS,
-                                                                                   settings.SB_REPAIR_TIMEOUT)
+                                                                                    self.meta_model.repair_deltas,
+                                                                                    settings.SB_CONSISTENCY_THRESHOLD,
+                                                                                    settings.SB_REPAIR_MAX_ITERATIONS,
+                                                                                    settings.SB_REPAIR_TIMEOUT)
 
     def reinit(self):
         super().reinit()
