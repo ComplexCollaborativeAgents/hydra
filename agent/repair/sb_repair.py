@@ -122,7 +122,7 @@ class ScienceBirdsConsistencyEstimator(DomainConsistency):
         return consistency
 
 
-class ScienceBirdsMetaModelRepair(GreedyBestFirstSearchContantFluentMetaModelRepair):
+class ScienceBirdsMetaModelRepair(GreedyBestFirstSearchMetaModelRepair):
     """ The meta model repair used for ScienceBirds. """
 
     # THIS CLASS ONLY USED IN TESTS
@@ -133,7 +133,7 @@ class ScienceBirdsMetaModelRepair(GreedyBestFirstSearchContantFluentMetaModelRep
         constants_to_repair = meta_model.repairable_constants
         repair_deltas = meta_model.repair_deltas
         consistency_estimator = ScienceBirdsConsistencyEstimator()
-        super().__init__(meta_model, consistency_estimator,constants_to_repair,  repair_deltas,
+        super().__init__(constants_to_repair, consistency_estimator, repair_deltas,
                          consistency_threshold=consistency_threshold,
                          max_iterations=max_iterations,
                          time_limit=time_limit)

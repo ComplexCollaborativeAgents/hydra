@@ -654,12 +654,12 @@ class RepairingSBHydraAgent(SBHydraAgent):
         self.revision_attempts = 0
 
         self.meta_model = ScienceBirdsMetaModel()
-        self.meta_model_repair = GreedyBestFirstSearchContantFluentMetaModelRepair(self.meta_model, ScienceBirdsConsistencyEstimator(),self.meta_model.repairable_constants,
-
-                                                                                   self.meta_model.repair_deltas,
-                                                                                   settings.SB_CONSISTENCY_THRESHOLD,
-                                                                                   settings.SB_REPAIR_MAX_ITERATIONS,
-                                                                                   settings.SB_REPAIR_TIMEOUT)
+        self.meta_model_repair = GreedyBestFirstSearchMetaModelRepair(self.meta_model.repairable_constants,
+                                                                      ScienceBirdsConsistencyEstimator(),
+                                                                      self.meta_model.repair_deltas,
+                                                                      settings.SB_CONSISTENCY_THRESHOLD,
+                                                                      settings.SB_REPAIR_MAX_ITERATIONS,
+                                                                      settings.SB_REPAIR_TIMEOUT)
 
     def reinit(self):
         super().reinit()
@@ -714,7 +714,7 @@ class RepairingSBHydraAgent(SBHydraAgent):
         logger.info("Initiating repair number {}".format(self.revision_attempts))
         start_repair_time = time.time()
         try:
-            repair, consistency = self.meta_model_repair.repair(last_obs, delta_t=settings.SB_DELTA_T)
+            repair, consistency = self.meta_model_repair.repair(self.meta_model, last_obs, delta_t=settings.SB_DELTA_T)
             repair_description = ["Repair %s, %.2f" % (fluent, repair[i])
                                   for i, fluent in enumerate(self.meta_model_repair.fluents_to_repair)]
             logger.info(

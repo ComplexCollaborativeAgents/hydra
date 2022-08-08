@@ -100,7 +100,7 @@ class RepairingCartpoleHydraAgent(CartpoleHydraAgent):
         self.repair_threshold = 0.975 # 195/200
         self.has_repaired = False
         self.detector = FocusedAnomalyDetector()
-        self.meta_model_repair = CartpoleRepair(self.meta_model)
+        self.meta_model_repair = CartpoleRepair()
 
     def episode_end(self, performance: float, feedback: dict = None)-> \
             (float, float, int, dict):

@@ -19,19 +19,17 @@ class CartPlusPlusLocationConsistency(AspectConsistency):
 
 class CartpolePlusPlusRepair(MetaModelRepair):
     """ Repairs Cartpole constants """
-    def __init__(self, meta_model: MetaModel,
-                 consistency_checker: DomainConsistency=CartpolePlusPlusConsistencyEstimator(),
+    def __init__(self, consistency_checker=CartpolePlusPlusConsistencyEstimator(),
                  consistency_threshold=settings.CP_CONSISTENCY_THRESHOLD):
-        super().__init__(meta_model, consistency_checker)
         meta_model = CartPolePlusPlusMetaModel()
         self.fluents_to_repair = meta_model.repairable_constants
         self.repair_deltas = meta_model.repair_deltas
-        self.meta_model_repair = GreedyBestFirstSearchContantFluentMetaModelRepair(meta_model, consistency_checker,self.fluents_to_repair,
-
-                                                                                   self.repair_deltas,
-                                                                                   consistency_threshold,
-                                                                                   time_limit=settings.CP_REPAIR_TIMEOUT)
+        self.meta_model_repair = GreedyBestFirstSearchMetaModelRepair(self.fluents_to_repair,
+                                                                      consistency_checker,
+                                                                      self.repair_deltas,
+                                                                      consistency_threshold,
+                                                                      time_limit=settings.CP_REPAIR_TIMEOUT)
 
     """ Repair the given domain and plan such that the given plan's expected outcome matches the observed outcome"""
-    def repair(self, observation, delta_t=1.0):
-        return self.meta_model_repair.repair(observation, delta_t)
+    def repair(self, pddl_meta_model, observation, delta_t=1.0):
+        return self.meta_model_repair.repair(pddl_meta_model, observation, delta_t)

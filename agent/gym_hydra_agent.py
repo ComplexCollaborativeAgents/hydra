@@ -200,9 +200,9 @@ class RepairingGymHydraAgent(GymHydraAgent):
             if not self.should_repair(observation):
                 logger.info("No need to repair")
                 return
-            meta_model_repair = CartpoleRepair(self.meta_model)
+            meta_model_repair = CartpoleRepair()
             start_time = time.time()
-            repair, consistency = meta_model_repair.repair(observation, delta_t=settings.CP_DELTA_T)
+            repair, consistency = meta_model_repair.repair(self.meta_model, observation, delta_t=settings.CP_DELTA_T)
             repair_time = time.time()-start_time
             repair_description = ["Repair %s, %.2f" % (fluent, repair[i])
                                   for i, fluent in enumerate(meta_model_repair.fluents_to_repair)]

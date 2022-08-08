@@ -168,7 +168,7 @@ class RepairingCartpolePlusPlusHydraAgent(CartpolePlusPlusHydraAgent):
         self.has_repaired = False
         self.detector = FocusedAnomalyDetector()
         self.consistency_checker = CartpolePlusPlusConsistencyEstimator()
-        self.meta_model_repair = CartpolePlusPlusRepair(self.meta_model)
+        self.meta_model_repair = CartpolePlusPlusRepair()
 
     def episode_end(self, performance: float, feedback: dict = None)-> \
             (float, float, int, dict):
@@ -214,7 +214,7 @@ class RepairingCartpolePlusPlusHydraAgent(CartpolePlusPlusHydraAgent):
         novelty_characterization = self.novelty_characterization
 
         try:
-            repair, consistency = self.meta_model_repair.repair(last_observation,
+            repair, consistency = self.meta_model_repair.repair(self.meta_model, last_observation,
                                                            delta_t=settings.CP_DELTA_T)
             self.log.info("Repaired meta model (repair string: %s)" % repair)
             nonzero = any(map(lambda x: x != 0, repair))
