@@ -2,7 +2,7 @@ import datetime
 import time
 
 import settings
-from agent.consistency.observation import HydraObservation
+from agent.consistency.observation import HydraEpisodeLog
 from agent.planning.polycraft_planning.tasks import *
 from agent.planning.polycraft_planning.actions import *
 from agent.repair.polycraft_repair import PolycraftMetaModelRepair
@@ -23,7 +23,7 @@ RE_EXTRACT_ACTION_PATTERN = re.compile(
 SAVE_FAILED_PLANS_STATES = True  # If true then whenever a plan fails, we store its domain and problem files
 
 
-class PolycraftObservation(HydraObservation):
+class PolycraftObservation(HydraEpisodeLog):
     """ An object that represents an observation of the SB game """
 
     def __init__(self):

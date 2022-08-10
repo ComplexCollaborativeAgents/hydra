@@ -393,7 +393,7 @@ class SBHydraAgent(HydraAgent):
             self._new_novelty_likelihood = self.novelty_existence
             return
 
-        if (not self._new_novelty_likelihood) and (settings.SB_LOOKBACK_ONLY_DETECTION) and (
+        if (not self._new_novelty_likelihood) and settings.SB_LOOKBACK_ONLY_DETECTION and (
                 len(self.completed_levels) >= settings.SB_LOOKBACK_HORIZON):
             # print("\n\nlast {} levels: {}".format(settings.SB_LOOKBACK_HORIZON, self.completed_levels[-settings.SB_LOOKBACK_HORIZON:]))
             if not any(self.completed_levels[-settings.SB_LOOKBACK_HORIZON:]):

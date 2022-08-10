@@ -45,7 +45,23 @@ class AspectConsistency:
         self.obs_prefix = obs_prefix
         self.consistency_threshold = consistency_threshold
 
-    def consistency_from_matched_trace(self, simulation_trace: list, state_seq: list, delta_t: float = DEFAULT_DELTA_T):
+    def consistency_from_trace(self, simulation_trace: list, state_seq: list, delta_t: float = DEFAULT_DELTA_T):
+        """
+        The first parameter is a list of (state,time) pairs of the expected (simulated) plan.
+        the second is a list of observed (actually happened) states.
+        Returns a positive number that represents the possible consistency between the sequences,
+        where zero means fully consistent.
+        """
+        raise NotImplementedError()
+
+    def get_fluents(self):
+        """
+        Returns the fluents this aspect uses to calculate consistency.
+        This is a good start on what fluents affect this aspect, but by no means a complete list.
+        """
+        return self.fluent_names
+
+    def _consistency_from_matched_trace(self, simulation_trace: list, state_seq: list, delta_t: float = DEFAULT_DELTA_T):
         """
         The first parameter is a list of (state,time) pairs of the expected (simulated) plan.
         the second is a list of observed (actually happened) states.
@@ -57,7 +73,7 @@ class AspectConsistency:
             return len(state_seq) - len(simulation_trace)
 
         # Compute consistency of every observed state
-        consistency_per_state = self.compute_consistency_per_matched_state(simulation_trace, state_seq)
+        consistency_per_state = self._compute_consistency_per_matched_state(simulation_trace, state_seq)
 
         # Aggregate the consistency
         discount = 1.0
@@ -75,7 +91,7 @@ class AspectConsistency:
 
         return max_error
 
-    def compute_consistency_per_matched_state(self, expected_state_seq: list, observed_states: list):
+    def _compute_consistency_per_matched_state(self, expected_state_seq: list, observed_states: list):
         """
         Computes inconsistency values for each state, finding the closest time-stamp match for each observation.
         Returns a vector of values, one per observed state, indicating how much it is consistent with the simulation.
@@ -104,7 +120,7 @@ class AspectConsistency:
                 break
         return consistency_per_state
 
-    def consistency_from_unmatched_trace(self, simulation_trace: list, state_seq: list, delta_t: float = DEFAULT_DELTA_T):
+    def _consistency_from_unmatched_trace(self, simulation_trace: list, state_seq: list, delta_t: float = DEFAULT_DELTA_T):
         """
          Computes an inconsistency value from traces that do not have matching timestamps.
         """
@@ -204,15 +220,6 @@ class AspectConsistency:
                 best_t = t
         return best_t, best_fit_error
 
-    def consistency_from_trace(self, simulation_trace: list, state_seq: list, delta_t: float = DEFAULT_DELTA_T):
-        """
-        The first parameter is a list of (state,time) pairs of the expected (simulated) plan.
-        the second is a list of observed (actually happened) states.
-        Returns a positive number that represents the possible consistency between the sequences,
-        where zero means fully consistent.
-        """
-        raise NotImplementedError()
-
     def _objects_in_last_frame(self, simulation_trace: list, observations: list, in_sim=True, in_obs=True):
         """
         Compares the objects matching the given fluent pattern in the last frame.
@@ -235,7 +242,7 @@ class AspectConsistency:
         return non_matching_obj
 
 
-    def filter_trace(self, simulation_trace: list, state_seq: list, filter_func=lambda x: True):
+    def _filter_trace(self, simulation_trace: list, state_seq: list, filter_func=lambda x: True):
         """
         Filters trajectories according to given function.
         Useful for e.g.
@@ -263,7 +270,7 @@ class AspectConsistency:
             self.fluent_names.append(('x_' + ob_name, obj))
             self.fluent_names.append(('y_' + ob_name, obj))
 
-        return self.consistency_from_unmatched_trace(simulation_trace, state_seq, delta_t)
+        return self._consistency_from_unmatched_trace(simulation_trace, state_seq, delta_t)
 
     def _align_timestamps(self, observations, simulation):
         """

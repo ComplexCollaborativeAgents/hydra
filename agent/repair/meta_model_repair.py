@@ -80,7 +80,7 @@ class SimulationBasedMetaModelRepair(MetaModelRepair):
         self.current_meta_model = None
         self.time_limit = time_limit  # Allows setting a timeout for the repair
 
-    def compute_consistency(self, repair: list, observation: HydraObservation, max_iterations=200):
+    def compute_consistency(self, repair: list, observation: HydraEpisodeLog, max_iterations=200):
         """ Computes the consistency score for the given delta state"""
         # Apply change
         self._do_change(repair)
@@ -168,7 +168,7 @@ class GreedyBestFirstSearchMetaModelRepair(SimulationBasedMetaModelRepair):
         while iteration < self.max_iterations and not timeout \
                 and not (self.is_incumbent_good_enough(incumbent_consistency)
                          and np.any(
-                    incumbent_repair)):  # Last condition is designed to prevent returning an empty repair
+                    incumbent_repair) and open_list):  # Last condition is designed to prevent returning an empty repair
             [_, repair] = heapq.heappop(open_list)
             new_repairs = self.expand(repair)
             for new_repair in new_repairs:
@@ -205,17 +205,17 @@ class GreedyBestFirstSearchMetaModelRepair(SimulationBasedMetaModelRepair):
         for i, fluent in enumerate(self.fluents_to_repair):
             if repair[i] >= 0:
                 change_to_fluent = repair[i] + self.deltas[i]
-                if self.current_meta_model.constant_numeric_fluents[self.fluents_to_repair[i]] + change_to_fluent >= 0:
+                # if self.current_meta_model.constant_numeric_fluents[self.fluents_to_repair[i]] + change_to_fluent >= 0:
                     # Don't allow negative fluents TODO: Better would be "don't allow fluent to change sign"
-                    new_repair = list(repair)
-                    new_repair[i] = change_to_fluent
-                    new_repairs.append(new_repair)
+                new_repair = list(repair)
+                new_repair[i] = change_to_fluent
+                new_repairs.append(new_repair)
             if repair[i] <= 0:
                 # Note: if repair has zero for the current fluent, add both +delta and -delta states to open
                 change_to_fluent = repair[i] - self.deltas[i]
-                if self.current_meta_model.constant_numeric_fluents[self.fluents_to_repair[i]] + change_to_fluent >= 0:
+                # if self.current_meta_model.constant_numeric_fluents[self.fluents_to_repair[i]] + change_to_fluent >= 0:
                     # Don't allow negative fluents TODO: Better would be "don't allow fluent to change sign"
-                    new_repair = list(repair)
-                    new_repair[i] = change_to_fluent
-                    new_repairs.append(new_repair)
+                new_repair = list(repair)
+                new_repair[i] = change_to_fluent
+                new_repairs.append(new_repair)
         return new_repairs

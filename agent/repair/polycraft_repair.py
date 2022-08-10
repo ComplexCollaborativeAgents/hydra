@@ -1,6 +1,6 @@
 import settings
 from agent.consistency.consistency_estimator import DEFAULT_DELTA_T, AspectConsistency, DomainConsistency
-from agent.consistency.observation import HydraObservation
+from agent.consistency.observation import HydraEpisodeLog
 from agent.repair.meta_model_repair import GreedyBestFirstSearchMetaModelRepair
 
 
@@ -28,7 +28,7 @@ class PolycraftInventoryConsistency(AspectConsistency):
         self.fluent_names.extend(
             (fl[0],) for fl in simulation_trace[0].state.numeric_fluents.keys() if fl[0].startswith('count_'))
         # How is our agent's position stored?
-        return self.consistency_from_matched_trace(simulation_trace, state_seq, delta_t)
+        return self._consistency_from_matched_trace(simulation_trace, state_seq, delta_t)
 
 
 class PolycraftMetaModelRepair(GreedyBestFirstSearchMetaModelRepair):
@@ -46,5 +46,5 @@ class PolycraftMetaModelRepair(GreedyBestFirstSearchMetaModelRepair):
                          max_iterations=max_iterations,
                          time_limit=time_limit)
 
-    def compute_consistency(self, repair: list, observation: HydraObservation, max_iterations=50):
+    def compute_consistency(self, repair: list, observation: HydraEpisodeLog, max_iterations=50):
         return super().compute_consistency(repair, observation, max_iterations)

@@ -42,7 +42,9 @@ class AgentType(enum.Enum):
 
 NOVELTY = 0
 TYPE = [246]
-NOVELTY_SET = {11: [50], 0: [1150]}
+NOVELTY_SET = {0: [246]}
+STARTING_LEVELS = range(45, 270, 25)
+START_LEVEL = 45
 # NOVELTY_SET = {22: [1], 0: [,222, 223, 224, 225, 226, 227]}  # Yoni
 # NOVELTY_SET = {23: [1], 0: [232, 233, 234, 235, 236, 237]}  # Wiktor
 # NOVELTY_SET = {24: [1], 0: [242, 243, 244, 245, 246, 247]}  # Jacob
@@ -378,7 +380,7 @@ def run_performance_stats(novelties: dict,
             number_samples = len(levels)
             if samples is not None:
                 number_samples = min(number_samples, samples)
-            levels = levels[20:20 + number_samples]
+            levels = levels[START_LEVEL:START_LEVEL + number_samples]
             # levels = random.sample(levels, number_samples)
 
             if level_lookup:
@@ -572,8 +574,10 @@ if __name__ == '__main__':
         settings.EXPERIMENT_NAME = alg + heuristic
         run_sb_stats(record_novelty_stats=True)
 
-    constants.SB_W_HELPFUL_ACTIONS = True
-    settings.SB_ALGO_STRING = 'gbfs'
-    settings.EXPERIMENT_NAME = 'helpful_actions'
-    run_sb_stats(record_novelty_stats=True)
+    for s_level in STARTING_LEVELS:
+        START_LEVEL = s_level
+        constants.SB_W_HELPFUL_ACTIONS = True
+        settings.SB_ALGO_STRING = 'gbfs'
+        settings.EXPERIMENT_NAME = 'helpful_actions'
+        run_sb_stats(record_novelty_stats=True)
 

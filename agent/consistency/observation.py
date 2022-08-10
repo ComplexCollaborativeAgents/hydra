@@ -8,7 +8,7 @@ from agent.planning.cartpoleplusplus_pddl_meta_model import CartPolePlusPlusMeta
 from agent.planning.pddl_plus import PddlPlusPlan
 from agent.planning.meta_model import MetaModel
 
-class HydraObservation:
+class HydraEpisodeLog:
     ''' An object representsing an observation of a full episode. This includes a trajectory of states and actions and a reward '''
 
     def get_initial_state(self):
@@ -44,7 +44,7 @@ class HydraObservation:
         return pickle.load(open(full_path, 'rb'))
 
 
-class ScienceBirdsObservation(HydraObservation):
+class ScienceBirdsObservation(HydraEpisodeLog):
     ''' An object that represents an observation of the SB game '''
 
     def __init__(self):
@@ -79,7 +79,7 @@ class ScienceBirdsObservation(HydraObservation):
         ''' Return a list of novel object ids '''
         return [object_id for [object_id, object] in self.state.novel_objects()]
 
-class CartPoleObservation(HydraObservation):
+class CartPoleObservation(HydraEpisodeLog):
     ''' An object that represents an observation in the cartpole domain.'''
 
     def __init__(self):
@@ -109,7 +109,7 @@ class CartPoleObservation(HydraObservation):
                 previous_action_name = timed_action.action_name
         return pddl_plan
 
-class CartPolePlusPlusObservation(HydraObservation):
+class CartPolePlusPlusObservation(HydraEpisodeLog):
     ''' An object that represents an observation in the cartpole++ domain.'''
 
     def __init__(self):

@@ -6,7 +6,7 @@ from typing import List, Tuple, Iterator, Dict, Union, Optional
 
 import logging
 
-from agent.consistency.observation import HydraObservation
+from agent.consistency.observation import HydraEpisodeLog
 from agent.consistency.pddl_plus_simulator import PddlPlusSimulator
 from agent.planning.meta_model import MetaModel
 from agent.planning.pddl_plus import PddlPlusPlan, PddlPlusProblem, PddlPlusDomain, PddlPlusWorldChange, \
@@ -33,7 +33,7 @@ class NyxPddlPlusSimulator(PddlPlusSimulator):
         super().__init__(allow_cascading_effects=allow_cascading_effects)
 
     def get_expected_trace(self,
-                           observation: HydraObservation,
+                           observation: HydraEpisodeLog,
                            meta_model: MetaModel,
                            delta_t: float = 0.05,
                            max_t: Optional[float] = None,

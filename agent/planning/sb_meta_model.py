@@ -455,9 +455,9 @@ class ScienceBirdsMetaModel(MetaModel):
                          delta_t=settings.SB_DELTA_T,
                          metric='minimize(total-time)',
                          repairable_constants=[
-                             'meta_wood_multiplier',
-                             'meta_stone_multiplier',
-                             'meta_ice_multiplier',
+                             # 'meta_wood_multiplier',
+                             # 'meta_stone_multiplier',
+                             # 'meta_ice_multiplier',
                              'v_bird_change',
                              # 'meta_platform_size',
                              'base_life_pig_multiplier',
@@ -467,7 +467,7 @@ class ScienceBirdsMetaModel(MetaModel):
 
                          ],
                          repair_deltas=[
-                             1, 1, 1, 1, 50, 0.1  # 50, 10
+                             1, 50, 0.1  # 50, 10
                          ],
                          constant_numeric_fluents={
                              'active_bird': 0,
@@ -484,7 +484,7 @@ class ScienceBirdsMetaModel(MetaModel):
                              'meta_wood_multiplier': 1.0,
                              'meta_stone_multiplier': 1.0,
                              'meta_ice_multiplier': 1.0,
-                             'v_bird_change': 0.0,
+                             'v_bird_change': -4.0,
                              'gravity_factor': 9.81,
                              'meta_platform_size': 2,
                              'base_life_pig_multiplier': 0.0,
