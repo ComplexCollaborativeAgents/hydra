@@ -403,8 +403,8 @@ def run_performance_stats(novelties: dict,
 
             if results_directory is not None:
                 stats = compute_stats(results_directory, agent_type, agent_stats)
-                filename = "stats_{}_novelty{}_type{}_agent{}".format(settings.EXPERIMENT_NAME, novelty, novelty_type,
-                                                                      agent_type.name)
+                filename = "stats_{}_novelty{}_type{}_agent{}_from_level{}".format(settings.EXPERIMENT_NAME, novelty, novelty_type,
+                                                                      agent_type.name, START_LEVEL)
                 if suffix is None or len(suffix) == 0:
                     current_suffix = ''
                 else:
