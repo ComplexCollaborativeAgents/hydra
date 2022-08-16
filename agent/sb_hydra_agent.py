@@ -717,6 +717,10 @@ class RepairingSBHydraAgent(SBHydraAgent):
             repair, consistency = self.meta_model_repair.repair(self.meta_model, last_obs, delta_t=settings.SB_DELTA_T)
             repair_description = ["Repair %s, %.2f" % (fluent, repair[i])
                                   for i, fluent in enumerate(self.meta_model_repair.fluents_to_repair)]
+            if self.stats_for_level.get('repair description'):
+                self.stats_for_level['repair description'].append(repair_description)
+            else:
+                self.stats_for_level['repair description'] = repair_description
             logger.info(
                 "Repair done! Consistency: %.2f, Repair:\n %s" % (consistency, "\n".join(repair_description)))
         except:

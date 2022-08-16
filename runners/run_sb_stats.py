@@ -21,6 +21,7 @@ from agent.sb_hydra_agent import SBHydraAgent, RepairingSBHydraAgent
 import settings
 import logging
 from agent.planning.nyx.syntax import constants
+from runners.results_converter import convert_results
 
 logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("run_sb_states")
@@ -43,8 +44,8 @@ class AgentType(enum.Enum):
 NOVELTY = 0
 TYPE = [246]
 NOVELTY_SET = {0: [246]}
-STARTING_LEVELS = range(45, 270, 25)
-START_LEVEL = 45
+STARTING_LEVELS = range(4, 250, 25)
+START_LEVEL = 4
 # NOVELTY_SET = {22: [1], 0: [,222, 223, 224, 225, 226, 227]}  # Yoni
 # NOVELTY_SET = {23: [1], 0: [232, 233, 234, 235, 236, 237]}  # Wiktor
 # NOVELTY_SET = {24: [1], 0: [242, 243, 244, 245, 246, 247]}  # Jacob
@@ -412,6 +413,10 @@ def run_performance_stats(novelties: dict,
                 filename = "{}{}.json".format(filename, current_suffix)
                 with open(stats_base_path / filename, 'w') as f:
                     json.dump(stats, f, sort_keys=True, indent=4)
+                    # infile = stats_base_path / filename
+                    # outfile = False
+                    # convert_results(infile, outfile)
+
 
 
 # def do_record_novelty_stats(novelty, novelty_type, config, agent_stats):

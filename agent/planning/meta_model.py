@@ -106,8 +106,8 @@ class MetaModel:
 
     def create_pddl_domain(self, observed_state) -> PddlPlusDomain:
         """ Create a PDDL+ domain for the given observed state """
-        if self.current_domain is None:
-            domain_file = "{}/{}".format(str(self.docker_path), self.domain_file_name)
-            domain_parser = PddlDomainParser()
-            self.current_domain = domain_parser.parse_pddl_domain(domain_file)
+        # if self.current_domain is None:
+        domain_file = "{}/{}".format(str(self.docker_path), self.domain_file_name)
+        domain_parser = PddlDomainParser()
+        self.current_domain = domain_parser.parse_pddl_domain(domain_file)
         return self.current_domain

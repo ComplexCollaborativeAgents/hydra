@@ -223,6 +223,12 @@ class Task:
         """ Checks if the task can be achived in the current state """
         return True
 
+    def __eq__(self, other):
+        return self.__class__.__name__ == other.__class__.__name__
+
+    def __hash__(self):
+        return hash(self.__class__.__name__)
+
 
 class PddlPolycraftAction(PolycraftAction):
     """ Wrapper for Polycraft World Action that also stores the grounded pddl action that corresponds to this action """
@@ -388,39 +394,58 @@ class PolycraftMetaModel(MetaModel):
         # domain_file = "{}/{}".format(str(self.docker_path), "polycraft_domain_template.pddl")
         # domain_parser = PddlDomainParser()
         # pddl_domain = PddlPlusDomain()
-        if self.current_domain.get(self.active_task) is None:
+        # if self.current_domain.get(self.active_task) is None:
             # First time creating a domain for this task - create from scratch
-            # TODO: apply updates\MMOs already applied to other domains.
-            pddl_domain = PddlPlusDomain()
-            pddl_domain.name = "polycraft"
-            pddl_domain.requirements = [":typing", ":disjunctive-preconditions", ":fluents", ":negative-preconditions"]
+            # TODO: apply updates\MMOs already applied to other domains, then re-instate 'if domain for task exists'
 
-            # Add object types
-            for object_type in self.active_task.get_relevant_types(world_state, self):
-                pddl_domain.types.append(object_type.name)
+        # TODO this code only for AAAI data; need to do this properly later
+        self.break_block_to_outcome = dict()
+        self.break_block_to_outcome[BlockType.LOG.value] = (ItemType.LOG.value,
+                                                            self.constant_numeric_fluents['break_log_outcome_num'])
+        self.break_block_to_outcome[BlockType.BLOCK_OF_PLATINUM.value] = (ItemType.BLOCK_OF_PLATINUM.value,
+                                                                          self.constant_numeric_fluents[
+                                                                              'break_platinum_outcome_num'])
+        self.break_block_to_outcome[BlockType.DIAMOND_ORE.value] = (ItemType.DIAMOND.value,
+                                                                    self.constant_numeric_fluents[
+                                                                        'break_diamond_outcome_num'])
 
-            # Add predicates
-            for predicate_as_list in self.active_task.get_relevant_predicates(world_state, self):
-                pddl_domain.predicates.append(predicate_as_list)
+        # Maps a cell type to what we get if we collect from it. The latter is in the form of a pair (item type, quantity).
+        self.collect_block_to_outcome = dict()
+        self.collect_block_to_outcome[BlockType.TREE_TAP.value] = (ItemType.SACK_POLYISOPRENE_PELLETS.value,
+                                                                   self.constant_numeric_fluents[
+                                                                       'collect_sap_outcome_num'])
 
-            # Add functions
-            for function_as_list in self.active_task.get_relevant_functions(world_state, self):
-                pddl_domain.functions.append(function_as_list)
 
-            for item in self.item_type_to_idx:
-                pddl_domain.functions.append([f"count_{item}", ])
+        pddl_domain = PddlPlusDomain()
+        pddl_domain.name = "polycraft"
+        pddl_domain.requirements = [":typing", ":disjunctive-preconditions", ":fluents", ":negative-preconditions"]
 
-            # Add actions
-            for action_generator in self.get_action_generators(world_state):
-                pddl_domain.actions.append(action_generator.to_pddl(self))
+        # Add object types
+        for object_type in self.active_task.get_relevant_types(world_state, self):
+            pddl_domain.types.append(object_type.name)
 
-            # Add events
-            for event_generator in self.active_task.create_relevant_events(world_state, self):
-                pddl_domain.events.append(event_generator.to_pddl(self))
+        # Add predicates
+        for predicate_as_list in self.active_task.get_relevant_predicates(world_state, self):
+            pddl_domain.predicates.append(predicate_as_list)
 
-            self._convert_polycraft_naming_in_domain(pddl_domain)
-        else:
-            pddl_domain = self.current_domain[self.active_task]
+        # Add functions
+        for function_as_list in self.active_task.get_relevant_functions(world_state, self):
+            pddl_domain.functions.append(function_as_list)
+
+        for item in self.item_type_to_idx:
+            pddl_domain.functions.append([f"count_{item}", ])
+
+        # Add actions
+        for action_generator in self.get_action_generators(world_state):
+            pddl_domain.actions.append(action_generator.to_pddl(self))
+
+        # Add events
+        for event_generator in self.active_task.create_relevant_events(world_state, self):
+            pddl_domain.events.append(event_generator.to_pddl(self))
+
+        self._convert_polycraft_naming_in_domain(pddl_domain)
+        # else:
+        #     pddl_domain = self.current_domain[self.active_task]
         return pddl_domain
 
     def get_action_generators(self, state):

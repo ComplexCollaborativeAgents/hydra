@@ -14,8 +14,8 @@ from agent.planning.nyx import nyx
 import agent.planning.nyx.heuristic_functions as nyx_heuristics
 import re
 
-logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
-logger = logging.getLogger("polycraft_hydra_agent")
+# logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
+# logger = logging.getLogger(__name__)
 
 
 RE_EXTRACT_ACTION_PATTERN = re.compile(
@@ -474,6 +474,10 @@ class PolycraftHydraAgent(HydraAgent):
 
     def set_active_task(self, task: PolycraftTask):
         """ Sets the active task, generate a plan to achieve it and updates the active plan """
+        if task != self.meta_model.active_task:# task changed, start a new observation set
+            self.current_observation = PolycraftObservation()
+            self.current_observation.states.append(self.current_state)
+            self.observations_list.append(self.current_observation)
         self.meta_model.set_active_task(task)
 
     def _choose_default_action(self, world_state: PolycraftState):
@@ -534,11 +538,6 @@ class PolycraftHydraAgent(HydraAgent):
         self.current_observation.states.append(self.current_state)
         self.current_observation.rewards.append(step_cost)
 
-        if len(self.active_plan) == 0:
-            self.current_observation = PolycraftObservation()  # Plan ended, start a new observation set
-            self.current_observation.states.append(self.current_state)
-            self.current_observation.rewards.append(step_cost)
-            self.observations_list.append(self.current_observation)
         return next_state, step_cost
 
     def _update_current_state(self, new_state: PolycraftState):
