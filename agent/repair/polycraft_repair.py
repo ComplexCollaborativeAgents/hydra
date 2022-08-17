@@ -32,7 +32,7 @@ class PolycraftInventoryConsistency(AspectConsistency):
         return self._consistency_from_matched_trace(simulation_trace, state_seq, delta_t)
 
 
-class PolycraftMetaModelRepair(GreedyBestFirstSearchMetaModelRepair):
+class PolycraftMetaModelRepair(GreedyBestFirstSearchContantFluentMetaModelRepair):
     """ The meta model repair used for ScienceBirds. """
 
     def __init__(self, meta_model,
@@ -42,10 +42,10 @@ class PolycraftMetaModelRepair(GreedyBestFirstSearchMetaModelRepair):
         constants_to_repair = meta_model.repairable_constants
         repair_deltas = meta_model.repair_deltas
         consistency_estimator = PolycraftConsistencyEstimator()
-        super().__init__(constants_to_repair, consistency_estimator, repair_deltas,
+        super().__init__(meta_model, consistency_estimator,constants_to_repair,  repair_deltas,
                          consistency_threshold=consistency_threshold,
                          max_iterations=max_iterations,
                          time_limit=time_limit)
 
-    def compute_consistency(self, repair: list, observation: HydraEpisodeLog, max_iterations=50):
+    def compute_consistency(self, repair: list, observation: HydraObservation, max_iterations=50):
         return super().compute_consistency(repair, observation, max_iterations)

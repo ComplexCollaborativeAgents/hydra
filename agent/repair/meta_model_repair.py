@@ -8,130 +8,44 @@ logger = logging.getLogger("meta_model_repair")
 PLAN_FAILED_CONSISTENCY_VALUE = 1000  # A constant representing the inconsistency value of a meta model in which the executed plan is inconsistent
 
 
-### New code
+class MetaModelRepair:
+    """ An abstract class intended to repair a given PDDL+ meta model until it matches the observed behavior """
 
+    def __init__(self, meta_model: MetaModel, consistency_estimator: DomainConsistency,
+                 simulator: PddlPlusSimulator = NyxPddlPlusSimulator()):
+        self.meta_model = meta_model
+        self.consistency_estimator = consistency_estimator
+        self.simulator = simulator
 
-
-
-
-### End new code
-
-
-class MetaModelRepair:  # TODO: Remove this class
-
-    def repair(self,
-               pddl_meta_model,
-               observation, delta_t=1.0):
-        """ An abstract class intended to repair a given PDDL+ meta model until it matches the observed behavior """
-        """ Repair the given domain and plan such that the given plan's expected outcome matches the observed outcome"""
-        simulator = NyxPddlPlusSimulator()
-        sb_state = observation.state
-        pddl_plan = observation.get_pddl_plan(pddl_meta_model)
-        observed_states = observation.get_pddl_states_in_trace(pddl_meta_model)
-
-        pddl_domain = pddl_meta_model.create_pddl_domain(sb_state)
-        pddl_problem = pddl_meta_model.create_pddl_problem(sb_state)
-        # pddl_domain = PddlPlusGrounder().ground_domain(pddl_domain,
-        #                                                pddl_problem)  # Simulator accepts only grounded domains
-
-        (_, _, expected_obs) = simulator.simulate(pddl_plan, pddl_problem, pddl_domain, delta_t)
-
-        manipulator_itr = self.choose_manipulator()
-        while self.is_consistent(expected_obs, observed_states) == False:
-            manipulator = next(manipulator_itr)
-            manipulator.apply_change(pddl_meta_model)
-            # Create updated problem and domain
-            pddl_domain = pddl_meta_model.create_pddl_domain(sb_state)
-            pddl_problem = pddl_meta_model.create_pddl_problem(sb_state)
-            pddl_domain = PddlPlusGrounder().ground_domain(pddl_domain,
-                                                           pddl_problem)  # Simulator accepts only grounded domains
-
-            (_, _, expected_obs) = simulator.simulate(pddl_plan, pddl_problem, pddl_domain, delta_t)
-
-        return pddl_meta_model
+    def repair(self, observation, delta_t=1.0):
+        """ Repair the domain and plan such that the given plan's expected outcome matches the observed outcome"""
+        raise NotImplementedError()
 
     def is_consistent(self, timed_state_seq: list, state_seq: list, delta_t=0.05):
         """ The first parameter is a list of (state, time) pairs, the second is just a list of states.
              Checks if they can be aligned. """
-        raise NotImplementedError("Not yet")
+        # raise NotImplementedError()
+        pass
 
     def choose_manipulator(self):
-        raise NotImplemented("Not yet")
+        # raise NotImplemented()
+        pass
 
 
-class SimulationBasedMetaModelRepair(MetaModelRepair):
-    """ A repair algorithm that is based on simulating the action and checking consistency with the observation """
-
-    def __init__(self, fluents_to_repair,
-                 consistency_estimator,
-                 deltas,
-                 consistency_threshold=2,
-                 max_iteration=1000,
-                 time_limit=1000000):
-        self.consistency_estimator = consistency_estimator
-        self.fluents_to_repair = fluents_to_repair
-        self.deltas = deltas
-        self.consistency_threshold = consistency_threshold
-        self.max_iterations = max_iteration
-        self.simulator = NyxPddlPlusSimulator()
-
-        # Init other fields
-        self.current_delta_t = None
-        self.current_meta_model = None
-        self.time_limit = time_limit  # Allows setting a timeout for the repair
-
-    def compute_consistency(self, repair: list, observation: HydraEpisodeLog, max_iterations=200):
-        """ Computes the consistency score for the given delta state"""
-        # Apply change
-        self._do_change(repair)
-
-        try:
-            expected_trace, _ = self.simulator.get_expected_trace(observation, self.current_meta_model,
-                                                                     self.current_delta_t,
-                                                                     max_iterations=max_iterations)
-            observed_seq = observation.get_pddl_states_in_trace(self.current_meta_model)
-            consistency = self.consistency_estimator.consistency_from_trace(expected_trace, observed_seq,
-                                                                            delta_t=self.current_delta_t)
-        except InconsistentPlanError:  # Sometimes the repair makes the executed plan be inconsistent #TODO: Discuss this
-            consistency = PLAN_FAILED_CONSISTENCY_VALUE
-        except ZeroDivisionError:  # Sometimes the repair causes the simulator to reach zero division #TODO: Discuss this
-            consistency = PLAN_FAILED_CONSISTENCY_VALUE
-        self._undo_change(repair)
-        return consistency
-
-    def _do_change(self, change: list):
-        for i, change_to_fluent in enumerate(change):
-            self.current_meta_model.constant_numeric_fluents[self.fluents_to_repair[i]] = \
-                self.current_meta_model.constant_numeric_fluents[self.fluents_to_repair[i]] + change_to_fluent
-
-    def _undo_change(self, change: list):
-        for i, change_to_fluent in enumerate(change):
-            self.current_meta_model.constant_numeric_fluents[self.fluents_to_repair[i]] = \
-                self.current_meta_model.constant_numeric_fluents[self.fluents_to_repair[i]] - change_to_fluent
-
-    def is_incumbent_good_enough(self, consistency: float):
-        """ Return True if the incumbent is good enough """
-        return consistency < self.consistency_threshold
-
-
-class GreedyBestFirstSearchMetaModelRepair(SimulationBasedMetaModelRepair):
+class GreedyBestFirstSearchContantFluentMetaModelRepair(MetaModelRepair):
     """
     A greedy best-first search model repair implementation.
     """
 
-    def __init__(self, fluents_to_repair,
-                 consistency_estimator,
-                 deltas,
-                 consistency_threshold=2,
-                 max_iterations=100,
-                 time_limit=180):
+    def __init__(self, meta_model, consistency_estimator, fluents_to_repair, deltas, consistency_threshold=2,
+                 max_iterations=100, time_limit=180):
+        self.fluents_to_repair = fluents_to_repair
+        self.deltas = deltas
+        self.consistency_threshold = consistency_threshold
+        self.max_iterations = max_iterations
+        self.time_limit = time_limit
 
-        super().__init__(fluents_to_repair,
-                         consistency_estimator,
-                         deltas,
-                         consistency_threshold,
-                         max_iterations,
-                         time_limit)
+        super().__init__(meta_model, consistency_estimator)
 
     def _heuristic(self, repair, consistency):
         """ The heuristic to use to prioritize repairs"""
@@ -141,17 +55,17 @@ class GreedyBestFirstSearchMetaModelRepair(SimulationBasedMetaModelRepair):
         return consistency + change_cardinality
 
     def repair(self,
-               pddl_meta_model: MetaModel,
                observation, delta_t=1.0):
         """ Repair the given domain and plan such that the given plan's expected outcome matches the observed outcome"""
 
-        self.current_delta_t = delta_t
-        self.current_meta_model = pddl_meta_model
         start_time = time.time()
         # Initialize OPEN
         open_list = []
         repair = [0] * len(self.fluents_to_repair)  # Repair is a list, in order of the fluents_to_repair list
-        base_consistency = self.compute_consistency(repair, observation)
+        expected_states, observed_states = self.consistency_estimator.get_traces_from_simulator(observation,
+                                                                                                self.meta_model,
+                                                                                                self.simulator, delta_t)
+        base_consistency = self.consistency_estimator.consistency_from_trace(expected_states, observed_states, delta_t)
         priority = self._heuristic(repair, base_consistency)
         heapq.heappush(open_list, [priority, repair])
 
@@ -181,7 +95,14 @@ class GreedyBestFirstSearchMetaModelRepair(SimulationBasedMetaModelRepair):
                 new_repair_tuple = tuple(new_repair)
                 if new_repair_tuple not in generated_repairs:  # If  this is a new repair
                     generated_repairs.add(new_repair_tuple)  # To allow duplicate detection
-                    consistency = self.compute_consistency(new_repair, observation)
+                    self._do_change(repair)
+                    expected_states, _ = self.consistency_estimator.get_traces_from_simulator(observation,
+                                                                                              self.meta_model,
+                                                                                              self.simulator,
+                                                                                              delta_t)
+                    consistency = self.consistency_estimator.consistency_from_trace(expected_states,
+                                                                                    observed_states, delta_t)
+                    self._undo_change(repair)
                     priority = self._heuristic(new_repair, consistency)
                     heapq.heappush(open_list, [priority, new_repair])
 
@@ -219,3 +140,17 @@ class GreedyBestFirstSearchMetaModelRepair(SimulationBasedMetaModelRepair):
                 new_repair[i] = change_to_fluent
                 new_repairs.append(new_repair)
         return new_repairs
+
+    def _do_change(self, change: list):
+        for i, change_to_fluent in enumerate(change):
+            self.meta_model.constant_numeric_fluents[self.fluents_to_repair[i]] = \
+                self.meta_model.constant_numeric_fluents[self.fluents_to_repair[i]] + change_to_fluent
+
+    def _undo_change(self, change: list):
+        for i, change_to_fluent in enumerate(change):
+            self.meta_model.constant_numeric_fluents[self.fluents_to_repair[i]] = \
+                self.meta_model.constant_numeric_fluents[self.fluents_to_repair[i]] - change_to_fluent
+
+    def is_incumbent_good_enough(self, consistency: float):
+        """ Return True if the incumbent is good enough """
+        return consistency < self.consistency_threshold

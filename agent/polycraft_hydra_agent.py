@@ -592,8 +592,8 @@ class PolycraftHydraAgent(HydraAgent):
             self.meta_model_repair.current_meta_model = self.meta_model
             logger.info(self.current_state.summary())
             if len(self.current_observation.states) > 0:
-                curr_inconsistency = self.meta_model_repair.compute_consistency([], self.current_observation,
-                                                                                max_iterations=50)
+                curr_inconsistency = self.meta_model_repair.consistency_estimator.consistency_from_observations(
+                    self.meta_model, NyxPddlPlusSimulator(), self.current_observation, settings.POLYCRAFT_DELTA_T)
                 logger.info(f'Computed inconsistency: {curr_inconsistency}')
                 if curr_inconsistency > settings.POLYCRAFT_CONSISTENCY_THRESHOLD:
                     novelty_likelihood = curr_inconsistency / settings.POLYCRAFT_CONSISTENCY_THRESHOLD
@@ -603,6 +603,9 @@ class PolycraftHydraAgent(HydraAgent):
                 else:
                     novelty_likelihood = 0.0
                     self.novelty_existence = False
+            else:
+                novelty_likelihood = 0.0
+                self.novelty_existence = False
 
         if self.novelty_existence and report_novelty and not self.novelty_reported:
             self.env.poly_client.REPORT_NOVELTY(level="0", confidence=f"{novelty_likelihood}",
@@ -659,7 +662,7 @@ class PolycraftHydraAgent(HydraAgent):
         try:
             # self.meta_model.set_active_task(CreatePogoTask())
             start_time = time.perf_counter()
-            repair, consistency = self.meta_model_repair.repair(self.meta_model, self.current_observation,
+            repair, consistency = self.meta_model_repair.repair(self.current_observation,
                                                                 delta_t=settings.POLYCRAFT_DELTA_T)
             repair_description = ["Repair %s, %.2f" % (fluent, repair[i])
                                   for i, fluent in enumerate(self.meta_model_repair.fluents_to_repair)]
