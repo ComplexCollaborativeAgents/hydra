@@ -14,6 +14,7 @@ def get_numeric_fluent(fluent_list, fluent_name):
     for fluent in fluent_list:
         if fluent[0] == "=":
             # Note: I intentionally not added an AND with the next if, to not fall for cases where len(fluent)==1
+            # Yoni: But Pythong has lazy evaluation, Roni. What are you doing?? Also, this code seems wrong.
             if fluents_names_equals(fluent[1], fluent_name):
                 return fluent
     raise ValueError("Fluent %s not found in list" % fluent_name)

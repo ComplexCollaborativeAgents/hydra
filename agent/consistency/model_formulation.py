@@ -9,7 +9,7 @@ logger.setLevel(logging.INFO)
 logger.addHandler(fh)
 
 
-class ConsistencyChecker():
+class ConsistencyChecker:
 
     def __init__(self):
         self.novelty_likelihood = 0
