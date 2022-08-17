@@ -28,11 +28,11 @@ class CartpoleRepair(MetaModelRepair):
         meta_model = CartPoleMetaModel()
         self.fluents_to_repair = meta_model.repairable_constants
         self.repair_deltas = meta_model.repair_deltas
-        self.meta_model_repair = GreedyBestFirstSearchContantFluentMetaModelRepair(meta_model, consistency_checker,
-                                                                                   self.fluents_to_repair,
+        self.meta_model_repair = GreedyBestFirstSearchConstantFluentMetaModelRepair(meta_model, consistency_checker,
+                                                                                    self.fluents_to_repair,
 
-                                                                                   self.repair_deltas,
-                                                                                   consistency_threshold)
+                                                                                    self.repair_deltas,
+                                                                                    consistency_threshold)
 
     """ Repair the given domain and plan such that the given plan's expected outcome matches the observed outcome"""
 

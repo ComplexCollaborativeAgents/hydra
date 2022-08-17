@@ -32,7 +32,7 @@ class MetaModelRepair:
         pass
 
 
-class GreedyBestFirstSearchContantFluentMetaModelRepair(MetaModelRepair):
+class GreedyBestFirstSearchConstantFluentMetaModelRepair(MetaModelRepair):
     """
     A greedy best-first search model repair implementation.
     """
