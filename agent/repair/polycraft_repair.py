@@ -1,14 +1,14 @@
 import settings
 from agent.consistency.consistency_estimator import DEFAULT_DELTA_T, AspectConsistency, DomainConsistency
-from agent.consistency.observation import HydraObservation
-from agent.repair.meta_model_repair import GreedyBestFirstSearchContantFluentMetaModelRepair
+from agent.repair.meta_model_repair import GreedyBestFirstSearchConstantFluentMetaModelRepair, RepairModule
 
 
 class PolycraftConsistencyEstimator(DomainConsistency):
     """
     Total inconsistency for a polycraft game.
-    TODO: nearby blocks? suggeted repair fluents??
+    TODO: nearby blocks? suggested repair fluents??
     """
+
     def __init__(self):
         super().__init__([PolycraftInventoryConsistency()])
 
@@ -32,18 +32,19 @@ class PolycraftInventoryConsistency(AspectConsistency):
         return self._consistency_from_matched_trace(simulation_trace, state_seq, delta_t)
 
 
-class PolycraftMetaModelRepair(GreedyBestFirstSearchConstantFluentMetaModelRepair):
-    """ The meta model repair used for ScienceBirds. """
+class PolycraftMetaModelRepair(RepairModule):
+    """ The meta model repair used for Polycraft. """
 
-    def __init__(self, meta_model,
-                 consistency_threshold=settings.POLYCRAFT_CONSISTENCY_THRESHOLD,
-                 time_limit=settings.POLYCRAFT_REPAIR_TIMEOUT,
-                 max_iterations=settings.POLYCRAFT_REPAIR_MAX_ITERATIONS):
-        constants_to_repair = meta_model.repairable_constants
-        repair_deltas = meta_model.repair_deltas
-        consistency_estimator = PolycraftConsistencyEstimator()
-        super().__init__(meta_model, consistency_estimator,constants_to_repair,  repair_deltas,
-                         consistency_threshold=consistency_threshold,
-                         max_iterations=max_iterations,
-                         time_limit=time_limit)
+    def __init__(self, meta_model, consistency_threshold=settings.POLYCRAFT_CONSISTENCY_THRESHOLD,
+                 time_limit=settings.POLYCRAFT_REPAIR_TIMEOUT, max_iterations=settings.POLYCRAFT_REPAIR_MAX_ITERATIONS):
+        super().__init__(meta_model, PolycraftConsistencyEstimator())
+        self.aspect_repair = [
+            GreedyBestFirstSearchConstantFluentMetaModelRepair(meta_model, self.consistency_estimator,
+                                                               meta_model.repairable_constants,
+                                                               meta_model.repair_deltas,
+                                                               consistency_threshold=consistency_threshold,
+                                                               max_iterations=max_iterations, time_limit=time_limit)]
 
+    def repair(self, observation, delta_t=1.0):
+        # Right now, only one aspect is implemented
+        return self.aspect_repair[0].repair(observation, delta_t)

@@ -10,7 +10,7 @@ from agent.planning.nyx.syntax import constants
 from agent.planning.sb_planner import SBPlanner
 from agent.repair.meta_model_repair import *
 # TODO: Maybe push this to the settings file? then every module just adds a logger
-from agent.repair.sb_repair import ScienceBirdsConsistencyEstimator
+from agent.repair.sb_repair import ScienceBirdsConsistencyEstimator, ScienceBirdsMetaModelRepair
 from utils.point2D import Point2D
 from worlds.science_birds_interface.client.agent_client import GameState
 
@@ -57,6 +57,7 @@ class SBHydraAgent(HydraAgent):
         if env is not None:
             env.sb_client.set_game_simulation_speed(settings.SB_SIM_SPEED)
         self.agent_stats = agent_stats
+        self.meta_model = ScienceBirdsMetaModel()
         self.consistency_estimator = ScienceBirdsConsistencyEstimator()
         self.current_level = 0
         self.novelty_detections = list()
@@ -100,6 +101,7 @@ class SBHydraAgent(HydraAgent):
         # Simple repair tracker
         self._need_to_repair = False
         self.made_plan = False
+
 
     def initialize_processing_state_variables(self):
         self.perception = Perception()
@@ -654,12 +656,11 @@ class RepairingSBHydraAgent(SBHydraAgent):
         self.revision_attempts = 0
 
         self.meta_model = ScienceBirdsMetaModel()
-        self.meta_model_repair = GreedyBestFirstSearchConstantFluentMetaModelRepair(self.meta_model, ScienceBirdsConsistencyEstimator(), self.meta_model.repairable_constants,
-
-                                                                                    self.meta_model.repair_deltas,
-                                                                                    settings.SB_CONSISTENCY_THRESHOLD,
-                                                                                    settings.SB_REPAIR_MAX_ITERATIONS,
-                                                                                    settings.SB_REPAIR_TIMEOUT)
+        self.meta_model_repair = ScienceBirdsMetaModelRepair(self.meta_model,
+                                                             self.consistency_estimator,
+                                                             settings.SB_CONSISTENCY_THRESHOLD,
+                                                             settings.SB_REPAIR_MAX_ITERATIONS,
+                                                             settings.SB_REPAIR_TIMEOUT)
 
     def reinit(self):
         super().reinit()

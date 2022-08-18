@@ -2,13 +2,14 @@ import datetime
 import time
 
 import settings
+from agent.consistency.nyx_pddl_simulator import NyxPddlPlusSimulator
 from agent.consistency.observation import HydraEpisodeLog
 from agent.planning.polycraft_planning.tasks import *
 from agent.planning.polycraft_planning.actions import *
 from agent.repair.polycraft_repair import PolycraftMetaModelRepair
 from worlds.polycraft_actions import PolyNoAction, PolyEntityTP, PolyInteract, PolyGiveUp
 from agent.planning.pddlplus_parser import *
-from agent.hydra_agent import HydraAgent, HydraPlanner, MetaModelRepair
+from agent.hydra_agent import HydraAgent, HydraPlanner
 from worlds.polycraft_world import *
 from agent.planning.nyx import nyx
 import agent.planning.nyx.heuristic_functions as nyx_heuristics
@@ -665,7 +666,7 @@ class PolycraftHydraAgent(HydraAgent):
             repair, consistency = self.meta_model_repair.repair(self.current_observation,
                                                                 delta_t=settings.POLYCRAFT_DELTA_T)
             repair_description = ["Repair %s, %.2f" % (fluent, repair[i])
-                                  for i, fluent in enumerate(self.meta_model_repair.fluents_to_repair)]
+                                  for i, fluent in enumerate(self.meta_model.repairable_constants)]
             logger.info(
                 "Repair done! Consistency: %.2f, Repair:\n %s" % (consistency, "\n".join(repair_description)))
             self.stats_for_level['repair_time'].append(time.perf_counter() - start_time)

@@ -1,3 +1,5 @@
+from abc import ABC, abstractmethod
+
 from agent.consistency.consistency_estimator import *
 from agent.planning.sb_meta_model import *
 import heapq
@@ -8,8 +10,31 @@ logger = logging.getLogger("meta_model_repair")
 PLAN_FAILED_CONSISTENCY_VALUE = 1000  # A constant representing the inconsistency value of a meta model in which the executed plan is inconsistent
 
 
-class MetaModelRepair:
-    """ An abstract class intended to repair a given PDDL+ meta model until it matches the observed behavior """
+class RepairModule(ABC):
+    """ An abstract class intended to repair a given PDDL+ meta model until it matches the observed behavior.
+    Handles all model repair operations, from the moment the agent decided repair is needed.
+     - decide what aspect to repair
+     - decide if repair is good enough
+     - make sure metamodel and domains are updated and repaired correctly.
+    """
+    def __init__(self, meta_model: MetaModel, consistency_estimator: DomainConsistency):
+        self.consistency_estimator = consistency_estimator
+        self.meta_model = meta_model
+
+    @abstractmethod
+    def repair(self, observations: HydraEpisodeLog, delta_t=0.1):
+        # TODO optionally, receive the inconsistency information that instigated this repair call (for efficiency)
+        # steps:
+        #  1. decide what aspect needs to be repaired
+        #  2. choose\create\instantiate appropriate aspect class
+        #  3. call repair
+        raise NotImplementedError()
+
+
+class AspectRepair:
+    """
+    Repairs a specific aspect of a PDDL+ model, e.g. hidden constants, action effects, or goal conditions.
+    """
 
     def __init__(self, meta_model: MetaModel, consistency_estimator: DomainConsistency,
                  simulator: PddlPlusSimulator = NyxPddlPlusSimulator()):
@@ -32,9 +57,9 @@ class MetaModelRepair:
         pass
 
 
-class GreedyBestFirstSearchConstantFluentMetaModelRepair(MetaModelRepair):
+class GreedyBestFirstSearchConstantFluentMetaModelRepair(AspectRepair):
     """
-    A greedy best-first search model repair implementation.
+    A greedy best-first search model repair implementation. Only repairs constant fluents.
     """
 
     def __init__(self, meta_model, consistency_estimator, fluents_to_repair, deltas, consistency_threshold=2,
@@ -54,8 +79,7 @@ class GreedyBestFirstSearchConstantFluentMetaModelRepair(MetaModelRepair):
             change_cardinality = change_cardinality + abs(change / self.deltas[i])
         return consistency + change_cardinality
 
-    def repair(self,
-               observation, delta_t=1.0):
+    def repair(self, observation, delta_t=1.0):
         """ Repair the given domain and plan such that the given plan's expected outcome matches the observed outcome"""
 
         start_time = time.time()

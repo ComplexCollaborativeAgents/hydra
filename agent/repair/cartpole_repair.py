@@ -18,23 +18,21 @@ class CartLocationConsistency(AspectConsistency):
         return self._consistency_from_matched_trace(simulation_trace, state_seq, delta_t)
 
 
-class CartpoleRepair(MetaModelRepair):
+class CartpoleRepair(RepairModule):
     """ Repairs Cartpole constants """
 
     def __init__(self, meta_model: MetaModel,
                  consistency_checker: DomainConsistency = CartpoleConsistencyEstimator(),
                  consistency_threshold=settings.CP_CONSISTENCY_THRESHOLD):
         super().__init__(meta_model, consistency_checker)
-        meta_model = CartPoleMetaModel()
-        self.fluents_to_repair = meta_model.repairable_constants
-        self.repair_deltas = meta_model.repair_deltas
-        self.meta_model_repair = GreedyBestFirstSearchConstantFluentMetaModelRepair(meta_model, consistency_checker,
-                                                                                    self.fluents_to_repair,
-
-                                                                                    self.repair_deltas,
-                                                                                    consistency_threshold)
+        self.aspect_repair = [GreedyBestFirstSearchConstantFluentMetaModelRepair(meta_model, consistency_checker,
+                                                                                 meta_model.repairable_constants,
+                                                                                 meta_model.repair_deltas,
+                                                                                 consistency_threshold)]
 
     """ Repair the given domain and plan such that the given plan's expected outcome matches the observed outcome"""
 
     def repair(self, observation, delta_t=1.0):
-        return self.meta_model_repair.repair(observation, delta_t)
+        """ Repair the given domain and plan such that the given plan's expected outcome matches the observed outcome"""
+        # Right now, only one aspect is implemented
+        return self.aspect_repair[0].repair(observation, delta_t)

@@ -166,9 +166,8 @@ class RepairingCartpolePlusPlusHydraAgent(CartpolePlusPlusHydraAgent):
         super().__init__()
         self.repair_threshold = 0.975 # 195/200
         self.has_repaired = False
-        self.detector = FocusedAnomalyDetector()
         self.consistency_checker = CartpolePlusPlusConsistencyEstimator()
-        self.meta_model_repair = CartpolePlusPlusRepair(self.meta_model)
+        self.meta_model_repair = CartpolePlusPlusRepair(self.meta_model, consistency_checker=self.consistency_checker)
 
     def episode_end(self, performance: float, feedback: dict = None)-> \
             (float, float, int, dict):
