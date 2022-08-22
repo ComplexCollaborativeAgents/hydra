@@ -6,7 +6,8 @@ import worlds.science_birds as sb
 import pickle
 import tests.test_utils as test_utils
 import os.path as path
-from agent.repair.sb_repair import ScienceBirdsConsistencyEstimator, ScienceBirdsMetaModelRepair
+from agent.repair.sb_repair import ScienceBirdsMetaModelRepair
+from agent.repair.sb_consistency_estimators.sb_domain_consistency_estimator import ScienceBirdsConsistencyEstimator
 
 GRAVITY_FACTOR = "gravity_factor"
 BASE_LIFE_WOOD_MULTIPLIER = "base_life_wood_multiplier"

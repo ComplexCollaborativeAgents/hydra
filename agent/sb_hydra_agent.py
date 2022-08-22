@@ -3,14 +3,15 @@ import datetime
 import numpy
 import pandas
 
-
+from agent.consistency.trace_visualizer import plot_expected_vs_observed
 from agent.hydra_agent import HydraAgent
 from agent.hydra_agent import PDDL_PROB, NOVELTY_EXISTENCE_NOT_GIVEN, NOVELTY_LIKELIHOOD
 from agent.planning.nyx.syntax import constants
 from agent.planning.sb_planner import SBPlanner
 from agent.repair.meta_model_repair import *
 # TODO: Maybe push this to the settings file? then every module just adds a logger
-from agent.repair.sb_repair import ScienceBirdsConsistencyEstimator, ScienceBirdsMetaModelRepair
+from agent.repair.sb_repair import ScienceBirdsMetaModelRepair
+from agent.repair.sb_consistency_estimators.sb_domain_consistency_estimator import ScienceBirdsConsistencyEstimator
 from utils.point2D import Point2D
 from worlds.science_birds_interface.client.agent_client import GameState
 
@@ -693,9 +694,9 @@ class RepairingSBHydraAgent(SBHydraAgent):
         last_obs = self.find_last_obs()
         if last_obs is not None:
             if REPAIR_CALLS not in self.stats_for_level:
-                self.stats_for_level[REPAIR_CALLS] = 0
+                self.stats_for_level[REPAIR_CALLS] = []
             if REPAIR_TIME not in self.stats_for_level:
-                self.stats_for_level[REPAIR_TIME] = 0
+                self.stats_for_level[REPAIR_TIME] = []
 
             # Check if we should repair
             logger.info("checking for repair...")
@@ -717,7 +718,7 @@ class RepairingSBHydraAgent(SBHydraAgent):
         try:
             repair, consistency = self.meta_model_repair.repair(last_obs, delta_t=settings.SB_DELTA_T)
             repair_description = ["Repair %s, %.2f" % (fluent, repair[i])
-                                  for i, fluent in enumerate(self.meta_model_repair.fluents_to_repair)]
+                                  for i, fluent in enumerate(self.meta_model.repairable_constants)]
             if self.stats_for_level.get('repair description'):
                 self.stats_for_level['repair description'].append(repair_description)
             else:
@@ -736,6 +737,7 @@ class RepairingSBHydraAgent(SBHydraAgent):
         Checks if the current model should be repaired
         If we are going to repair for a level, it will be a repair with the first shot's observations for that level.
         """
+        plot_expected_vs_observed(self.meta_model, self.find_last_obs())
 
         # If novelty existence is given, use the given
         if self.revision_attempts >= settings.HYDRA_MODEL_REVISION_ATTEMPTS:

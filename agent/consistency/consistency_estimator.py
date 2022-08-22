@@ -6,15 +6,13 @@ from typing import List
 
 from agent.consistency.fast_pddl_simulator import *
 from agent.consistency.nyx_pddl_simulator import NyxPddlPlusSimulator
+from agent.consistency.trace_visualizer import plot_sb_observation, plot_expected_trace_for_obs
 from tests import test_utils
 
 # Defaults
 DEFAULT_DELTA_T = settings.SB_DELTA_T
-DEFAULT_PLOT_OBS_VS_EXP = False
+DEFAULT_PLOT_OBS_VS_EXP = True
 CONSISTENCY_CHECK_FAILED_VALUE = 1000
-
-
-#### Begin new code
 
 
 class AspectConsistency:
@@ -63,14 +61,11 @@ class AspectConsistency:
 
     def _consistency_from_matched_trace(self, simulation_trace: list, state_seq: list, delta_t: float = DEFAULT_DELTA_T):
         """
-        The first parameter is a list of (state,time) pairs of the expected (simulated) plan.
-        the second is a list of observed (actually happened) states.
-        Returns a positive number  that represents the possible consistency between the sequences,
-        where zero means fully consistent.
+        Returns a consistency value for the given traces, assuming the sequences of states are (at least almost) matched
+        in time. This is used by cartpole (and ++) and polycraft.
         """
-
-        if len(simulation_trace) < len(state_seq):
-            return len(state_seq) - len(simulation_trace)
+        # if len(simulation_trace) < len(state_seq):
+        #     return len(state_seq) - len(simulation_trace)
 
         # Compute consistency of every observed state
         consistency_per_state = self._compute_consistency_per_matched_state(simulation_trace, state_seq)
@@ -99,7 +94,7 @@ class AspectConsistency:
         """
 
         # If we expected the trade to end before it really did - this is inconsistent
-        assert len(expected_state_seq) >= len(observed_states)
+        # assert len(expected_state_seq) >= len(observed_states)
 
         exp_to_obs_step_ratio = 1
         consistency_per_state = []
@@ -122,7 +117,8 @@ class AspectConsistency:
 
     def _consistency_from_unmatched_trace(self, simulation_trace: list, state_seq: list, delta_t: float = DEFAULT_DELTA_T):
         """
-         Computes an inconsistency value from traces that do not have matching timestamps.
+         Computes an inconsistency value from traces that do not have matching timestamps. This method currently only
+         used for Science Birds.
         """
         # Only consider states with some info regarding the relevant fluents
         states_with_info = []
@@ -157,6 +153,7 @@ class AspectConsistency:
     def _compute_consistency_per_unmatched_state(self, expected_state_seq: list, observed_states: list,
                                                  delta_t: float = DEFAULT_DELTA_T):
         """
+        This method currently only used for Science Birds.
         Computes inconsistency values for observations that do not have matching timestamps as the simulation.
         Current implementation ignores order, and just looks for the best time for each state in the state_seq,
         and ignore cases where the fluent is not in the un-timed state seq aiming to minimize its distance from the
@@ -173,6 +170,7 @@ class AspectConsistency:
 
     def _linear_interpolate_fluents(self, simulation_trace, delta_t=0.01):
         """
+        This method currently only used for Science Birds.
         Create a piecewise linear interpolation for the given timed_state_seq
         """
         # Get values over time for each fluent
@@ -200,9 +198,10 @@ class AspectConsistency:
         return all_t_values, fluent_to_expected_values
 
     def _compute_best_fit(self, state, t_values, fluent_to_expected_values):
-        """ Compute the t value that best fits the given state. Returns
-            this t and the error at that time, i.e., the difference between
-            the state's fluent values and their expected values at the best fit time. """
+        """
+        This method currently only used for Science Birds.
+        Compute the t value that best fits the given state. Returns this t and the error at that time, i.e., the
+        difference between the state's fluent values and their expected values at the best fit time. """
         best_fit_error = float('inf')
         best_t = -1
         for t in range(len(t_values)):
@@ -222,6 +221,7 @@ class AspectConsistency:
 
     def _objects_in_last_frame(self, simulation_trace: list, observations: list, in_sim=True, in_obs=True):
         """
+        This method currently only used for Science Birds.
         Compares the objects matching the given fluent pattern in the last frame.
         Returns the total delta according to flags:
         in_sim: objects that are 'alive' in simulation but 'dead' in observation
@@ -250,10 +250,11 @@ class AspectConsistency:
            SB external agents
            Cartpole external agents
         """
-        pass  # TODO
+        pass  # TODO This method currently unused, but might be useful when we improve the consistency estimation.
 
     def _trajectory_compare(self, simulation_trace: list, state_seq: list, delta_t: float = DEFAULT_DELTA_T):
         """
+        This method currently only used for Science Birds.
         Compares fluents along a trajectory.
         """
         # in future: optionally filtering according to some conditional function.
@@ -273,27 +274,6 @@ class AspectConsistency:
 
         return self._consistency_from_unmatched_trace(simulation_trace, state_seq, delta_t)
 
-    def _align_timestamps(self, observations, simulation):
-        """
-        Returns observations aligned to the simulation timestamps.
-        For numeric fluents, linear interpolation between the observation values at simulation time-steps.
-        For boolean fluents, choose the value with the closest time.
-        """
-        # TODO delete this function?
-        # After doing this, might need to fix some values. For boolean values, the action\event that changed them might
-        #   be off by one - want to move the change to the same frame where the action or event was to avoid incorrect
-        #   repair.
-        #   We want to treat numeric fluents with discrete values the same way, but how do we distinguish those from,
-        #   e.g. trajectory fluents??
-        #   Pass in list of numeric fluents to be treated as discrete? After all, if we're only using this for SB
-        #   that's easy enough to do (if there aren't many and they aren't auto-generated?)
-        #   In fact, not a single value in the observations has that behavior, so it's ok!
-
-        #  Actually it wouldn't be ok, because the observations are (usually) very sparse.
-
-        # np.interp(query_values, observation_times, observation_values)
-        pass
-
 
 class DomainConsistency:
     """
@@ -304,6 +284,10 @@ class DomainConsistency:
         self.aspect_estimators = aspect_estimators
 
     def consistency_from_observations(self, meta_model, simulator, observation, delta_t):
+        """
+        Used to get a consistency value directly from an observation - used often at the moment, but restructuring and
+        improving the repair framework should make it obsolete.
+        """
         expected_states, observed_states = self.get_traces_from_simulator(observation, meta_model, simulator, delta_t)
         return self.consistency_from_trace(expected_states, observed_states, delta_t)
 
@@ -336,92 +320,12 @@ class DomainConsistency:
         Model manipulators that are likely relevant to repair. These are manipulators related to the inconsistencies
         found.
         """
-        # Following Roni's idea.
+        # Following Roni's idea. This might belong in the repair framework, rather than here.
         pass
 
-### End new code
-
-#
-# class ConsistencyEstimator:
-#     """ Checks if a given sequence of (state, time) pairs can be consistent with a given sequence of states. """
-#
-#     PLAN_FAILED_CONSISTENCY_VALUE = 1000  # A constant representing the inconsistency value of a meta model in which the executed plan is inconsistent
-#
-#     def __init__(self, fluent_names, obs_prefix=50, discount_factor=0.9, consistency_threshold=0.01):
-#         """ Specify which fluents to check, and the size of the observed sequence prefix to consider.
-#         This is because we acknowledge that later in the observations, our model is less accurate. """
-#
-#         self.fluent_names = []
-#         for fluent_name in fluent_names:
-#             if isinstance(fluent_name, list):
-#                 fluent_name = tuple(
-#                     fluent_name)  # Need a hashable object, to turn it to tuples. TODO: Change all fluent names to tuples
-#             self.fluent_names.append(fluent_name)
-#
-#         self.discount_factor = discount_factor
-#         self.obs_prefix = obs_prefix
-#         self.consistency_threshold = consistency_threshold
-#
-#     def consistency_from_trace(self, simulation_trace: list, state_seq: list, delta_t: float = DEFAULT_DELTA_T):
-#         """
-#         The first parameter is a list of (state,time) pairs of the expected (simulated) plan.
-#         the second is a list of observed (actually happened) states.
-#         Returns a positive number  that represents the possible consistency between the sequences,
-#         where zero means fully consistent.
-#         """
-#
-#         if len(simulation_trace) < len(state_seq):
-#             return len(state_seq) - len(simulation_trace)
-#
-#         # Compute consistency of every observed state
-#         consistency_per_state = self.compute_consistency_per_state(simulation_trace, state_seq)
-#
-#         # Aggregate the consistency
-#         discount = 1.0
-#         max_error = 0
-#
-#         for i, consistency in enumerate(consistency_per_state):
-#             if i > self.obs_prefix:
-#                 break
-#             if consistency > self.consistency_threshold:
-#                 weighted_error = consistency * discount
-#                 if max_error < weighted_error:
-#                     max_error = weighted_error
-#
-#             discount = discount * self.discount_factor
-#
-#         return max_error
-#
-#     def compute_consistency_per_state(self, expected_state_seq: list, observed_states: list):
-#         """ Returns a vector of values, one per observed state, indicating how much it is consistent with the simulation.
-#         The first parameter is a list of (state,time) pairs, the second is just a list of states
-#         Current implementation ignores order, and just looks for the best time for each state in the state_seq,
-#         and ignore cases where the fluent is not in the un-timed state seqq aiming to minimize its distance from the fitted piecewise-linear interpolation.
-#         """
-#
-#         # If we expected the trade to end before it really did - this is inconsistent
-#         assert len(expected_state_seq) >= len(observed_states)
-#
-#         exp_to_obs_step_ratio = 1
-#         consistency_per_state = []
-#         for obs_index, obs_state in enumerate(observed_states):
-#             exp_state = expected_state_seq[int(exp_to_obs_step_ratio * obs_index)][0]
-#             error = 0
-#             for fluent_name in self.fluent_names:
-#                 if fluent_name not in obs_state:  # TODO: A design choice. Ignore missing fluent values
-#                     continue
-#                 if fluent_name not in exp_state:
-#                     continue
-#
-#                 exp_fluent_value = float(exp_state[fluent_name])
-#                 obs_fluent_value = float(obs_state[fluent_name])
-#                 error = error + (exp_fluent_value - obs_fluent_value) * (exp_fluent_value - obs_fluent_value)
-#             consistency_per_state.append(math.sqrt(error))
-#             if obs_index >= self.obs_prefix:  # We only consider a limited prefix of the observed sequence of states
-#                 break
-#         return consistency_per_state
 
 
+# TODO: The following code only used in (obsolete) tests, and can be safely removed.
 def diff_traces(trace1, trace2: list):
     """
     A utility function for comparing (state, time) sequences.
@@ -462,13 +366,6 @@ def diff_pddl_states(state1, state2):
     return diff_list
 
 
-def get_traces_from_simulator(observation, meta_model, simulator: PddlPlusSimulator, delta_t):
-    """ Generates simulation and observation traces for a given observation object """
-    expected_trace, plan = simulator.get_expected_trace(observation, meta_model, delta_t)
-    observed_seq = observation.get_pddl_states_in_trace(meta_model)
-    return expected_trace, observed_seq
-
-
 def check_obs_consistency(observation,
                           meta_model,
                           consistency_checker: DomainConsistency,
@@ -478,11 +375,10 @@ def check_obs_consistency(observation,
     """
     Checks if an observation is consistent with a given metamodel
     """
-    # THIS FUNCTION ONLY USED IN TESTS
     if plot_obs_vs_exp:
         matplotlib.interactive(True)
-        plot_axes = test_utils.plot_observation(observation)
-        test_utils.plot_expected_trace_for_obs(meta_model, observation, ax=plot_axes)
+        plot_axes = plot_sb_observation(observation)
+        plot_expected_trace_for_obs(meta_model, observation, ax=plot_axes)
     try:
         simulation_trace, observed_trace = consistency_checker.get_traces_from_simulator(observation, meta_model,
                                                                                          simulator,

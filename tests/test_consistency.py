@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import pytest
 
-from agent.repair.sb_repair import BirdLocationConsistencyEstimator
+from agent.repair.sb_consistency_estimators.bird_location_consistency import BirdLocationConsistencyEstimator
 from agent.sb_hydra_agent import *
 from agent.planning.model_manipulator import ManipulateInitNumericFluent
 from agent.planning.sb_planner import *
@@ -345,8 +345,6 @@ SB_NON_NOVEL_TESTS = listdir(SB_NON_NOVEL_OBS_DIR)
 SB_NOVEL_TESTS = listdir(SB_NOVEL_OBS_DIR)
 
 
-
-from agent.consistency.sequence_consistency_estimator import *
 # ''' Checks consistency by considering the location of the Cartpole fluents '''
 # class ScienceBirdsSequenceConsistencyEstimator(MetaModelBasedConsistencyEstimator):
 #     def __init__(self, unique_prefix_size = 100,discount_factor=0.9, consistency_threshold = 0.01):

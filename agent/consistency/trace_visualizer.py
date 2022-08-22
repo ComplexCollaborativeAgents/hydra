@@ -36,27 +36,24 @@ def plot_state_sequence(pddl_state_seq: list, pddl_state: PddlPlusState, ax=None
     Plotting a sequence of states, showing where the pigs, platforms, and birds are initially,
     and showing the trajectory of the active bird.
     """
-    if ax is None:
-        _, ax = plt.subplots()
+    # if ax is None:
+    #     _, ax = plt.subplots()
     # plot_pddl_state(pddl_state, ax)
 
     # plot_intermediate_state(obs_state, previous_state, ax)
 
     first_state = plot_pddl_state(pddl_state_seq[0], ax)
-    (left, right_x) = plt.xlim()
-    (left, right_y) = plt.ylim()
-    max_axis = max(right_x, right_y)
-    plt.xlim((0, max_axis))
-    plt.ylim((0, max_axis))
-
-    plt.show()
+    # (left, right_x) = plt.xlim()
+    # (left, right_y) = plt.ylim()
+    # max_axis = max(right_x, right_y)
+    # plt.xlim((0, max_axis))
+    # plt.ylim((0, max_axis))
 
     previous_state = pddl_state
     for intermediate_pddl_state in pddl_state_seq[1:]:
         # plot_intermediate_state(intermediate_pddl_state, previous_state, ax)
         plot_pddl_state(intermediate_pddl_state, ax)
         previous_state = intermediate_pddl_state
-        plt.show()
 
     #
     #
@@ -137,7 +134,7 @@ def plot_sb_observation(observation: ScienceBirdsObservation, ax=None, marker="o
     # pddl_state = meta_model.create_pddl_state(sb_state)
     initial_state = PddlPlusState(meta_model.create_pddl_problem(sb_state).init)
     obs_state_sequence = observation.get_pddl_states_in_trace(meta_model)
-    return plot_state_sequence(obs_state_sequence, initial_state, ax, marker)
+    return plot_state_sequence(obs_state_sequence, initial_state, ax)
 
 
 def plot_sb_initial_state(observation: ScienceBirdsObservation, ax=None):
@@ -148,14 +145,20 @@ def plot_sb_initial_state(observation: ScienceBirdsObservation, ax=None):
     return plot_pddl_state(initial_state, ax)
 
 
-def plot_expected_vs_observed(meta_model: MetaModel, observation: ScienceBirdsObservation, fig=None):
+def plot_expected_vs_observed(meta_model: MetaModel, observation: ScienceBirdsObservation, axis=None):
     """ Plots the expected vs observated trajectories """
     matplotlib.interactive(True)
-    if fig == None:
-        _, fig = plt.subplots()
-    plot_expected_trace_for_obs(meta_model, observation, ax=fig)
-    plot_sb_observation(observation, ax=fig)
-    return fig
+    if axis is None:
+        _, (axis1, axis2) = plt.subplots(2, 1)
+        axis1.set_title("expected")
+        plot_expected_trace_for_obs(meta_model, observation, ax=axis1)
+        axis2.set_title("observed")
+        plot_sb_observation(observation, ax=axis2)
+    else:
+        plot_expected_trace_for_obs(meta_model, observation, ax=axis)
+        plot_sb_observation(observation, ax=axis)
+    plt.show()
+    return axis
 
 
 def plot_pddl_state(pddl_state: PddlPlusState, ax=None):

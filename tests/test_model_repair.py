@@ -1,6 +1,6 @@
 import pytest
 
-from agent.repair.sb_repair import BirdLocationConsistencyEstimator
+from agent.repair.sb_consistency_estimators.bird_location_consistency import BirdLocationConsistencyEstimator
 from agent.sb_hydra_agent import *
 from agent.planning.simple_planner import *
 import matplotlib.pyplot
