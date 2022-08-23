@@ -8,7 +8,6 @@ logger = logging.getLogger("sb_repair")
 class ScienceBirdsMetaModelRepair(RepairModule):
     """ The meta model repair used for ScienceBirds. """
 
-    # THIS CLASS ONLY USED IN TESTS
     def __init__(self, meta_model: MetaModel = ScienceBirdsMetaModel(),
                  consistency_estimator: DomainConsistency = ScienceBirdsConsistencyEstimator(),
                  consistency_threshold=settings.SB_CONSISTENCY_THRESHOLD,
