@@ -11,7 +11,7 @@ from tests import test_utils
 
 # Defaults
 DEFAULT_DELTA_T = settings.SB_DELTA_T
-DEFAULT_PLOT_OBS_VS_EXP = True
+DEFAULT_PLOT_OBS_VS_EXP = False
 CONSISTENCY_CHECK_FAILED_VALUE = 1000
 
 

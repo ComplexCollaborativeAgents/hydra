@@ -451,7 +451,7 @@ class SBHydraAgent(HydraAgent):
             PLAN: list()
         }
         # time.sleep(1)
-        self.novelty_existence = 1 #self.env.sb_client.get_novelty_info()
+        self.novelty_existence = self.env.sb_client.get_novelty_info()
         print("Given novelty existence is {}".format(self.novelty_existence))
         time.sleep(2 / settings.SB_SIM_SPEED)
 
@@ -694,9 +694,9 @@ class RepairingSBHydraAgent(SBHydraAgent):
         last_obs = self.find_last_obs()
         if last_obs is not None:
             if REPAIR_CALLS not in self.stats_for_level:
-                self.stats_for_level[REPAIR_CALLS] = []
+                self.stats_for_level[REPAIR_CALLS] = 0
             if REPAIR_TIME not in self.stats_for_level:
-                self.stats_for_level[REPAIR_TIME] = []
+                self.stats_for_level[REPAIR_TIME] = 0
 
             # Check if we should repair
             logger.info("checking for repair...")
