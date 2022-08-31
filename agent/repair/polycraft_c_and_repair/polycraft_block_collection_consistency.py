@@ -4,7 +4,8 @@ from typing import List, Tuple
 from agent.consistency.consistency_estimator import AspectConsistency, DEFAULT_DELTA_T
 from agent.planning.nyx.compiler.preconditions_tree import Happening
 from agent.planning.pddl_plus import PddlPlusState
-from agent.planning.polycraft_meta_model import Function, PddlGameMapCellType, PolycraftMetaModel
+from agent.planning.polycraft_meta_model import PolycraftMetaModel
+from agent.planning.polycraft_planning.polycraft_pddl_objects_and_constants import PddlGameMapCellType, Function
 from agent.planning.polycraft_planning.actions import BreakAndCollect, TeleportToBreakAndCollect
 from utils.polycraft_utils import coordinates_to_cell
 from worlds.polycraft_world import PolycraftAction, BlockType
@@ -40,7 +41,6 @@ class PolycraftBlockCollectOutcomeConsistency(AspectConsistency):
             if not self.fluent_names:
                 for fl in sim_state.numeric_fluents.keys():
                     if fl[0].startswith('count_') and fl[0].endswith(self.resource_type):
-                        logger.info(f'Fluent for {self.resource_type} is: {fl}')
                         self.fluent_names.append(fl)
                         break
             is_collection_action = action.poly_action.__class__.__name__.lower().find('collect') > -1
@@ -49,6 +49,8 @@ class PolycraftBlockCollectOutcomeConsistency(AspectConsistency):
                 logger.info((Function.cell_type.name,
                                                    PddlGameMapCellType.get_cell_object_name(action.poly_action.cell)))
                 logger.info(sim_state.numeric_fluents.get((Function.cell_type.name,
+                                                   PddlGameMapCellType.get_cell_object_name(action.poly_action.cell))))
+                logger.info(obs_state.numeric_fluents.get((Function.cell_type.name,
                                                    PddlGameMapCellType.get_cell_object_name(action.poly_action.cell))))
                 logger.info(self.meta_model.block_type_to_idx[self.block_type])
 

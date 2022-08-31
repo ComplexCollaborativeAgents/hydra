@@ -1,9 +1,7 @@
 import datetime
-import time
 
-import settings
 from agent.consistency.nyx_pddl_simulator import NyxPddlPlusSimulator
-from agent.consistency.observation import HydraEpisodeLog
+from agent.planning.polycraft_planning.polycraft_episode_log import PolycraftEpisodeLog
 from agent.planning.polycraft_planning.tasks import *
 from agent.planning.polycraft_planning.actions import *
 from agent.repair.polycraft_repair import PolycraftMetaModelRepair
@@ -22,38 +20,6 @@ import re
 RE_EXTRACT_ACTION_PATTERN = re.compile(
     r" *(\d*\.\d*):\t*(.*)\t\[0\.0\]")  # Pattern used to extract action time and name from planner output
 SAVE_FAILED_PLANS_STATES = True  # If true then whenever a plan fails, we store its domain and problem files
-
-
-class PolycraftObservation(HydraEpisodeLog):
-    """ An object that represents an observation of the SB game """
-
-    def __init__(self):
-        self.states = []  # A sequence of polycraft states
-        self.actions = []  # A sequence of polycraft actions
-        self.rewards = []  # The reward obtained from performing each action
-        self.time_so_far = 0.0
-
-    def get_initial_state(self):
-        return self.states[0]
-
-    def get_pddl_states_in_trace(self,
-                                 meta_model: PolycraftMetaModel) -> list:
-        # TODO: Refactor and move this to the meta model?
-        """ Returns a sequence of PDDL states that are the observed intermediate states """
-        observed_state_seq = []
-        for state in self.states:
-            pddl = meta_model.create_pddl_state(state)
-            observed_state_seq.append(pddl)
-        return observed_state_seq
-
-    def get_pddl_plan(self, meta_model: PolycraftMetaModel):
-        """ Returns a PDDL+ plan object with the actions we performed """
-        return PddlPlusPlan(self.actions)
-
-    def print(self):
-        for i, state in enumerate(self.states):
-            print(f'State[{i}] {str(state)}')
-            print(f'Action[{i}] {str(self.actions[i])}')
 
 
 class PolycraftPlanner(HydraPlanner):
@@ -264,7 +230,7 @@ class PolycraftHydraAgent(HydraAgent):
 
         # Initialize the current observation and active plan objects
         self.current_state = env.get_current_state()
-        self.current_observation = PolycraftObservation()  # Start a new observation object for this level
+        self.current_observation = PolycraftEpisodeLog(self.meta_model)  # Start a new observation object for this level
         self.current_observation.states.append(current_state)
         self.observations_list.append(self.current_observation)
 
@@ -478,7 +444,7 @@ class PolycraftHydraAgent(HydraAgent):
     def set_active_task(self, task: PolycraftTask):
         """ Sets the active task, generate a plan to achieve it and updates the active plan """
         if task != self.meta_model.active_task:  # task changed, start a new observation set
-            self.current_observation = PolycraftObservation()
+            self.current_observation = PolycraftEpisodeLog(self.meta_model)
             self.current_observation.states.append(self.current_state)
             self.observations_list.append(self.current_observation)
         self.meta_model.set_active_task(task)
