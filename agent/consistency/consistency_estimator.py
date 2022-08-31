@@ -11,7 +11,7 @@ from tests import test_utils
 
 # Defaults
 DEFAULT_DELTA_T = settings.SB_DELTA_T
-DEFAULT_PLOT_OBS_VS_EXP = True
+DEFAULT_PLOT_OBS_VS_EXP = False
 CONSISTENCY_CHECK_FAILED_VALUE = 1000
 
 
@@ -33,23 +33,27 @@ class AspectConsistency:
 
         self.fluent_template = fluent_template
         self.fluent_names = []
-        for fluent_name in fluent_names:
-            if isinstance(fluent_name, list):
-                fluent_name = tuple(
-                    fluent_name)  # Need a hashable object, to turn it to tuples. TODO: Change all fluent names to tuples
-            self.fluent_names.append(fluent_name)
+        if fluent_names is not None:
+            for fluent_name in fluent_names:
+                if isinstance(fluent_name, list):
+                    fluent_name = tuple(
+                        fluent_name)  # Need a hashable object, to turn it to tuples. TODO: Change all fluent names to tuples
+                self.fluent_names.append(fluent_name)
 
         self.discount_factor = discount_factor
         self.obs_prefix = obs_prefix
         self.consistency_threshold = consistency_threshold
 
-    def consistency_from_trace(self, simulation_trace: list, state_seq: list, delta_t: float = DEFAULT_DELTA_T):
+    def consistency_from_trace(self, simulation_trace: list, state_seq: list, pddl_plan=None,
+                               delta_t: float = DEFAULT_DELTA_T):
         """
         The first parameter is a list of (state,time) pairs of the expected (simulated) plan.
         the second is a list of observed (actually happened) states.
         Returns a positive number that represents the possible consistency between the sequences,
         where zero means fully consistent.
         """
+        if pddl_plan is None:
+            pddl_plan = []
         raise NotImplementedError()
 
     def get_fluents(self):
@@ -58,6 +62,12 @@ class AspectConsistency:
         This is a good start on what fluents affect this aspect, but by no means a complete list.
         """
         return self.fluent_names
+
+    def should_repair(self):
+        """
+        In the humble opinion of this aspect, is repair called for?
+        """
+        pass
 
     def _consistency_from_matched_trace(self, simulation_trace: list, state_seq: list, delta_t: float = DEFAULT_DELTA_T):
         """
@@ -282,30 +292,26 @@ class DomainConsistency:
 
     def __init__(self, aspect_estimators: List[AspectConsistency]):
         self.aspect_estimators = aspect_estimators
+        self.latest_inconsistencies = [0 for _ in range(len(self.aspect_estimators))]
 
     def consistency_from_observations(self, meta_model, simulator, observation, delta_t):
         """
-        Used to get a consistency value directly from an observation - used often at the moment, but restructuring and
-        improving the repair framework should make it obsolete.
+        Used to get a consistency value directly from an observation.
         """
-        expected_states, observed_states = self.get_traces_from_simulator(observation, meta_model, simulator, delta_t)
-        return self.consistency_from_trace(expected_states, observed_states, delta_t)
-
-    def get_traces_from_simulator(self, observation, meta_model, simulator: PddlPlusSimulator, delta_t):
-        """ Generates simulation and observation traces for a given observation object """
         expected_trace, plan = simulator.get_expected_trace(observation, meta_model, delta_t)
         observed_seq = observation.get_pddl_states_in_trace(meta_model)
-        return expected_trace, observed_seq
+        return self.consistency_from_trace(expected_trace, observed_seq, plan, delta_t=delta_t)
 
-    def consistency_from_trace(self, simulation_trace: list, state_seq: list, delta_t: float = DEFAULT_DELTA_T,
+    def consistency_from_trace(self, simulation_trace: list, state_seq: list, plan: PddlPlusPlan,
+                               delta_t: float = DEFAULT_DELTA_T,
                                agg_func=max):
         """
         aggregates inconsistency values for this domain. Default aggregation function is 'max'.
         """
         # example for polycraft: if there are unknown objects, return 1. Otherwise, weighted average of aspects.
-        inconsistencies = [c_e.consistency_from_trace(simulation_trace, state_seq, delta_t)
+        self.latest_inconsistencies = [c_e.consistency_from_trace(simulation_trace, state_seq, plan, delta_t=delta_t)
                            for c_e in self.aspect_estimators]
-        return agg_func(inconsistencies)
+        return agg_func(self.latest_inconsistencies)
 
     def suggested_fluents(self):
         """
@@ -380,11 +386,9 @@ def check_obs_consistency(observation,
         plot_axes = plot_sb_observation(observation)
         plot_expected_trace_for_obs(meta_model, observation, ax=plot_axes)
     try:
-        simulation_trace, observed_trace = consistency_checker.get_traces_from_simulator(observation, meta_model,
-                                                                                         simulator,
-                                                                                         meta_model.delta_t * speedup_factor)
-        consistency_value = consistency_checker.consistency_from_trace(simulation_trace, observed_trace,
-                                                                       meta_model.delta_t * speedup_factor)
+        consistency_value = consistency_checker.consistency_from_observations(meta_model, simulator, observation,
+                                                                              delta_t=meta_model.delta_t *
+                                                                                      speedup_factor)
     except ValueError:
         consistency_value = CONSISTENCY_CHECK_FAILED_VALUE
     return consistency_value

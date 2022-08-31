@@ -238,6 +238,12 @@ class PddlPolycraftAction(PolycraftAction):
         self.poly_action = poly_action
         self.binding = binding
         self.pddl_name = pddl_name
+        if binding:
+            self.action_name = self.pddl_name + ' ' + ' '.join(
+                [PddlGameMapCellType.get_cell_object_name(cell) for cell in self.binding.values()])
+        else:
+            self.action_name = self.pddl_name
+        self.action_name = self.action_name.replace(':', '_')
 
     def is_success(self, result: dict):
         return self.poly_action.is_success(result)
@@ -248,6 +254,8 @@ class PddlPolycraftAction(PolycraftAction):
             return f"<({self.pddl_name} {params_str}) success={self.success}>"
         else:
             return f"<({self.pddl_name}) success={self.success}>"
+
+    __repr__ = __str__
 
     def do(self, state: PolycraftState, env) -> dict:
         result = self.poly_action.do(state, env)
@@ -301,7 +309,7 @@ class PolycraftMetaModel(MetaModel):
                          constant_numeric_fluents={
                              'break_log_outcome_num': 2,
                              'break_platinum_outcome_num': 1,
-                             'break_diamond_outcome_num': 9,
+                             'break_diamond_outcome_num': 7,
                              'collect_sap_outcome_num': 1
                          },
                          constant_boolean_fluents={})

@@ -355,9 +355,8 @@ class PddlPlusGrounder:
 
         return grounded_domain
 
-    """ Ground a list of world_change objects to the given problem """
-
     def __ground_world_change_lists(self, world_change_list, problem):
+        """ Ground a list of world_change objects to the given problem """
         grounded_world_change_list = list()
         for world_change in world_change_list:
             assert len(world_change.parameters) == 1
@@ -368,10 +367,12 @@ class PddlPlusGrounder:
                 grounded_world_change_list.append(self.ground_world_change(world_change, binding))
         return grounded_world_change_list
 
-    """ Extracts from a raw list of the form [?x - typex y? - type?] a list of the form [(?x typex)(?y typey)] 
-    TODO: Think about where this really should go """
 
     def __get_typed_parameter_list(self, element: list):
+        """
+        Extracts from a raw list of the form [?x - typex y? - type?] a list of the form [(?x typex)(?y typey)]
+        TODO: Think about where this really should go
+        """
         i = 0
         typed_parameters = list()
         while i < len(element):
@@ -381,22 +382,21 @@ class PddlPlusGrounder:
             i = i + 3
         return typed_parameters
 
-    """ Extract the list of typed parameters of the given predict"""
-
     def __get_predicate_parameters(self, predicate):
+        """ Extract the list of typed parameters of the given predict"""
         parameter_list = predicate[1:]
         return self.__get_typed_parameter_list(parameter_list)
 
-    """ Enumerate all possible bindings of the given parameters to the given problem """
 
     def __get_possible_bindings(self, parameters, problem: PddlPlusProblem):
+        """ Enumerate all possible bindings of the given parameters to the given problem """
         all_bindings = list()
         self.__recursive_get_possible_bindings(parameters, problem, dict(), all_bindings)
         return all_bindings
 
-    """ Recursive method to find all bindings """
 
     def __recursive_get_possible_bindings(self, parameters, problem, binding, bindings):
+        """ Recursive method to find all bindings """
         for object in problem.objects:
             if len(object) > 1 and self.no_dummy_objects and "dummy" in object[0]:
                 continue
@@ -409,16 +409,15 @@ class PddlPlusGrounder:
                 else:
                     self.__recursive_get_possible_bindings(parameters[1:], problem, binding, bindings)
 
-    """ Checks if one can bound the given parameter to the given object """
 
     def __can_bind(self, parameter, object):
+        """ Checks if one can bound the given parameter to the given object """
         return object[-1] == parameter[-1]
 
 
-""" An action with a time stamp saying when it should start"""
 
-
-class TimedAction():
+class TimedAction:
+    """ An action with a time stamp saying when it should start"""
     def __init__(self, action_name: str, start_at: float):
         self.action_name = action_name
         self.start_at = round(start_at, 8)
@@ -427,11 +426,13 @@ class TimedAction():
         return "t=%s, %s" % (self.start_at, self.action_name)
 
 
-""" Just a list of timed actions """
-
 
 class PddlPlusPlan(list):
-    def __init__(self, actions: list = list()):
+    """ Just a list of timed actions """
+    def __init__(self, actions=None):
+        super().__init__()
+        if actions is None:
+            actions = list()
         for action in actions:
             if isinstance(action, TimedAction) == False:
                 raise ValueError(
@@ -439,10 +440,9 @@ class PddlPlusPlan(list):
             self.append(action)
 
 
-""" Check if a given string is a float. TODO: Replace this with a more elegant python way of doing this."""
-
 
 def is_float(text: str):
+    """ Check if a given string is a float. TODO: Replace this with a more elegant python way of doing this."""
     try:
         float(text)
         return True

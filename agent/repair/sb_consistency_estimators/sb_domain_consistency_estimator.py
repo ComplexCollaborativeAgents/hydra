@@ -20,7 +20,7 @@ class ScienceBirdsConsistencyEstimator(DomainConsistency):
                           PigDeadConsistencyEstimator()])
         self.use_simplified_problems = use_simplified_problems
 
-    def get_traces_from_simulator(self, observation, meta_model, simulator: PddlPlusSimulator, delta_t):
+    def _get_traces_from_simulator(self, observation, meta_model, simulator: PddlPlusSimulator, delta_t):
         problem = meta_model.create_pddl_problem(observation.get_initial_state())
         if self.use_simplified_problems:
             problem = meta_model.create_simplified_problem(problem)
@@ -29,7 +29,7 @@ class ScienceBirdsConsistencyEstimator(DomainConsistency):
         plan = observation.get_pddl_plan(meta_model)
         (_, _, expected_trace,) = simulator.simulate(plan, problem, domain, delta_t=delta_t)
         observed_seq = observation.get_pddl_states_in_trace(meta_model)
-        return expected_trace, observed_seq
+        return expected_trace, observed_seq, plan
 
     def consistency_from_simulator(self, observation, meta_model: ScienceBirdsMetaModel,
                                    simulator: PddlPlusSimulator = NyxPddlPlusSimulator(),
@@ -42,8 +42,9 @@ class ScienceBirdsConsistencyEstimator(DomainConsistency):
         #  time (not all birds at once), so probably has no effect on simulation. Should check and if so remove
         #  simplification.
         try:
-            expected_trace, observed_seq = self.get_traces_from_simulator(observation, meta_model, simulator, delta_t)
-            consistency = self.consistency_from_trace(expected_trace, observed_seq, delta_t)
+            expected_trace, observed_seq, plan = self._get_traces_from_simulator(observation, meta_model, simulator,
+                                                                                 delta_t)
+            consistency = self.consistency_from_trace(expected_trace, observed_seq, plan, delta_t=delta_t)
         except InconsistentPlanError as e:
             # Sometimes the repair makes the executed plan be inconsistent, e.g., its preconditions are not satisfied
             consistency = AspectConsistency.PLAN_FAILED_CONSISTENCY_VALUE

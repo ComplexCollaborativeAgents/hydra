@@ -93,10 +93,11 @@ class PolycraftPlanner(HydraPlanner):
         try:
             nyx.constants.MAX_GENERATED_NODES = settings.POLYCRAFT_MAX_GENERATED_NODES
             _, self.explored_states = nyx.runner(self.pddl_domain_file,
-                       self.pddl_problem_file,
-                       ['-vv', '-to:%s' % str(self.timeout), '-noplan', '-search:gbfs', '-custom_heuristic:3', '-th:10',
-                        # '-th:%s' % str(self.meta_model.constant_numeric_fluents['time_limit']),
-                        '-t:%s' % str(self.delta_t)])
+                                                 self.pddl_problem_file,
+                                                 ['-vv', '-to:%s' % str(self.timeout), '-noplan', '-search:gbfs',
+                                                  '-custom_heuristic:3', '-th:10',
+                                                  # '-th:%s' % str(self.meta_model.constant_numeric_fluents['time_limit']),
+                                                  '-t:%s' % str(self.delta_t)])
             plan_actions = self.extract_actions_from_plan_trace(self.pddl_plan_file)
             if len(plan_actions) > 0:
                 return plan_actions
@@ -313,7 +314,8 @@ class PolycraftHydraAgent(HydraAgent):
             else:
                 # Must be an entity
                 exploration_actions.append((obj, TeleportToAndInteract(obj,
-                                                               coordinates_to_cell(world_state.entities[obj]['pos']))))
+                                                                       coordinates_to_cell(
+                                                                           world_state.entities[obj]['pos']))))
 
         # Prefer new objects
         if len(exploration_actions) > 0:
@@ -475,7 +477,7 @@ class PolycraftHydraAgent(HydraAgent):
 
     def set_active_task(self, task: PolycraftTask):
         """ Sets the active task, generate a plan to achieve it and updates the active plan """
-        if task != self.meta_model.active_task:# task changed, start a new observation set
+        if task != self.meta_model.active_task:  # task changed, start a new observation set
             self.current_observation = PolycraftObservation()
             self.current_observation.states.append(self.current_state)
             self.observations_list.append(self.current_observation)
@@ -527,7 +529,8 @@ class PolycraftHydraAgent(HydraAgent):
 
         next_state, step_cost = env.act(self.current_state, action)  # Note this returns step cost for the action
         action.start_at = self.current_observation.time_so_far
-        self.current_observation.time_so_far += step_cost
+        self.current_observation.time_so_far += 1  # TODO hard coded this to 1 so the simulator doesn't take forever.
+        #                                                Might be worth thinking about some more.
 
         if not action.success:
             logger.info(f"Action{action} failed: {action.response}")
@@ -663,12 +666,10 @@ class PolycraftHydraAgent(HydraAgent):
         try:
             # self.meta_model.set_active_task(CreatePogoTask())
             start_time = time.perf_counter()
-            repair, consistency = self.meta_model_repair.repair(self.current_observation,
-                                                                delta_t=settings.POLYCRAFT_DELTA_T)
-            repair_description = ["Repair %s, %.2f" % (fluent, repair[i])
-                                  for i, fluent in enumerate(self.meta_model.repairable_constants)]
+            repair_description, consistency = self.meta_model_repair.repair(self.current_observation,
+                                                                            delta_t=settings.POLYCRAFT_DELTA_T)
             logger.info(
-                "Repair done! Consistency: %.2f, Repair:\n %s" % (consistency, "\n".join(repair_description)))
+                "Repair done! Consistency: %.2f, Repair:\n %s" % (consistency, repair_description))
             self.stats_for_level['repair_time'].append(time.perf_counter() - start_time)
         except:
             # TODO: fix this hack, catch correct exception

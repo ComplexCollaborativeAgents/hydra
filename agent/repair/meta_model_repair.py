@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from typing import Tuple
 
 from agent.consistency.consistency_estimator import *
 from agent.planning.sb_meta_model import *
@@ -22,12 +23,25 @@ class RepairModule(ABC):
         self.meta_model = meta_model
 
     @abstractmethod
-    def repair(self, observations: HydraEpisodeLog, delta_t=0.1):
+    def repair(self, observations: HydraEpisodeLog, delta_t=0.1) -> Tuple[str, float]:
+        """
+        Repairs the meta-model. Returns a description of the repair and the new inconsistency value.
+        """
         # TODO optionally, receive the inconsistency information that instigated this repair call (for efficiency)
         # steps:
         #  1. decide what aspect needs to be repaired
         #  2. choose\create\instantiate appropriate aspect class
         #  3. call repair
+
+        # Code suggestion:
+        # max_ic_index = argmax(self.consistency_estimator.latest_inconsistencies)
+        # while max_ic_index > threshold:
+        #     self.aspect_repair[max_ic_index].repair(observations, delta_t)
+        #     self.consistency_estimator.consistency_from_observations(self.meta_model, NyxPddlPlusSimulator(),
+        #                                                              observations, delta_t)
+        # self.consistency_estimator.consistency_from_observations(self.meta_model, NyxPddlPlusSimulator(),
+        #                                                          observation, delta_t)
+        # return max(self.consistency_estimator.latest_inconsistencies)
         raise NotImplementedError()
 
 
@@ -42,7 +56,7 @@ class AspectRepair:
         self.consistency_estimator = consistency_estimator
         self.simulator = simulator
 
-    def repair(self, observation, delta_t=1.0):
+    def repair(self, observation, delta_t=1.0) -> Tuple[str, float]:
         """ Repair the domain and plan such that the given plan's expected outcome matches the observed outcome"""
         raise NotImplementedError()
 
@@ -86,10 +100,9 @@ class GreedyBestFirstSearchConstantFluentMetaModelRepair(AspectRepair):
         # Initialize OPEN
         open_list = []
         repair = [0] * len(self.fluents_to_repair)  # Repair is a list, in order of the fluents_to_repair list
-        expected_states, observed_states = self.consistency_estimator.get_traces_from_simulator(observation,
-                                                                                                self.meta_model,
-                                                                                                self.simulator, delta_t)
-        base_consistency = self.consistency_estimator.consistency_from_trace(expected_states, observed_states, delta_t)
+
+        base_consistency = self.consistency_estimator.consistency_from_observations(self.meta_model, self.simulator,
+                                                                                    observation, delta_t)
         priority = self._heuristic(repair, base_consistency)
         heapq.heappush(open_list, [priority, repair])
 
@@ -120,12 +133,10 @@ class GreedyBestFirstSearchConstantFluentMetaModelRepair(AspectRepair):
                 if new_repair_tuple not in generated_repairs:  # If  this is a new repair
                     generated_repairs.add(new_repair_tuple)  # To allow duplicate detection
                     self._do_change(repair)
-                    expected_states, _ = self.consistency_estimator.get_traces_from_simulator(observation,
-                                                                                              self.meta_model,
-                                                                                              self.simulator,
-                                                                                              delta_t)
-                    consistency = self.consistency_estimator.consistency_from_trace(expected_states,
-                                                                                    observed_states, delta_t)
+
+                    consistency = self.consistency_estimator.consistency_from_observations(self.meta_model,
+                                                                                           self.simulator, observation,
+                                                                                           delta_t)
                     self._undo_change(repair)
                     priority = self._heuristic(new_repair, consistency)
                     heapq.heappush(open_list, [priority, new_repair])
@@ -142,7 +153,10 @@ class GreedyBestFirstSearchConstantFluentMetaModelRepair(AspectRepair):
             logging.debug("Found a useful repair! %s,\n consistency gain=%.2f" % (str(incumbent_repair),
                                                                                   base_consistency - incumbent_consistency))
             self._do_change(incumbent_repair)
-        return incumbent_repair, incumbent_consistency
+
+        repair_description = ["Repair %s, %.2f" % (fluent, incumbent_repair[i])
+                              for i, fluent in enumerate(self.meta_model.repairable_constants)]
+        return repair_description, incumbent_consistency
 
     def expand(self, repair):
         """ Expand the given repair by generating new repairs from it """
