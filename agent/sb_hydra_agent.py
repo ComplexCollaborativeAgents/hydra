@@ -451,7 +451,7 @@ class SBHydraAgent(HydraAgent):
             PLAN: list()
         }
         # time.sleep(1)
-        self.novelty_existence = 1 #self.env.sb_client.get_novelty_info()
+        self.novelty_existence = self.env.sb_client.get_novelty_info()
         print("Given novelty existence is {}".format(self.novelty_existence))
         time.sleep(2 / settings.SB_SIM_SPEED)
 
