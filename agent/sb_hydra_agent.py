@@ -737,8 +737,6 @@ class RepairingSBHydraAgent(SBHydraAgent):
         Checks if the current model should be repaired
         If we are going to repair for a level, it will be a repair with the first shot's observations for that level.
         """
-        plot_expected_vs_observed(self.meta_model, self.find_last_obs())
-
         # If novelty existence is given, use the given
         if self.revision_attempts >= settings.HYDRA_MODEL_REVISION_ATTEMPTS:
             return False
