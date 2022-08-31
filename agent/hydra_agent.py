@@ -111,6 +111,32 @@ class HydraAgent(metaclass=ABCMeta):
         self.agent_stats = []
         self.novelty_detection = []
 
+    def get_stats(self) -> List[AgentStats]:
+        """Gets the list of stats objects per episode for the current trial
+
+        Returns:
+            List[AgentStats]: List of agent stats per episode
+        """
+        return self.agent_stats
+
+    @abstractmethod
+    def episode_init(self):
+        """Perform setup for the agent at the beginning of an episode
+
+        Raises:
+            NotImplementedError
+        """
+        raise NotImplementedError()
+
+    @abstractmethod
+    def episode_end(self):
+        """Perform cleanup for the agent at the end of an episode
+
+        Raises:
+            NotImplementedError
+        """
+        raise NotImplementedError()
+
     @abstractmethod
     def choose_action(self, state: State) -> Action:
         """Choose which action to perform in the given state
@@ -151,5 +177,37 @@ class HydraAgent(metaclass=ABCMeta):
         Raises:
             NotImplementedError: _description_
         """
+        raise NotImplementedError()
+
+    @abstractmethod
+    def _detect_novelty(self, episode_log: HydraEpisodeLog) -> bool:
+        """Given an episode log, determine using the methods available (consistency, perception, reward_prediction, etc) whether or not novelty is present
+
+        Args:
+            episode_log (HydraEpisodeLog):  episode log to examine
+
+        Raises:
+            NotImplementedError
+
+        Returns:
+            bool: Whether or not novelty was detected
+        """
+
+        raise NotImplementedError()
+
+    @abstractmethod
+    def _build_episode_log(self, state: State) -> HydraEpisodeLog:
+        """_summary_
+
+        Args:
+            state (State): State of the world
+
+        Raises:
+            NotImplementedError: _description_
+
+        Returns:
+            HydraEpisodeLog: _description_
+        """
+
         raise NotImplementedError()
 

@@ -10,6 +10,7 @@ logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s
 logger = logging.getLogger("polycraft_dispatcher")
 logger.setLevel(logging.INFO)
 
+EPISODE_TIME_LIMIT = 17 * 60    # 17 minutes
 
 class PolycraftDispatcher():
     env:Polycraft
@@ -106,14 +107,20 @@ class PolycraftDispatcher():
         ''' Run the agent in a single level until done '''
 
         logger.info("------------ [{}] EPISODE {} START ------------".format(trial_number, level_number))
+        start_time = time.time()
 
         current_state = self.env.get_current_state()
         self.agent.start_level(self.env) # Agent performing exploratory actions
         while True:
             novelty = self.agent.novelty_existence  # NOTE: This may be subject to change
 
+            reached_time = EPISODE_TIME_LIMIT < time.time() - start_time
+
+            if reached_time:
+                logger.info("------------ Ran out of time! ------------")
+
             # Check if level is done
-            if current_state.is_terminal():
+            if current_state.is_terminal() or reached_time:
                 planning_times = str(self.agent.stats_for_level['planning times'])
                 repair_calls = self.agent.stats_for_level['repair_calls']
                 repair_time = str(self.agent.stats_for_level['repair_time'])
