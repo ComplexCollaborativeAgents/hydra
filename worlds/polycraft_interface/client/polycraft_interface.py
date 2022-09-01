@@ -6,6 +6,8 @@ import os
 import numpy as np
 import base64
 
+from typing import Dict, List
+
 """
 In addition to command-specific response variables that vary depending on the command sent, every response JSON contains the following keys:
 goal: json dict that contains:
@@ -368,3 +370,17 @@ class PolycraftInterface:
 
         # Return as numpy array for convenience
         return np.frombuffer(data, np.uint8)
+
+    def HINT(self) -> dict:
+        """Retrieve a hint from the application about what kind of novelty exists within the level.  Does not incur step cost.
+
+        Returns:
+            Dict[str]: a) World elements: List of JSON Objects. Ex: [{“name”:”Minecraft:log”, “variant”:”rotten”}]
+                b) Commands: List of Strings. Ex: [“BREAK_BLOCK”]
+                c) Impact: String. Ex: “Positive”, “Negative”, “Neutral”  
+                
+        """
+
+        cmd = "HINT"
+        self._send_cmd(cmd)
+        return self._recv_response(cmd)
