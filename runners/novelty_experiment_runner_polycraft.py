@@ -79,13 +79,13 @@ class NoveltyExperimentRunnerPolycraft:
 
     # Run trials
     def run_trials(self):
-        self.dispatcher.experiment_start(standalone=True)
         self.dispatcher.set_trial_sets(self.trials)
+        self.dispatcher.run_experiment(standalone=True)
         self.dispatcher.run_trials()
 
         self.process_experiment()
 
-        self.dispatcher.experiment_end()
+        self.dispatcher.cleanup_experiment()
 
     def process_trial_results(self, trial_id:str, results_list:List):
         trial = pandas.DataFrame(columns=['trial_num', 'trial_type', 'novelty_level', 'novelty_type', 'novelty_subtype',
