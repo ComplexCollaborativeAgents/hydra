@@ -56,8 +56,23 @@ class PddlPlusWorldChange:
         self.preconditions = list()
         self.effects = list()
 
+    def print_info(self):
+        print("\n\nNAME:", self.name)
+        print("TYPE:", self.type)
+        print("\tPARAMS: ", end=" ")
+        for par in self.parameters:
+            print("(", par, ")", end=" ")
+        print("\n\tPRECOND: ", end=" ")
+        for prec in self.preconditions:
+            print("(", prec, ")", end=" ")
+        print("\n\tEFFECTS: ", end=" ")
+        for eff in self.effects:
+            print("(", eff, ")", end=" ")
+
     def __str__(self):
         return str(self.name)
+
+    __repr__ = __str__
 
 
 class PddlPlusProblem:
@@ -266,6 +281,17 @@ class PddlPlusState:
         for fluent_name in self.boolean_fluents:
             string_buffer = "%s %s\n" % (string_buffer, str(fluent_name))
         return string_buffer
+
+    def diff(self, other):
+        result = {}
+        for fluent, value in self.numeric_fluents.items():
+            if other.numeric_fluents.get(fluent) != value:
+                result[fluent] = f'Mine: {value}, other: {other.numeric_fluents.get(fluent)}'
+        for fluent in self.boolean_fluents:
+            if fluent not in other.boolean_fluents:
+                result[fluent] = f'Boolean fluent not in other'
+        return result
+
 
 
     def to_pddl(self):

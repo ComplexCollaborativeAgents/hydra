@@ -32,6 +32,6 @@ class PolycraftMetaModelRepair(RepairModule):
             descriptions += description
             self.consistency_estimator.consistency_from_observations(self.meta_model, NyxPddlPlusSimulator(),
                                                                      observation, delta_t)
-        self.consistency_estimator.consistency_from_observations(self.meta_model, NyxPddlPlusSimulator(),
-                                                                 observation, delta_t)
+            max_ic_index = argmax(self.consistency_estimator.latest_inconsistencies)
+
         return descriptions, max(self.consistency_estimator.latest_inconsistencies)

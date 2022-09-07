@@ -29,7 +29,7 @@ class PolycraftMetaModel(MetaModel):
                          constant_numeric_fluents={
                              'break_log_outcome_num': 2,
                              'break_platinum_outcome_num': 1,
-                             'break_diamond_outcome_num': 7,
+                             'break_diamond_outcome_num': 9,
                              'collect_sap_outcome_num': 1
                          },
                          constant_boolean_fluents={})
@@ -164,7 +164,7 @@ class PolycraftMetaModel(MetaModel):
             pddl_domain.functions.append([f"count_{item}", ])
 
         # Add actions
-        for action_generator in self.get_action_generators(world_state):
+        for action_generator in self.active_task.create_relevant_actions(world_state, self):
             pddl_domain.actions.append(action_generator.to_pddl(self))
 
         # Add events
@@ -176,8 +176,6 @@ class PolycraftMetaModel(MetaModel):
         #     pddl_domain = self.current_domain[self.active_task]
         return pddl_domain
 
-    def get_action_generators(self, state):
-        return self.active_task.create_relevant_actions(state, self)
 
     def _convert_polycraft_naming_in_domain(self, pddl_domain: PddlPlusDomain):
         """ Change the elements in the domain so that they fit the pddl convention of not using ":" """
