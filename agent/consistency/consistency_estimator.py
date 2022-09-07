@@ -300,23 +300,9 @@ class DomainConsistency:
         """
         Used to get a consistency value directly from an observation.
         """
-        import time
 
-        import pickle
-        iii = time.time()
-        with open(f"obs_debug.{iii}.p","wb") as out_file:
-            pickle.dump(observation,out_file)
-        with open(f"mm_debug.{iii}.p","wb") as out_file:
-            pickle.dump(meta_model,out_file)
-
-        logger.info(f"State before sim {observation.states[0]}")
         expected_trace, plan = simulator.get_expected_trace(observation, meta_model, delta_t)
-        logger.info(
-            f"sim, steve:{expected_trace[0][0].numeric_fluents[('Steve_x',)]},{expected_trace[0][0].numeric_fluents[('Steve_z',)]} ")
-
-        # logger.info(f"State after sim {observation.states[0]}")
         observed_seq = observation.get_pddl_states_in_trace(meta_model)
-
         return self.consistency_from_trace(expected_trace, observed_seq, plan, delta_t=delta_t)
 
     def consistency_from_trace(self, simulation_trace: list, state_seq: list, plan: PddlPlusPlan,
@@ -326,7 +312,6 @@ class DomainConsistency:
         aggregates inconsistency values for this domain. Default aggregation function is 'max'.
         """
         # example for polycraft: if there are unknown objects, return 1. Otherwise, weighted average of aspects.
-        logger.info(f"sim still, steve:{simulation_trace[0][0].numeric_fluents[('Steve_x',)]},{simulation_trace[0][0].numeric_fluents[('Steve_z',)]} ")
         self.latest_inconsistencies = [c_e.consistency_from_trace(simulation_trace, state_seq, plan, delta_t=delta_t)
                            for c_e in self.aspect_estimators]
         return agg_func(self.latest_inconsistencies)

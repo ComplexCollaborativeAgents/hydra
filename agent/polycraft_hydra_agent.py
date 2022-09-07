@@ -144,7 +144,7 @@ class PolycraftPlanner(HydraPlanner):
     def extract_actions_from_plan_trace(self, plane_trace_file: str):
         """ Parses the given plan trace file and outputs the plan """
         pddl_action_names = [action.name for action in self.pddl_domain.actions]
-        action_generators = self.meta_model.get_action_generators(self.initial_state)
+        action_generators = self.meta_model.active_task.create_relevant_actions(self.initial_state, self.meta_model)
         plan_actions = []
         with open(plane_trace_file) as plan_trace_file:
             for i, line in enumerate(plan_trace_file):
@@ -495,9 +495,7 @@ class PolycraftHydraAgent(HydraAgent):
 
         next_state, step_cost = env.act(self.current_state, action)  # Note this returns step cost for the action
         action.start_at = self.current_observation.time_so_far
-        self.current_observation.time_so_far += 1  # TODO hard coded this to 1 so the simulator doesn't take forever.
-        #                                                Might be worth thinking about some more.
-
+        # self.current_observation.time_so_far += 1  # Polycraft is modeled as a non-temporal domain.
         if not action.success:
             logger.info(f"Action{action} failed: {action.response}")
             self.failed_actions_in_level = self.failed_actions_in_level + 1

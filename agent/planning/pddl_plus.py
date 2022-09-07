@@ -286,7 +286,7 @@ class PddlPlusState:
         result = {}
         for fluent, value in self.numeric_fluents.items():
             if other.numeric_fluents.get(fluent) != value:
-                result[fluent] = f'Mine: {value}, other: {other.numeric_fluents.get(fluent)}'
+                result[fluent] = f'self: {value}, other: {other.numeric_fluents.get(fluent)}'
         for fluent in self.boolean_fluents:
             if fluent not in other.boolean_fluents:
                 result[fluent] = f'Boolean fluent not in other'

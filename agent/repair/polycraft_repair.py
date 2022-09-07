@@ -24,9 +24,6 @@ class PolycraftMetaModelRepair(RepairModule):
     def repair(self, observation, delta_t=1.0):
         descriptions = ''
         max_ic_index = argmax(self.consistency_estimator.latest_inconsistencies)
-        logger.info(self.consistency_estimator.aspect_estimators)
-        logger.info(self.aspect_repair)
-        logger.info(self.consistency_estimator.latest_inconsistencies)
         while max(self.consistency_estimator.latest_inconsistencies) > self.consistency_threshold:
             description, _ = self.aspect_repair[max_ic_index].repair(observation, delta_t)
             descriptions += description

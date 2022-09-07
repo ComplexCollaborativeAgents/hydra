@@ -13,7 +13,7 @@ from agent.planning.pddl_plus import PddlPlusPlan, PddlPlusProblem, PddlPlusDoma
     WorldChangeTypes, PddlPlusState
 
 from agent.planning.nyx import PDDL
-from agent.planning.nyx.syntax import constants as nyx_constants
+from agent.planning.nyx.syntax import constants as nyx_constants, constants
 from agent.planning.nyx.syntax.action import Action
 from agent.planning.nyx.syntax.event import Event
 from agent.planning.nyx.syntax.process import Process
@@ -146,25 +146,43 @@ class NyxPddlPlusSimulator(PddlPlusSimulator):
 
     @classmethod
     def _hydra_trace(cls, trace: NyxTrace, include_time_passing: bool = False) -> Trace:
-        hydra_trace = []
+        if constants.TEMPORAL_DOMAIN:
+            hydra_trace = []
 
-        current_state = trace[0]
-        happenings = []
-        for state in trace.iter(extended=True):
-            if current_state is not None and current_state.time != state.time:
-                hydra_trace.append(TraceItem(cls._hydra_state(current_state),
-                                             current_state.time,
-                                             happenings))
-                happenings = []
-            current_state = state
-            if state.predecessor_action:
-                if include_time_passing or state.predecessor_action is not nyx_constants.TIME_PASSING_ACTION:
-                    happenings.append(cls._hydra_world_change(state.predecessor_action))
+            current_state = None
+            happenings = []
+            for state in trace.iter(extended=True):
+                if current_state is not None and current_state.time != state.time:
+                    hydra_trace.append(TraceItem(cls._hydra_state(current_state),
+                                                 current_state.time,
+                                                 happenings))
+                    happenings = []
+                current_state = state
+                if state.predecessor_action:
+                    if include_time_passing or state.predecessor_action is not nyx_constants.TIME_PASSING_ACTION:
+                        happenings.append(cls._hydra_world_change(state.predecessor_action))
+            else:
+                if current_state is not None:
+                    hydra_trace.append(TraceItem(cls._hydra_state(current_state),
+                                                 current_state.time,
+                                                 happenings))
         else:
-            if current_state is not None:
-                hydra_trace.append(TraceItem(cls._hydra_state(current_state),
-                                             current_state.time,
+            hydra_trace_offset = []
+            for state in trace.iter(extended=True):
+                happenings = []
+                if state.predecessor_action is not None:
+                    happenings.append(cls._hydra_world_change(state.predecessor_action))
+                hydra_trace_offset.append(TraceItem(cls._hydra_state(state),
+                                             state.time,
                                              happenings))
+
+            hydra_trace = []
+            if hydra_trace_offset:
+                prev_state, prev_time, _ = hydra_trace_offset[0]
+                for state, time, happenings in hydra_trace_offset[1:]:
+                    hydra_trace.append(TraceItem(prev_state, prev_time, happenings))
+                    prev_state, prev_time = state, time
+                hydra_trace.append(TraceItem(prev_state, prev_time, []))
 
         return hydra_trace
 
