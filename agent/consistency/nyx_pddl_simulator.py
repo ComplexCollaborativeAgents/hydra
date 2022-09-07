@@ -148,7 +148,7 @@ class NyxPddlPlusSimulator(PddlPlusSimulator):
     def _hydra_trace(cls, trace: NyxTrace, include_time_passing: bool = False) -> Trace:
         hydra_trace = []
 
-        current_state = None
+        current_state = trace[0]
         happenings = []
         for state in trace.iter(extended=True):
             if current_state is not None and current_state.time != state.time:
