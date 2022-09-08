@@ -6,7 +6,7 @@ from agent.perception.perception import Perception
 from agent.reward_estimation.reward_estimator import RewardEstimator
 
 from agent.repair.meta_model_repair import *
-from utils.state import Action, State
+from utils.state import Action, State, World
 from utils.stats import AgentStats, NoveltyDetectionStats
 
 # TODO: Maybe push this to the settings file? then every module just adds a logger
@@ -97,6 +97,8 @@ class HydraAgent(metaclass=ABCMeta):
     reward_estimator: RewardEstimator
     
     # Stats
+    current_stats: AgentStats
+    current_detection: NoveltyDetectionStats
     agent_stats: List[AgentStats]                   # List of agent stats per episode
     novelty_detection: List[NoveltyDetectionStats]  # List of novelty detection stats per episode
 
@@ -111,6 +113,22 @@ class HydraAgent(metaclass=ABCMeta):
         self.agent_stats = []
         self.novelty_detection = []
 
+    def novelty_exists(self) -> bool:
+        """Helper function to check the log to see if novelty has been detected in
+
+        Returns:
+            bool: Whether or not novelty has been detected (logged)
+        """
+        return self.current_detection.novelty_detection
+
+    def set_novelty_existence(self, exists:bool):
+        """Helper function that sets whether or not the agent detected novelty in the current episode
+
+        Args:
+            exists (bool): Whether or not novelty exists in this episode (logged to NoveltyDetectionStats)
+        """
+        self.current_detection.novelty_detection = exists
+
     def get_stats(self) -> List[AgentStats]:
         """Gets the list of stats objects per episode for the current trial
 
@@ -120,7 +138,7 @@ class HydraAgent(metaclass=ABCMeta):
         return self.agent_stats
 
     @abstractmethod
-    def episode_init(self):
+    def episode_init(self, world: World):
         """Perform setup for the agent at the beginning of an episode
 
         Raises:

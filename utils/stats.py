@@ -4,8 +4,11 @@ from dataclasses import dataclass, field
 class AgentStats:
     """Statistical values tracking the agent's performance
     """
+    episode_start_time: float
     planning_time: float = 0.0
     explored_states: int = 0
+    plan_action_length: int = 0
+    timed_out: bool = False
 
 @dataclass
 class NoveltyDetectionStats:
@@ -15,7 +18,7 @@ class NoveltyDetectionStats:
     pddl_prob: float = -1.0
     reward_prob: float = -1.0
     novelty_detection: bool = False
-    novelty_characterization: dict = {}
+    novelty_characterization: dict = field(default_factory=dict)
 
 # ------------- POLYCRAFT STATS ------------- #
 
@@ -25,7 +28,10 @@ class PolycraftAgentStats(AgentStats):
     failed_actions_in_level: int = 0 # Count how many actions have failed in a given level
     actions_since_planning: int = 0 # Count how many actions have been performed since we planned last
     
-
+class PolycraftDetectionStats(NoveltyDetectionStats):
+    """Statistical values tracking the agent's detection of novelty within an episode of the Polycraft Domain
+    """
+    
 
 # ------------- SCIENCE BIRDS STATS ------------- #
 
