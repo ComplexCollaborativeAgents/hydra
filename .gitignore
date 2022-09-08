@@ -141,3 +141,6 @@ scratchpad.py
 .log
 .csv
 *_problem.pddl
+
+# Sachin
+*.*.swp

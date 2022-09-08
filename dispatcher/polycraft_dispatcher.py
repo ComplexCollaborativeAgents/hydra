@@ -4,6 +4,7 @@ from typing import List, Dict
 
 from worlds.polycraft_world import *
 from agent.polycraft_hydra_agent import PolycraftHydraAgent
+from dispatcher.hydra_dispatcher import Dispatcher
 
 # Logger
 logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
@@ -12,13 +13,14 @@ logger.setLevel(logging.INFO)
 
 EPISODE_TIME_LIMIT = 17 * 60    # 17 minutes
 
-class PolycraftDispatcher():
+class PolycraftDispatcher(Dispatcher):
     env:Polycraft
     agent:PolycraftHydraAgent
     trials:Dict[str, List]
     results:Dict[str, Dict[str, List]]
 
     def __init__(self, agent: PolycraftHydraAgent):
+        super().__init__(agent)
         self.env = None
         self.agent = agent
 
@@ -39,7 +41,7 @@ class PolycraftDispatcher():
         """
         self.trials = trial_sets
 
-    def experiment_start(self, trials:List[str]=[], standalone:bool=False):
+    def run_experiment(self, trials:List[str]=[], standalone:bool=False):
         ''' 
         Start the experiment.  
         :param standalone: boolean flag that signals to run without launching Polycraft.  If true, requires a running Polycraft instance before startup
@@ -55,9 +57,9 @@ class PolycraftDispatcher():
 
         if len(trials) > 0:
             # Setup trials
-            self.trials = self.setup_trials(trials)
+            self.trials = self._get_trial_paths(trials)
 
-    def setup_trials(self, trials:List[str]) -> Dict[str, List]:
+    def _get_trial_paths(self, trials:List[str]) -> Dict[str, List]:
         """
         Collect a set of trials from the list of paths.  Used for initializing provided trial sets.
         :param trials: List of paths to directories that contain .json levels
@@ -81,11 +83,11 @@ class PolycraftDispatcher():
         trial_num = 0
         for trial_id, trial_levels in self.trials.items():
             # TODO: include novelty characterization? (also detection stats too)
-            self.trial_start(trial_id, trial_num, {}, trial_levels)
-            self.trial_end(trial_id, trial_num)
+            self.run_trial(trial_id, trial_num, {}, trial_levels)
+            self.cleanup_trial(trial_id, trial_num)
             trial_num += 1
 
-    def trial_start(self, trial_id: str, trial_number:int, novelty_description: dict, levels: list):
+    def run_trial(self, trial_id: str, trial_number:int, novelty_description: dict, levels: list):
         ''' Run multiple levels '''
 
         logger.info("------------ [{}] TRIAL {} START ------------".format(trial_id, trial_number))
@@ -97,13 +99,13 @@ class PolycraftDispatcher():
         for level_num, level in enumerate(levels):
             self.env.init_selected_level(level)
             
-            result = self.episode_start(level_num, trial_id, trial_number, novelty_description)
+            result = self.run_episode(level_num, trial_id, trial_number, novelty_description)
 
             self.results[trial_id].append(result)
             
-            self.episode_end()
+            self.cleanup_episode()
 
-    def episode_start(self, level_number: int, trial_id:str, trial_number: int, novelty_description: dict):
+    def run_episode(self, level_number: int, trial_id:str, trial_number: int, novelty_description: dict):
         ''' Run the agent in a single level until done '''
 
         logger.info("------------ [{}] EPISODE {} START ------------".format(trial_number, level_number))
@@ -152,15 +154,15 @@ class PolycraftDispatcher():
 
             # Check if the process has timeout
 
-    def episode_end(self) -> dict:
+    def cleanup_episode(self) -> dict:
         ''' Cleanup level '''
         return
 
-    def trial_end(self, trial_id:str, trial_number:int):
+    def cleanup_trial(self, trial_id:str, trial_number:int):
         # Cleanup
         logger.info("------------ [{}] {} TRIAL END ------------".format(trial_number, trial_id))
 
-    def experiment_end(self):
+    def cleanup_experiment(self):
         # Cleanup
 
         logger.info("------------ EXPERIMENT END ------------")
