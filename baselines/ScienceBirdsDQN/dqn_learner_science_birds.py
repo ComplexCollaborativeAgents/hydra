@@ -44,6 +44,13 @@ class DQNSBAgent():
             if raw_state.game_state.value == GameState.REQUESTNOVELTYLIKELIHOOD.value:
                 self.handle_novelty_request()
 
+            if raw_state.game_state.value == GameState.LOST.value:
+                self.handle_game_lost()
+
+            if raw_state.game_state.value == GameState.WON.value:
+                self.handle_game_won()
+
+
     def handle_new_trial(self):
         ## reset agent
         self.env.sb_client.ready_for_new_set()
@@ -69,12 +76,15 @@ class DQNSBAgent():
 
 
     def handle_game_lost(self):
+        self.env.sb_client.load_next_available_level()
         pass
 
     def handle_game_won(self):
+        self.env.sb_client.load_next_available_level()
         pass
 
     def handle_novelty_request(self):
+        self.env.sb_client.report_novelty_likelihood(0.0, 1.0, [], 0, "")
         pass
 
 
