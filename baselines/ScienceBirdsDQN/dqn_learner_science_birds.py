@@ -5,6 +5,7 @@ import settings
 import worlds.science_birds as sb
 from worlds.science_birds_interface.client.agent_client import GameState
 from agent.perception.perception import Perception
+from agent.reward_estimation.nn_utils.obs_to_imgs import SBObs_to_Imgs
 import random
 
 from runners.run_sb_stats import prepare_config
@@ -23,6 +24,7 @@ class DQNSBAgent():
         self.log = logging.getLogger(__name__).getChild('DQNSBAgent')
         self.env = environment
         self.perception = Perception()
+        self.state_coverter = SBObs_to_Imgs()
         pass
 
 
@@ -62,8 +64,13 @@ class DQNSBAgent():
 
     def choose_action(self, raw_state):
         processed_state = self.perception.process_state(raw_state)
-        print(processed_state.objects)
+        image_state = self.state_coverter.state_to_nD_img(processed_state.objects)
+
+        #### code to choose the right action by sampling the QNet
         angle = random.randrange(0, 90, 1)
+
+
+        ####
         action = self.generate_sb_action(processed_state, angle)
         return action
 
@@ -105,7 +112,7 @@ def get_levels_list_for_novelty(novelty, novelty_type):
 if __name__ == '__main__':
     config = SB_CONFIG_PATH/'stats_config.xml'
     novelty = 0
-    novelty_type = 2
+    novelty_type = 222
     pattern = '9001_Data/StreamingAssets/Levels/novelty_level_{}/type{}/Levels/*.xml'.format(novelty, novelty_type)
     print("running level: " + pattern)
     get_levels_list_for_novelty(novelty, novelty_type)
