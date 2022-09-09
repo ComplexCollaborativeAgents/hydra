@@ -1,5 +1,5 @@
 import logging, pathlib
-import math
+import math, cv2
 
 import settings
 import worlds.science_birds as sb
@@ -13,6 +13,10 @@ from runners.run_sb_stats import prepare_config
 SB_DATA_PATH = pathlib.Path(settings.ROOT_PATH) / 'data' / 'science_birds'
 SB_CONFIG_PATH = SB_DATA_PATH / 'config'
 SB_BIN_PATH = pathlib.Path(settings.SCIENCE_BIRDS_BIN_DIR) / 'linux'
+
+from matplotlib import pyplot as plt
+
+
 
 
 class QNet():
@@ -66,7 +70,12 @@ class DQNSBAgent():
         processed_state = self.perception.process_state(raw_state)
         image_state = self.state_coverter.state_to_nD_img(processed_state.objects)
 
+        #### debug/visualize state generation
+        #image_pic = self.state_coverter.state_to_image(processed_state.objects)
+        #plt.imshow(image_pic, interpolation='nearest')
+        #plt.show()
         #### code to choose the right action by sampling the QNet
+
         angle = random.randrange(0, 90, 1)
 
 
