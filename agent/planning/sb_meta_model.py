@@ -484,7 +484,7 @@ class ScienceBirdsMetaModel(MetaModel):
                              'meta_wood_multiplier': 1.0,
                              'meta_stone_multiplier': 1.0,
                              'meta_ice_multiplier': 1.0,
-                             'v_bird_change': -4.0,
+                             'v_bird_change': 0.0,
                              'gravity_factor': 9.81,
                              'meta_platform_size': 2,
                              'base_life_pig_multiplier': 0.0,
