@@ -129,7 +129,7 @@ class HydraAgent(metaclass=ABCMeta):
         """
         self.current_detection.novelty_detection = exists
 
-    def get_stats(self) -> List[AgentStats]:
+    def get_agent_stats(self) -> List[AgentStats]:
         """Gets the list of stats objects per episode for the current trial
 
         Returns:
@@ -147,13 +147,16 @@ class HydraAgent(metaclass=ABCMeta):
         raise NotImplementedError()
 
     @abstractmethod
-    def episode_end(self):
+    def episode_end(self) -> NoveltyDetectionStats:
         """Perform cleanup for the agent at the end of an episode
-
-        Raises:
-            NotImplementedError
         """
-        raise NotImplementedError()
+        self.novelty_detection.append(self.current_detection)
+        self.agent_stats.append(self.current_stats)
+        
+        self.current_detection = None
+        self.current_stats = None
+
+        return self.novelty_detection[-1]
 
     @abstractmethod
     def choose_action(self, state: State) -> Action:

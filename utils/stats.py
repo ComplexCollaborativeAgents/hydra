@@ -7,6 +7,8 @@ class AgentStats:
     episode_start_time: float
     planning_time: float = 0.0
     explored_states: int = 0
+    repair_calls: int = 0
+    repair_time: float = 0.0
     plan_action_length: int = 0
     timed_out: bool = False
 
@@ -25,7 +27,7 @@ class NoveltyDetectionStats:
 class PolycraftAgentStats(AgentStats):
     """Statistical values tracking the agent's performance in the Polycraft domain
     """
-    failed_actions_in_level: int = 0 # Count how many actions have failed in a given level
+    failed_actions: int = 0 # Count how many actions have failed in a given level
     actions_since_planning: int = 0 # Count how many actions have been performed since we planned last
     
 class PolycraftDetectionStats(NoveltyDetectionStats):

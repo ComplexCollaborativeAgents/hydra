@@ -15,7 +15,7 @@ from utils.generate_trials_polycraft import (collect_levels,
 from worlds.polycraft_world import Polycraft, ServerMode
 
 from runners.constants import KNOWN, NON_NOVELTY_PERFORMANCE, NOVELTY, UNKNOWN
-from runners.polycraft_dispatcher import PolycraftDispatcher
+from dispatcher.polycraft_dispatcher import PolycraftDispatcher
 
 """
 Runs a 
@@ -50,6 +50,8 @@ NOVEL_TO_USE = {    # level and type of novel levels to use
 }
 
 class NoveltyExperimentRunnerPolycraft:
+
+
     def __init__(self):
         """"""
 
@@ -79,8 +81,8 @@ class NoveltyExperimentRunnerPolycraft:
 
     # Run trials
     def run_trials(self):
-        self.dispatcher.set_trial_sets(self.trials)
         self.dispatcher.run_experiment(standalone=True)
+        self.dispatcher.set_trial_sets(self.trials)
         self.dispatcher.run_trials()
 
         self.process_experiment()

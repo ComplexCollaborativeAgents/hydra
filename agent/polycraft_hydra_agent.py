@@ -42,10 +42,10 @@ class PolycraftEpisodeLog(HydraEpisodeLog):
         self.time_so_far = 0.0
 
     def get_initial_state(self) -> PolycraftState:
-        """Get the 
+        """Get the initial state of the episode log
 
         Returns:
-            _type_: _description_
+            PolycraftState: Polycraft World state object
         """
         return self.states[0]
 
@@ -87,7 +87,16 @@ class PolycraftPlanner(HydraPlanner):
         self.delta_t = settings.POLYCRAFT_DELTA_T
         self.timeout = settings.POLYCRAFT_TIMEOUT
 
-    def make_plan(self, state: PolycraftState, problem_complexity=0):
+    def make_plan(self, state: PolycraftState, problem_complexity:int=0) -> List[PolycraftAction]:
+        """Generate a sequence of Polycraft actions as a plan
+
+        Args:
+            state (PolycraftState): Polycraft World state object
+            problem_complexity (int, optional): Degree of complexity the planner will consider the problem with (CURRENTLY UNUSED). Defaults to 0.
+
+        Returns:
+            List[PolycraftAction]: 
+        """
         if settings.NO_PLANNING:
             self.current_problem_prefix = datetime.datetime.now().strftime(
                 "%y%m%d_%H%M%S")  # need a prefix for observations
@@ -127,6 +136,13 @@ class PolycraftPlanner(HydraPlanner):
         return []
 
     def write_pddl_file(self, pddl_problem: PddlPlusProblem, pddl_domain: PddlPlusDomain):
+        """Write pddl problem + domain to file
+
+        Args:
+            pddl_problem (PddlPlusProblem): PDDL Problem object that contains the objects and goal.
+            pddl_domain (PddlPlusDomain): PDDL Domain object that contains predicates, functions, constants, etc.
+        """
+
         problem_exporter = PddlProblemExporter()
         problem_exporter.to_file(pddl_problem, self.pddl_problem_file)
         domain_exporter = PddlDomainExporter()
@@ -142,9 +158,17 @@ class PolycraftPlanner(HydraPlanner):
                                     "{}/trace/problems/{}_domain.pddl".format(self.planning_path,
                                                                               self.current_problem_prefix))
 
-    def _get_poly_action_from_pddl_action(self, pddl_action_line: str, action_generators: list) -> PolycraftAction:
-        """ Generates a PolycraftAction using the given list of action generators based on the given
-        pddl action line. """
+    def _get_poly_action_from_pddl_action(self, pddl_action_line: str, action_generators: List[PddlPolycraftActionGenerator]) -> PolycraftAction:
+        """Generates a PolycraftAction using the given list of action generators based on the given
+        pddl action line. 
+
+        Args:
+            pddl_action_line (str): raw PDDL action string
+            action_generators (List[PddlPolycraftActionGenerator]): List of relevant action generators
+
+        Returns:
+            PolycraftAction: translated Polycraft action
+        """
 
         # Extract action name and parameters
         matches = list(RE_EXTRACT_ACTION_PATTERN.finditer(pddl_action_line))
@@ -179,21 +203,34 @@ class PolycraftPlanner(HydraPlanner):
 
         return selected_action_gen.to_pddl_polycraft(binding)
 
-    def _translate_pddl_object_to_poly(self, pddl_obj_name, pddl_obj_type):
-        """ Translate the name of a pddl object to its corresponding name in polycraft, based on its type
+    def _translate_pddl_object_to_poly(self, pddl_obj_name:str, pddl_obj_type:PddlType) -> str:
+        """Translate the name of a pddl object to its corresponding name in polycraft, based on its type
             For cell type objects, this means convert from cell_x_y_z to x,y,z
+
+        Args:
+            pddl_obj_name (str): Name of the PDDL object
+            pddl_obj_type (PddlType): PddlType of the object
+
+        Returns:
+            str: Polycraft object string
         """
         assert (pddl_obj_type in [tp.name for tp in PddlType])  # Currently, we only have objects of type cell
         return ",".join(pddl_obj_name.split("_")[1:])
 
-    def extract_actions_from_plan_trace(self, plane_trace_file: str):
-        """ Parses the given plan trace file and outputs the plan """
+    def extract_actions_from_plan_trace(self, plan_trace_file: str) -> List[PolycraftAction]:
+        """Parses the given plan trace file and outputs the plan
+
+        Args:
+            plan_trace_file (str): filepath of the plan trace
+
+        Returns:
+            List[PolycraftAction]: List of actions from the plan trace
+        """
         pddl_action_names = [action.name for action in self.pddl_domain.actions]
         action_generators = self.meta_model.get_action_generators(self.initial_state)
         plan_actions = []
-        with open(plane_trace_file) as plan_trace_file:
-            for i, line in enumerate(plan_trace_file):
-                # print(str(i) + " =====> " + str(line))
+        with open(plan_trace_file) as fp:
+            for i, line in enumerate(fp):
                 if "No Plan Found!" in line:
                     logger.info("No plan found")
                     return []
@@ -216,7 +253,10 @@ class PolycraftHydraAgent(HydraAgent):
     meta_model_repair: PolycraftMetaModelRepair
 
     current_log: PolycraftEpisodeLog
+    current_stats: PolycraftAgentStats
+    current_detection: PolycraftDetectionStats
 
+    #TODO: Investigate necessity of having a "consistency" member variable when it is included in meta_model_repair
     def __init__(self):
         super().__init__()
         self.meta_model = PolycraftMetaModel(active_task=PolycraftTask.CRAFT_POGO.create_instance())
@@ -242,6 +282,23 @@ class PolycraftHydraAgent(HydraAgent):
         self.current_stats = PolycraftAgentStats(episode_start_time=time.time())
         self.current_detection = PolycraftDetectionStats()
 
+    def _build_episode_log(self, state: PolycraftState) -> PolycraftEpisodeLog:
+        """Initialize the current episode log and active plan objects
+
+        Args:
+            state (PolycraftState): Initial state of the episode log
+
+        Returns:
+            PolycraftEpisodeLog: The current episode log
+        """
+
+        self.current_state = state
+        self.current_log = PolycraftEpisodeLog()  # Start a new observation object for this level
+        self.current_log.states.append(self.current_state)
+        self.episode_logs.append(self.current_log)
+        
+        return self.current_log
+
     def episode_init(self, world: Polycraft):
         """Perform setup for the agent at the beginning of an episode. 
             Initialize datastructures for a new level and perform exploratory actions to get familiar with the current level.
@@ -250,6 +307,9 @@ class PolycraftHydraAgent(HydraAgent):
         Args:
             world (Polycraft): reference to domain world object
         """
+
+        self._init_new_episode_stats()
+        self._build_episode_log(world.get_current_state())
 
         self.current_stats.episode_start_time = time.time()
 
@@ -260,17 +320,9 @@ class PolycraftHydraAgent(HydraAgent):
 
         current_state = world.get_current_state()
 
-        self._init_new_episode_stats()
-
         # Try to interact with all other agents
         for entity_id in current_state.entities.keys():
             self._interact_with_enttiy(entity_id, current_state, world)
-
-        # Initialize the current observation and active plan objects
-        self.current_state = world.get_current_state()
-        self.current_log = PolycraftEpisodeLog()  # Start a new observation object for this level
-        self.current_log.states.append(current_state)
-        self.episode_logs.append(self.current_log)
 
         self.active_plan = []
         self.set_active_task(PolycraftTask.CRAFT_POGO.create_instance())
@@ -281,7 +333,7 @@ class PolycraftHydraAgent(HydraAgent):
         Returns:
             PolycraftDetectionStats: The novelty detection stats for the latest episode
         """
-        return self.current_detection
+        return super().episode_end()
 
     def _interact_with_enttiy(self, entity_id: str, current_state: PolycraftState, world: Polycraft):
         """Interacts with an entity. If the entity is a trader, attempt to log possible trades. 
@@ -346,8 +398,15 @@ class PolycraftHydraAgent(HydraAgent):
         # else
         return None
 
-    def _choose_exploration_task(self, world_state: PolycraftState):
-        """ Choose an exploration task to perform """
+    def _choose_exploration_task(self, world_state: PolycraftState) -> PolycraftTask:
+        """Choose an exploration task to perform
+
+        Args:
+            world_state (PolycraftState): Polycraft World state object
+
+        Returns:
+            PolycraftTask: Exploration task for the agent to focus on
+        """
         exploration_tasks = []
 
         # Explore other rooms
@@ -429,7 +488,7 @@ class PolycraftHydraAgent(HydraAgent):
         if len(self.active_plan) == 0:
             logger.info("No current plan, plan to create pogostick")
             self.set_active_task(PolycraftTask.CRAFT_POGO.create_instance())
-            self.active_plan = self.plan_logic(world_state)
+            self.active_plan = self.plan_logic(world_state, world)
 
         if self.level_timed_out(world):
             self.active_plan = []
@@ -477,9 +536,9 @@ class PolycraftHydraAgent(HydraAgent):
         Returns:
             bool: Whether or not the agent should explore
         """
-        if self.failed_actions_in_level > 0 and \
-                self.failed_actions_in_level % self.exploration_rate == 0:
-            self.failed_actions_in_level = 0  # reset since we are changing task.
+        if self.current_stats.failed_actions > 0 and \
+                self.current_stats.failed_actions % self.exploration_rate == 0:
+            self.current_stats.failed_actions = 0  # reset since we are changing task.
             logger.info("Exploration chosen")
             return True
         else:
@@ -496,7 +555,7 @@ class PolycraftHydraAgent(HydraAgent):
         Returns:
             List[PolycraftAction]: List of Polycraft Actions for the new plan
         """
-        if self.should_repair(world_state):
+        if self.should_repair(world_state, world):
             logger.info("Repairing model!")
             self.repair_meta_model(world_state, world)
 
@@ -610,9 +669,9 @@ class PolycraftHydraAgent(HydraAgent):
 
         if not action.success:
             logger.info(f"Action{action} failed: {action.response}")
-            self.failed_actions_in_level = self.failed_actions_in_level + 1
+            self.current_stats.failed_actions = self.current_stats.failed_actions + 1
         else:
-            self.actions_since_planning = self.actions_since_planning + 1
+            self.current_stats.actions_since_planning += 1
             logger.info(f"Action{action} finished successfully!")
         self.current_state = next_state
         self.current_log.states.append(self.current_state)
@@ -681,14 +740,15 @@ class PolycraftHydraAgent(HydraAgent):
             Tuple[float, str]: Novelty likelihood and novelty characterization
         """
         stats = PolycraftDetectionStats()
+        novelty_likelihood = 0.0
         
         if not only_current_state:
             novelties = set()
             last_observation = self.current_log
             for i, logged_state in enumerate(last_observation.states):
-                novelties.update(self._detect_unknown_objects(logged_state))
+                novelties.update(self._detect_unknown_objects(logged_state, world))
         else:
-            novelties = self._detect_unknown_objects(state)
+            novelties = self._detect_unknown_objects(state, world)
 
         if len(novelties) > 0:
             novelty_characterization = "\n".join(novelties)
@@ -717,7 +777,7 @@ class PolycraftHydraAgent(HydraAgent):
                 stats.pddl_prob = 0.0
                 stats.novelty_detection = False
 
-        if self.novelty_existence and report_novelty and not self.novelty_reported:
+        if stats.novelty_detection and report_novelty and not self.novelty_reported:
             world.poly_client.REPORT_NOVELTY(level="0", confidence=f"{novelty_likelihood}",
                                                 user_msg=novelty_characterization)
             self.novelty_reported = True
@@ -762,16 +822,16 @@ class PolycraftHydraAgent(HydraAgent):
         if len(novelties) > 0 and not self.novelty_reported:
             self.current_detection.novelty_characterization['unknown_object'] = novelties
             
-            # Report novelty using the function pointer
-            report_callback("1", f"{100}", str(novelties))
+            world.poly_client.REPORT_NOVELTY(level="1", confidence=f"{100}", user_msg=str(novelties))
             self.novelty_reported = True
         return novelties
 
-    def should_repair(self, state: PolycraftState) -> bool:
+    def should_repair(self, state: PolycraftState, world: Polycraft) -> bool:
         """Choose if the agent should repair its metamodel based on the given observation
 
         Args:
             state (PolycraftState): World state object
+            world (Polycraft): Polycraft World object
 
         Returns:
             bool: Whether or not to issue a repair
@@ -780,16 +840,16 @@ class PolycraftHydraAgent(HydraAgent):
             # There is a novelty we explored since last check, need to repair based on what we discoverd.
             self.novelty_explored = False  # done with this novelty
             return True
-        elif self.failed_actions_in_level > 0 and self.failed_actions_in_level % self.exploration_rate == 0:
+        elif self.current_stats.failed_actions > 0 and self.current_stats.failed_actions % self.exploration_rate == 0:
             return True
-        self._detect_novelty(state, report_novelty=True, only_current_state=False)
+        self._detect_novelty(state, world, report_novelty=True, only_current_state=False)
         return self.current_detection.novelty_detection
 
     def repair_meta_model(self, state: PolycraftState, world: Polycraft):
         """ Call the repair object to repair the current metamodel """
 
-        self._detect_unknown_objects(state)
-        self.stats_for_level['repair_calls'] += 1
+        self._detect_unknown_objects(state, world)
+        self.current_stats.repair_calls += 1
         try:
             # self.meta_model.set_active_task(CreatePogoTask())
             start_time = time.perf_counter()
@@ -799,7 +859,7 @@ class PolycraftHydraAgent(HydraAgent):
                                   for i, fluent in enumerate(self.meta_model.repairable_constants)]
             logger.info(
                 "Repair done! Consistency: %.2f, Repair:\n %s" % (consistency, "\n".join(repair_description)))
-            self.stats_for_level['repair_time'].append(time.perf_counter() - start_time)
+            self.current_stats.repair_time = time.perf_counter() - start_time
         except:
             # TODO: fix this hack, catch correct exception
             import traceback

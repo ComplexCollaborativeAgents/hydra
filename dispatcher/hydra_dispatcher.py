@@ -1,11 +1,12 @@
-from abc import abstractmethod
+import datetime
+from abc import ABCMeta, abstractmethod
+from typing import Dict
+
 from utils.state import World
-
-
 from agent.hydra_agent import HydraAgent
 from utils.state import World
 
-class Dispatcher():
+class Dispatcher(metaclass=ABCMeta):
     """ SuperClass for hydra agent dispatcher. Interfaces connecting hydra
             agnet and environment for running an evaluation.
 
@@ -15,12 +16,13 @@ class Dispatcher():
     agent: HydraAgent           # hydra agent being tested
     trial_timestamp: str
 
-    def __init__(self):
-        self.trial_timestamp = ""
+    def __init__(self, agent:HydraAgent):
+        self.trial_timestamp = datetime.datetime.now().strftime("%y%m%d%H%M%S")
+        self.agent = agent
 
 
     @abstractmethod
-    def report_novelty(self) -> Dict[str, Any]:
+    def report_novelty(self) -> dict:
         """ Return a dictionary with novelty detail and stats
 
         Returns:
@@ -43,7 +45,7 @@ class Dispatcher():
 
 
     @abstractmethod
-    def run_expertiment(self):
+    def run_experiment(self):
         """ Run an experiment
 
         Raises:
