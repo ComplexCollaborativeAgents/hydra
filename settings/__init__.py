@@ -33,8 +33,11 @@ CP_PLANNER_MEMORY_LIMIT = 50  # memory limit for UPMurphi (in MB)
 CP_DELTA_T = 0.02  # time discretisation for UPMurphi
 CP_TIMEOUT = 60  # timeout for the planning phase (in seconds)
 CP_CONSISTENCY_THRESHOLD = 0.01
+CP_DETECTION_CONSISTENCY_THRESHOLD = 0.1
+CP_REPAIR_CONSISTENCY_THRESHOLD = 0.2
 CP_EPISODE_TIME_LIMIT = 1200
 CP_REPAIR_TIMEOUT = 180
+CP_SUPPRESS_PRINTOUTS = False
 
 POLYCRAFT_DELTA_T = 1  # Time discretization
 POLYCRAFT_TIMEOUT = 180  # timeout for the planning phase (in seconds)
@@ -80,6 +83,7 @@ POLYCRAFT_MAX_GENERATED_NODES = 10000  # Maximum number of nodes generated until
 SB_PLANNING_DOCKER_PATH = path.join(ROOT_PATH, 'agent', 'planning', 'sb_planning')
 CARTPOLE_PLANNING_DOCKER_PATH = path.join(ROOT_PATH, 'agent', 'planning', 'cartpole_planning')
 CARTPOLEPLUSPLUS_PLANNING_DOCKER_PATH = path.join(ROOT_PATH, 'agent', 'planning', 'cartpoleplusplus_planning')
+CARTPOLEPLUSPLUS_DOMAIN_PATH = path.join(ROOT_PATH, 'agent', 'planning', 'cartpoleplusplus_planning')
 POLYCRAFT_PLANNING_DOCKER_PATH = path.join(ROOT_PATH, 'agent', 'planning', 'polycraft_planning')
 
 VAL_DOCKER_PATH = path.join(ROOT_PATH, 'agent', 'planning', 'val_scripts')

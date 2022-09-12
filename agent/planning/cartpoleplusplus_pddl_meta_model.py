@@ -56,6 +56,7 @@ class CartPolePlusPlusMetaModel(MetaModel):
                 'm_cart': 1.0,
                 'r_cart': 0.5,
                 'l_pole': 1.0,
+                # l_pole: 0.8,  # TODO: check this from branch "m30_cartpole++_temp"
                 # 'l_pole': 0.5, # original OpenAI Gym version
                 'm_pole': 0.1,
                 'force_mag': 10.0,
@@ -96,17 +97,19 @@ class CartPolePlusPlusMetaModel(MetaModel):
 
         pddl_problem.objects.append(['dummy_obj', 'dummy'])
 
+        # NOTE: THETA/POLE X_POSITION AND Y_POSITION ARE REVERSED & MISNAMED!!!
+        # X = PITCH AND Y = ROLL ANGLES (INSTEAD OF ABSOLUTE X AND Y POSITIONS WRT THE WORLD FRAME)
         euler_pole = self.quaternion_to_euler(round(observation_array['pole']['x_quaternion'], 5),
                                               round(observation_array['pole']['y_quaternion'], 5),
                                               round(observation_array['pole']['z_quaternion'], 5),
                                               round(observation_array['pole']['w_quaternion'], 5))
-        obs_theta_x = round(euler_pole[0], 5)  # XY reversed on purpose to match observation
-        obs_theta_y = round(euler_pole[1], 5)  # XY reversed on purpose to match observation
+        obs_theta_x = round(euler_pole[1], 5)  # XY reversed on purpose to match observation
+        obs_theta_y = round(euler_pole[0], 5)  # XY reversed on purpose to match observation
         # obs_theta_x = np.radians(round(observation_array['pole']['x_position'], 5))
         # obs_theta_y = np.radians(round(observation_array['pole']['y_position'], 5))
+        obs_theta_x_dot = round(observation_array['pole']['y_velocity'], 5)  # XY reversed on purpose to match observation
+        obs_theta_y_dot = round(observation_array['pole']['x_velocity'], 5)  # XY reversed on purpose to match observation
 
-        obs_theta_x_dot = round(observation_array['pole']['x_velocity'], 5)
-        obs_theta_y_dot = round(observation_array['pole']['y_velocity'], 5)
         obs_pos_x = round(observation_array['cart']['x_position'], 5)
         obs_pos_y = round(observation_array['cart']['y_position'], 5)
         obs_pos_x_dot = round(observation_array['cart']['x_velocity'], 5)
@@ -128,16 +131,12 @@ class CartPolePlusPlusMetaModel(MetaModel):
         # MAIN COMPONENTS: X and THETA + derivatives
         pddl_problem.init.append(['=', ['pos_x'], round(obs_pos_x, CartPolePlusPlusMetaModel.PLANNER_PRECISION)])
         pddl_problem.init.append(['=', ['pos_y'], round(obs_pos_y, CartPolePlusPlusMetaModel.PLANNER_PRECISION)])
-        pddl_problem.init.append(
-            ['=', ['pos_x_dot'], round(obs_pos_x_dot, CartPolePlusPlusMetaModel.PLANNER_PRECISION)])
-        pddl_problem.init.append(
-            ['=', ['pos_y_dot'], round(obs_pos_y_dot, CartPolePlusPlusMetaModel.PLANNER_PRECISION)])
+        pddl_problem.init.append(['=', ['pos_x_dot'], round(obs_pos_x_dot, CartPolePlusPlusMetaModel.PLANNER_PRECISION)])
+        pddl_problem.init.append(['=', ['pos_y_dot'], round(obs_pos_y_dot, CartPolePlusPlusMetaModel.PLANNER_PRECISION)])
         pddl_problem.init.append(['=', ['theta_x'], round(obs_theta_x, CartPolePlusPlusMetaModel.PLANNER_PRECISION)])
         pddl_problem.init.append(['=', ['theta_y'], round(obs_theta_y, CartPolePlusPlusMetaModel.PLANNER_PRECISION)])
-        pddl_problem.init.append(
-            ['=', ['theta_x_dot'], round(obs_theta_x_dot, CartPolePlusPlusMetaModel.PLANNER_PRECISION)])
-        pddl_problem.init.append(
-            ['=', ['theta_y_dot'], round(obs_theta_y_dot, CartPolePlusPlusMetaModel.PLANNER_PRECISION)])
+        pddl_problem.init.append(['=', ['theta_x_dot'], round(obs_theta_x_dot, CartPolePlusPlusMetaModel.PLANNER_PRECISION)])
+        pddl_problem.init.append(['=', ['theta_y_dot'], round(obs_theta_y_dot, CartPolePlusPlusMetaModel.PLANNER_PRECISION)])
         pddl_problem.init.append(['=', ['F_x'], 0.0])
         pddl_problem.init.append(['=', ['F_y'], 0.0])
 
@@ -145,43 +144,26 @@ class CartPolePlusPlusMetaModel(MetaModel):
         initial_Fy = 0.0
 
         # TODO; WP: changed "self.constant_numeric_fluents['force_mag']" to "self.constant_numeric_fluents['F_x']" to "initial_F=0.0" at the beginning of calc_temp_x (verify that it's the correct thing to do).
-        calc_temp_x = (initial_Fx + (
-                self.constant_numeric_fluents['m_pole'] * self.constant_numeric_fluents['l_pole']) *
-                       obs_theta_x_dot ** 2 * math.sin(obs_theta_x)) / (
-                              self.constant_numeric_fluents['m_cart'] + self.constant_numeric_fluents['m_pole'])
-        calc_theta_x_ddot = (self.constant_numeric_fluents['gravity'] * math.sin(obs_theta_x) - math.cos(
-            obs_theta_x) * calc_temp_x) / (self.constant_numeric_fluents['l_pole'] * (
-                4.0 / 3.0 - self.constant_numeric_fluents['m_pole'] * math.cos(obs_theta_x) ** 2 / (
-                self.constant_numeric_fluents['m_cart'] + self.constant_numeric_fluents['m_pole'])))
-        calc_pos_x_ddot = calc_temp_x - (self.constant_numeric_fluents['m_pole'] * self.constant_numeric_fluents[
-            'l_pole']) * calc_theta_x_ddot * math.cos(obs_theta_x) / (
-                                  self.constant_numeric_fluents['m_cart'] + self.constant_numeric_fluents['m_pole'])
+        calc_temp_x = (initial_Fx + (self.constant_numeric_fluents['m_pole'] * self.constant_numeric_fluents['l_pole']) *
+                       obs_theta_x_dot ** 2 * math.sin(obs_theta_x)) / (self.constant_numeric_fluents['m_cart'] + self.constant_numeric_fluents['m_pole'])
+        calc_theta_x_ddot = (self.constant_numeric_fluents['gravity'] * math.sin(obs_theta_x) - math.cos(obs_theta_x) * calc_temp_x) / (self.constant_numeric_fluents['l_pole'] * (4.0 / 3.0 - self.constant_numeric_fluents['m_pole'] * math.cos(obs_theta_x) ** 2 / (self.constant_numeric_fluents['m_cart'] + self.constant_numeric_fluents['m_pole'])))
+        calc_pos_x_ddot = calc_temp_x - (self.constant_numeric_fluents['m_pole'] * self.constant_numeric_fluents['l_pole']) * calc_theta_x_ddot * math.cos(obs_theta_x) / (self.constant_numeric_fluents['m_cart'] + self.constant_numeric_fluents['m_pole'])
 
-        pddl_problem.init.append(
-            ['=', ['pos_x_ddot'], round(calc_pos_x_ddot, CartPolePlusPlusMetaModel.PLANNER_PRECISION)])
-        pddl_problem.init.append(
-            ['=', ['theta_x_ddot'], round(calc_theta_x_ddot, CartPolePlusPlusMetaModel.PLANNER_PRECISION)])
+        pddl_problem.init.append(['=', ['pos_x_ddot'], round(calc_pos_x_ddot, CartPolePlusPlusMetaModel.PLANNER_PRECISION)])
+        pddl_problem.init.append(['=', ['theta_x_ddot'], round(calc_theta_x_ddot, CartPolePlusPlusMetaModel.PLANNER_PRECISION)])
 
         # TODO; WP: changed "self.constant_numeric_fluents['force_mag']" to "self.constant_numeric_fluents['F_y']" to "initial_F=0.0" at the beginning of calc_temp_y (verify that it's the correct thing to do).
-        calc_temp_y = (initial_Fy + (
-                self.constant_numeric_fluents['m_pole'] * self.constant_numeric_fluents['l_pole']) *
-                       obs_theta_y_dot ** 2 * math.sin(obs_theta_y)) / (
-                              self.constant_numeric_fluents['m_cart'] + self.constant_numeric_fluents['m_pole'])
-        calc_theta_y_ddot = (self.constant_numeric_fluents['gravity'] * math.sin(obs_theta_y) - math.cos(
-            obs_theta_y) * calc_temp_y) / (self.constant_numeric_fluents['l_pole'] * (
-                4.0 / 3.0 - self.constant_numeric_fluents['m_pole'] * math.cos(obs_theta_y) ** 2 / (
-                self.constant_numeric_fluents['m_cart'] + self.constant_numeric_fluents['m_pole'])))
-        calc_pos_y_ddot = calc_temp_y - (self.constant_numeric_fluents['m_pole'] * self.constant_numeric_fluents[
-            'l_pole']) * calc_theta_y_ddot * math.cos(obs_theta_y) / (
-                                  self.constant_numeric_fluents['m_cart'] + self.constant_numeric_fluents['m_pole'])
+        calc_temp_y = (initial_Fy + (self.constant_numeric_fluents['m_pole'] * self.constant_numeric_fluents['l_pole']) *
+                       obs_theta_y_dot ** 2 * math.sin(obs_theta_y)) / (self.constant_numeric_fluents['m_cart'] + self.constant_numeric_fluents['m_pole'])
+        calc_theta_y_ddot = (self.constant_numeric_fluents['gravity'] * math.sin(obs_theta_y) - math.cos(obs_theta_y) * calc_temp_y) / (self.constant_numeric_fluents['l_pole'] * (4.0 / 3.0 - self.constant_numeric_fluents['m_pole'] * math.cos(obs_theta_y) ** 2 / (self.constant_numeric_fluents['m_cart'] + self.constant_numeric_fluents['m_pole'])))
+        calc_pos_y_ddot = calc_temp_y - (self.constant_numeric_fluents['m_pole'] * self.constant_numeric_fluents['l_pole']) * calc_theta_y_ddot * math.cos(obs_theta_y) / (self.constant_numeric_fluents['m_cart'] + self.constant_numeric_fluents['m_pole'])
 
-        pddl_problem.init.append(
-            ['=', ['pos_y_ddot'], round(calc_pos_y_ddot, CartPolePlusPlusMetaModel.PLANNER_PRECISION)])
-        pddl_problem.init.append(
-            ['=', ['theta_y_ddot'], round(calc_theta_y_ddot, CartPolePlusPlusMetaModel.PLANNER_PRECISION)])
+        pddl_problem.init.append(['=', ['pos_y_ddot'], round(calc_pos_y_ddot, CartPolePlusPlusMetaModel.PLANNER_PRECISION)])
+        pddl_problem.init.append(['=', ['theta_y_ddot'], round(calc_theta_y_ddot, CartPolePlusPlusMetaModel.PLANNER_PRECISION)])
+
 
         # FLYING BLOCKS AND THEIR ATTRIBUTES
-        purposely_ignoring_blocks = True
+        purposely_ignoring_blocks = False
         # Add objects to problem
         if len(observation_array['blocks']) == 0 or purposely_ignoring_blocks:
             pddl_problem.objects.append(['dummy_block', 'block'])
@@ -213,10 +195,12 @@ class CartPolePlusPlusMetaModel(MetaModel):
                                               round(observations_array['pole']['z_quaternion'], 5),
                                               round(observations_array['pole']['w_quaternion'], 5))
 
-        obs_theta_x = round(euler_pole[0], 5)
-        obs_theta_y = round(euler_pole[1], 5)
-        obs_theta_x_dot = round(observations_array['pole']['x_velocity'], 5)
-        obs_theta_y_dot = round(observations_array['pole']['y_velocity'], 5)
+        # NOTE: THETA/POLE X_POSITION AND Y_POSITION ARE REVERSED & MISNAMED!!!
+        # X = PITCH AND Y = ROLL ANGLES (INSTEAD OF ABSOLUTE X AND Y POSITIONS WRT THE WORLD FRAME)
+        obs_theta_x = round(euler_pole[1], 5)  # XY reversed on purpose to match observation
+        obs_theta_y = round(euler_pole[0], 5)  # XY reversed on purpose to match observation
+        obs_theta_x_dot = round(observations_array['pole']['y_velocity'],5)  # XY reversed on purpose to match observation
+        obs_theta_y_dot = round(observations_array['pole']['x_velocity'],5)  # XY reversed on purpose to match observation
 
         obs_pos_x = round(observations_array['cart']['x_position'], 5)
         obs_pos_y = round(observations_array['cart']['y_position'], 5)

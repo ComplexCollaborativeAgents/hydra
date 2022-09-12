@@ -34,9 +34,9 @@ import time
 import types
 import uuid
 
-__major_version__ = '0.7'
-__minor_version__ = '7'
-__db_version__ = '0.5'
+__major_version__ = '0.8'
+__minor_version__ = '1'
+__db_version__ = '0.6'
 __version__ = '{}.{}'.format(__major_version__, __minor_version__)
 __database_version__ = re.sub('[.]', '_', __db_version__)
 
@@ -119,62 +119,108 @@ SEED_NUM_TESTING = 4294967295
 # AIQ Types
 TYPE_EXPERIMENT_AIQ = 'AIQ'
 TYPE_EXPERIMENT_SAIL_ON = 'SAIL-ON'
+TYPE_EXPERIMENT_SAIL_ON_SOTA = 'SAIL-ON-SOTA'
 VALID_EXPERIMENT_TYPES = list([TYPE_EXPERIMENT_AIQ,
-                               TYPE_EXPERIMENT_SAIL_ON])
+                               TYPE_EXPERIMENT_SAIL_ON,
+                               TYPE_EXPERIMENT_SAIL_ON_SOTA])
 DOMAIN_CARTPOLE = 'cartpole'
 DOMAIN_VIZDOOM = 'vizdoom'
 DOMAIN_SMARTENV = 'smartenv'
 VALID_DOMAINS = list([DOMAIN_CARTPOLE,
                       DOMAIN_VIZDOOM,
                       DOMAIN_SMARTENV])
-NOVELTY_1 = 1
-NOVELTY_2 = 2
-NOVELTY_3 = 3
-NOVELTY_101 = 101
-NOVELTY_102 = 102
-NOVELTY_103 = 103
-NOVELTY_104 = 104
-NOVELTY_105 = 105
-NOVELTY_200 = 200
-NOVELTY_201 = 201
-NOVELTY_202 = 202
-NOVELTY_203 = 203
-NOVELTY_204 = 204
-NOVELTY_205 = 205
+NOVELTY_0 = 0  # Phase 1 level 0 (non-novel)
+NOVELTY_1 = 1  # Phase 1 level 1
+NOVELTY_2 = 2  # Phase 1 level 2
+NOVELTY_3 = 3  # Phase 1 level 3
+NOVELTY_5 = 5  # Phase 1
+NOVELTY_10 = 10  # Phase 1 mock novelty level 1
+NOVELTY_11 = 11  # Phase 1 mock novelty level 2
+NOVELTY_50 = 50  # Phase 1
+NOVELTY_51 = 51  # Phase 1
+NOVELTY_52 = 52  # Phase 1
+NOVELTY_53 = 53  # Phase 1
+NOVELTY_101 = 101  # Phase 2 mock novelty level 1
+NOVELTY_102 = 102  # Phase 2 mock novelty level 2
+NOVELTY_103 = 103  # Phase 2 mock novelty level 3
+NOVELTY_104 = 104  # Phase 2 mock novelty level 4
+NOVELTY_105 = 105  # Phase 2 mock novelty level 5
+NOVELTY_106 = 106  # Phase 3 mock novelty level 6
+NOVELTY_107 = 107  # Phase 3 mock novelty level 7
+NOVELTY_108 = 108  # Phase 3 mock novelty level 8
+NOVELTY_200 = 200  # Phase 2 level 0 (non-novel)
+NOVELTY_201 = 201  # Phase 2 level 1
+NOVELTY_202 = 202  # Phase 2 level 2
+NOVELTY_203 = 203  # Phase 2 level 3
+NOVELTY_204 = 204  # Phase 2 level 4
+NOVELTY_205 = 205  # Phase 2 level 5
+NOVELTY_206 = 206  # Phase 3 level 6
+NOVELTY_207 = 207  # Phase 3 level 7
+NOVELTY_208 = 208  # Phase 3 level 7
 VALID_NOVELTY = list([NOVELTY_200,
                       NOVELTY_1,
                       NOVELTY_2,
                       NOVELTY_3,
+                      NOVELTY_50,
+                      NOVELTY_51,
+                      NOVELTY_52,
+                      NOVELTY_53,
                       NOVELTY_101,
                       NOVELTY_102,
                       NOVELTY_103,
                       NOVELTY_104,
                       NOVELTY_105,
+                      NOVELTY_106,
+                      NOVELTY_107,
+                      NOVELTY_108,
                       NOVELTY_201,
                       NOVELTY_202,
                       NOVELTY_203,
                       NOVELTY_204,
-                      NOVELTY_205])
+                      NOVELTY_205,
+                      NOVELTY_206,
+                      NOVELTY_207,
+                      NOVELTY_208])
 TESTING_NOVELTY = list([NOVELTY_200,
                         NOVELTY_1,
                         NOVELTY_2,
                         NOVELTY_3,
+                        NOVELTY_50,
+                        NOVELTY_51,
+                        NOVELTY_52,
+                        NOVELTY_53,
                         NOVELTY_101,
                         NOVELTY_102,
                         NOVELTY_103,
                         NOVELTY_104,
                         NOVELTY_105,
+                        NOVELTY_106,
+                        NOVELTY_107,
+                        NOVELTY_108,
                         NOVELTY_201,
                         NOVELTY_202,
                         NOVELTY_203,
                         NOVELTY_204,
-                        NOVELTY_205])
+                        NOVELTY_205,
+                        NOVELTY_206,
+                        NOVELTY_207,
+                        NOVELTY_208])
 DIFFICULTY_EASY = 'easy'
 DIFFICULTY_MEDIUM = 'medium'
 DIFFICULTY_HARD = 'hard'
 VALID_DIFFICULTY = list([DIFFICULTY_EASY,
                          DIFFICULTY_MEDIUM,
                          DIFFICULTY_HARD])
+NOVELTY_VISIBILITY_0 = 0
+NOVELTY_VISIBILITY_1 = 1
+VALID_NOVELTY_VISIBILITY = list([NOVELTY_VISIBILITY_0,
+                                 NOVELTY_VISIBILITY_1])
+DETECTION_KNOWN = 'known'
+DETECTION_UNKNOWN = 'unknown'
+DETECTION_CONDITIONS = list([DETECTION_UNKNOWN,
+                             DETECTION_KNOWN])
+DETECTION_TRANSLATION = dict({'0': DETECTION_UNKNOWN,
+                              '1': DETECTION_KNOWN})
 SOURCE_RECORDED = 'recorded'
 SOURCE_LIVE = 'live'
 DTYPE_TRAIN = 'train'
@@ -185,6 +231,26 @@ VALID_DATA_TYPE = list([DTYPE_TRAIN,
                         DTYPE_TEST,
                         DTYPE_LIVE_TRAIN,
                         DTYPE_LIVE_TEST])
+HINT_NONE = -1
+HINT_0 = 0
+HINT_1 = 1
+HINT_2 = 2
+HINT_3 = 3
+VALID_HINT = list([HINT_NONE,
+                   HINT_0,
+                   HINT_1,
+                   HINT_2,
+                   HINT_3])
+PHASE_1 = '1'
+PHASE_2 = '2'
+PHASE_3 = '3'
+PHASE_4A = '4a'
+PHASE_4B = '4b'
+VALID_PHASE = list([PHASE_1,
+                    PHASE_2,
+                    PHASE_3,
+                    PHASE_4A,
+                    PHASE_4B])
 
 # AIQ Queues
 SERVER_MODEL_QUEUE = 'model.request.v{}'.format(__major_version__)
@@ -3869,7 +3935,7 @@ class RequestExperiment(AiqObject):
     def __init__(self, model: Model, novelty: int, novelty_visibility: int, client_rpc_queue: str,
                  git_version: str, experiment_type: str, seed: int = None,
                  domain_dict: dict = None, epoch: float = None, no_testing: bool = False,
-                 description: str = None):
+                 description: str = None, generator_config: dict = None):
         super().__init__()
         self.obj_type = REQ_EXPERIMENT
         self.model = copy.deepcopy(model)
@@ -3900,6 +3966,7 @@ class RequestExperiment(AiqObject):
         if not true_domain:
             raise AiqDataException('An experiment MUST have at least one domain selected.')
         self.description = description
+        self.generator_config = copy.deepcopy(generator_config)
         return
 
     def get_json_obj(self):
@@ -3914,21 +3981,24 @@ class RequestExperiment(AiqObject):
                'epoch': self.epoch,
                'no_testing': self.no_testing,
                'experiment_type': self.experiment_type,
-               'description': self.description}
+               'description': self.description,
+               'generator_config': self.generator_config}
         return copy.deepcopy(obj)
 
 
 class RequestExperimentTrials(RequestExperiment):
     def __init__(self, model: Model, experiment_secret: str, client_rpc_queue: str,
-                 just_one_trial: bool = False, epoch: float = None, domain_dict: dict = None):
+                 experiment_type: str, just_one_trial: bool = False, epoch: float = None,
+                 domain_dict: dict = None, generator_config: dict = None):
         super().__init__(model=model,
                          novelty=0,
                          novelty_visibility=0,
                          client_rpc_queue=client_rpc_queue,
                          git_version=__version__,
-                         experiment_type=TYPE_EXPERIMENT_SAIL_ON,
+                         experiment_type=experiment_type,
                          domain_dict=domain_dict,
-                         epoch=epoch)
+                         epoch=epoch,
+                         generator_config=generator_config)
         self.obj_type = REQ_EXP_TRIALS
         self.model = copy.deepcopy(model)
         self.experiment_secret = experiment_secret
@@ -3944,9 +4014,11 @@ class RequestExperimentTrials(RequestExperiment):
                'model': self.model.get_json_str(),
                'experiment_secret': self.experiment_secret,
                'client_rpc_queue': self.client_rpc_queue,
+               'experiment_type': self.experiment_type,
                'just_one_trial': self.just_one_trial,
                'domain_dict': self.domain_dict,
-               'epoch': self.epoch}
+               'epoch': self.epoch,
+               'generator_config': self.generator_config}
         return copy.deepcopy(obj)
 
 
@@ -4659,7 +4731,8 @@ class Episode(AiqObject):
     def __init__(self, novelty: int, difficulty: str, seed: int, domain: str, data_type: str,
                  episode_index: int = None, episode_id: int = None,
                  trial_novelty: int = NOVELTY_200, day_offset: int = 0,
-                 trial_episode_index: int = None, use_image: bool = False):
+                 trial_episode_index: int = None, use_image: bool = False,
+                 hint_level: int = HINT_NONE, phase: str = PHASE_3):
         super().__init__()
         self.obj_type = OBJ_EPISODE
         self.novelty = novelty
@@ -4683,6 +4756,12 @@ class Episode(AiqObject):
         self.day_offset = day_offset
         self.trial_episode_index = trial_episode_index
         self.use_image = use_image
+        self.hint_level = hint_level
+        if self.hint_level not in VALID_HINT:
+            raise AiqDataException('{} is not a valid hint_level.'.format(self.hint_level))
+        self.phase = phase
+        if self.phase not in VALID_PHASE:
+            raise AiqDataException('{} is not a valid phase.'.format(self.phase))
         return
 
     def get_json_obj(self):
@@ -4697,7 +4776,9 @@ class Episode(AiqObject):
                'trial_novelty': self.trial_novelty,
                'day_offset': self.day_offset,
                'trial_episode_index': self.trial_episode_index,
-               'use_image': self.use_image}
+               'use_image': self.use_image,
+               'hint_level': self.hint_level,
+               'phase': self.phase}
         return copy.deepcopy(obj)
 
 
@@ -4717,13 +4798,15 @@ class Training(AiqObject):
 
 
 class Trial(AiqObject):
-    def __init__(self, episodes: list, novelty: int, novelty_visibility: int, difficulty: str):
+    def __init__(self, episodes: list, novelty: int, novelty_visibility: int, difficulty: str,
+                 hint_level: int):
         super().__init__()
         self.obj_type = OBJ_TRIAL
         self.episodes = copy.deepcopy(episodes)
         self.novelty = novelty
         self.novelty_visibility = novelty_visibility
         self.difficulty = difficulty
+        self.hint_level = hint_level
         return
 
     def get_json_obj(self):
@@ -4731,7 +4814,8 @@ class Trial(AiqObject):
                'episodes': list(),
                'novelty': self.novelty,
                'novelty_visibility': self.novelty_visibility,
-               'difficulty': self.difficulty}
+               'difficulty': self.difficulty,
+               'hint_level': self.hint_level}
         for ep in self.episodes:
             obj['episodes'].append(ep.get_json_obj())
         return copy.deepcopy(obj)
@@ -4753,12 +4837,13 @@ class NoveltyGroup(AiqObject):
 
 
 class Experiment(AiqObject):
-    def __init__(self, training: Training, novelty_groups: list, budget: float):
+    def __init__(self, training: Training, novelty_groups: list, budget: float, phase: str):
         super().__init__()
         self.obj_type = OBJ_EXPERIMENT
         self.training = copy.deepcopy(training)
         self.novelty_groups = copy.deepcopy(novelty_groups)
         self.budget = budget
+        self.phase = phase
         self.model_experiment_id = None
         return
 
@@ -4766,7 +4851,8 @@ class Experiment(AiqObject):
         obj = {'obj_type': self.obj_type,
                'training': self.training.get_json_obj(),
                'novelty_groups': list(),
-               'budget': self.budget}
+               'budget': self.budget,
+               'phase': self.phase}
         for nov_group in self.novelty_groups:
             obj['novelty_groups'].append(nov_group.get_json_obj())
         return copy.deepcopy(obj)
@@ -4833,7 +4919,8 @@ class GeneratorReset(AiqObject):
 class StartGenerator(AiqObject):
     def __init__(self, domain: str, novelty: int, difficulty: str, seed: int, server_rpc_queue: str,
                  trial_novelty: int, epoch: float = None, day_offset: int = 0,
-                 request_timeout: int = 20, use_image: bool = False):
+                 request_timeout: int = 20, use_image: bool = False, generator_config: dict = None,
+                 hint_level: int = HINT_NONE, phase: str = PHASE_3):
         super().__init__()
         self.obj_type = START_GENERATOR
         if domain not in VALID_DOMAINS:
@@ -4856,6 +4943,13 @@ class StartGenerator(AiqObject):
         self.day_offset = day_offset
         self.request_timeout = request_timeout
         self.use_image = use_image
+        self.generator_config = copy.deepcopy(generator_config)
+        if hint_level not in VALID_HINT:
+            raise AiqDataException('INVALID hint_level provided! {}'.format(hint_level))
+        self.hint_level = hint_level
+        if phase not in VALID_PHASE:
+            raise AiqDataException('INVALID phase provided! {}'.format(phase))
+        self.phase = phase
         return
 
     def get_json_obj(self):
@@ -4869,7 +4963,10 @@ class StartGenerator(AiqObject):
                'epoch': self.epoch,
                'day_offset': self.day_offset,
                'request_timeout': self.request_timeout,
-               'use_image': self.use_image}
+               'use_image': self.use_image,
+               'generator_config': self.generator_config,
+               'hint_level': self.hint_level,
+               'phase': self.phase}
         return copy.deepcopy(obj)
 
 
@@ -5228,6 +5325,8 @@ def build_objects_from_json(message, amqp_obj=None):
                     if 'description' not in obj:
                         errormsgs.append('Could not obtain attribute description, '
                                          'please include json attribute description.')
+                    if 'generator_config' not in obj:
+                        obj['generator_config'] = None
                     if 'epoch' in obj:
                         epoch = obj['epoch']
                     if len(errormsgs) == 0:
@@ -5241,7 +5340,8 @@ def build_objects_from_json(message, amqp_obj=None):
                                                    domain_dict=obj['domain_dict'],
                                                    epoch=epoch,
                                                    no_testing=obj['no_testing'],
-                                                   description=obj['description'])
+                                                   description=obj['description'],
+                                                   generator_config=obj['generator_config'])
                 elif obj['obj_type'] == REQ_EXP_TRIALS:
                     model = None
                     epoch = None
@@ -5258,12 +5358,17 @@ def build_objects_from_json(message, amqp_obj=None):
                     if 'client_rpc_queue' not in obj:
                         errormsgs.append('Could not obtain attribute client_rpc_queue, '
                                          'please include json attribute client_rpc_queue.')
+                    if 'experiment_type' not in obj:
+                        errormsgs.append('Could not obtain attribute experiment_type, '
+                                         'please include json attribute experiment_type.')
                     if 'just_one_trial' not in obj:
                         errormsgs.append('Could not obtain attribute just_one_trial, '
                                          'please include json attribute just_one_trial.')
                     if 'domain_dict' not in obj:
                         errormsgs.append('Could not obtain attribute domain_dict, '
                                          'please include json attribute domain_dict.')
+                    if 'generator_config' not in obj:
+                        obj['generator_config'] = None
                     if 'epoch' in obj:
                         epoch = obj['epoch']
                     if len(errormsgs) == 0:
@@ -5271,9 +5376,11 @@ def build_objects_from_json(message, amqp_obj=None):
                             model=model,
                             experiment_secret=obj['experiment_secret'],
                             client_rpc_queue=obj['client_rpc_queue'],
+                            experiment_type=obj['experiment_type'],
                             just_one_trial=obj['just_one_trial'],
                             domain_dict=obj['domain_dict'],
-                            epoch=epoch)
+                            epoch=epoch,
+                            generator_config=obj['generator_config'])
                 elif obj['obj_type'] == EXPERIMENT_RESP:
                     if 'server_rpc_queue' not in obj:
                         errormsgs.append('Could not obtain attribute server_rpc_queue, '
@@ -5712,6 +5819,12 @@ def build_objects_from_json(message, amqp_obj=None):
                     if 'use_image' not in obj:
                         errormsgs.append('Could not obtain attribute use_image, '
                                          'please include json attribute use_image.')
+                    if 'hint_level' not in obj:
+                        errormsgs.append('Could not obtain attribute hint_level, '
+                                         'please include json attribute hint_level.')
+                    if 'phase' not in obj:
+                        errormsgs.append('Could not obtain attribute phase, '
+                                         'please include json attribute phase.')
                     if len(errormsgs) == 0:
                         result = Episode(novelty=obj['novelty'],
                                          difficulty=obj['difficulty'],
@@ -5723,7 +5836,9 @@ def build_objects_from_json(message, amqp_obj=None):
                                          trial_novelty=obj['trial_novelty'],
                                          day_offset=obj['day_offset'],
                                          trial_episode_index=obj['trial_episode_index'],
-                                         use_image=obj['use_image'])
+                                         use_image=obj['use_image'],
+                                         hint_level=obj['hint_level'],
+                                         phase=obj['phase'])
                 elif obj['obj_type'] == OBJ_TRAINING:
                     if 'episodes' not in obj:
                         errormsgs.append('Could not obtain attribute episodes, '
@@ -5750,6 +5865,9 @@ def build_objects_from_json(message, amqp_obj=None):
                     if 'difficulty' not in obj:
                         errormsgs.append('Could not obtain attribute difficulty, '
                                          'please include json attribute difficulty.')
+                    if 'hint_level' not in obj:
+                        errormsgs.append('Could not obtain attribute hint_level, '
+                                         'please include json attribute hint_level.')
                     episodes = list()
                     if len(errormsgs) == 0:
                         if len(obj['episodes']) > 0:
@@ -5761,7 +5879,8 @@ def build_objects_from_json(message, amqp_obj=None):
                         result = Trial(episodes=episodes,
                                        novelty=obj['novelty'],
                                        novelty_visibility=obj['novelty_visibility'],
-                                       difficulty=obj['difficulty'])
+                                       difficulty=obj['difficulty'],
+                                       hint_level=obj['hint_level'])
                 elif obj['obj_type'] == OBJ_NOVELTY_GRP:
                     if 'trials' not in obj:
                         errormsgs.append('Could not obtain attribute trials, '
@@ -5785,6 +5904,9 @@ def build_objects_from_json(message, amqp_obj=None):
                     if 'budget' not in obj:
                         errormsgs.append('Could not obtain attribute budget, '
                                          'please include json attribute budget.')
+                    if 'phase' not in obj:
+                        errormsgs.append('Could not obtain attribute phase, '
+                                         'please include json attribute phase.')
                     training = None
                     nov_groups = list()
                     if len(errormsgs) == 0:
@@ -5801,7 +5923,8 @@ def build_objects_from_json(message, amqp_obj=None):
                     if len(errormsgs) == 0:
                         result = Experiment(training=training,
                                             novelty_groups=nov_groups,
-                                            budget=obj['budget'])
+                                            budget=obj['budget'],
+                                            phase=obj['phase'])
                 elif obj['obj_type'] == REQ_NOVELTY_DESCRIPTION:
                     if 'domain' not in obj:
                         errormsgs.append('Could not obtain attribute domain, '
@@ -5859,6 +5982,14 @@ def build_objects_from_json(message, amqp_obj=None):
                     if 'use_image' not in obj:
                         errormsgs.append('Could not obtain attribute use_image, '
                                          'please include json attribute use_image.')
+                    if 'generator_config' not in obj:
+                        obj['generator_config'] = None
+                    if 'hint_level' not in obj:
+                        errormsgs.append('Could not obtain attribute hint_level, '
+                                         'please include json attribute hint_level.')
+                    if 'phase' not in obj:
+                        errormsgs.append('Could not obtain attribute phase, '
+                                         'please include json attribute phase.')
                     if len(errormsgs) == 0:
                         result = StartGenerator(domain=obj['domain'],
                                                 novelty=obj['novelty'],
@@ -5869,7 +6000,10 @@ def build_objects_from_json(message, amqp_obj=None):
                                                 epoch=obj['epoch'],
                                                 day_offset=obj['day_offset'],
                                                 request_timeout=obj['request_timeout'],
-                                                use_image=obj['use_image'])
+                                                use_image=obj['use_image'],
+                                                generator_config=obj['generator_config'],
+                                                hint_level=obj['hint_level'],
+                                                phase=obj['phase'])
                 elif obj['obj_type'] == GENERATOR_RESPONSE:
                     if 'generator_rpc_queue' not in obj:
                         errormsgs.append('Could not obtain attribute generator_rpc_queue, '
