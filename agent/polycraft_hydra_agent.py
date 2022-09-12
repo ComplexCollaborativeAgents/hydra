@@ -231,7 +231,7 @@ class PolycraftHydraAgent(HydraAgent):
         # Initialize the current observation and active plan objects
         self.current_state = env.get_current_state()
         self.current_observation = PolycraftEpisodeLog(self.meta_model)  # Start a new observation object for this level
-        self.current_observation.states.append(current_state)
+        self.current_observation.states.append(self.current_state)
         self.observations_list.append(self.current_observation)
 
         self.failed_actions_in_level = 0  # Count how many actions have failed in a given level

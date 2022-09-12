@@ -127,21 +127,21 @@ class PolycraftMetaModel(MetaModel):
             # TODO: apply updates\MMOs already applied to other domains, then re-instate 'if domain for task exists'
 
         # TODO this code only for AAAI data; need to do this properly later
-        # self.break_block_to_outcome = dict()
-        # self.break_block_to_outcome[BlockType.LOG.value] = (ItemType.LOG.value,
-        #                                                     self.constant_numeric_fluents['break_log_outcome_num'])
-        # self.break_block_to_outcome[BlockType.BLOCK_OF_PLATINUM.value] = (ItemType.BLOCK_OF_PLATINUM.value,
-        #                                                                   self.constant_numeric_fluents[
-        #                                                                       'break_platinum_outcome_num'])
-        # self.break_block_to_outcome[BlockType.DIAMOND_ORE.value] = (ItemType.DIAMOND.value,
-        #                                                             self.constant_numeric_fluents[
-        #                                                                 'break_diamond_outcome_num'])
-        #
-        # # Maps a cell type to what we get if we collect from it. The latter is in the form of a pair (item type, quantity).
-        # self.collect_block_to_outcome = dict()
-        # self.collect_block_to_outcome[BlockType.TREE_TAP.value] = (ItemType.SACK_POLYISOPRENE_PELLETS.value,
-        #                                                            self.constant_numeric_fluents[
-        #                                                                'collect_sap_outcome_num'])
+        self.break_block_to_outcome = dict()
+        self.break_block_to_outcome[BlockType.LOG.value] = (ItemType.LOG.value,
+                                                            self.constant_numeric_fluents['break_log_outcome_num'])
+        self.break_block_to_outcome[BlockType.BLOCK_OF_PLATINUM.value] = (ItemType.BLOCK_OF_PLATINUM.value,
+                                                                          self.constant_numeric_fluents[
+                                                                              'break_platinum_outcome_num'])
+        self.break_block_to_outcome[BlockType.DIAMOND_ORE.value] = (ItemType.DIAMOND.value,
+                                                                    self.constant_numeric_fluents[
+                                                                        'break_diamond_outcome_num'])
+
+        # Maps a cell type to what we get if we collect from it. The latter is in the form of a pair (item type, quantity).
+        self.collect_block_to_outcome = dict()
+        self.collect_block_to_outcome[BlockType.TREE_TAP.value] = (ItemType.SACK_POLYISOPRENE_PELLETS.value,
+                                                                   self.constant_numeric_fluents[
+                                                                       'collect_sap_outcome_num'])
 
 
         pddl_domain = PddlPlusDomain()

@@ -3,6 +3,7 @@ import sys
 from collections import namedtuple
 from typing import TextIO, Iterator, Optional
 
+from agent.consistency.pddl_plus_simulator import InconsistentPlanError
 from agent.planning.nyx.PDDL import GroundedPDDLInstance
 from agent.planning.nyx.syntax import constants
 from agent.planning.nyx.syntax.action import Action
@@ -79,7 +80,7 @@ class Plan(list):
                 current_state.time = time
                 trace.append(current_state)
             else:
-                break
+                raise InconsistentPlanError('Action preconditions are not satisfied')
         else:
             trace.finished = True
 

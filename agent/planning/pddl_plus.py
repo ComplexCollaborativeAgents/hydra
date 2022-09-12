@@ -138,7 +138,11 @@ class PddlPlusDomain:
         print("\nNO MATCHING ACTIONS IN LIST:", self.actions)
         return None
 
-
+def defalut_val():
+    """
+    Use a "real" function instead of a lambda expression so that the object can be pickled.
+    """
+    return 0.0
 class PddlPlusState:
     """
     A class representing a PDDL+ state. Contains only the fluents and their values.
@@ -146,8 +150,10 @@ class PddlPlusState:
 
     def __init__(self, fluent_list: list = None):
         """ Creates a PDDL+ state object initialized by a list of fluent given in the PddlPlusProblem format of lists"""
+
+
         self.numeric_fluents = defaultdict(
-            lambda: 0.0)  # Default value of non-existing fluents is zero in current planner.
+            defalut_val)  # Default value of non-existing fluents is zero in current planner.
         self.boolean_fluents = set()
         if fluent_list is not None:
             self.load_from_fluent_list(fluent_list)

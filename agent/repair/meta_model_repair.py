@@ -133,11 +133,17 @@ class GreedyBestFirstSearchConstantFluentMetaModelRepair(AspectRepair):
                 if new_repair_tuple not in generated_repairs:  # If  this is a new repair
                     generated_repairs.add(new_repair_tuple)  # To allow duplicate detection
                     self._do_change(repair)
-
-                    consistency = self.consistency_estimator.consistency_from_observations(self.meta_model,
-                                                                                           self.simulator, observation,
-                                                                                           delta_t)
+                    try:
+                        consistency = self.consistency_estimator.consistency_from_observations(self.meta_model,
+                                                                                               self.simulator, observation,
+                                                                                               delta_t)
+                    except InconsistentPlanError:
+                        logger.debug(f'Repair {repair} makes the plan impossible')
+                        self._undo_change(repair)
+                        continue
+                    # else - plan remains consistent:
                     self._undo_change(repair)
+
                     priority = self._heuristic(new_repair, consistency)
                     heapq.heappush(open_list, [priority, new_repair])
 

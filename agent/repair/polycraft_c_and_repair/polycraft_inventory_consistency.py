@@ -23,6 +23,5 @@ class PolycraftInventoryConsistency(AspectConsistency):
         self.fluent_names = []
         self.fluent_names.extend(
             (fl[0],) for fl in simulation_trace[0].state.numeric_fluents.keys() if fl[0].startswith('count_'))
-        logger.info(self.fluent_names)
         # How is our agent's position stored?
         return self._consistency_from_matched_trace(simulation_trace, state_seq, delta_t)
