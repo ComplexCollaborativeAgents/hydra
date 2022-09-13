@@ -10,6 +10,7 @@ from agent.planning.cartpoleplusplus_pddl_meta_model import CartPolePlusPlusMeta
 from agent.planning.cartpoleplusplus_planner import CartPolePlusPlusPlanner
 from agent.repair.cartpoleplusplus_repair import CartpolePlusPlusRepair, CartpolePlusPlusConsistencyEstimator
 from agent.consistency.focused_anomaly_detector import FocusedAnomalyDetector
+from agent.consistency.nyx_pddl_simulator import NyxPddlPlusSimulator
 import json
 import settings
 from typing import Type
@@ -196,6 +197,7 @@ class RepairingCartpolePlusPlusHydraAgent(CartpolePlusPlusHydraAgent):
         self.has_repaired = False
         self.consistency_checker = CartpolePlusPlusConsistencyEstimator()
         self.meta_model_repair = CartpolePlusPlusRepair(self.meta_model, consistency_checker=self.consistency_checker)
+        self.simulator = NyxPddlPlusSimulator()
 
     def episode_end(self, performance: float, feedback: dict = None)-> \
             (float, float, int, dict):
@@ -217,13 +219,11 @@ class RepairingCartpolePlusPlusHydraAgent(CartpolePlusPlusHydraAgent):
         if self.novelty_existence is not False and (len(self.last_performance) >= 2) \
                 and (self.last_performance[-1] < self.repair_threshold) \
                 and (self.last_performance[-2] < self.repair_threshold) \
-                and settings:
-            expected_trace, plan = self.meta_model_repair.meta_model_repair.simulator.get_expected_trace(observation,
-                                                                                                         self.meta_model,
-                                                                                                         settings.CP_DELTA_T)
-            observed_seq = observation.get_pddl_states_in_trace(self.meta_model)
-            base_consistency = self.consistency_checker.estimate_consistency(expected_trace, observed_seq,
-                                                                             delta_t=settings.CP_DELTA_T)
+                and (not settings.NO_REPAIR):
+            expected_trace, observed_sequence = self.consistency_checker.get_traces_from_simulator(observation,self.meta_model, self.simulator, settings.CP_DELTA_T)
+            # expected_trace, plan = self.simulator.get_expected_trace(observation,self.meta_model,settings.CP_DELTA_T)
+            # observed_seq = observation.get_pddl_states_in_trace(self.meta_model)
+            base_consistency = self.consistency_checker.consistency_from_trace(expected_trace, observed_sequence, delta_t=settings.CP_DELTA_T)
             self.current_base_consistency = base_consistency
             print("base consistency score:{}".format(base_consistency))
 

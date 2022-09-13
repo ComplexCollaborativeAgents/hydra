@@ -2,7 +2,6 @@
 # Four spaces as indentation [no tabs]
 import collections
 import copy
-import logging
 import time
 import matplotlib.pyplot as plt
 
@@ -119,10 +118,11 @@ class Planner:
                 else:
                     new_state = state.apply_happening(aa, from_state=from_state)
 
-                happenings_list = grounded_instance.events.get_applicable(new_state)
-                for hp in happenings_list:
-                    new_state = new_state.apply_happening(hp, from_state=from_state,
-                                                          create_new_state=new_state is state)
+                    if not constants.TEMPORAL_DOMAIN:
+                        happenings_list = grounded_instance.events.get_applicable(new_state)
+                        for hp in happenings_list:
+                            new_state = new_state.apply_happening(hp, from_state=from_state,
+                                                                  create_new_state=new_state is state)
 
                 visited_state = VisitedState(new_state)
                 new_state_hash = hash(visited_state)

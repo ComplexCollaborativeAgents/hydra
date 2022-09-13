@@ -31,13 +31,13 @@ SB_COLLECT_PERCEPTION_DATA = False
 
 CP_PLANNER_MEMORY_LIMIT = 50  # memory limit for UPMurphi (in MB)
 CP_DELTA_T = 0.02  # time discretisation for UPMurphi
-CP_TIMEOUT = 60  # timeout for the planning phase (in seconds)
+CP_TIMEOUT = 30  # timeout for the planning phase (in seconds)
 CP_CONSISTENCY_THRESHOLD = 0.01
 CP_DETECTION_CONSISTENCY_THRESHOLD = 0.1
 CP_REPAIR_CONSISTENCY_THRESHOLD = 0.2
-CP_EPISODE_TIME_LIMIT = 1200
+CP_EPISODE_TIME_LIMIT = 360
 CP_REPAIR_TIMEOUT = 180
-CP_SUPPRESS_PRINTOUTS = False
+CP_SUPPRESS_PRINTOUTS = True
 
 POLYCRAFT_DELTA_T = 1  # Time discretization
 POLYCRAFT_TIMEOUT = 180  # timeout for the planning phase (in seconds)
