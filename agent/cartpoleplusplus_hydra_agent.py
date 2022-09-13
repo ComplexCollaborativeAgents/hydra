@@ -225,7 +225,7 @@ class RepairingCartpolePlusPlusHydraAgent(CartpolePlusPlusHydraAgent):
             # observed_seq = observation.get_pddl_states_in_trace(self.meta_model)
             base_consistency = self.consistency_checker.consistency_from_trace(expected_trace, observed_sequence, delta_t=settings.CP_DELTA_T)
             self.current_base_consistency = base_consistency
-            print("base consistency score:{}".format(base_consistency))
+            # print("base consistency score:{}".format(base_consistency))
 
             return (base_consistency > settings.CP_REPAIR_CONSISTENCY_THRESHOLD)
 

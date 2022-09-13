@@ -12,9 +12,23 @@ class CartPlusPlusLocationConsistency(AspectConsistency):
     def __init__(self, fluent_names=None, obs_prefix=100, discount_factor=0.9, consistency_threshold=0.01):
         if fluent_names is None:
             fluent_names = [('pos_x',), ('pos_y',), ('theta_x',), ('theta_y',)]
+
         super().__init__(fluent_names, obs_prefix, discount_factor, consistency_threshold)
 
     def consistency_from_trace(self, simulation_trace: list, state_seq: list, delta_t: float = DEFAULT_DELTA_T):
+
+        blocks = set()
+
+        if simulation_trace is not None and len(simulation_trace) > 0:
+            blocks = simulation_trace[0].state.get_objects('block')
+
+        for bl in blocks:
+            self.fluent_names.append(('block_x', bl))
+            self.fluent_names.append(('block_y', bl))
+            self.fluent_names.append(('block_z', bl))
+
+        # print(self.fluent_names)
+
         return self._consistency_from_matched_trace(simulation_trace, state_seq, delta_t)
 
 
