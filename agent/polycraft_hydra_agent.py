@@ -1,9 +1,7 @@
 import datetime
-import time
 
-import settings
 from agent.consistency.nyx_pddl_simulator import NyxPddlPlusSimulator
-from agent.consistency.observation import HydraEpisodeLog
+from agent.planning.polycraft_planning.polycraft_episode_log import PolycraftEpisodeLog
 from agent.planning.polycraft_planning.tasks import *
 from agent.planning.polycraft_planning.actions import *
 from agent.repair.polycraft_repair import PolycraftMetaModelRepair
@@ -22,38 +20,6 @@ import re
 RE_EXTRACT_ACTION_PATTERN = re.compile(
     r" *(\d*\.\d*):\t*(.*)\t\[0\.0\]")  # Pattern used to extract action time and name from planner output
 SAVE_FAILED_PLANS_STATES = True  # If true then whenever a plan fails, we store its domain and problem files
-
-
-class PolycraftObservation(HydraEpisodeLog):
-    """ An object that represents an observation of the SB game """
-
-    def __init__(self):
-        self.states = []  # A sequence of polycraft states
-        self.actions = []  # A sequence of polycraft actions
-        self.rewards = []  # The reward obtained from performing each action
-        self.time_so_far = 0.0
-
-    def get_initial_state(self):
-        return self.states[0]
-
-    def get_pddl_states_in_trace(self,
-                                 meta_model: PolycraftMetaModel) -> list:
-        # TODO: Refactor and move this to the meta model?
-        """ Returns a sequence of PDDL states that are the observed intermediate states """
-        observed_state_seq = []
-        for state in self.states:
-            pddl = meta_model.create_pddl_state(state)
-            observed_state_seq.append(pddl)
-        return observed_state_seq
-
-    def get_pddl_plan(self, meta_model: PolycraftMetaModel):
-        """ Returns a PDDL+ plan object with the actions we performed """
-        return PddlPlusPlan(self.actions)
-
-    def print(self):
-        for i, state in enumerate(self.states):
-            print(f'State[{i}] {str(state)}')
-            print(f'Action[{i}] {str(self.actions[i])}')
 
 
 class PolycraftPlanner(HydraPlanner):
@@ -93,10 +59,11 @@ class PolycraftPlanner(HydraPlanner):
         try:
             nyx.constants.MAX_GENERATED_NODES = settings.POLYCRAFT_MAX_GENERATED_NODES
             _, self.explored_states = nyx.runner(self.pddl_domain_file,
-                       self.pddl_problem_file,
-                       ['-vv', '-to:%s' % str(self.timeout), '-noplan', '-search:gbfs', '-custom_heuristic:3', '-th:10',
-                        # '-th:%s' % str(self.meta_model.constant_numeric_fluents['time_limit']),
-                        '-t:%s' % str(self.delta_t)])
+                                                 self.pddl_problem_file,
+                                                 ['-vv', '-to:%s' % str(self.timeout), '-noplan', '-search:gbfs',
+                                                  '-custom_heuristic:3', '-th:10',
+                                                  # '-th:%s' % str(self.meta_model.constant_numeric_fluents['time_limit']),
+                                                  '-t:%s' % str(self.delta_t)])
             plan_actions = self.extract_actions_from_plan_trace(self.pddl_plan_file)
             if len(plan_actions) > 0:
                 return plan_actions
@@ -177,7 +144,7 @@ class PolycraftPlanner(HydraPlanner):
     def extract_actions_from_plan_trace(self, plane_trace_file: str):
         """ Parses the given plan trace file and outputs the plan """
         pddl_action_names = [action.name for action in self.pddl_domain.actions]
-        action_generators = self.meta_model.get_action_generators(self.initial_state)
+        action_generators = self.meta_model.active_task.create_relevant_actions(self.initial_state, self.meta_model)
         plan_actions = []
         with open(plane_trace_file) as plan_trace_file:
             for i, line in enumerate(plan_trace_file):
@@ -263,8 +230,8 @@ class PolycraftHydraAgent(HydraAgent):
 
         # Initialize the current observation and active plan objects
         self.current_state = env.get_current_state()
-        self.current_observation = PolycraftObservation()  # Start a new observation object for this level
-        self.current_observation.states.append(current_state)
+        self.current_observation = PolycraftEpisodeLog(self.meta_model)  # Start a new observation object for this level
+        self.current_observation.states.append(self.current_state)
         self.observations_list.append(self.current_observation)
 
         self.failed_actions_in_level = 0  # Count how many actions have failed in a given level
@@ -313,7 +280,8 @@ class PolycraftHydraAgent(HydraAgent):
             else:
                 # Must be an entity
                 exploration_actions.append((obj, TeleportToAndInteract(obj,
-                                                               coordinates_to_cell(world_state.entities[obj]['pos']))))
+                                                                       coordinates_to_cell(
+                                                                           world_state.entities[obj]['pos']))))
 
         # Prefer new objects
         if len(exploration_actions) > 0:
@@ -475,8 +443,8 @@ class PolycraftHydraAgent(HydraAgent):
 
     def set_active_task(self, task: PolycraftTask):
         """ Sets the active task, generate a plan to achieve it and updates the active plan """
-        if task != self.meta_model.active_task:# task changed, start a new observation set
-            self.current_observation = PolycraftObservation()
+        if task != self.meta_model.active_task:  # task changed, start a new observation set
+            self.current_observation = PolycraftEpisodeLog(self.meta_model)
             self.current_observation.states.append(self.current_state)
             self.observations_list.append(self.current_observation)
         self.meta_model.set_active_task(task)
@@ -527,8 +495,7 @@ class PolycraftHydraAgent(HydraAgent):
 
         next_state, step_cost = env.act(self.current_state, action)  # Note this returns step cost for the action
         action.start_at = self.current_observation.time_so_far
-        self.current_observation.time_so_far += step_cost
-
+        # self.current_observation.time_so_far += 1  # Polycraft is modeled as a non-temporal domain.
         if not action.success:
             logger.info(f"Action{action} failed: {action.response}")
             self.failed_actions_in_level = self.failed_actions_in_level + 1
@@ -663,12 +630,10 @@ class PolycraftHydraAgent(HydraAgent):
         try:
             # self.meta_model.set_active_task(CreatePogoTask())
             start_time = time.perf_counter()
-            repair, consistency = self.meta_model_repair.repair(self.current_observation,
-                                                                delta_t=settings.POLYCRAFT_DELTA_T)
-            repair_description = ["Repair %s, %.2f" % (fluent, repair[i])
-                                  for i, fluent in enumerate(self.meta_model.repairable_constants)]
+            repair_description, consistency = self.meta_model_repair.repair(self.current_observation,
+                                                                            delta_t=settings.POLYCRAFT_DELTA_T)
             logger.info(
-                "Repair done! Consistency: %.2f, Repair:\n %s" % (consistency, "\n".join(repair_description)))
+                "Repair done! Consistency: %.2f, Repair:\n %s" % (consistency, repair_description))
             self.stats_for_level['repair_time'].append(time.perf_counter() - start_time)
         except:
             # TODO: fix this hack, catch correct exception
