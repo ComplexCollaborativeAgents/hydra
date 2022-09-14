@@ -1,12 +1,11 @@
-import gym
-from simple_dqn_torch_2020 import Agent
+from env_ab import *
+from dqn import Agent
 from rl_utils import plotLearning
 import numpy as np
 
 if __name__ == '__main__':
-    env = gym.make('LunarLander-v2')
-    agent = Agent(gamma=0.99, epsilon=1.0, batch_size=64, n_actions=4, eps_end=0.01,
-                  input_dims=[8], lr=0.001)
+    env = make_sb()
+    agent = Agent(gamma=0.99, epsilon=1.0, batch_size=64, n_actions=90, eps_end=0.01, lr=0.001)
     scores, eps_history = [], []
     n_games = 500
     
