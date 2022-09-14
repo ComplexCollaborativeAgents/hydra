@@ -15,8 +15,6 @@ SB_BIN_PATH = pathlib.Path(settings.SCIENCE_BIRDS_BIN_DIR) / 'linux'
 from matplotlib import pyplot as plt
 
 
-
-
 class Env():
     def __init__(self, environment):
         self.log = logging.getLogger(__name__).getChild('DQNSBAgent')
@@ -30,13 +28,11 @@ class Env():
         token = True
         while token:
             raw_state = self.env.get_current_state()
-        
+            #self.handle_new_trial()
             if raw_state.game_state.value == GameState.NEWTRIAL.value:
                 self.handle_new_trial()
-
             if raw_state.game_state.value == GameState.NEWTRAININGSET.value:
-                self.handle_new_training_set()
-            
+                self.handle_new_training_set()           
             if raw_state.game_state.value == GameState.REQUESTNOVELTYLIKELIHOOD.value:
                 self.handle_novelty_request()
             if raw_state.game_state.value == GameState.PLAYING.value:
@@ -72,8 +68,7 @@ class Env():
                 done = True
             if raw_state.game_state.value == GameState.WON.value:
                 self.handle_game_won()
-                done = True
-        
+                done = True 
         return image_state, reward, done, None
 
 

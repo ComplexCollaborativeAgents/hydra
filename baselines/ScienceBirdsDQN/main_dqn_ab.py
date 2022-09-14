@@ -1,21 +1,22 @@
-from env_ab import *
+from env_ab import * ###
 from dqn import Agent
 from rl_utils import plotLearning
 import numpy as np
 
 if __name__ == '__main__':
-    env = make_sb()
+    env = make_sb()  ####(1)
     agent = Agent(gamma=0.99, epsilon=1.0, batch_size=64, n_actions=90, eps_end=0.01, lr=0.001)
     scores, eps_history = [], []
     n_games = 500
-    
+        
     for i in range(n_games):
+        print("\n\n\n\n\n"+str(i)+"-th EPOSE START\n\n\n\n\n")
         score = 0
         done = False
-        observation = env.reset()
+        observation = env.reset() ####(2)
         while not done:
             action = agent.choose_action(observation)
-            observation_, reward, done, info = env.step(action)
+            observation_, reward, done, info = env.step(action) ####(3)
             score += reward
             agent.store_transition(observation, action, reward, 
                                     observation_, done)
@@ -25,7 +26,7 @@ if __name__ == '__main__':
         eps_history.append(agent.epsilon)
 
         avg_score = np.mean(scores[-100:])
-
+        print('\n\n\n\n\n\n Score \n\n\n\n\n\n')
         print('episode ', i, 'score %.2f' % score,
                 'average score %.2f' % avg_score,
                 'epsilon %.2f' % agent.epsilon)
