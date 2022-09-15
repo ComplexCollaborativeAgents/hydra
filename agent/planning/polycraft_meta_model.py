@@ -1,5 +1,5 @@
 from agent.planning.meta_model import MetaModel
-from agent.planning.polycraft_planning.actions import *
+from agent.planning.polycraft_planning.polycraft_macro_actions import *
 from agent.planning.polycraft_planning.polycaft_task_class import Task
 from agent.planning.polycraft_planning.polycraft_pddl_objects_and_constants import PddlGameMapCellType, Function
 from worlds.polycraft_world import *
@@ -126,7 +126,7 @@ class PolycraftMetaModel(MetaModel):
             # First time creating a domain for this task - create from scratch
             # TODO: apply updates\MMOs already applied to other domains, then re-instate 'if domain for task exists'
 
-        # TODO this code only for AAAI data; need to do this properly later
+        # TODO this code is temporary; needs to be done better when MMOs are properly defined and implemented.
         self.break_block_to_outcome = dict()
         self.break_block_to_outcome[BlockType.LOG.value] = (ItemType.LOG.value,
                                                             self.constant_numeric_fluents['break_log_outcome_num'])
@@ -175,7 +175,6 @@ class PolycraftMetaModel(MetaModel):
         # else:
         #     pddl_domain = self.current_domain[self.active_task]
         return pddl_domain
-
 
     def _convert_polycraft_naming_in_domain(self, pddl_domain: PddlPlusDomain):
         """ Change the elements in the domain so that they fit the pddl convention of not using ":" """
@@ -361,15 +360,3 @@ class PolycraftMetaModel(MetaModel):
 
     def get_nyx_heuristic(self, world_state, meta_model):
         return self.active_task.get_planner_heuristic(world_state, meta_model)
-
-    #
-    # def _extract_landmarks(self,world_state: PolycraftState, pddl_problem:PddlPlusProblem, pddl_domain: PddlPlusDomain):
-    #     goal = (ItemType.WOODEN_POGO_STICK.value,1)
-    #     landmarks = set()
-    #     active_landmarks = [goal]
-    #     while len(landmarks)>0:
-    #         landmark = landmarks.pop()
-    #         landmarks.add(landmark)
-    #
-    #
-    #

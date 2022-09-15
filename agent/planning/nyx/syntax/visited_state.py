@@ -37,25 +37,3 @@ class VisitedState:
 
     def __ne__(self, other):
         return not self.__eq__(other)
-
-
-    # def __eq__(self, other):
-    #     return (self.state.h + self.state.g) == (other.state.h + other.state.g)
-    #
-    # def __hash__(self):
-    #     return hash(self.state.h + self.state.g)
-    #
-    # def __lt__(self, other):
-    #     return (self.state.h + self.state.g) < (other.state.h + other.state.g)
-    #
-    # def __gt__(self, other):
-    #     return (self.state.h + self.state.g) > (other.state.h + other.state.g)
-    #
-    # def __ge__(self, other):
-    #     return (self.state.h + self.state.g) >= (other.state.h + other.state.g)
-    #
-    # def __le__(self, other):
-    #     return (self.state.h + self.state.g) <= (other.state.h + other.state.g)
-    #
-    # def __ne__(self, other):
-    #     return (self.state.h + self.state.g) != (other.state.h + other.state.g)

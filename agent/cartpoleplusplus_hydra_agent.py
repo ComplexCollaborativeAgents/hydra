@@ -5,7 +5,7 @@ import time
 
 import numpy as np
 
-from agent.consistency.observation import CartPolePlusPlusObservation
+from agent.consistency.episode_log import CartPolePlusPlusObservation
 from agent.planning.cartpoleplusplus_pddl_meta_model import CartPolePlusPlusMetaModel
 from agent.planning.cartpoleplusplus_planner import CartPolePlusPlusPlanner
 from agent.repair.cartpoleplusplus_repair import CartpolePlusPlusRepair, CartpolePlusPlusConsistencyEstimator
@@ -16,6 +16,7 @@ from typing import Type
 
 from worlds.wsu.wsu_dispatcher import WSUObserver
 from agent.hydra_agent import HydraAgent
+
 
 class CartpolePlusPlusHydraAgent(HydraAgent):
     def __init__(self):
@@ -51,11 +52,11 @@ class CartpolePlusPlusHydraAgent(HydraAgent):
         self.episode_timer = time.time()
         self.observations_list.append(self.current_observation)
         self.current_observation = CartPolePlusPlusObservation()
-        self.last_performance.append(performance) # Records the last performance value, to show impact
+        self.last_performance.append(performance)  # Records the last performance value, to show impact
 
         return self.novelty_likelihood, self.novelty_threshold, self.novelty_type, self.novelty_characterization
 
-    def choose_action(self, observation: CartPolePlusPlusObservation) -> \
+    def choose_action(self, observation) -> \
             dict:
 
         euls = self.quaternions_to_eulers(observation['pole']['x_quaternion'], observation['pole']['y_quaternion'],
@@ -70,14 +71,18 @@ class CartpolePlusPlusHydraAgent(HydraAgent):
 
         if self.plan is None:
             # self.meta_model.constant_numeric_fluents['time_limit'] = 4.0
-            self.meta_model.constant_numeric_fluents['time_limit'] = max(0.02, min(4.0, round((4.0 - ((self.steps) * 0.02)), 2)))
+            self.meta_model.constant_numeric_fluents['time_limit'] = max(0.02, min(4.0,
+                                                                                   round((4.0 - ((self.steps) * 0.02)),
+                                                                                         2)))
             self.plan = self.planner.make_plan(observation, 0)
             self.current_observation = CartPolePlusPlusObservation()
             if len(self.plan) == 0:
                 self.plan_idx = 999
 
         if (self.plan_idx >= self.replan_idx) and ((time.time() - self.episode_timer) < settings.CP_EPISODE_TIME_LIMIT):
-            self.meta_model.constant_numeric_fluents['time_limit'] = max(0.02, min(4.0, round((4.0 - ((self.steps) * 0.02)), 2)))
+            self.meta_model.constant_numeric_fluents['time_limit'] = max(0.02, min(4.0,
+                                                                                   round((4.0 - ((self.steps) * 0.02)),
+                                                                                         2)))
             new_plan = self.planner.make_plan(observation, 0)
             if len(new_plan) != 0:
                 self.current_observation = CartPolePlusPlusObservation()
@@ -136,7 +141,8 @@ class CartpolePlusPlusHydraAgent(HydraAgent):
 
     @staticmethod
     def action_to_label(action: int) -> dict:
-        labels = [{'action': 'nothing'}, {'action': 'left'}, {'action': 'right'}, {'action': 'forward'}, {'action': 'backward'}]
+        labels = [{'action': 'nothing'}, {'action': 'left'}, {'action': 'right'}, {'action': 'forward'},
+                  {'action': 'backward'}]
         return labels[action]
 
     @staticmethod
@@ -161,18 +167,18 @@ class CartpolePlusPlusHydraAgent(HydraAgent):
 
         return (X, Y, Z)
 
+
 class RepairingCartpolePlusPlusHydraAgent(CartpolePlusPlusHydraAgent):
     def __init__(self):
         super().__init__()
-        self.repair_threshold = 0.975 # 195/200
+        self.repair_threshold = 0.975  # 195/200
         self.has_repaired = False
         self.consistency_checker = CartpolePlusPlusConsistencyEstimator()
         self.meta_model_repair = CartpolePlusPlusRepair(self.meta_model, consistency_checker=self.consistency_checker)
 
-    def episode_end(self, performance: float, feedback: dict = None)-> \
+    def episode_end(self, performance: float, feedback: dict = None) -> \
             (float, float, int, dict):
-        super().episode_end(performance) # Update
-
+        super().episode_end(performance)  # Update
 
         novelty_likelihood, novelty_characterization, has_repaired = self.novelty_detection()
         self.novelty_likelihood = novelty_likelihood
@@ -183,13 +189,14 @@ class RepairingCartpolePlusPlusHydraAgent(CartpolePlusPlusHydraAgent):
 
         return self.novelty_likelihood, self.novelty_threshold, self.novelty_type, self.novelty_characterization
 
-
     def should_repair(self, observation: CartPolePlusPlusObservation) -> bool:
-        ''' Checks if we should repair basd on the given observation '''
-        return self.novelty_existence is not False and (len(self.last_performance) >= 2) and (self.last_performance[-1] < self.repair_threshold) and (self.last_performance[-2] < self.repair_threshold)
+        """ Checks if we should repair basd on the given observation """
+        return self.novelty_existence is not False and (len(self.last_performance) >= 2) and (
+                    self.last_performance[-1] < self.repair_threshold) and (
+                           self.last_performance[-2] < self.repair_threshold)
 
     def novelty_detection(self):
-        ''' Computes the likelihood that the current observation is novel '''
+        """ Computes the likelihood that the current observation is novel """
         novelty_likelihood = self.novelty_likelihood
         novelty_characterization = self.novelty_characterization
         has_repaired = False
@@ -200,27 +207,26 @@ class RepairingCartpolePlusPlusHydraAgent(CartpolePlusPlusHydraAgent):
             novelty_characterization, novelty_likelihood = self.repair_meta_model(last_observation)
             has_repaired = True
 
-
         if self.novelty_existence is True:
             novelty_likelihood = 1.0
 
         return novelty_likelihood, novelty_characterization, has_repaired
 
     def repair_meta_model(self, last_observation):
-        ''' Repair the meta model based on the last observation '''
+        """ Repair the meta model based on the last observation """
 
         novelty_likelihood = self.novelty_likelihood
         novelty_characterization = self.novelty_characterization
 
         try:
             repair, consistency = self.meta_model_repair.repair(last_observation,
-                                                           delta_t=settings.CP_DELTA_T)
+                                                                delta_t=settings.CP_DELTA_T)
             self.log.info("Repaired meta model (repair string: %s)" % repair)
             nonzero = any(map(lambda x: x != 0, repair))
             if nonzero:
                 novelty_likelihood = 1.0
                 self.has_repaired = True
-                novelty_characterization = json.dumps(dict(zip(self.meta_model_repair.fluents_to_repair, repair)))
+                novelty_characterization = json.dumps(dict(zip(self.meta_model.repairable_constants, repair)))
             elif consistency > settings.CP_CONSISTENCY_THRESHOLD:
                 novelty_likelihood = 1.0
                 novelty_characterization = json.dumps({'Unknown novelty': 'no adjustments made'})

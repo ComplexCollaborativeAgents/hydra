@@ -2,19 +2,20 @@ import datetime
 
 import numpy
 import pandas
+import pickle
 
-from agent.consistency.trace_visualizer import plot_expected_vs_observed
+from agent.reward_estimation.reward_estimator import RewardEstimator
 from agent.hydra_agent import HydraAgent
 from agent.hydra_agent import PDDL_PROB, NOVELTY_EXISTENCE_NOT_GIVEN, NOVELTY_LIKELIHOOD
 from agent.planning.nyx.syntax import constants
 from agent.planning.sb_planner import SBPlanner
 from agent.repair.meta_model_repair import *
-# TODO: Maybe push this to the settings file? then every module just adds a logger
-from agent.repair.sb_repair import ScienceBirdsMetaModelRepair
 from agent.repair.sb_consistency_estimators.sb_domain_consistency_estimator import ScienceBirdsConsistencyEstimator
+from agent.repair.sb_repair import ScienceBirdsMetaModelRepair
 from utils.point2D import Point2D
 from worlds.science_birds_interface.client.agent_client import GameState
 
+# TODO: Maybe push this to the settings file? then every module just adds a logger
 # from state_prediction.anomaly_detector_fc_multichannel import FocusedSBAnomalyDetector
 logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
 
@@ -22,8 +23,6 @@ REPAIR_CALLS = "repair_calls"
 REPAIR_TIME = "repair_time"
 logger = logging.getLogger("hydra_agent")
 
-from agent.reward_estimation.reward_estimator import RewardEstimator
-import pickle
 
 # Flags from ANU
 NOVELTY_EXISTENCE_NOT_GIVEN = -1  # The self.novelty_existance value indicating that novelty detection is not given by the environment
@@ -103,7 +102,6 @@ class SBHydraAgent(HydraAgent):
         self._need_to_repair = False
         self.made_plan = False
 
-
     def initialize_processing_state_variables(self):
         self.perception = Perception()
         self.completed_levels = []
@@ -166,7 +164,6 @@ class SBHydraAgent(HydraAgent):
                 self.handle_game_playing(observation, raw_state)
                 if settings.NOVELTY_POSSIBLE:
                     self.num_objects = len(raw_state.objects[0]['features'])
-                    # print("number of objects is {}".format(self.num_objects))
                     self._record_novelty_indicators(observation)
             elif raw_state.game_state.value == GameState.WON.value:
                 self.handle_game_won()
@@ -194,8 +191,6 @@ class SBHydraAgent(HydraAgent):
     def handle_main_menu(self):
         logger.info("unexpected main menu page, reload the level : %s" % self.current_level)
         self.current_level = self.env.sb_client.load_next_available_level()
-
-    #        self.novelty_existence = self.env.sb_client.get_novelty_info()
 
     def handle_new_trial(self):
         """ Handle what happens when the agent receives a NEWTRIAL request"""
@@ -580,7 +575,8 @@ class SBHydraAgent(HydraAgent):
                                                                self.planner.current_problem_prefix,
                                                                unknown_objs.__str__()))
         try:
-            active_bird = pddl_state.get_active_bird()
+            active_bird_id = int(pddl_state['active_bird'])
+            active_bird = SBPlanner.get_bird(pddl_state, active_bird_id)
         except:
             active_bird = None  # TODO catch only appropriate exception
         try:

@@ -14,11 +14,10 @@ class PolycraftConsistencyEstimator(DomainConsistency):
 
     def __init__(self, meta_model: PolycraftMetaModel):
         self.aspect_estimators = [PolycraftInventoryConsistency()]
-
             # PolycraftBlockCollectOutcomeConsistency('log', meta_model),
             #                              PolycraftBlockCollectOutcomeConsistency('diamond', meta_model),
             #                              ]
-                                         # PolycraftBlockCollectOutcomeConsistency('log', meta_model)] to do this we need to send both 'resource' and 'block' descriptions to the estimator
+
         super().__init__(self.aspect_estimators)
 
     def consistency_from_observations(self, meta_model, simulator, observation, delta_t):

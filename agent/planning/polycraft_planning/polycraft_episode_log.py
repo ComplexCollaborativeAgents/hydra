@@ -1,7 +1,7 @@
 import logging
 from typing import List
 
-from agent.consistency.observation import HydraEpisodeLog
+from agent.consistency.episode_log import HydraEpisodeLog
 from agent.planning.pddl_plus import PddlPlusPlan, PddlPlusState
 from agent.planning.polycraft_meta_model import PolycraftMetaModel
 

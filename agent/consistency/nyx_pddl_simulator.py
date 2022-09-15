@@ -6,7 +6,7 @@ from typing import List, Tuple, Iterator, Dict, Union, Optional
 
 import logging
 
-from agent.consistency.observation import HydraEpisodeLog
+from agent.consistency.episode_log import HydraEpisodeLog
 from agent.consistency.pddl_plus_simulator import PddlPlusSimulator
 from agent.planning.meta_model import MetaModel
 from agent.planning.pddl_plus import PddlPlusPlan, PddlPlusProblem, PddlPlusDomain, PddlPlusWorldChange, \

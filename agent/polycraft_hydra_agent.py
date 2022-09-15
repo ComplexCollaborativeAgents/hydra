@@ -3,7 +3,7 @@ import datetime
 from agent.consistency.nyx_pddl_simulator import NyxPddlPlusSimulator
 from agent.planning.polycraft_planning.polycraft_episode_log import PolycraftEpisodeLog
 from agent.planning.polycraft_planning.tasks import *
-from agent.planning.polycraft_planning.actions import *
+from agent.planning.polycraft_planning.polycraft_macro_actions import *
 from agent.repair.polycraft_repair import PolycraftMetaModelRepair
 from worlds.polycraft_actions import PolyNoAction, PolyEntityTP, PolyInteract, PolyGiveUp
 from agent.planning.pddlplus_parser import *
@@ -522,6 +522,7 @@ class PolycraftHydraAgent(HydraAgent):
         Halt after batch_size actions or if the level has been finished. """
         iteration = 0
         start_time = time.time()
+        step_cost = 0
         while not state.terminal and \
                 state.count_items_of_type(ItemType.WOODEN_POGO_STICK.value) == 0 and \
                 iteration < batch_size and \

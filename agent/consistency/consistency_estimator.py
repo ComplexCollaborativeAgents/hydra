@@ -76,8 +76,6 @@ class AspectConsistency:
         Returns a consistency value for the given traces, assuming the sequences of states are (at least almost) matched
         in time. This is used by cartpole (and ++) and polycraft.
         """
-        # if len(simulation_trace) < len(state_seq):
-        #     return len(state_seq) - len(simulation_trace)
 
         # Compute consistency of every observed state
         consistency_per_state = self._compute_consistency_per_matched_state(simulation_trace, state_seq)
@@ -266,7 +264,7 @@ class AspectConsistency:
 
     def _trajectory_compare(self, simulation_trace: list, state_seq: list, delta_t: float = DEFAULT_DELTA_T):
         """
-        This method currently only used for Science Birds.
+        This method currently only used for Science Birds, but should be compatible with Cartpole as well.
         Compares fluents along a trajectory.
         """
         # in future: optionally filtering according to some conditional function.

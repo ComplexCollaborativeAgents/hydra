@@ -318,23 +318,6 @@
   	    )
     )
 
-    ; (:action black_bird_action
-    ;   :parameters (?b - bird)
-    ;   :precondition (and
-    ;   	(= (active_bird) (bird_id ?b))
-    ;   	(= (bird_type ?b) 2)
-    ;   	(bird_released ?b)
-    ;     (= (bounce_count ?b) 0)
-    ;     (< (x_bird ?b) 800)
-    ;     (not (bird_tapped ?b))
-    ;   )
-    ;   :effect (and
-    ;   	(assign (vx_bird ?b) 0)
-    ;   	(assign (vy_bird ?b) 0)
-    ;   	(bird_tapped ?b)
-  	 ;  )
-    ; )
-
     (:action white_bird_action
         :parameters (?b - bird)
         :precondition (and

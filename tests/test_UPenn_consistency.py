@@ -5,7 +5,7 @@ from state_prediction.anomaly_detector_fc_multichannel import FocusedSBAnomalyDe
 os.environ['LANG'] = 'en_US'
 os.environ['PYOPENGL_PLATFORM'] = 'egl' # Uncommnet this line while running remotely
 
-from agent.consistency.observation import ScienceBirdsObservation
+from agent.consistency.episode_log import ScienceBirdsObservation
 from agent.consistency.focused_anomaly_detector import *
 import settings
 import pickle

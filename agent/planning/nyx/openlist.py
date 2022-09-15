@@ -1,4 +1,3 @@
-
 from collections import deque
 
 from agent.planning.nyx.abstract_heuristic import AbstractHeuristic
@@ -120,12 +119,13 @@ class PriorityList(OpenList):
     def __bool__(self):
         return bool(self.nodes)
 
+
 class PreferredList(OpenList):
     """
     Only accepts preferred nodes
     """
 
-    def __init__(self,  parent: OpenList, heuristic: AbstractHeuristic):
+    def __init__(self, parent: OpenList, heuristic: AbstractHeuristic):
         OpenList.__init__(self)
         self.heuristic = heuristic
         self.parent = parent
