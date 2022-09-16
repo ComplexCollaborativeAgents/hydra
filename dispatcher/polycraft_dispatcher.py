@@ -181,8 +181,8 @@ class PolycraftDispatcher(Dispatcher):
                     'step_cost': self.world.get_level_total_step_cost(),
                 }
 
-                result.update(detection.__dict__)
-                result.update(stats.__dict__)
+                result.update(vars(detection))
+                result.update(vars(stats))
 
                 return result
 

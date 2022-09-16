@@ -252,6 +252,7 @@ class PolycraftHydraAgent(HydraAgent):
     planner: PolycraftPlanner
     meta_model_repair: PolycraftMetaModelRepair
 
+    current_state: PolycraftState
     current_log: PolycraftEpisodeLog
     current_stats: PolycraftAgentStats
     current_detection: PolycraftDetectionStats
@@ -309,7 +310,6 @@ class PolycraftHydraAgent(HydraAgent):
         """
 
         self._init_new_episode_stats()
-        self._build_episode_log(world.get_current_state())
 
         self.current_stats.episode_start_time = time.time()
 
@@ -323,6 +323,8 @@ class PolycraftHydraAgent(HydraAgent):
         # Try to interact with all other agents
         for entity_id in current_state.entities.keys():
             self._interact_with_enttiy(entity_id, current_state, world)
+
+        self._build_episode_log(world.get_current_state())
 
         self.active_plan = []
         self.set_active_task(PolycraftTask.CRAFT_POGO.create_instance())
@@ -676,6 +678,9 @@ class PolycraftHydraAgent(HydraAgent):
         self.current_state = next_state
         self.current_log.states.append(self.current_state)
         self.current_log.rewards.append(step_cost)
+
+        if self.current_state.is_terminal():
+            self.current_stats.success = self.current_state.passed
 
         return next_state, step_cost
 

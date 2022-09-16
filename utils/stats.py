@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+from typing import Dict, Any
 
 @dataclass()
 class AgentStats:
@@ -11,6 +12,7 @@ class AgentStats:
     repair_time: float = 0.0
     plan_action_length: int = 0
     timed_out: bool = False
+    success: bool = False
 
 @dataclass
 class NoveltyDetectionStats:
@@ -20,7 +22,7 @@ class NoveltyDetectionStats:
     pddl_prob: float = -1.0
     reward_prob: float = -1.0
     novelty_detection: bool = False
-    novelty_characterization: dict = field(default_factory=dict)
+    novelty_characterization: dict = field(default_factory=dict)    # Dict[str, Any]
 
 # ------------- POLYCRAFT STATS ------------- #
 
