@@ -14,6 +14,7 @@ SB_DATA_PATH = pathlib.Path(settings.ROOT_PATH) / 'data' / 'science_birds'
 SB_CONFIG_PATH = SB_DATA_PATH / 'config'
 SB_BIN_PATH = pathlib.Path(settings.SCIENCE_BIRDS_BIN_DIR) / 'linux'
 
+
 from matplotlib import pyplot as plt
 
 
@@ -29,83 +30,104 @@ class DQNSBAgent():
         self.env = environment
         self.perception = Perception()
         self.state_coverter = SBObs_to_Imgs()
+
+        self.done = False
+        self.observation = None
+        self.observation_ = None
+        self.action = None
+        self.reward = 0
         pass
 
 
     def main_loop(self, max_actions=10000):
         while True:
             raw_state = self.env.get_current_state()
-
             if raw_state.game_state.value == GameState.NEWTRIAL.value:
                 self.handle_new_trial()
 
-            if raw_state.game_state.value == GameState.NEWTRAININGSET.value:
-                self.handle_new_training_set()
+            elif raw_state.game_state.value == GameState.NEWTRAININGSET.value:
+                self.handle_new_training_set(raw_state)
 
-            if raw_state.game_state.value == GameState.PLAYING.value:
+            elif raw_state.game_state.value == GameState.PLAYING.value:
                 raw_state = self.env.get_current_state()
-                action = self.choose_action(raw_state)
-                raw_state, reward = self.env.act(action)
+                self.observation = self.translate_to_observation(raw_state)
+                self.action = self.choose_action(self.observation)
+                sb_action = self.translate_to_sb_action(self.observation, self.action)
+                raw_state, self.reward = self.env.act(sb_action)
+                self.observation_ = self.translate_to_observation(raw_state)
 
-            if raw_state.game_state.value == GameState.REQUESTNOVELTYLIKELIHOOD.value:
+            elif raw_state.game_state.value == GameState.REQUESTNOVELTYLIKELIHOOD.value:
                 self.handle_novelty_request()
 
-            if raw_state.game_state.value == GameState.LOST.value:
-                self.handle_game_lost()
+            elif raw_state.game_state.value == GameState.LOST.value:
+                self.handle_end_of_level()
 
-            if raw_state.game_state.value == GameState.WON.value:
-                self.handle_game_won()
+            elif raw_state.game_state.value == GameState.WON.value:
+                self.handle_end_of_level()
+
+            elif raw_state.game_state.value == GameState.EVALUATION_TERMINATED.value:
+                self.handle_evaluation_terminated()
+                break
+
+            self.store_transition(self.observation, self.action, self.reward, self.observation_, self.done)
+            self.learn()
+            #self.observation = self.observation_
 
 
     def handle_new_trial(self):
         ## reset agent
         self.env.sb_client.ready_for_new_set()
         self.env.sb_client.load_next_available_level()
+        self.raw_state = self.env.get_current_state()
 
-    def handle_new_training_set(self):
+    def handle_new_training_set(self, raw_state):
+        self.done = False
+        self.reward = 0
         self.env.sb_client.ready_for_new_set()
         self.env.sb_client.load_next_available_level()
 
-    def choose_action(self, raw_state):
+
+    def translate_to_observation(self, raw_state):
         processed_state = self.perception.process_state(raw_state)
-        image_state = self.state_coverter.state_to_nD_img(processed_state.objects)
+        return processed_state
 
-        #### debug/visualize state generation
-        #image_pic = self.state_coverter.state_to_image(processed_state.objects)
-        #plt.imshow(image_pic, interpolation='nearest')
-        #plt.show()
-        #### code to choose the right action by sampling the QNet
 
+    def choose_action(self, observation):
         angle = random.randrange(0, 90, 1)
+        return angle
 
+    def store_transition(self, observation, action, reward, observation_, done):
+        pass
 
-        ####
-        action = self.generate_sb_action(processed_state, angle)
-        return action
+    def learn(self):
+        ### implement learning code here
 
-    def generate_sb_action(self, processed_state, angle):
+        pass
+
+    def translate_to_sb_action(self, processed_state, angle_action):
         tp = sb.ScienceBirds.trajectory_planner
         ref_point = tp.get_reference_point(processed_state.sling)
-        release_point = tp.find_release_point(processed_state.sling, math.radians(angle))
+        release_point = tp.find_release_point(processed_state.sling, math.radians(angle_action))
         sb_action = sb.SBShoot(release_point.X, release_point.Y, 3000, ref_point.X, ref_point.Y)
         return sb_action
 
 
-    def handle_game_lost(self):
-        self.env.sb_client.load_next_available_level()
-        pass
-
-    def handle_game_won(self):
+    def handle_end_of_level(self):
+        self.done = True
         self.env.sb_client.load_next_available_level()
         pass
 
     def handle_novelty_request(self):
         self.env.sb_client.report_novelty_likelihood(0.0, 1.0, [], 0, "")
+        self.raw_state = self.env.get_current_state()
+        pass
+
+    def handle_evaluation_terminated(self):
         pass
 
 
 def get_levels_list_for_novelty(novelty, novelty_type):
-    samples = 10
+    samples = 1
     pattern = '9001_Data/StreamingAssets/Levels/novelty_level_{}/type{}/Levels/*.xml'.format(novelty, novelty_type)
     levels_path = SB_BIN_PATH
     levels = list(levels_path.glob(pattern))
@@ -128,4 +150,5 @@ if __name__ == '__main__':
     env = sb.ScienceBirds(None, launch=True, config=config)
     agent = DQNSBAgent(environment=env)
     agent.main_loop()
+    print("all done")
 
