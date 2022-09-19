@@ -56,8 +56,23 @@ class PddlPlusWorldChange:
         self.preconditions = list()
         self.effects = list()
 
+    def print_info(self):
+        print("\n\nNAME:", self.name)
+        print("TYPE:", self.type)
+        print("\tPARAMS: ", end=" ")
+        for par in self.parameters:
+            print("(", par, ")", end=" ")
+        print("\n\tPRECOND: ", end=" ")
+        for prec in self.preconditions:
+            print("(", prec, ")", end=" ")
+        print("\n\tEFFECTS: ", end=" ")
+        for eff in self.effects:
+            print("(", eff, ")", end=" ")
+
     def __str__(self):
         return str(self.name)
+
+    __repr__ = __str__
 
 
 class PddlPlusProblem:
@@ -123,7 +138,11 @@ class PddlPlusDomain:
         print("\nNO MATCHING ACTIONS IN LIST:", self.actions)
         return None
 
-
+def defalut_val():
+    """
+    Use a "real" function instead of a lambda expression so that the object can be pickled.
+    """
+    return 0.0
 class PddlPlusState:
     """
     A class representing a PDDL+ state. Contains only the fluents and their values.
@@ -131,8 +150,10 @@ class PddlPlusState:
 
     def __init__(self, fluent_list: list = None):
         """ Creates a PDDL+ state object initialized by a list of fluent given in the PddlPlusProblem format of lists"""
+
+
         self.numeric_fluents = defaultdict(
-            lambda: 0.0)  # Default value of non-existing fluents is zero in current planner.
+            defalut_val)  # Default value of non-existing fluents is zero in current planner.
         self.boolean_fluents = set()
         if fluent_list is not None:
             self.load_from_fluent_list(fluent_list)
@@ -267,6 +288,17 @@ class PddlPlusState:
             string_buffer = "%s %s\n" % (string_buffer, str(fluent_name))
         return string_buffer
 
+    def diff(self, other):
+        result = {}
+        for fluent, value in self.numeric_fluents.items():
+            if other.numeric_fluents.get(fluent) != value:
+                result[fluent] = f'self: {value}, other: {other.numeric_fluents.get(fluent)}'
+        for fluent in self.boolean_fluents:
+            if fluent not in other.boolean_fluents:
+                result[fluent] = f'Boolean fluent not in other'
+        return result
+
+
 
     def to_pddl(self):
         """ Export as a string in PDDL (lisp) format """
@@ -355,9 +387,8 @@ class PddlPlusGrounder:
 
         return grounded_domain
 
-    """ Ground a list of world_change objects to the given problem """
-
     def __ground_world_change_lists(self, world_change_list, problem):
+        """ Ground a list of world_change objects to the given problem """
         grounded_world_change_list = list()
         for world_change in world_change_list:
             assert len(world_change.parameters) == 1
@@ -368,10 +399,12 @@ class PddlPlusGrounder:
                 grounded_world_change_list.append(self.ground_world_change(world_change, binding))
         return grounded_world_change_list
 
-    """ Extracts from a raw list of the form [?x - typex y? - type?] a list of the form [(?x typex)(?y typey)] 
-    TODO: Think about where this really should go """
 
     def __get_typed_parameter_list(self, element: list):
+        """
+        Extracts from a raw list of the form [?x - typex y? - type?] a list of the form [(?x typex)(?y typey)]
+        TODO: Think about where this really should go
+        """
         i = 0
         typed_parameters = list()
         while i < len(element):
@@ -381,22 +414,21 @@ class PddlPlusGrounder:
             i = i + 3
         return typed_parameters
 
-    """ Extract the list of typed parameters of the given predict"""
-
     def __get_predicate_parameters(self, predicate):
+        """ Extract the list of typed parameters of the given predict"""
         parameter_list = predicate[1:]
         return self.__get_typed_parameter_list(parameter_list)
 
-    """ Enumerate all possible bindings of the given parameters to the given problem """
 
     def __get_possible_bindings(self, parameters, problem: PddlPlusProblem):
+        """ Enumerate all possible bindings of the given parameters to the given problem """
         all_bindings = list()
         self.__recursive_get_possible_bindings(parameters, problem, dict(), all_bindings)
         return all_bindings
 
-    """ Recursive method to find all bindings """
 
     def __recursive_get_possible_bindings(self, parameters, problem, binding, bindings):
+        """ Recursive method to find all bindings """
         for object in problem.objects:
             if len(object) > 1 and self.no_dummy_objects and "dummy" in object[0]:
                 continue
@@ -409,16 +441,15 @@ class PddlPlusGrounder:
                 else:
                     self.__recursive_get_possible_bindings(parameters[1:], problem, binding, bindings)
 
-    """ Checks if one can bound the given parameter to the given object """
 
     def __can_bind(self, parameter, object):
+        """ Checks if one can bound the given parameter to the given object """
         return object[-1] == parameter[-1]
 
 
-""" An action with a time stamp saying when it should start"""
 
-
-class TimedAction():
+class TimedAction:
+    """ An action with a time stamp saying when it should start"""
     def __init__(self, action_name: str, start_at: float):
         self.action_name = action_name
         self.start_at = round(start_at, 8)
@@ -427,11 +458,13 @@ class TimedAction():
         return "t=%s, %s" % (self.start_at, self.action_name)
 
 
-""" Just a list of timed actions """
-
 
 class PddlPlusPlan(list):
-    def __init__(self, actions: list = list()):
+    """ Just a list of timed actions """
+    def __init__(self, actions=None):
+        super().__init__()
+        if actions is None:
+            actions = list()
         for action in actions:
             if isinstance(action, TimedAction) == False:
                 raise ValueError(
@@ -439,10 +472,9 @@ class PddlPlusPlan(list):
             self.append(action)
 
 
-""" Check if a given string is a float. TODO: Replace this with a more elegant python way of doing this."""
-
 
 def is_float(text: str):
+    """ Check if a given string is a float. TODO: Replace this with a more elegant python way of doing this."""
     try:
         float(text)
         return True

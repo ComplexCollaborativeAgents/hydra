@@ -75,9 +75,9 @@ class PolycraftState(State):
 
     def __init__(self, step_num: int, facing_block: str, location: dict, game_map: dict,
                  entities: dict, inventory: dict, current_item: str,
-                 recipes: list, trades: list, door_to_room_cells: dict, terminal: bool, 
+                 recipes: list, trades: list, door_to_room_cells: dict, terminal: bool,
                  passed: bool,
-                 step_cost: int = -1, viz: np.ndarray=None):
+                 step_cost: int = -1, viz: np.ndarray = None):
         super().__init__()
 
         self.step_num = step_num
@@ -94,21 +94,22 @@ class PolycraftState(State):
         self.recipes = recipes
         self.trades = trades
         self.viz = viz  # flattened array of integers representing the visualization of the player character at the given state
+        self.cell_to_attr = {}
 
     def get_known_cells(self) -> dict:
         """ Returns a game-map-like dictionary containing all the cells from all the rooms """
-        cell_to_attr = dict()
-        for door, room_cells in self.door_to_room_cells.items():
-            for cell, cell_attr in room_cells.items():
-                cell_to_attr[cell] = cell_attr
-        return cell_to_attr
+        if not self.cell_to_attr:
+            for door, room_cells in self.door_to_room_cells.items():
+                for cell, cell_attr in room_cells.items():
+                    self.cell_to_attr[cell] = cell_attr
+        return self.cell_to_attr
 
     def get_cells_of_type(self, item_type: str, only_accessible=False):
         """ returns a list of cells that are of the given type """
         cells = []
         for cell, cell_attr in self.get_known_cells().items():
             if cell_attr["name"] == item_type:
-                if only_accessible and cell_attr['isAccessible'] == False:
+                if only_accessible and not cell_attr['isAccessible']:
                     continue
                 cells.append(cell)
         return cells
@@ -611,7 +612,7 @@ class Polycraft(World):
         # Reset values from past level
         self.current_level = s_level
         self.ready_for_cmds = False
-        self.current_trades.clear()
+        self.current_trades = {}
         self.current_recipes.clear()
         self.door_to_room_cells.clear()
 

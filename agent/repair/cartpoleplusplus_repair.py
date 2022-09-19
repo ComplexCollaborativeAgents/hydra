@@ -14,7 +14,10 @@ class CartPlusPlusLocationConsistency(AspectConsistency):
             fluent_names = [('x',), ('x_dot',), ('theta',), ('theta_dot',)]
         super().__init__(fluent_names, obs_prefix, discount_factor, consistency_threshold)
 
-    def consistency_from_trace(self, simulation_trace: list, state_seq: list, delta_t: float = DEFAULT_DELTA_T):
+    def consistency_from_trace(self, simulation_trace: list, state_seq: list, pddl_plan=None,
+                               delta_t: float = DEFAULT_DELTA_T):
+        if pddl_plan is None:
+            pddl_plan = []
         return self._consistency_from_matched_trace(simulation_trace, state_seq, delta_t)
 
 

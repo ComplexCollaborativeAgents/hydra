@@ -2,7 +2,7 @@
 
 REGISTRY='registry.gitlab-external.parc.com:8443'
 REPO='hydra/polycraft_experiment'
-RELEASE='month30'
+RELEASE='month36'
 
 docker login $REGISTRY
 docker build -t $REGISTRY/$REPO/$RELEASE .

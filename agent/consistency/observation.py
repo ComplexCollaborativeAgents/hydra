@@ -56,7 +56,7 @@ class ScienceBirdsObservation(HydraEpisodeLog):
     def get_initial_state(self):
         return self.state
 
-    def get_pddl_states_in_trace(self, meta_model: ScienceBirdsMetaModel = ScienceBirdsMetaModel()) -> list: # TODO: Refactor and move this to the meta model?
+    def get_pddl_states_in_trace(self, meta_model: ScienceBirdsMetaModel) -> list: # TODO: Refactor and move this to the meta model?
         """ Returns a sequence of PDDL states that are the observed intermediate states """
         observed_state_seq = []
         for intermediate_state in self.intermediate_states:

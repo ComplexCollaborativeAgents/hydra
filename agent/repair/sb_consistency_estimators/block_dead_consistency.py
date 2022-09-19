@@ -1,5 +1,5 @@
 import settings
-from agent.consistency.consistency_estimator import AspectConsistency
+from agent.consistency.consistency_estimator import AspectConsistency, DEFAULT_DELTA_T
 
 
 class BlockNotDeadConsistencyEstimator(AspectConsistency):
@@ -16,10 +16,13 @@ class BlockNotDeadConsistencyEstimator(AspectConsistency):
             fluent_names = []
         super().__init__(fluent_names, fluent_template='block')
 
-    def consistency_from_trace(self, simulation_trace: list, state_seq: list, delta_t: float = settings.SB_DELTA_T):
+    def consistency_from_trace(self, simulation_trace: list, state_seq: list, pddl_plan=None,
+                               delta_t: float = DEFAULT_DELTA_T):
         """
         Estimate consistency by considering which blocks are or aren't destroyed.
         """
+        if pddl_plan is None:
+            pddl_plan = []
         last_state_in_sim = simulation_trace[-1][0]
         blocks_in_sim = last_state_in_sim.get_blocks()
         blocks_not_dead = self._objects_in_last_frame(simulation_trace, state_seq, in_sim=False, in_obs=True)
