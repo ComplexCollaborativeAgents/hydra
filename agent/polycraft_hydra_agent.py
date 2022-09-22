@@ -251,7 +251,7 @@ class PolycraftHydraAgent(HydraAgent):
         """
 
         self.current_state = state
-        self.current_log = PolycraftEpisodeLog()  # Start a new observation object for this level
+        self.current_log = PolycraftEpisodeLog(self.meta_model)  # Start a new observation object for this level
         self.current_log.states.append(self.current_state)
         self.episode_logs.append(self.current_log)
         
@@ -559,7 +559,7 @@ class PolycraftHydraAgent(HydraAgent):
             task (PolycraftTask): The new active task
         """
         if task != self.meta_model.active_task:# task changed, start a new observation set
-            self.current_log = PolycraftEpisodeLog()
+            self.current_log = PolycraftEpisodeLog(self.meta_model)
             self.current_log.states.append(self.current_state)
             self.episode_logs.append(self.current_log)
         self.meta_model.set_active_task(task)
