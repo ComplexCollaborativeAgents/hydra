@@ -70,7 +70,7 @@ class RequestCodes(Enum):
     NoveltyInfo = 69
     BatchGT = 70
     GetInitialStateScreenShot = 71
-
+    NoveltyHint = 72
 class AgentClient:
     """Science Birds agent API"""
 
@@ -437,6 +437,21 @@ class AgentClient:
         self._send_command(RequestCodes.GetNoisyGroundTruthWithoutScreenshot)
         gt = self.read_ground_truth_from_stream()
         return gt
+
+    def get_novelty_hint(self,hint_level):
+        """get novelty hint"""
+        self._logger.info("getting novelty hint")
+        self._send_command(RequestCodes.NoveltyHint, "I", hint_level)
+        msg_length = self._read_from_buff("I")[0]
+        data = b''
+        self._logger.debug("novelty hint length is %d bytes", msg_length)
+        while len(data) < msg_length:
+            packet = self.server_socket.recv(msg_length - len(data))
+            if not packet:
+                return None
+            data += packet
+        data_string = data.decode("UTF-8")
+        return json.loads(data_string)
 
 
 if __name__ == "__main__":
