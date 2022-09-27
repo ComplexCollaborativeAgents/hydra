@@ -117,17 +117,28 @@ class NoveltyExperimentRunnerPolycraft:
 
         self.dispatcher.cleanup_experiment()
 
-    def process_trial_results(self, trial_id:str, results_list: List[dict]) -> pandas.DataFrame:
-        """_summary_
+    def run_trial_from_json(self, json_path:str):
+        """ Run a single trial from a json file output by the novelty experiment runner
 
         Args:
-            trial_id (str): _description_
-            results_list (List): _description_
-
-        Returns:
-            pandas.DataFrame: _description_
+            json_path (str): path to the json file.
         """
-        trial = pandas.DataFrame(columns=self.data_categories)
+        with open(json_path, 'r') as f:
+            trial = json.load(f)
+
+            self.dispatcher.set_trial_sets({
+                json_path: trial
+            })
+            self.dispatcher.run_trials()
+
+            self.process_experiment()
+            self.dispatcher.experiment_end()
+
+    def process_trial_results(self, trial_id:str, results_list:List):
+        trial = pandas.DataFrame(columns=['trial_num', 'trial_type', 'novelty_level', 'novelty_type', 'novelty_subtype',
+                                              'episode_type', 'episode_num', 'novelty_probability',
+                                              'novelty_threshold', 'novelty', 'novelty_characterization',
+                                              'predicted_novel', 'performance', 'pass', 'num_repairs', 'repair_time'])
 
         trial_num, num_levels, novelty, n_type, n_stype, difficulty = unpack_trial_id(trial_id)
         
@@ -205,3 +216,4 @@ class NoveltyExperimentRunnerPolycraft:
 if __name__ == "__main__":
     runner = NoveltyExperimentRunnerPolycraft()
     runner.run_trials()
+    # runner.run_trial_from_json()  # Insert path to json file here! (Do not commit any changes to this)
