@@ -87,6 +87,23 @@ class NoveltyExperimentRunnerPolycraft:
 
         self.dispatcher.experiment_end()
 
+    def run_trial_from_json(self, json_path:str):
+        """ Run a single trial from a json file output by the novelty experiment runner
+
+        Args:
+            json_path (str): path to the json file.
+        """
+        with open(json_path, 'r') as f:
+            trial = json.load(f)
+
+            self.dispatcher.set_trial_sets({
+                json_path: trial
+            })
+            self.dispatcher.run_trials()
+
+            self.process_experiment()
+            self.dispatcher.experiment_end()
+
     def process_trial_results(self, trial_id:str, results_list:List):
         trial = pandas.DataFrame(columns=['trial_num', 'trial_type', 'novelty_level', 'novelty_type', 'novelty_subtype',
                                               'episode_type', 'episode_num', 'novelty_probability',
@@ -174,3 +191,4 @@ class NoveltyExperimentRunnerPolycraft:
 if __name__ == "__main__":
     runner = NoveltyExperimentRunnerPolycraft()
     runner.run_trials()
+    # runner.run_trial_from_json()  # Insert path to json file here! (Do not commit any changes to this)
