@@ -1,3 +1,5 @@
+import logging
+
 import settings
 from agent.consistency.consistency_estimator import DomainConsistency, AspectConsistency
 from agent.consistency.nyx_pddl_simulator import NyxPddlPlusSimulator
@@ -6,7 +8,8 @@ from agent.planning.sb_meta_model import ScienceBirdsMetaModel
 from agent.repair.sb_consistency_estimators.bird_location_consistency import BirdLocationConsistencyEstimator
 from agent.repair.sb_consistency_estimators.block_dead_consistency import BlockNotDeadConsistencyEstimator
 from agent.repair.sb_consistency_estimators.pig_dead_consistency import PigDeadConsistencyEstimator
-from agent.repair.sb_repair import logger
+
+logger = logging.getLogger('sb_repair')
 
 
 class ScienceBirdsConsistencyEstimator(DomainConsistency):

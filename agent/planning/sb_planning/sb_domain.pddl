@@ -221,6 +221,7 @@
     )
 
     (:event explode_block
+        ; The actual explosion radius is 50 (in whatever units this is??). We use a value of 100 to help model chain reactions.
         :parameters (?bl_tnt - block ?bl_near - block)
         :precondition (and
             (> (block_life ?bl_near) 0)

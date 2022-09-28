@@ -433,7 +433,11 @@ class SBBlockedPigsHeuristic(SBOneBirdHeuristic):
 class SBHelpfulAngleHeuristic(SBBlockedPigsHeuristic):
     """
     Calculates trajectories to pigs\blocks in front of or under pigs as a pre-processing step, and marks states
-    on those trajectories as 'preferred' so that they are tried first.
+    near those trajectories as 'preferred' so that they are tried first.
+    Note about deviation positioning: doing the calculation with floats and only adding the deviation at the end
+    is a less correct method for two reasons. 1) we want an approximate landing point in x, not y. 2) we want the
+    approximation to run through the entire trajectory, else we risk getting no solutions due to launch angle
+    quantization.
     """
 
     def __init__(self, blocking_blocks=False):
@@ -529,7 +533,6 @@ class SBHelpfulAngleHeuristic(SBBlockedPigsHeuristic):
         if active_bird_string is not None:
             if not node.state_vars["['bird_released'" + active_bird_string] and node.state_vars["['angle']"] > 0:
                 # Haven't fired yet - want to have all angles available first.
-                # print(node.state_vars["['x_bird'" + active_bird_string] + self.deviation, node.state_vars["['y_bird'" + active_bird_string], node.state_vars["['vx_bird'" + active_bird_string])
                 return True
 
             if node.state_vars["['bird_tapped'" + active_bird_string]:
