@@ -1,18 +1,12 @@
-import copy
-import numbers
-import re
-
-import numpy as np
 import itertools
 
+import numpy as np
 from interval import inf
 
-from agent.planning.nyx.compiler.HappeningMixin import HappeningMixin
-
+import agent.planning.nyx.syntax.constants as constants
 from agent.planning.nyx.PDDL import GroundedPDDLInstance
 from agent.planning.nyx.abstract_heuristic import AbstractHeuristic
 from agent.planning.nyx.syntax.state import State
-import agent.planning.nyx.syntax.constants as constants
 from agent.planning.nyx.syntax.supporter import Supporter
 from utils.comparable_interval import ComparableInterval
 
@@ -34,7 +28,7 @@ class IntervalHeuristic(AbstractHeuristic):
                 # Convert to intervals. This only happens in one place, maybe move it there?
                 for key, val in self.state_vars.items():
                     if type(val) is not bool:
-                        self.state_vars[key] = ComparableInterval(val)  # In theory, all the regular math works on these.
+                        self.state_vars[key] = ComparableInterval(val)
                 self.state_vars['pos_inf'] = ComparableInterval[1, inf]
                 self.state_vars['neg_inf'] = ComparableInterval[-inf, 1]
 
@@ -65,7 +59,8 @@ class IntervalHeuristic(AbstractHeuristic):
                     self._create_supporters(happening.parameters, happening.preconditions, effect)
                 else:
                     # effect is on predicate
-                    self._relaxed_effect(happening.name + '_relaxed', happening.parameters, happening.preconditions, effect)
+                    self._relaxed_effect(happening.name + '_relaxed', happening.parameters,
+                                         happening.preconditions, effect)
 
         # TODO build new precondition tree?
 
@@ -121,7 +116,8 @@ class IntervalHeuristic(AbstractHeuristic):
         happenings_applied = 0
         while supporters and state_updated and not self.grounded_domain.goals(state, constants):
             state_updated = False
-            for happening in state.get_applicable_happenings(supporters):  # TODO This line is gonna kill our performance
+            for happening in state.get_applicable_happenings(supporters):
+                # TODO This is the first place to look to improve performance (try to use Alex's precondition trees)
                 state_updated = True
                 happenings_applied += 1
                 state.apply_happening(happening)

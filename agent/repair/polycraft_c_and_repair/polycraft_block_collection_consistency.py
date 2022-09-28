@@ -7,7 +7,7 @@ from agent.planning.nyx.compiler.preconditions_tree import Happening
 from agent.planning.pddl_plus import PddlPlusState
 from agent.planning.polycraft_meta_model import PolycraftMetaModel
 from agent.planning.polycraft_planning.polycraft_pddl_objects_and_constants import PddlGameMapCellType, Function
-from agent.planning.polycraft_planning.actions import BreakAndCollect, TeleportToBreakAndCollect
+from agent.planning.polycraft_planning.polycraft_macro_actions import BreakAndCollect, TeleportToBreakAndCollect
 from utils.polycraft_utils import coordinates_to_cell
 from worlds.polycraft_world import PolycraftAction, BlockType
 
@@ -17,7 +17,7 @@ logger = logging.getLogger("Polycraft")
 class PolycraftBlockCollectOutcomeConsistency(AspectConsistency):
     """
     Finds inconsistency for breaking blocks giving an unexpected number of pieces.
-    TODO: should be per block type? or one for all types?
+    This could possibly be expanded to collecting sap from tree taps.
     """
     def __init__(self, resource_type, metamodel: PolycraftMetaModel):
         super().__init__([])
@@ -61,8 +61,6 @@ class PolycraftBlockCollectOutcomeConsistency(AspectConsistency):
                 end_mismatch = sim_state.numeric_fluents[self.fluent_names[0]] - \
                                obs_state.numeric_fluents[self.fluent_names[0]]
                 self.block_mismatch += initial_mismatch - end_mismatch
-                # initial_mismatch = 0
-                # ready_to_compare = False
                 break
                 # Return the result of a single mismatch. We don't really get more information by summing over multiple
                 #  breakings of the same type of brick.

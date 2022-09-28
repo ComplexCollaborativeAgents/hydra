@@ -1,4 +1,4 @@
-from agent.consistency.observation import ScienceBirdsObservation
+from agent.consistency.episode_log import ScienceBirdsObservation
 from agent.reward_estimation.nn_utils.obs_to_imgs import *
 from agent.reward_estimation.nn_utils.ab_dataset_tensor import *
 import pickle

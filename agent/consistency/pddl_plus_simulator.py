@@ -4,7 +4,7 @@
 """
 import settings
 from agent.planning.meta_model import *
-from agent.consistency.observation import *
+from agent.consistency.episode_log import *
 from agent.planning.pddl_plus import is_op
 
 # Constants

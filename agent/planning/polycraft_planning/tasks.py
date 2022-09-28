@@ -6,7 +6,7 @@ from agent.planning.polycraft_planning.polycraft_pddl_objects_and_constants impo
     PddlSafeCellType, PddlType, Predicate, Function
 from agent.planning.polycraft_planning.polycaft_task_class import Task
 from agent.planning.polycraft_planning.polycraft_action_classes import PddlPolycraftActionGenerator
-from agent.planning.polycraft_planning.actions import *
+from agent.planning.polycraft_planning.polycraft_macro_actions import *
 from worlds.polycraft_actions import PolySelectItem, PolyCraftItem
 import agent.planning.nyx.syntax.state as SearchState
 from worlds.polycraft_world import PolycraftState

@@ -7,7 +7,8 @@ class HeapPriorityList(OpenList):
     """
     An open list based on a heap.
     """
-    # Push and pop are taking 4216 ms (0.4%) and 13515 ms (1.2%) of runtime.
+    # NOTE(Yoni): This was profiled in comparison to the other open lists, and found to be equivalent for the problems
+    #  in the SAIL-ON project. 
     def __init__(self, Astar=True):
         super().__init__()
         self.astar = Astar

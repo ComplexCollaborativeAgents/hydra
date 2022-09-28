@@ -47,17 +47,14 @@ class GroundedPDDLInstance:
         self._objects = None
         self._initialize_state()
         self._goals_code, self.goals = JIT.compile_expression(self.problem.goals, name='goals')
-        if self.problem.metric != ['total-time'] and self.problem.metric != [
-            'total-actions'] and self.problem.metric is not None:
+        if self.problem.metric != ['total-time'] and self.problem.metric != ['total-actions'] \
+                and self.problem.metric is not None:
             self._metric_code, self.metric = JIT.compile_expression([self.problem.metric], name='metric')
         self.processes = self._groundify_happenings(self.domain.processes)
         self.events = self._groundify_happenings(self.domain.events)
         self.actions = self._groundify_happenings(self.domain.actions)
         if constants.TEMPORAL_DOMAIN:
             self.actions.add_happening(constants.TIME_PASSING_ACTION)
-
-        # with open('grounded_domain.txt', 'w') as gd_file:
-        #     gd_file.write(str(self))
 
     def enact_requirements(self):
         for requirement in self.domain.requirements:
@@ -114,7 +111,7 @@ class GroundedPDDLInstance:
         for event in self.events:
             res += event.name + '\npreconditions: ' + str(event.preconditions) + '\neffects: ' + str(
                 event.effects) + '\n'
-        res += 'proccesses: \n'
+        res += 'processes: \n'
         for process in self.processes:
             res += process.name + '\npreconditions: ' + str(process.preconditions) + '\neffects: ' + str(
                 process.effects) + '\n'
@@ -142,25 +139,25 @@ class PDDL_Parser:
             str = re.sub(r';.*$', '', f.read(), flags=re.MULTILINE).lower()
         # Tokenize
         stack = []
-        list = []
+        token_list = []
         for t in re.findall(r'[()]|[^\s()]+', str):
             if t == '(':
-                stack.append(list)
-                list = []
+                stack.append(token_list)
+                token_list = []
             elif t == ')':
                 if stack:
-                    l = list
-                    list = stack.pop()
-                    list.append(l)
+                    l = token_list
+                    token_list = stack.pop()
+                    token_list.append(l)
                 else:
                     raise Exception('Missing open parentheses')
             else:
-                list.append(t)
+                token_list.append(t)
         if stack:
             raise Exception('Missing close parentheses')
-        if len(list) != 1:
+        if len(token_list) != 1:
             raise Exception('Malformed expression')
-        return list[0]
+        return token_list[0]
 
     # -----------------------------------------------
     # Parse domain
@@ -213,25 +210,25 @@ class PDDL_Parser:
     # -----------------------------------------------
 
     def parse_hierarchy(self, group, structure, name, redefine):
-        list = []
+        token_list = []
         while group:
             if redefine and group[0] in structure:
                 raise Exception('Redefined supertype of ' + group[0])
             elif group[0] == '-':
-                if not list:
+                if not token_list:
                     raise Exception('Unexpected hyphen in ' + name)
                 group.pop(0)
                 type = group.pop(0)
                 if not type in structure:
                     structure[type] = []
-                structure[type] += list
-                list = []
+                structure[type] += token_list
+                token_list = []
             else:
-                list.append(group.pop(0))
-        if list:
+                token_list.append(group.pop(0))
+        if token_list:
             if not 'object' in structure:
                 structure['object'] = []
-            structure['object'] += list
+            structure['object'] += token_list
 
     # -----------------------------------------------
     # Parse constants
@@ -270,9 +267,9 @@ class PDDL_Parser:
                 if t == '-':
                     if not untyped_variables:
                         raise Exception('Unexpected hyphen in predicates')
-                    type = pred.pop(0)
+                    predicate_type = pred.pop(0)
                     while untyped_variables:
-                        arguments[untyped_variables.pop(0)] = type
+                        arguments[untyped_variables.pop(0)] = predicate_type
                 else:
                     untyped_variables.append(t)
             while untyped_variables:
@@ -295,9 +292,9 @@ class PDDL_Parser:
                 if t == '-':
                     if not untyped_variables:
                         raise Exception('Unexpected hyphen in functions')
-                    type = func.pop(0)
+                    predicate_type = func.pop(0)
                     while untyped_variables:
-                        arguments[untyped_variables.pop(0)] = type
+                        arguments[untyped_variables.pop(0)] = predicate_type
                 else:
                     untyped_variables.append(t)
             while untyped_variables:

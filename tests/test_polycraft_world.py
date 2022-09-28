@@ -3,7 +3,7 @@ import random
 import pytest
 from tests.test_polycraft import launch_polycraft
 from agent.planning.polycraft_planning.fixed_planner import CollectAndMineItem
-from agent.planning.polycraft_planning.actions import *
+from agent.planning.polycraft_planning.polycraft_macro_actions import *
 from agent.polycraft_hydra_agent import PolycraftManualAgent
 from worlds.polycraft_actions import *
 from worlds.polycraft_world import *

@@ -64,23 +64,6 @@ class CompositeHeuristic(AbstractHeuristic):
         return self.fast.is_preferred(node) or self.slow.is_preferred(node)
 
 
-class DifferenceHeuristic(AbstractHeuristic):
-    """
-    Hamming distance for variable based planning problems: how many variables have values different from the goal.
-    """
-
-    def __init__(self, goal_vals: dict):
-        self.goals = goal_vals
-
-    def evaluate(self, node):
-        heuristic = 0
-        for var, val in self.goals.items():
-            if node.state[var] != val:
-                heuristic += 1
-        node.h = heuristic
-        return heuristic
-
-
 class HeuristicSum(AbstractHeuristic):
     """
     Returns the sum of several heuristics

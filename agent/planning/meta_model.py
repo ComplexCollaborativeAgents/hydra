@@ -61,6 +61,7 @@ class PddlObjectType:
     def _get_name(self, obj):
         raise NotImplementedError()
 
+
 class MetaModel:
     """ A meta-model used to generated PDDL+ domains and problems from observations """
 
