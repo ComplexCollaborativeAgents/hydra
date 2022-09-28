@@ -187,7 +187,7 @@ class PolycraftDispatcher(Dispatcher):
                 return result
 
             # Agent chooses an action and performs it
-            action = self.agent.choose_action(current_state, self.world)
+            action = self.agent.choose_action(self.agent.current_state, self.world)
             # TODO: split self.agent.do() into upkeep (agent) and performing actions (world)
             next_state, step_cost = self.agent.do(action, self.world)
 

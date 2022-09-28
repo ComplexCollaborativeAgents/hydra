@@ -126,6 +126,7 @@ class NoveltyExperimentRunnerPolycraft:
         with open(json_path, 'r') as f:
             trial = json.load(f)
 
+            self.dispatcher.run_experiment(standalone=True)
             self.dispatcher.set_trial_sets({
                 json_path: trial
             })
@@ -215,5 +216,5 @@ class NoveltyExperimentRunnerPolycraft:
 
 if __name__ == "__main__":
     runner = NoveltyExperimentRunnerPolycraft()
-    runner.run_trials()
-    # runner.run_trial_from_json()  # Insert path to json file here! (Do not commit any changes to this)
+    # runner.run_trials()
+    runner.run_trial_from_json("0_20_POGO_L01_T01_S01_E.json")  # Insert path to json file here! (Do not commit any changes to this)
