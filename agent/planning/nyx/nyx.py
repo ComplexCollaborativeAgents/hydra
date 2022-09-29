@@ -1,20 +1,19 @@
-
 # from agent.planning.nyx.PDDL import PDDL_Parser
-from toolz import cons
 
-import settings
-from agent.planning.nyx.planner import Planner
-import agent.planning.nyx.syntax.constants as constants
+import gc
+import os
 import sys
 import time
-import os, shutil
-from datetime import datetime
-import gc
+
 import matplotlib.pyplot as plt
+
+import agent.planning.nyx.syntax.constants as constants
+from agent.planning.nyx.planner import Planner
+
 sys.dont_write_bytecode = True
 
-def process_arguments(cl_arguments):
 
+def process_arguments(cl_arguments):
     for arg in cl_arguments:
 
         if arg == '-h':
@@ -78,19 +77,20 @@ def process_arguments(cl_arguments):
             print(f'\nERROR: Unrecognized Argument {arg}\nCall with -h flag for help')
             exit(1)
 
+
 def print_config(dom, prob, pla):
     config_string = '\n\n===== NYX Planning Configuration ================\n' \
-        '\n\t* domain: ' + str(dom) + \
-        '\n\t* problem: ' + str(prob) + \
-        '\n\t* plan: ' + str(pla) + \
-        '\n\t* search algorithm: ' + str(constants.SEARCH_ALGO_TXT) + \
-        '\n\t* time discretisation: ' + str(constants.DELTA_T) + \
-        '\n\t* time horizon: ' + str(constants.TIME_HORIZON) + \
-        '\n'
+                    '\n\t* domain: ' + str(dom) + \
+                    '\n\t* problem: ' + str(prob) + \
+                    '\n\t* plan: ' + str(pla) + \
+                    '\n\t* search algorithm: ' + str(constants.SEARCH_ALGO_TXT) + \
+                    '\n\t* time discretisation: ' + str(constants.DELTA_T) + \
+                    '\n\t* time horizon: ' + str(constants.TIME_HORIZON) + \
+                    '\n'
     print(config_string)
 
-def plot_plan_variables(plan: list, vars_to_plot: list, xlabel="", ylabel=""):
 
+def plot_plan_variables(plan: list, vars_to_plot: list, xlabel="", ylabel=""):
     # vars_to_plot.append("['propulsion_power']")
 
     time_array = []
@@ -115,15 +115,15 @@ def plot_plan_variables(plan: list, vars_to_plot: list, xlabel="", ylabel=""):
 
     # print(var_arrays)
 
-    for ivar in range(1,len(var_arrays)):
-        plt.plot(var_arrays[0], var_arrays[ivar], label=vars_to_plot[ivar-1])
+    for ivar in range(1, len(var_arrays)):
+        plt.plot(var_arrays[0], var_arrays[ivar], label=vars_to_plot[ivar - 1])
     plt.legend()
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
     plt.show()
 
-def print_solution_info(pln, plnr, ttime):
 
+def print_solution_info(pln, plnr, ttime):
     non_temporal_count = 0
 
     for pai in pln:
@@ -131,14 +131,16 @@ def print_solution_info(pln, plnr, ttime):
             non_temporal_count += 1
 
     config_string = '\n===== Solution Info =============================\n' \
-        '\n\t* time: ' + str(round(ttime,3)) + \
-        '\n\t* explored states: ' + str(plnr.explored_states) + \
-        '\n\t* plan length: ' + str(non_temporal_count) + ' (' + str(len(pln)) + ')' + \
-        '\n\t* plan duration: ' + str(plnr.reached_goal_states[0].time)
+                    '\n\t* time: ' + str(round(ttime, 3)) + \
+                    '\n\t* explored states: ' + str(plnr.explored_states) + \
+                    '\n\t* plan length: ' + str(non_temporal_count) + ' (' + str(len(pln)) + ')' + \
+                    '\n\t* plan duration: ' + str(plnr.reached_goal_states[0].time)
     print(config_string)
 
 
-def runner(dom_file, prob_file, args_list:list=[]):
+def runner(dom_file, prob_file, args_list=None):
+    if args_list is None:
+        args_list = []
     start_time = time.time()
     domain = dom_file
     problem = prob_file
@@ -164,7 +166,7 @@ def runner(dom_file, prob_file, args_list:list=[]):
     else:
         print('\n=================================================\n')
         print('\tNo Plan Found!')
-        print('\t\tTime: ' + str(round(total_time,3)))
+        print('\t\tTime: ' + str(round(total_time, 3)))
         print('\t\tStates Explored: ' + str(my_plnr.explored_states))
         print('\n=================================================\n')
         # shutil.copy(prob_file, os.path.dirname(prob_file)+"/trace/problems/cartpole_prob_" +
@@ -184,7 +186,6 @@ def runner(dom_file, prob_file, args_list:list=[]):
         print(my_plnr.initial_state)
         print('')
 
-
     open(plan_file, 'w').close()
 
     plan_f = open(plan_file, 'a')
@@ -195,15 +196,18 @@ def runner(dom_file, prob_file, args_list:list=[]):
 
     for pair in my_plan:
 
-        if (not (constants.VERBOSE_OUTPUT or constants.VERY_VERBOSE_OUTPUT)) and pair[0] == constants.TIME_PASSING_ACTION:
+        if (not (constants.VERBOSE_OUTPUT or constants.VERY_VERBOSE_OUTPUT)) and \
+                pair[0] == constants.TIME_PASSING_ACTION:
             continue
 
         # print('' + str("{:10.3f}".format(my_plnr.visited_hashmap[pair[1].predecessor_hashed].state.time)) + ':\t' + str(pair[0].name), end='')
         # print(str(pair[0].parameters), end='') if pair[0].parameters else print('', end='')
         # print('\t[' + str(pair[0].duration)+']')
 
-        str1 = '' + str("{:10.3f}".format(my_plnr.visited_hashmap[pair[1].predecessor_hashed].state.time)) + ':\t' + str(pair[0].name)
-        str2 = str(pair[0].parameters).replace('\'', '').replace(',)',')') if pair[0].parameters else ''
+        str1 = '' + str(
+            "{:10.3f}".format(my_plnr.visited_hashmap[pair[1].predecessor_hashed].state.time)) + ':\t' + str(
+            pair[0].name)
+        str2 = str(pair[0].parameters).replace('\'', '').replace(',)', ')') if pair[0].parameters else ''
         str3 = '\t[' + str(pair[0].duration) + ']'
 
         if not constants.NO_PLAN:
@@ -211,7 +215,7 @@ def runner(dom_file, prob_file, args_list:list=[]):
             print(str2, end='')
             print(str3)
 
-        plan_f.write(str1 + str2.replace(',','').replace('(',' ').replace(')','') + str3 + '\n')
+        plan_f.write(str1 + str2.replace(',', '').replace('(', ' ').replace(')', '') + str3 + '\n')
 
         if constants.VERY_VERBOSE_OUTPUT:
             if not constants.NO_PLAN:
@@ -221,10 +225,7 @@ def runner(dom_file, prob_file, args_list:list=[]):
 
     print('\n=================================================\n')
 
-
     plan_f.close()
-
-
 
     # if constants.PLOT_VARS and my_plnr.reached_goal_state is not None:
     #     plot_plan_variables(my_plan, ["['massflow_rate', 'massflow_sensor_1']","['massflow_rate', 'massflow_sensor_2']","['massflow_rate', 'massflow_sensor_7']","['massflow_rate', 'massflow_sensor_8']"], xlabel='time(s)', ylabel='massflow')
@@ -239,8 +240,9 @@ def runner(dom_file, prob_file, args_list:list=[]):
     gc.collect()
     return my_plan, explored_states
 
-#-----------------------------------------------
+
+# -----------------------------------------------
 # Main
-#-----------------------------------------------
+# -----------------------------------------------
 if __name__ == '__main__':
     runner(sys.argv[1], sys.argv[2], sys.argv[3:])

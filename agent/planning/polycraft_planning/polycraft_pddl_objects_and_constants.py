@@ -4,6 +4,9 @@ from agent.planning.meta_model import PddlObjectType
 
 
 class PddlGameMapCellType(PddlObjectType):
+    """
+    A cell or block in the polycraft world.
+    """
     def __init__(self, type_idx=-1, relevant_attributes=None):
         super().__init__()
         if relevant_attributes is None:
@@ -36,7 +39,7 @@ class PddlGameMapCellType(PddlObjectType):
         return fluent_to_value
 
     def _compute_observable_obj_attributes(self, obj, params: dict) -> dict:
-        """ Maps fluent_name to fluent_value for all fluents created for this object"""
+        """ Maps fluent_name to fluent_value for observable fluents created for this object"""
         fluent_to_value = dict()
         fluent_to_value[Function.cell_type.name] = self.type_idx
 
@@ -48,19 +51,11 @@ class PddlGameMapCellType(PddlObjectType):
 
         return fluent_to_value
 
-        # # Cell adjacency info
-        # world_state = params["world_state"]
-        # active_cells = params["active_cells"]
-        # known_cells = world_state.get_known_cells()
-        # for adjacent_cell in get_adjacent_cells(cell_id):
-        #     if adjacent_cell in active_cells:
-        #         adjacent_cell_type = known_cells[adjacent_cell]["name"]
-        #         if adjacent_cell_type in [BlockType.BEDROCK.value, BlockType.WOODER_DOOR.value, BlockType.SAFE.value]:
-        #             continue
-        #         adjacent_cell_name = PddlGameMapCellType.get_cell_object_name(adjacent_cell)
-        #         fluent_to_value[(Predicate.adjacent.name, cell_name, adjacent_cell_name)] = True
 
 class PddlDoorCellType(PddlGameMapCellType):
+    """
+    A polycraft cell/block subtype for door cells - for planning efficiency.
+    """
     def __init__(self, type_idx=-1):
         super().__init__(type_idx, [])
         self.pddl_type = PddlType.door_cell.name
@@ -79,22 +74,13 @@ class PddlDoorCellType(PddlGameMapCellType):
                 if attribute_value.upper() == "TRUE":
                     fluent_to_value[Predicate.door_is_accessible.name] = True
 
-        # Handle adjacency
-        # world_state = params["world_state"]
-        # active_cells = params["active_cells"]
-        # known_cells = world_state.get_known_cells()
-        # for adjacent_cell in get_adjacent_cells(cell_id):
-        #     if adjacent_cell in active_cells:
-        #         adjacent_cell_type = known_cells[adjacent_cell]["name"]
-        #         if adjacent_cell_type in [BlockType.BEDROCK.value, BlockType.WOODER_DOOR.value]:
-        #             continue
-        #         adjacent_cell_name = PddlGameMapCellType.get_cell_object_name(adjacent_cell)
-        #         fluent_to_value[(Predicate.adjacent_to_door.name, adjacent_cell_name, cell_name)] = True
-
         return fluent_to_value
 
 
 class PddlSafeCellType(PddlGameMapCellType):
+    """
+    A polycraft cell/block subtype for safes - for planning efficiency.
+    """
     def __init__(self, type_idx=-1):
         super().__init__(type_idx, [])
         self.pddl_type = PddlType.safe_cell.name
@@ -108,18 +94,6 @@ class PddlSafeCellType(PddlGameMapCellType):
             # If attribute is Boolean no need for an "=" sign
             if attribute == Predicate.isAccessible.name:
                 fluent_to_value[Predicate.safe_is_accessible.name] = attribute_value
-
-        # # Handle adjacency
-        # world_state = params["world_state"]
-        # active_cells = params["active_cells"]
-        # known_cells = world_state.get_known_cells()
-        # for adjacent_cell in get_adjacent_cells(cell_id):
-        #     if adjacent_cell in active_cells:
-        #         adjacent_cell_type = known_cells[adjacent_cell]["name"]
-        #         if adjacent_cell_type in [BlockType.BEDROCK.value, BlockType.WOODER_DOOR.value, BlockType.SAFE.value]:
-        #             continue
-        #         adjacent_cell_name = PddlGameMapCellType.get_cell_object_name(adjacent_cell)
-        #         fluent_to_value[(Predicate.adjacent_to_safe.name, adjacent_cell_name, cell_name)] = True
 
         return fluent_to_value
 

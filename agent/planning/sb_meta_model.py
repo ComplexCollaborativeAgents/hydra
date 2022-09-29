@@ -17,7 +17,7 @@ logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s
 logger = logging.getLogger("sb_meta_model")
 logger.setLevel(logging.INFO)
 
-''' Utility functions '''
+""" Utility functions """
 
 
 def get_x_coordinate(obj):
@@ -59,7 +59,7 @@ def get_width(obj):
 def get_random_pig_xy(pddl_problem: PddlPlusProblem):
     """ Returns the location of the closest object to aim for """
     state = PddlPlusState(pddl_problem.init)
-    target_pigs = list(state.get_pigs())
+    target_pigs = list(state.get_objects('pig'))
 
     pig = random.choice(target_pigs)
     random_pig_x = state[('x_pig', pig)]
@@ -71,7 +71,7 @@ def get_random_pig_xy(pddl_problem: PddlPlusProblem):
 def get_closest_object_xy(pddl_problem: PddlPlusProblem):
     """ Returns the location of the closest object to aim for """
     state = PddlPlusState(pddl_problem.init)
-    target_pigs = state.get_pigs()
+    target_pigs = state.get_objects('pig')
     closest_obj_x = None
     closest_obj_y = None
     # assert len(target_pigs) > 0
@@ -83,7 +83,7 @@ def get_closest_object_xy(pddl_problem: PddlPlusProblem):
             closest_obj_x = x_pig
             closest_obj_y = y_pig
             # print("\n\nNEW CLOSEST TARGET: " + pig + "(" + str(closest_obj_x) + ", " + str(closest_obj_y) + ")\n")
-    for plat in state.get_platforms():
+    for plat in state.get_objects('platform'):
         x_plat = state[('x_platform', plat)]
         y_plat = state[('y_platform', plat)]
         if (y_plat - ((state[('y_height', plat)]) / 2)) >= 10.0:
@@ -93,7 +93,7 @@ def get_closest_object_xy(pddl_problem: PddlPlusProblem):
             closest_obj_x = x_plat
             closest_obj_y = y_plat
             # print("\n\nNEW CLOSEST TARGET: " + plat + "(" + str(closest_obj_x) + ", " + str(closest_obj_y) + ")\n")
-    for blo in state.get_blocks():
+    for blo in state.get_objects('block'):
         x_blo = state[('x_block', blo)]
         y_blo = state[('y_block', blo)]
         if (closest_obj_x is None) or (
@@ -104,10 +104,8 @@ def get_closest_object_xy(pddl_problem: PddlPlusProblem):
     return closest_obj_x, closest_obj_y
 
 
-''' Returns a min/max launch angle to hit the given target point '''
-
-
 def estimate_launch_angle(slingshot, targetPoint, meta_model):
+    """ Returns a min/max launch angle to hit the given target point """
     # calculate relative position of the target (normalised)
     scale_factor = meta_model.hyper_parameters['scale_factor']
     _velocity = 9.5 / scale_factor
@@ -123,27 +121,17 @@ def estimate_launch_angle(slingshot, targetPoint, meta_model):
 
         scale = get_scale(slingshot)
 
-        # print ('scale ', scale)
-        # System.out.println("scale " + scale)
         # ref = Point2D(int(slingshot.X + X_OFFSET * slingshot.width), int(slingshot.Y + Y_OFFSET * slingshot.height))
         ref = Point2D(int(get_slingshot_x(slingshot) + x_offset * get_width(slingshot)),
                       int(get_slingshot_y(ground_offset, slingshot) + y_offset * get_height(slingshot)))
-        # print ('ref point', str(ref))
         x = (targetPoint.X - ref.X)
         y = (targetPoint.Y - ref.Y)
 
-        # print ('sling X', get_slingshot_x(slingshot))
-        # print ('sling Y', get_slingshot_y(ground_offset, slingshot))
-
-        # print ('X', x)
-        # print ('Y', y)
 
         # gravity
         g = 0.48 * meta_model.constant_numeric_fluents['gravity_factor'] / scale_factor * scale
-        # print('gravity', g)
         # launch speed
         v = 182  # _velocity * scale
-        # print ('launch speed ', v)
 
         solution_existence_factor = v ** 4 - g ** 2 * x ** 2 - 2 * y * g * v ** 2
 
@@ -153,21 +141,15 @@ def estimate_launch_angle(slingshot, targetPoint, meta_model):
             return 0.0, 90.0
 
         # solve cos theta from projectile equation
-
         cos_theta_1 = math.sqrt(
             (x ** 2 * v ** 2 - x ** 2 * y * g + x ** 2 * math.sqrt(solution_existence_factor)) /
             (2 * v ** 2 * (x ** 2 + y ** 2)))
         cos_theta_2 = math.sqrt(
             (x ** 2 * v ** 2 - x ** 2 * y * g - x ** 2 * math.sqrt(solution_existence_factor)) /
             (2 * v ** 2 * (x ** 2 + y ** 2)))
-        #        print ('cos_theta_1 ', cos_theta_1, ' cos_theta_2 ', cos_theta_2)
 
-        distance_between = math.sqrt(x ** 2 + y ** 2)  # ad-hoc patch
-
-        theta_1 = math.acos(cos_theta_1)  # + distance_between * 0.0001  # compensate the rounding error
-        # print('theta 1', math.degrees(theta_1))
-        theta_2 = math.acos(cos_theta_2)  # + distance_between * 0.00005  # compensate the rounding error
-        # print('theta 2', math.degrees(theta_2))
+        theta_1 = math.acos(cos_theta_1)
+        theta_2 = math.acos(cos_theta_2)
         print(f'found angle to pig: {math.degrees(theta_1)}, {math.degrees(theta_2)}')
         return math.degrees(theta_1), math.degrees(theta_2)
 
@@ -436,7 +418,7 @@ class TNTType(BlockType):
         return obj_attributes
 
 
-''' Assumption: unknown types are assumed to be blocks '''
+""" Assumption: unknown types are assumed to be blocks """
 
 
 class UnknownType(BlockType):
@@ -447,7 +429,7 @@ class UnknownType(BlockType):
 class ScienceBirdsMetaModel(MetaModel):
     TWANG_ACTION = "pa-twang"  # Default action type
 
-    ''' Sets the default meta-model'''
+    """ Sets the default meta-model"""
 
     def __init__(self):
         super().__init__(docker_path=settings.SB_PLANNING_DOCKER_PATH,
@@ -536,7 +518,7 @@ class ScienceBirdsMetaModel(MetaModel):
         self.object_types["unknown"] = UnknownType()
 
     def get_slingshot(self, sb_state: ProcessedSBState):
-        ''' Get the slingshot object '''
+        """ Get the slingshot object """
         sling = None
         for o in sb_state.objects.items():
             if o[1]['type'] == 'slingshot':
@@ -587,8 +569,8 @@ class ScienceBirdsMetaModel(MetaModel):
         # return TimedAction(action_name, action_time)
         return sb_shoot.timed_action
 
-    ''' Translate the initial SBState, as observed, to a PddlPlusProblem object. 
-    Note that in the initial state, we ignore the location of the bird and assume it is on the slingshot. '''
+    """ Translate the initial SBState, as observed, to a PddlPlusProblem object. 
+    Note that in the initial state, we ignore the location of the bird and assume it is on the slingshot. """
 
     def create_pddl_problem(self, sb_state: ProcessedSBState):
         # There is an annoying disconnect in representations.
@@ -811,8 +793,8 @@ class ScienceBirdsMetaModel(MetaModel):
         """ Get the ground offset """
         return slingshot[1]['polygon'].bounds[3]
 
-    ''' Translate the given observed SBState to a PddlPlusState object. 
-    This is designed to handle intermediate state observed during execution '''
+    """ Translate the given observed SBState to a PddlPlusState object. 
+    This is designed to handle intermediate state observed during execution """
 
     def create_pddl_state(self, sb_state: ProcessedSBState):
         pddl_state = PddlPlusState()

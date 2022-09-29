@@ -8,7 +8,7 @@ from agent.planning.pddl_plus import PddlPlusState
 import matplotlib
 import matplotlib.animation as animation
 from agent.planning.meta_model import *
-from agent.consistency.observation import *
+from agent.consistency.episode_log import *
 from agent.consistency.pddl_plus_simulator import *
 import matplotlib._color_data as mcd
 from agent.planning.sb_meta_model import *
@@ -167,15 +167,15 @@ def plot_pddl_state(pddl_state: PddlPlusState, ax=None):
     if ax is None:
         _, ax = plt.subplots()
 
-    plot_pigs_and_birds(pddl_state.get_birds(), pddl_state.get_pigs(), pddl_state, ax)
+    plot_pigs_and_birds(pddl_state.get_objects('bird'), pddl_state.get_objects('pig'), pddl_state, ax)
 
     # PLot blocks
-    blocks = pddl_state.get_blocks()
+    blocks = pddl_state.get_objects('block')
     for block in blocks:
         plot_block(block, pddl_state, ax)
 
     # plot platforms
-    platforms = pddl_state.get_platforms()
+    platforms = pddl_state.get_objects('platform')
     for platform in platforms:
         plot_platform(platform, pddl_state, ax)
 
@@ -205,10 +205,10 @@ def plot_intermediate_state(pddl_state: PddlPlusState, previous_pddl_state: Pddl
         modified_fluents.add(numeric_fluent)
 
     # Identified modified objects
-    pigs = pddl_state.get_pigs()
-    birds = pddl_state.get_birds()
-    platforms = pddl_state.get_platforms()
-    blocks = pddl_state.get_blocks()
+    pigs = pddl_state.get_objects('pig')
+    birds = pddl_state.get_objects('bird')
+    platforms = pddl_state.get_objects('platform')
+    blocks = pddl_state.get_objects('block')
 
     modified_pigs = set()
     modified_birds = set()

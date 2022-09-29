@@ -24,7 +24,7 @@ class BlockNotDeadConsistencyEstimator(AspectConsistency):
         if pddl_plan is None:
             pddl_plan = []
         last_state_in_sim = simulation_trace[-1][0]
-        blocks_in_sim = last_state_in_sim.get_blocks()
+        blocks_in_sim = last_state_in_sim.get_objects('block')
         blocks_not_dead = self._objects_in_last_frame(simulation_trace, state_seq, in_sim=False, in_obs=True)
         return BlockNotDeadConsistencyEstimator.MIN_BLOCK_NOT_DEAD \
                + blocks_not_dead / len(blocks_in_sim) * BlockNotDeadConsistencyEstimator.MAX_INCREMENT

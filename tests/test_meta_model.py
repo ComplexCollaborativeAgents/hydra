@@ -62,7 +62,7 @@ def test_bird_x_computation():
     state2 = PddlPlusState(meta_model.create_pddl_problem(observation.state).init)
     state1 = meta_model.create_pddl_state(observation.state)
 
-    for bird in state1.get_birds():
+    for bird in state1.get_objects('bird'):
         fluent = ('x_bird', bird)
         birdx1 = state1.numeric_fluents[fluent]
         birdx2 = state2.numeric_fluents[fluent]

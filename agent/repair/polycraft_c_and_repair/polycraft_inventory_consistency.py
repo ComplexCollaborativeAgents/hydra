@@ -17,11 +17,10 @@ class PolycraftInventoryConsistency(AspectConsistency):
         """ Estimate consistency based on relevant values """
         # Need to recalculate items to track, because they might change from level to level and between tasks.
         # Note that the 'selected item' is not modeled correctly by the PDDL, and should not be tracked.
-        # TODO figure out fluents to track properly
+        # Note that position is also not tracked, though it might be of interest. 
         if pddl_plan is None:
             pddl_plan = []
         self.fluent_names = []
         self.fluent_names.extend(
             (fl[0],) for fl in simulation_trace[0].state.numeric_fluents.keys() if fl[0].startswith('count_'))
-        # How is our agent's position stored?
         return self._consistency_from_matched_trace(simulation_trace, state_seq, delta_t)

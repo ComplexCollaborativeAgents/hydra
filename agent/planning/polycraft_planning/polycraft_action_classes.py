@@ -20,6 +20,9 @@ class PddlPolycraftAction(PolycraftAction):
         self.action_name = self.action_name.replace(':', '_')
 
     def is_success(self, result: dict):
+        """
+        Was the action successful?
+        """
         return self.poly_action.is_success(result)
 
     def __str__(self):
@@ -46,19 +49,20 @@ class PddlPolycraftActionGenerator:
     def __init__(self, pddl_name):
         self.pddl_name = pddl_name  # The name of this PDDL action
 
-    """ A class representing a PDDL+ action in polycraft """
-
     def to_pddl(self, meta_model: MetaModel) -> PddlPlusWorldChange:
         """ This method should be implemented by sublcasses and output a string representation of the corresponding
         PDDL+ action """
         raise NotImplementedError()
 
     def to_polycraft(self, parameter_binding: dict) -> PolycraftAction:
-        """ This method should be implemented by sublcasses and output a string representation of the corresponding
-        PDDL+ action """
+        """ This method should be implemented by sublcasses and a PolycraftAction that can be used to interact
+         with the game. """
         raise NotImplementedError()
 
     def to_pddl_polycraft(self, parameter_binding: dict) -> PddlPolycraftAction:
+        """
+        Returns an object combining instantiated/grounded polycraft and pddl action pairs.
+        """
         return PddlPolycraftAction(poly_action=self.to_polycraft(parameter_binding),
                                    pddl_name=self.pddl_name,
                                    binding=parameter_binding)

@@ -4,7 +4,7 @@ import settings
 import worlds.polycraft_world
 from agent.hydra_agent import HydraPlanner
 from agent.planning.polycraft_meta_model import PolycraftMetaModel
-from agent.planning.polycraft_planning.actions import CreateByRecipe, CreateByTrade, MacroAction, \
+from agent.planning.polycraft_planning.polycraft_macro_actions import CreateByRecipe, CreateByTrade, MacroAction, \
     TeleportAndFaceCell, TeleportToBreakAndCollect
 from agent.polycraft_hydra_agent import logger
 from utils.polycraft_utils import get_adjacent_cells, is_adjacent_to_steve, get_angle_to_adjacent_cell, \
@@ -13,18 +13,20 @@ from worlds.polycraft_interface.client import polycraft_interface as poly
 from worlds.polycraft_world import PolycraftState, ItemType, BlockType, PolycraftAction, EntityType, Polycraft
 from worlds.polycraft_actions import PolyNoAction, PolySelectItem, PolyPlaceTreeTap, PolyCollect
 import logging
+
 logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("FixedPlanner")
 
 
 class FixedPlanPlanner(HydraPlanner):
     """ Planner for the polycraft domain that follows the following fixed plan, specified in the CreateWoodenPogoStick macro action """
-    def __init__(self, meta_model = PolycraftMetaModel(), planning_path = settings.POLYCRAFT_PLANNING_DOCKER_PATH):
+
+    def __init__(self, meta_model=PolycraftMetaModel(), planning_path=settings.POLYCRAFT_PLANNING_DOCKER_PATH):
         super().__init__(meta_model)
 
-    def make_plan(self,state: PolycraftState):
+    def make_plan(self, state: PolycraftState):
         # Stopping condition
-        if state.count_items_of_type(ItemType.WOODEN_POGO_STICK.value)>0:
+        if state.count_items_of_type(ItemType.WOODEN_POGO_STICK.value) > 0:
             logger.info("Already have the pogo stick! why plan?")
             return [PolyNoAction()]
 
@@ -39,12 +41,13 @@ class CreateWoodenPogoStick(CreateByRecipe):
         3) Mine platinum and trade to titanium blocks
         4) Obtain the pallets somehow
     """
-    def __init__(self):
-        super().__init__(item_to_craft = ItemType.WOODEN_POGO_STICK.value,
-            needs_crafting_table=True,
-            needs_iron_pickaxe=False)
 
-    def _get_action_to_collect_ingredient(self, ingredient:str, quantity:int):
+    def __init__(self):
+        super().__init__(item_to_craft=ItemType.WOODEN_POGO_STICK.value,
+                         needs_crafting_table=True,
+                         needs_iron_pickaxe=False)
+
+    def _get_action_to_collect_ingredient(self, ingredient: str, quantity: int):
         """ An action that is used to collect the given quantity of the given ingredient """
         if ingredient == ItemType.DIAMOND_BLOCK.value:
             return CreateDiamondBlock()
@@ -63,27 +66,29 @@ class CreateWoodenPogoStick(CreateByRecipe):
 class CreateDiamondBlock(CreateByRecipe):
     """ Do whatever is needed to craft a diamond block.
     This may include selecting an iron pickaxe and mining diamond ore """
+
     def __init__(self):
-        super().__init__(item_to_craft = ItemType.DIAMOND_BLOCK.value,
+        super().__init__(item_to_craft=ItemType.DIAMOND_BLOCK.value,
                          needs_crafting_table=True,
                          needs_iron_pickaxe=True)
 
-    def _get_action_to_collect_ingredient(self, ingredient:str, quantity:int):
+    def _get_action_to_collect_ingredient(self, ingredient: str, quantity: int):
         """ An action that is used to collect the given quantity of the given ingredient """
-        assert(ingredient==ItemType.DIAMOND.value)
+        assert (ingredient == ItemType.DIAMOND.value)
         return CollectAndMineItem(ingredient, quantity, [BlockType.DIAMOND_ORE.value])
 
 
 class CreateStick(CreateByRecipe):
     """ Do whatever is needed to craft a stick """
+
     def __init__(self):
         super().__init__(item_to_craft=ItemType.STICK.value,
                          needs_crafting_table=False,
                          needs_iron_pickaxe=False)
 
-    def _get_action_to_collect_ingredient(self, ingredient:str, quantity:int):
+    def _get_action_to_collect_ingredient(self, ingredient: str, quantity: int):
         """ An action that is used to collect the given quantity of the given ingredient """
-        assert(ingredient==ItemType.PLANKS.value)
+        assert (ingredient == ItemType.PLANKS.value)
         return CreatePlanks()
 
 
@@ -92,10 +97,12 @@ class CreateBlockOfTitanium(CreateByTrade):
         1. Collect platinum
         2. Tradefor titanium
     """
-    def __init__(self):
-        super().__init__(item_type_to_get=ItemType.BLOCK_OF_TITANIUM.value, item_types_to_give = [BlockType.BLOCK_OF_PLATINUM.value])
 
-    def _get_action_to_collect_ingredient(self, ingredient:str, quantity:int):
+    def __init__(self):
+        super().__init__(item_type_to_get=ItemType.BLOCK_OF_TITANIUM.value,
+                         item_types_to_give=[BlockType.BLOCK_OF_PLATINUM.value])
+
+    def _get_action_to_collect_ingredient(self, ingredient: str, quantity: int):
         """ An action that is used to collect the given quantity of the given ingredient """
         if ingredient == BlockType.BLOCK_OF_PLATINUM.value:
             return CollectAndMineItem(desired_item_type=BlockType.BLOCK_OF_PLATINUM.value,
@@ -108,14 +115,15 @@ class CreateBlockOfTitanium(CreateByTrade):
 
 class CreatePlanks(CreateByRecipe):
     """ Do whatever is needed to craft a stick """
-    def __init__(self):
-        super().__init__(item_to_craft = ItemType.PLANKS.value,
-            needs_crafting_table=False,
-            needs_iron_pickaxe=False)
 
-    def _get_action_to_collect_ingredient(self, ingredient:str, quantity:int):
+    def __init__(self):
+        super().__init__(item_to_craft=ItemType.PLANKS.value,
+                         needs_crafting_table=False,
+                         needs_iron_pickaxe=False)
+
+    def _get_action_to_collect_ingredient(self, ingredient: str, quantity: int):
         """ An action that is used to collect the given quantity of the given ingredient """
-        assert(ingredient==ItemType.LOG.value)
+        assert (ingredient == ItemType.LOG.value)
         return CollectAndMineItem(ingredient, quantity, [BlockType.LOG.value])
 
 
@@ -126,14 +134,15 @@ class CreateSackPolyisoprenePellets(MacroAction):
         3. Collect sack of polyisoprene pellets from tree tap
     """
     """ An action that crafts an item by following a recipe. If ingredients are missing it goes to search and collect them """
+
     def __init__(self):
         super().__init__()
 
-    def _get_next_action(self, state:PolycraftState, env: Polycraft)->PolycraftAction:
+    def _get_next_action(self, state: PolycraftState, env: Polycraft) -> PolycraftAction:
         """ Return an action to perform """
         tree_tap_cells = state.get_cells_of_type(ItemType.TREE_TAP.value)
-        if len(tree_tap_cells)==0: # Need to place the tree tap
-            if state.count_items_of_type(ItemType.TREE_TAP.value)==0: # Need to create the tree tap
+        if len(tree_tap_cells) == 0:  # Need to place the tree tap
+            if state.count_items_of_type(ItemType.TREE_TAP.value) == 0:  # Need to create the tree tap
                 return CreateTreeTap()
             else:
                 # Find place for a tree tap
@@ -151,33 +160,34 @@ class CreateSackPolyisoprenePellets(MacroAction):
                 # Check if there's a relevant cell we're looking at
                 cell_to_place = None
                 for cell in cells_to_place_tree_tap:
-                    if is_adjacent_to_steve(cell, state) and get_angle_to_adjacent_cell(cell, state)==0:
+                    if is_adjacent_to_steve(cell, state) and get_angle_to_adjacent_cell(cell, state) == 0:
                         cell_to_place = cell
                         break
                 # If Steve isn't facing a relevant cell, teleport to one
                 if cell_to_place is None:
                     cell = cells_to_place_tree_tap[0]
                     return TeleportAndFaceCell(cell)
-                else: # Steve is facing a relevant cell! just place the tree tap
+                else:  # Steve is facing a relevant cell! just place the tree tap
                     return PolyPlaceTreeTap()
 
         # Tree tap exists, go and collect!
         if state.is_facing_type(ItemType.TREE_TAP.value):
             self._is_done = True
             return PolyCollect()
-        else: # Move to a tree tap cell and collect
+        else:  # Move to a tree tap cell and collect
             cell = random.choice(tree_tap_cells)
             return TeleportAndFaceCell(cell)
 
 
 class CreateTreeTap(CreateByRecipe):
     """ Do whatever is needed to create a tree tap """
-    def __init__(self):
-        super().__init__(item_to_craft = ItemType.TREE_TAP.value,
-            needs_crafting_table=True,
-            needs_iron_pickaxe=False)
 
-    def _get_action_to_collect_ingredient(self, ingredient:str, quantity:int):
+    def __init__(self):
+        super().__init__(item_to_craft=ItemType.TREE_TAP.value,
+                         needs_crafting_table=True,
+                         needs_iron_pickaxe=False)
+
+    def _get_action_to_collect_ingredient(self, ingredient: str, quantity: int):
         """ An action that is used to collect the given quantity of the given ingredient """
         if ingredient == ItemType.STICK.value:
             return CreateStick()
@@ -200,19 +210,21 @@ class CollectAndMineItem(PolycraftAction):
 
         TODO: Deprecated
     """
-    def __init__(self, desired_item_type: str, desired_quantity:int, relevant_block_types:list, max_tries = 5, needs_iron_pickaxe=False):
+
+    def __init__(self, desired_item_type: str, desired_quantity: int, relevant_block_types: list, max_tries=5,
+                 needs_iron_pickaxe=False):
         super().__init__()
         self.desired_item_type = desired_item_type
         self.desired_quantity = desired_quantity
         self.relevant_block_types = relevant_block_types
-        self.max_tries = max_tries # Declare failure if after max_tries iterations of collecting and mining blocks the desired quantity hasn't been reached.
-        self.needs_iron_pickaxe=needs_iron_pickaxe
+        self.max_tries = max_tries  # Declare failure if after max_tries iterations of collecting and mining blocks the desired quantity hasn't been reached.
+        self.needs_iron_pickaxe = needs_iron_pickaxe
 
     def __str__(self):
         return f"<CollectAndMineItem {self.desired_item_type} {self.desired_quantity} " \
                f"{self.relevant_block_types} {self.max_tries} success={self.success}>"
 
-    def do(self, state:PolycraftState, env:Polycraft) -> dict:
+    def do(self, state: PolycraftState, env: Polycraft) -> dict:
         """ Try to collect """
         sensed_state = env.get_current_state()
         initial_quantity = sensed_state.count_items_of_type(self.desired_item_type)
@@ -224,10 +236,10 @@ class CollectAndMineItem(PolycraftAction):
 
                 sensed_state = env.get_current_state()
                 new_quantity = sensed_state.count_items_of_type(self.desired_item_type)
-                if new_quantity-initial_quantity>=self.desired_quantity:
-                    self.success=True
+                if new_quantity - initial_quantity >= self.desired_quantity:
+                    self.success = True
                     return result
-            else: # No action relevant - do nothing and report failure
+            else:  # No action relevant - do nothing and report failure
                 result = PolyNoAction().do(sensed_state, env)
                 break
         self.success = False

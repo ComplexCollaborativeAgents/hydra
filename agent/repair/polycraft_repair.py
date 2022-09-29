@@ -7,8 +7,8 @@ from agent.repair.polycraft_c_and_repair.polycraft_block_collect_repair import P
 from agent.repair.polycraft_c_and_repair.polycraft_domain_consistency_estimator import \
     PolycraftConsistencyEstimator
 from numpy import argmax
-logger = logging.getLogger("Polycraft")
 
+logger = logging.getLogger("Polycraft")
 
 
 class PolycraftMetaModelRepair(RepairModule):

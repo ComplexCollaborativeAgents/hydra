@@ -221,6 +221,7 @@
     )
 
     (:event explode_block
+        ; The actual explosion radius is 50 (in whatever units this is??). We use a value of 100 to help model chain reactions.
         :parameters (?bl_tnt - block ?bl_near - block)
         :precondition (and
             (> (block_life ?bl_near) 0)
@@ -317,23 +318,6 @@
       	    (bird_tapped ?b)
   	    )
     )
-
-    ; (:action black_bird_action
-    ;   :parameters (?b - bird)
-    ;   :precondition (and
-    ;   	(= (active_bird) (bird_id ?b))
-    ;   	(= (bird_type ?b) 2)
-    ;   	(bird_released ?b)
-    ;     (= (bounce_count ?b) 0)
-    ;     (< (x_bird ?b) 800)
-    ;     (not (bird_tapped ?b))
-    ;   )
-    ;   :effect (and
-    ;   	(assign (vx_bird ?b) 0)
-    ;   	(assign (vy_bird ?b) 0)
-    ;   	(bird_tapped ?b)
-  	 ;  )
-    ; )
 
     (:action white_bird_action
         :parameters (?b - bird)
