@@ -102,13 +102,17 @@ class PolycraftDispatcher():
             
             self.episode_end()
 
+    def _setup_for_new_level(self):
+        self.env.init_state_information()
+        self.agent.start_level(self.env) # Agent performing exploratory actions
+        return self.env.get_current_state()
+
     def episode_start(self, level_number: int, trial_id:str, trial_number: int, novelty_description: dict):
         ''' Run the agent in a single level until done '''
 
         logger.info("------------ [{}] EPISODE {} START ------------".format(trial_number, level_number))
-
-        current_state = self.env.get_current_state()
-        self.agent.start_level(self.env) # Agent performing exploratory actions
+        
+        current_state = self._setup_for_new_level()
         while True:
             novelty = self.agent.novelty_existence  # NOTE: This may be subject to change
 
@@ -135,7 +139,7 @@ class PolycraftDispatcher():
                 }
 
             # Agent chooses an action and performs it
-            action = self.agent.choose_action(current_state)
+            action = self.agent.choose_action(self.agent.current_state)
             next_state, step_cost = self.agent.do(action, self.env)
 
             current_state = next_state
