@@ -142,6 +142,11 @@ class PolycraftDispatcher(Dispatcher):
             
             self.cleanup_episode()
 
+    def _setup_for_new_level(self):
+        self.world.init_state_information()
+        self.agent.episode_init(self.world) # Agent performing exploratory actions
+        return self.world.get_current_state()
+
     def run_episode(self, level_number: int, trial_id:str, trial_number: int, novelty_description: dict) -> dict:
         """Run the agent in a single level until done
 
@@ -158,8 +163,7 @@ class PolycraftDispatcher(Dispatcher):
         logger.info("------------ [{}] EPISODE {} START ------------".format(trial_number, level_number))
         start_time = time.time()
 
-        current_state = self.world.get_current_state()
-        self.agent.episode_init(self.world) # Agent performing exploratory actions 
+        current_state = self._setup_for_new_level()
         
         while True:
             reached_time = EPISODE_TIME_LIMIT < time.time() - start_time
