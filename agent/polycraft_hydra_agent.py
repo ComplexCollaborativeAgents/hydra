@@ -325,11 +325,8 @@ class PolycraftHydraAgent(HydraAgent):
                 # Entity is a trader, but might be busy. Mark for trying again later.
                 self.unknown_traders.append(entity_id)
 
-    def _is_entity_white_listed(self, current_state, entity_id: str):
-        return current_state["entities"] and \
-               current_state["entities"][entity_id] and \
-               current_state["entities"][entity_id]["type"] and \
-               "trader" in current_state["entities"][entity_id]["type"].lower()
+    def _is_entity_white_listed(self, state: PolycraftState, entity_id: str):
+        return state.entities[entity_id] and state.entities[entity_id]["type"] and "trader" in state.entities[entity_id]["type"].lower()
 
     def _choose_exploration_action(self, world_state: PolycraftState) -> PolycraftAction:
         """If there are new objects to explore, choose one.
