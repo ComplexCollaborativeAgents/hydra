@@ -144,6 +144,9 @@ class PolycraftDispatcher(Dispatcher):
 
     def _setup_for_new_level(self):
         self.world.init_state_information()
+        logger.info("Waiting for level to load...")
+        time.sleep(10.0) # Wait for level to load
+        logger.info("Performing exploratory actions...")
         self.agent.episode_init(self.world) # Agent performing exploratory actions
         return self.world.get_current_state()
 
@@ -191,7 +194,7 @@ class PolycraftDispatcher(Dispatcher):
                 return result
 
             # Agent chooses an action and performs it
-            action = self.agent.choose_action(self.agent.current_state, self.world)
+            action = self.agent.choose_action(current_state, self.world)
             # TODO: split self.agent.do() into upkeep (agent) and performing actions (world)
             next_state, step_cost = self.agent.do(action, self.world)
 

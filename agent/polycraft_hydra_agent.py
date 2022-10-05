@@ -441,6 +441,9 @@ class PolycraftHydraAgent(HydraAgent):
             PolycraftAction: action to take
         """
 
+        # Update current state with most recent values
+        self._update_current_state(world_state)
+
         if self.level_timed_out(world):
             self.active_plan = []
             return PolyNoAction()
@@ -448,6 +451,7 @@ class PolycraftHydraAgent(HydraAgent):
         if len(self.active_plan) == 0:
             logger.info("No current plan, plan to create pogostick")
             self.set_active_task(PolycraftTask.CRAFT_POGO.create_instance())
+            # plan logic utilizes current state - but current state is not updated until the action is complete
             self.active_plan = self.plan_logic(world_state, world)
 
         if self.level_timed_out(world):
@@ -643,16 +647,18 @@ class PolycraftHydraAgent(HydraAgent):
 
     def _update_current_state(self, new_state: PolycraftState):
         """Updates the current state object with the information from the new state.
-        Needed because sometimes agents leave/enter rooms.
+        Needed because sometimes agents leave/enter rooms and entities may appear/disappear.
 
         Args:
             new_state (PolycraftState): Polycraft World state object to update
         """
-        for cell_id, cell_attr in new_state.game_map.items():
-            for door_cell_id, room_game_map in self.current_state.door_to_room_cells.items():
-                if cell_id in room_game_map:
-                    room_game_map[cell_id] = cell_attr
-        self.current_state = new_state
+        # for cell_id, cell_attr in new_state.game_map.items():
+        #     for door_cell_id, room_game_map in self.current_state.door_to_room_cells.items():
+        #         if cell_id in room_game_map:
+        #             room_game_map[cell_id] = cell_attr
+        # self.current_state = new_state
+
+        self.current_state.entities = copy.copy(new_state.entities)
 
     def do_batch(self, batch_size: int, state: PolycraftState, world: Polycraft, time_limit=0) -> Tuple[PolycraftState, int]:
         """Runs a batch of actions from the given state using the given environment.

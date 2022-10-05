@@ -30,7 +30,7 @@ class PolycraftTournamentRunner:
 
     def setup_for_new_level(self):
         self.world.init_state_information()
-        self.agent.start_level(self.world)
+        self.agent.episode_init(self.world)
         return self.world.get_current_state()
 
     def run(self):
@@ -55,10 +55,14 @@ class PolycraftTournamentRunner:
                 if state.step_num < current_step_num:
                     self.world.poly_client._logger.info(
                         f"State num mismatch ({state.step_num}<{current_step_num}) -> starting a new level...")
+                    
+                    self.world.poly_client._logger.info("Waiting for level to load...")
+                    time.sleep(10.0) # Wait for new level to load
+                    self.world.poly_client._logger.info("Performing exploratory actions...")
                     state = self.setup_for_new_level()
                     current_step_num = state.step_num
 
-                action = self.agent.choose_action(state)
+                action = self.agent.choose_action(state, self.world)
                 state, reward = self.agent.do(action, self.world)
 
                 self.world.poly_client._logger.info("State: {}\nReward: {}".format(state, reward))
