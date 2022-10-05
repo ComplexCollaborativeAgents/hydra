@@ -279,7 +279,8 @@ class PolycraftHydraAgent(HydraAgent):
 
         # Try to interact with all other agents
         for entity_id in current_state.entities.keys():
-            self._interact_with_enttiy(entity_id, current_state, world)
+            if self._is_entity_white_listed(current_state, entity_id):
+                self._interact_with_enttiy(entity_id, current_state, world)
 
         self._build_episode_log(world.get_current_state())
 
@@ -323,6 +324,12 @@ class PolycraftHydraAgent(HydraAgent):
             elif current_state.entities[entity_id]['type'] == 'EntityTrader':
                 # Entity is a trader, but might be busy. Mark for trying again later.
                 self.unknown_traders.append(entity_id)
+
+    def _is_entity_white_listed(self, current_state, entity_id: str):
+        return current_state["entities"] and \
+               current_state["entities"][entity_id] and \
+               current_state["entities"][entity_id]["type"] and \
+               "trader" in current_state["entities"][entity_id]["type"].lower()
 
     def _choose_exploration_action(self, world_state: PolycraftState) -> PolycraftAction:
         """If there are new objects to explore, choose one.
