@@ -511,7 +511,7 @@ class CraftPogoHeuristic(AbstractHeuristic):
         for fluent, value in node.state_vars.items():
             if fluent.find(Function.cell_type.name) > -1:
                 total += 1
-                match = re.search('cell_\d{2}_\d{2}_\d{2}', fluent)
+                match = re.search('cell_\d+_\d+_\d+', fluent)
                 acc_fluent = f"['{Predicate.isAccessible.name.lower()}', '{fluent[match.start():match.end()]}']"
                 if node.state_vars[acc_fluent]:
                     accessible += 1
