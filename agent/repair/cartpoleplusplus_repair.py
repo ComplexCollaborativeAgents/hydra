@@ -13,7 +13,7 @@ class CartPlusPlusLocationConsistency(AspectConsistency):
         if fluent_names is None:
             fluent_names = [('pos_x',), ('pos_y',), ('theta_x',), ('theta_y',)]
 
-        super().__init__(fluent_names, obs_prefix, discount_factor, consistency_threshold)
+        super().__init__(fluent_names=fluent_names, obs_prefix=obs_prefix, discount_factor=discount_factor, consistency_threshold=consistency_threshold)
 
     def consistency_from_trace(self, simulation_trace: list, state_seq: list, delta_t: float = DEFAULT_DELTA_T):
 

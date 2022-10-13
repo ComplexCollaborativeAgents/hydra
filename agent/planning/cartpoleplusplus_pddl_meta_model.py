@@ -55,8 +55,8 @@ class CartPolePlusPlusMetaModel(MetaModel):
             constant_numeric_fluents={
                 'm_cart': 1.0,
                 'r_cart': 0.5,
-                # 'l_pole': 1.0,
-                'l_pole': 0.8,  # TODO: check this from branch "m30_cartpole++_temp"
+                'l_pole': 1.0,
+                # 'l_pole': 0.8,  # TODO: check this from branch "m30_cartpole++_temp"
                 # 'l_pole': 0.5, # original OpenAI Gym version
                 'm_pole': 0.1,
                 'force_mag': 10.0,
@@ -122,7 +122,15 @@ class CartPolePlusPlusMetaModel(MetaModel):
 
         # Add constants fluents
         for numeric_fluent in self.constant_numeric_fluents:
-            pddl_problem.init.append(['=', [numeric_fluent], round(self.constant_numeric_fluents[numeric_fluent],
+            if (numeric_fluent == 'm_cart' or numeric_fluent == 'm_pole') and \
+                    round(self.constant_numeric_fluents['m_cart'],CartPolePlusPlusMetaModel.PLANNER_PRECISION)==0.0 and \
+                    round(self.constant_numeric_fluents['m_pole'], CartPolePlusPlusMetaModel.PLANNER_PRECISION) == 0.0:
+                pddl_problem.init.append(['=', [numeric_fluent], round(self.constant_numeric_fluents[numeric_fluent],
+                                                                       CartPolePlusPlusMetaModel.PLANNER_PRECISION)+0.00001])
+                # TODO: ADDED OFFSET - these combined values in a denominator throw many errors if adjusted incorrectly by the repair
+
+            else:
+                pddl_problem.init.append(['=', [numeric_fluent], round(self.constant_numeric_fluents[numeric_fluent],
                                                                    CartPolePlusPlusMetaModel.PLANNER_PRECISION)])  # TODO
         for boolean_fluent in self.constant_boolean_fluents:
             if self.constant_boolean_fluents[boolean_fluent]:
@@ -241,6 +249,10 @@ class CartPolePlusPlusMetaModel(MetaModel):
 
         for sp_key in state_params:
             pddl_state.numeric_fluents[tuple([sp_key])] = state_params[sp_key]
+
+        for bl in observations_array['blocks']:
+            type = self.object_types["block"]
+            type.add_object_to_state(pddl_state, bl, state_params)
 
         return pddl_state
 

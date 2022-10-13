@@ -45,7 +45,7 @@ def main(config_file_cmd = None):
 
     log_file = LOG_PATH / "hydra.{}.txt".format(settings.HYDRA_INSTANCE_ID)
     observer = CartpolePlusPlusHydraAgentObserver(agent_type=agent_type_arg) if USE_HYDRA else WSUObserver()
-    dispatcher = WSUDispatcher(observer, config_file=str(WSU_CARTPOLE), debug=True, printout=False, logfile=str(log_file))
+    dispatcher = WSUDispatcher(observer, config_file=str(WSU_CARTPOLE), debug=True, printout=False, logfile=str(log_file), ignore_secret=False)
     dispatcher.run()
 
 

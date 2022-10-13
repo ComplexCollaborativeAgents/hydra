@@ -221,6 +221,10 @@ class RepairingCartpolePlusPlusHydraAgent(CartpolePlusPlusHydraAgent):
                 and (self.last_performance[-2] < self.repair_threshold) \
                 and (not settings.NO_REPAIR):
             expected_trace, observed_sequence = self.consistency_checker.get_traces_from_simulator(observation,self.meta_model, self.simulator, settings.CP_DELTA_T)
+
+            # print("\nObserverd Sequence len {}".format(len(observed_sequence)))
+            # print("Expected Trace len {}".format(len(expected_trace)))
+
             # expected_trace, plan = self.simulator.get_expected_trace(observation,self.meta_model,settings.CP_DELTA_T)
             # observed_seq = observation.get_pddl_states_in_trace(self.meta_model)
             base_consistency = self.consistency_checker.consistency_from_trace(expected_trace, observed_sequence, delta_t=settings.CP_DELTA_T)
@@ -249,7 +253,7 @@ class RepairingCartpolePlusPlusHydraAgent(CartpolePlusPlusHydraAgent):
             novelty_characterization = json.dumps({'Unknown novelty': 'no adjustments made'})
             has_repaired = True
 
-        # print("DETECTION NOVELTY LIKELIHOOD= {}".format(novelty_likelihood))
+        # print("\ndetection novelty likelihood = {}".format(novelty_likelihood))
         if self.novelty_existence is True:
             # print("novelty existence= {}".format(self.novelty_existence))
             novelty_likelihood = 1.0
@@ -279,6 +283,7 @@ class RepairingCartpolePlusPlusHydraAgent(CartpolePlusPlusHydraAgent):
                 # print("\n\nUNKNOWN NOVELTY (consistency={})\n\n".format(consistency))
             self.consistency_scores.append(consistency)
         except Exception:
+            # print('repair error caught') # TODO
             pass
         return novelty_characterization, novelty_likelihood
 

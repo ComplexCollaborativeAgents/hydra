@@ -101,7 +101,7 @@ class GreedyBestFirstSearchConstantFluentMetaModelRepair(AspectRepair):
         incumbent_repair = repair
         timeout = False
 
-        print(f'initial consistency: {incumbent_consistency}')
+        # print(f'initial consistency: {incumbent_consistency}')
 
         while iteration < self.max_iterations and not timeout \
                 and not (self.is_incumbent_good_enough(incumbent_consistency)
