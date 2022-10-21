@@ -615,7 +615,7 @@ class PolycraftHydraAgent(HydraAgent):
                 possible_default_actions.append(PolyEntityTP(entity_to_collect))
                 break
 
-        logger.info("DEFAULT ACTIONS POSSIBLE -- {possible_default_actions}")
+        logger.info(f"DEFAULT ACTIONS POSSIBLE -- {possible_default_actions}")
         return random.choice(possible_default_actions)
 
     def do(self, action: PolycraftAction, world: Polycraft) -> Tuple[PolycraftState, int]:
