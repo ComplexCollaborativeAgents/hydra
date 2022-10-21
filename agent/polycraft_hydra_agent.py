@@ -596,7 +596,8 @@ class PolycraftHydraAgent(HydraAgent):
         minable_types = [block_type for block_type in type_to_cells.keys() if block_type not in non_minable_types]
 
         # Find a minable cell type that is accessible
-        possible_default_actions = [WaitForLogs()]
+        # possible_default_actions = [WaitForLogs()]
+        possible_default_actions = []
         for type_to_mine in minable_types:
             cells = world_state.get_cells_of_type(type_to_mine, only_accessible=True)
             if len(cells) > 0:
@@ -614,6 +615,7 @@ class PolycraftHydraAgent(HydraAgent):
                 possible_default_actions.append(PolyEntityTP(entity_to_collect))
                 break
 
+        logger.info("DEFAULT ACTIONS POSSIBLE -- {possible_default_actions}")
         return random.choice(possible_default_actions)
 
     def do(self, action: PolycraftAction, world: Polycraft) -> Tuple[PolycraftState, int]:
@@ -837,7 +839,7 @@ class PolycraftHydraAgent(HydraAgent):
             # TODO: fix this hack, catch correct exception
             import traceback
             traceback.print_exc()
-            logger.info("Repair failed!")
+            logger.info(f"No Valid repair found for inconcistency -- {repair}")
 
 
 class PolycraftDoNothingAgent(PolycraftHydraAgent):

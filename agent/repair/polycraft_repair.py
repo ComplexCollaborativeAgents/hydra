@@ -28,14 +28,15 @@ class PolycraftMetaModelRepair(RepairModule):
         #                       self.consistency_estimator.block_outcome_estimators]
 
     def repair(self, observation, delta_t=1.0):
-        descriptions = ''
+        descriptions = []
         max_ic_index = argmax(self.consistency_estimator.latest_inconsistencies)
         repair_attemtps = 0
         max_repair_attempts = len(self.aspect_repair)  # TODO seems reasonable for now
         while max(self.consistency_estimator.latest_inconsistencies) > self.consistency_threshold and \
                 repair_attemtps < max_repair_attempts:
             description, _ = self.aspect_repair[max_ic_index].repair(observation, delta_t)
-            descriptions += str(description)
+            descriptions.append(str(description))
+
             self.consistency_estimator.consistency_from_observations(self.meta_model, NyxPddlPlusSimulator(),
                                                                      observation, delta_t)
             max_ic_index = argmax(self.consistency_estimator.latest_inconsistencies)
