@@ -131,7 +131,7 @@ class CartpolePlusPlusHydraAgent(HydraAgent):
         # time.sleep(10)
 
         action = random.randint(0, 4)
-        if self.plan_idx < len(self.plan):
+        if self.plan is not None and self.plan_idx < len(self.plan):
             action = 0
             if self.plan[self.plan_idx].action_name == "do_nothing dummy_obj":
                 action = 0
@@ -266,25 +266,25 @@ class RepairingCartpolePlusPlusHydraAgent(CartpolePlusPlusHydraAgent):
         novelty_likelihood = self.novelty_likelihood
         novelty_characterization = self.novelty_characterization
 
-        try:
-            repair, consistency = self.meta_model_repair.repair(last_observation,
-                                                           delta_t=settings.CP_DELTA_T)
-            # print("selected repair= {}".format(repair))
-            self.log.info("Repaired meta model (repair string: %s)" % repair)
-            nonzero = any(map(lambda x: x != 0, repair))
-            if nonzero:
-                novelty_likelihood = 1.0
-                self.has_repaired = True
-                novelty_characterization = json.dumps(dict(zip(self.meta_model_repair.fluents_to_repair, repair)))
-                # print("\n\nNOVELTY => {},{} (consistency={})".format(self.meta_model_repair.fluents_to_repair, repair, consistency))
-            elif consistency > settings.CP_DETECTION_CONSISTENCY_THRESHOLD:
-                novelty_likelihood = 1.0
-                novelty_characterization = json.dumps({'Unknown novelty': 'no adjustments made'})
-                # print("\n\nUNKNOWN NOVELTY (consistency={})\n\n".format(consistency))
-            self.consistency_scores.append(consistency)
-        except Exception:
-            # print('repair error caught') # TODO
-            pass
+        # try:
+        repair, consistency = self.meta_model_repair.repair(last_observation,
+                                                       delta_t=settings.CP_DELTA_T)
+        # print("selected repair= {}".format(repair))
+        self.log.info("Repaired meta model (repair string: %s)" % repair)
+        nonzero = any(map(lambda x: x != 0, repair))
+        if nonzero:
+            novelty_likelihood = 1.0
+            self.has_repaired = True
+            novelty_characterization = json.dumps(dict(zip(self.meta_model_repair.fluents_to_repair, repair)))
+            # print("\n\nNOVELTY => {},{} (consistency={})".format(self.meta_model_repair.fluents_to_repair, repair, consistency))
+        elif consistency > settings.CP_DETECTION_CONSISTENCY_THRESHOLD:
+            novelty_likelihood = 1.0
+            novelty_characterization = json.dumps({'Unknown novelty': 'no adjustments made'})
+            # print("\n\nUNKNOWN NOVELTY (consistency={})\n\n".format(consistency))
+        self.consistency_scores.append(consistency)
+        # except Exception:
+        #     print('repair error caught') # TODO
+            # pass
         return novelty_characterization, novelty_likelihood
 
 

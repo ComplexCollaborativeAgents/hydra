@@ -115,18 +115,24 @@ class GreedyBestFirstSearchConstantFluentMetaModelRepair(AspectRepair):
                 if time.time() - start_time > self.time_limit:
                     timeout = True
                     break
-
                 new_repair_tuple = tuple(new_repair)
                 if new_repair_tuple not in generated_repairs:  # If  this is a new repair
                     generated_repairs.add(new_repair_tuple)  # To allow duplicate detection
-                    self._do_change(repair)
-                    expected_states, _ = self.consistency_estimator.get_traces_from_simulator(observation,
-                                                                                              self.meta_model,
-                                                                                              self.simulator,
-                                                                                              delta_t)
-                    consistency = self.consistency_estimator.consistency_from_trace(expected_states,
-                                                                                    observed_states, delta_t)
-                    self._undo_change(repair)
+                    self._do_change(new_repair)
+                    try:
+                        expected_states, _ = self.consistency_estimator.get_traces_from_simulator(observation,
+                                                                                                  self.meta_model,
+                                                                                                  self.simulator,
+                                                                                                  delta_t)
+                        consistency = self.consistency_estimator.consistency_from_trace(expected_states,
+                                                                                        observed_states, delta_t)
+                    except Exception as ee:
+                        # print("error: likely repair ({}) caused a malformed PDDL problem.".format(str(new_repair)))
+                        # print(ee)
+                        consistency = 1000
+
+                    self._undo_change(new_repair)
+                    # print(new_repair, consistency)
                     priority = self._heuristic(new_repair, consistency)
                     heapq.heappush(open_list, [priority, new_repair])
 
