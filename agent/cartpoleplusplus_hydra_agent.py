@@ -275,8 +275,9 @@ class RepairingCartpolePlusPlusHydraAgent(CartpolePlusPlusHydraAgent):
         if nonzero:
             novelty_likelihood = 1.0
             self.has_repaired = True
-            novelty_characterization = json.dumps(dict(zip(self.meta_model_repair.fluents_to_repair, repair)))
-            # print("\n\nNOVELTY => {},{} (consistency={})".format(self.meta_model_repair.fluents_to_repair, repair, consistency))
+            # TODO: quick bugfix: currently only one aspect repair exists for cartpole. Needs to report the correct names of repairable fluents.
+            novelty_characterization = json.dumps(dict(zip(self.meta_model_repair.aspect_repair[0].fluents_to_repair, repair)))
+            # print("\n\nNOVELTY => {},{} (consistency={})".format(self.meta_model_repair.aspect_repair[0].fluents_to_repair, repair, consistency))
         elif consistency > settings.CP_DETECTION_CONSISTENCY_THRESHOLD:
             novelty_likelihood = 1.0
             novelty_characterization = json.dumps({'Unknown novelty': 'no adjustments made'})
