@@ -69,7 +69,7 @@ class PolycraftTournamentRunner:
 
                 # LaunchTournament.py handles detecting and advancing to next level
                 if state.is_terminal():
-                    self.agent.novelty_detection(report_novelty=True)
+                    self.agent.report_novelty(state, self.world, report_novelty=True)
                     if SINGLE_LEVEL_MODE:
                         self.world.poly_client._logger.info("Finished the level!")
                         return

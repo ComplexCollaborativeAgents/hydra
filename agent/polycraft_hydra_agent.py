@@ -702,13 +702,12 @@ class PolycraftHydraAgent(HydraAgent):
         if isinstance(self.planner, PolycraftPlanner):
             self.planner.meta_model = meta_model
 
-    def _detect_novelty(self, state: PolycraftState, world: Polycraft, report_novelty:bool = True, only_current_state:bool = True) -> Tuple[float, str]:
+    def _detect_novelty(self, state: PolycraftState, world: Polycraft, only_current_state:bool = True) -> Tuple[float, str]:
         """Computes the likelihood that the current observation is novel
 
         Args:
             state (PolycraftState): Polycraft World state object
-            world (Polycraft): Polycraft World object
-            report_novelty (bool, optional): Whether or not to report novelty if applicable. Defaults to True.
+            world (Polycraft): World object for reporting novelty
             only_current_state (bool, optional): Detects novelty only in the current state. Defaults to True.
 
         Returns:
@@ -752,9 +751,27 @@ class PolycraftHydraAgent(HydraAgent):
                 stats.pddl_prob = 0.0
                 stats.novelty_detection = False
 
+        return novelty_likelihood, novelty_characterization
+
+    def report_novelty(self, state: PolycraftState, world: Polycraft, report_novelty:bool = True):
+        """
+        Ideally should be called only by *dispatcher* to report the novelty
+        acts as an encapsulation for _detect_novelty internal function
+        Reports the detected novelty
+
+        Args:
+            state (PolycraftState): State in which novelty has to be verified
+            world (Polycraft): World object for reporting novelty
+            report_novelty (bool, optional): Whether or not to report novelty if applicable. Defaults to True.
+
+        No Return arguments. Updates agent objects for novelty characterization stats
+        and novelty reporting for the tournament.
+        """
+        novelty_likelihood, novelty_characterization = self._detect_novelty(state, world)
+
         if stats.novelty_detection and report_novelty and not self.novelty_reported:
             world.poly_client.REPORT_NOVELTY(level="0", confidence=f"{novelty_likelihood}",
-                                                user_msg=novelty_characterization)
+                                            user_msg=novelty_characterization)
             self.novelty_reported = True
 
         # Update the PolycraftDetectionStats object
@@ -762,7 +779,6 @@ class PolycraftHydraAgent(HydraAgent):
         stats.novelty_characterization['characterization'] = novelty_characterization
         self.current_detection = stats
 
-        return novelty_likelihood, novelty_characterization
 
     def _detect_unknown_objects(self, state: PolycraftState, world: Polycraft) -> Set[str]:
         """Returns a set of unknown object novelties identified in the given state
@@ -817,7 +833,7 @@ class PolycraftHydraAgent(HydraAgent):
             return True
         elif self.current_stats.failed_actions > 0 and self.current_stats.failed_actions % self.exploration_rate == 0:
             return True
-        self._detect_novelty(state, world, report_novelty=True, only_current_state=False)
+        self._detect_novelty(state, world, only_current_state=False)
         return self.current_detection.novelty_detection
 
     def repair_meta_model(self, state: PolycraftState, world: Polycraft):

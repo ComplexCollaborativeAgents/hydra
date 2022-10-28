@@ -189,6 +189,21 @@ class HydraAgent(metaclass=ABCMeta):
         raise NotImplementedError()
 
     @abstractmethod
+    def report_novelty(self, state:State, world:World, _report_novelty: bool):
+        """ Report detected novelty in detect novelty function.
+        Wrapper for _detect_novelty function, can be called from the dispatcher
+
+        Args:
+            state (State): state object in which novelty has to be detected
+            world (World): World object for reporting novelty in the tournament
+            _report_novelty (boolean): whether report a novelty or not. should be kept optional and default to true.
+
+        Raises:
+            NotImplementedError
+        """
+        raise NotImplementedError()
+
+    @abstractmethod
     def repair_meta_model(self, episode_log: HydraEpisodeLog):
         """Call the repair object to repair the current meta model
 
