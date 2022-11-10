@@ -8,7 +8,7 @@ from agent.planning.pddl_plus import PddlPlusState
 import matplotlib
 import matplotlib.animation as animation
 from agent.planning.meta_model import *
-from agent.consistency.episode_log import *
+from agent.consistency.sb_episode_log import SBEpisodeLog
 from agent.consistency.pddl_plus_simulator import *
 import matplotlib._color_data as mcd
 from agent.planning.sb_meta_model import *
@@ -114,7 +114,7 @@ def plot_pigs_and_birds(modified_birds, modified_pigs, pddl_state: PddlPlusState
 
 
 def plot_expected_trace_for_obs(meta_model: MetaModel,
-                                observation: ScienceBirdsObservation,
+                                observation: SBEpisodeLog,
                                 delta_t=0.05,
                                 ax=None):
     """ Simulate the given action in the given state using the given meta model"""
@@ -127,7 +127,7 @@ def plot_expected_trace_for_obs(meta_model: MetaModel,
     return plot_state_sequence(state_sequence, meta_model.create_pddl_state(observation.state), ax)
 
 
-def plot_sb_observation(observation: ScienceBirdsObservation, ax=None, marker="o"):
+def plot_sb_observation(observation: SBEpisodeLog, ax=None, marker="o"):
     """ Plot the given observation"""
     meta_model = ScienceBirdsMetaModel()
     sb_state = observation.state
@@ -137,7 +137,7 @@ def plot_sb_observation(observation: ScienceBirdsObservation, ax=None, marker="o
     return plot_state_sequence(obs_state_sequence, initial_state, ax)
 
 
-def plot_sb_initial_state(observation: ScienceBirdsObservation, ax=None):
+def plot_sb_initial_state(observation: SBEpisodeLog, ax=None):
     """ Plots the initial state of the given observation"""
     meta_model = ScienceBirdsMetaModel()
     sb_state = observation.state
@@ -145,7 +145,7 @@ def plot_sb_initial_state(observation: ScienceBirdsObservation, ax=None):
     return plot_pddl_state(initial_state, ax)
 
 
-def plot_expected_vs_observed(meta_model: MetaModel, observation: ScienceBirdsObservation, axis=None):
+def plot_expected_vs_observed(meta_model: MetaModel, observation: SBEpisodeLog, axis=None):
     """ Plots the expected vs observated trajectories """
     matplotlib.interactive(True)
     if axis is None:

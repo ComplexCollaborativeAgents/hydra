@@ -24,7 +24,7 @@ class SBObs_to_Imgs():
 
         self.NO_TYPES = len(self.TYPES)
 
-    def Unpack_ScienceBirdsObservation(self,obs):
+    def Unpack_SBEpisodeLog(self,obs):
         sb_state = obs.state  # SBState
         sb_action = obs.action # SBAction
         sb_intermediate_states = obs.intermediate_states
@@ -49,7 +49,7 @@ class SBObs_to_Imgs():
         return np.array([dx, dy, tap, ref_x, ref_y])
 
     def Obs_to_StateActionNextState(self, obs):
-        sb_state, sb_action, sb_intermediate_states, reward = self.Unpack_ScienceBirdsObservation(obs)
+        sb_state, sb_action, sb_intermediate_states, reward = self.Unpack_SBEpisodeLog(obs)
         state, _ , _ , _ = self.Unpack_SBState(sb_state)
         current_state = state
         action = self.Unpack_SBAction(sb_action)

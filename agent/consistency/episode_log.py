@@ -45,43 +45,6 @@ class HydraEpisodeLog:
         return pickle.load(open(full_path, 'rb'))
 
 
-class ScienceBirdsObservation(HydraEpisodeLog):
-    ''' An object that represents an observation of the SB game '''
-
-    def __init__(self):
-        self.state = None  # An SBState
-        self.action = None  # an SBAction
-        self.intermediate_states = None  # The  sequence of intermediates states observed after doing the action
-        self.reward = 0  # The reward obtained from performing an action
-
-    def get_initial_state(self):
-        return self.state
-
-    def get_pddl_states_in_trace(self,
-                                 meta_model: ScienceBirdsMetaModel) -> list:  # TODO: Refactor and move this to the meta model?
-        """ Returns a sequence of PDDL states that are the observed intermediate states """
-        observed_state_seq = []
-        for intermediate_state in self.intermediate_states:
-            observed_state_seq.append(meta_model.create_pddl_state(intermediate_state))
-        return observed_state_seq
-
-    def get_pddl_plan(self, meta_model: ScienceBirdsMetaModel = ScienceBirdsMetaModel):
-        """ Returns a PDDL+ plan object with a single action that is the action that was performed """
-        pddl_plan = PddlPlusPlan()
-        pddl_plan.append(meta_model.create_timed_action(self.action, self.state))
-        return pddl_plan
-
-    def hasUnknownObj(self):
-        if self.state.novel_objects():
-            return True
-        else:
-            return False
-
-    def get_novel_object_ids(self):
-        ''' Return a list of novel object ids '''
-        return [object_id for [object_id, object] in self.state.novel_objects()]
-
-
 class CartPoleObservation(HydraEpisodeLog):
     ''' An object that represents an observation in the cartpole domain.'''
 

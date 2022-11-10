@@ -3,7 +3,7 @@ import time
 from typing import List, Set, Tuple
 
 from agent.consistency.nyx_pddl_simulator import NyxPddlPlusSimulator
-from agent.planning.polycraft_planning.polycraft_episode_log import PolycraftEpisodeLog
+from agent.consistency.polycraft_episode_log import PolycraftEpisodeLog
 from agent.planning.polycraft_planning.tasks import *
 from agent.planning.polycraft_planning.polycraft_macro_actions import *
 from agent.repair.polycraft_repair import PolycraftMetaModelRepair
@@ -17,7 +17,7 @@ import agent.planning.nyx.heuristic_functions as nyx_heuristics
 import re
 
 # logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
-# logger = logging.getLogger(__name__)
+logger = logging.getLogger("Polycraft")
 
 
 RE_EXTRACT_ACTION_PATTERN = re.compile(
@@ -214,6 +214,9 @@ class PolycraftHydraAgent(HydraAgent):
     current_stats: PolycraftAgentStats
     current_detection: PolycraftDetectionStats
 
+    agent_stats: List[PolycraftAgentStats]
+    novelty_stats: List[PolycraftDetectionStats]
+
     #TODO: Investigate necessity of having a "consistency" member variable when it is included in meta_model_repair
     def __init__(self):
         super().__init__()
@@ -240,23 +243,6 @@ class PolycraftHydraAgent(HydraAgent):
         self.current_stats = PolycraftAgentStats(episode_start_time=time.time())
         self.current_detection = PolycraftDetectionStats()
 
-    def _build_episode_log(self, state: PolycraftState) -> PolycraftEpisodeLog:
-        """Initialize the current episode log and active plan objects
-
-        Args:
-            state (PolycraftState): Initial state of the episode log
-
-        Returns:
-            PolycraftEpisodeLog: The current episode log
-        """
-
-        self.current_state = state
-        self.current_log = PolycraftEpisodeLog(self.meta_model)  # Start a new observation object for this level
-        self.current_log.states.append(self.current_state)
-        self.episode_logs.append(self.current_log)
-        
-        return self.current_log
-
     def episode_init(self, world: Polycraft):
         """Perform setup for the agent at the beginning of an episode. 
             Initialize datastructures for a new level and perform exploratory actions to get familiar with the current level.
@@ -282,7 +268,10 @@ class PolycraftHydraAgent(HydraAgent):
             if self._is_entity_white_listed(current_state, entity_id):
                 self._interact_with_enttiy(entity_id, current_state, world)
 
-        self._build_episode_log(world.get_current_state())
+        self.current_state = world.get_current_state()
+        self.current_log = PolycraftEpisodeLog(self.meta_model)  # Start a new observation object for this level
+        self.current_log.states.append(self.current_state)
+        self.episode_logs.append(self.current_log)
 
         self.active_plan = []
         self.set_active_task(PolycraftTask.CRAFT_POGO.create_instance())
@@ -727,7 +716,7 @@ class PolycraftHydraAgent(HydraAgent):
         if len(novelties) > 0:
             novelty_characterization = "\n".join(novelties)
             stats.pddl_prob = 1.0
-            stats.novelty_detection = True
+            stats.novelty_detected = True
             # new objects detected - no need to report them twice
             report_novelty = False
         else:
@@ -741,15 +730,15 @@ class PolycraftHydraAgent(HydraAgent):
                 logger.info(f'Computed inconsistency: {curr_inconsistency}')
                 if curr_inconsistency > settings.POLYCRAFT_CONSISTENCY_THRESHOLD:
                     novelty_likelihood = curr_inconsistency / settings.POLYCRAFT_CONSISTENCY_THRESHOLD
-                    stats.novelty_detection = True
+                    stats.novelty_detected = True
                     novelty_characterization = f'Plan simulation does not match observations. ' \
                                                f'Mismatch value: {curr_inconsistency}'
                 else:
                     stats.pddl_prob = 0.0
-                    stats.novelty_detection = False
+                    stats.novelty_detected = False
             else:
                 stats.pddl_prob = 0.0
-                stats.novelty_detection = False
+                stats.novelty_detected = False
 
         return novelty_likelihood, novelty_characterization
 
@@ -834,7 +823,7 @@ class PolycraftHydraAgent(HydraAgent):
         elif self.current_stats.failed_actions > 0 and self.current_stats.failed_actions % self.exploration_rate == 0:
             return True
         self._detect_novelty(state, world, only_current_state=False)
-        return self.current_detection.novelty_detection
+        return self.current_detection.novelty_detected
 
     def repair_meta_model(self, state: PolycraftState, world: Polycraft):
         """ Call the repair object to repair the current metamodel """
