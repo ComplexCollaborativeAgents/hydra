@@ -1,7 +1,7 @@
 import pytest
 from agent.repair.meta_model_repair import *
 from agent.gym_hydra_agent import GymHydraAgent
-from agent.planning.simple_planner import *
+from agent.planning.simple_sb_planner import *
 from agent.consistency.consistency_estimator import check_obs_consistency, DEFAULT_DELTA_T
 from agent.repair.cartpole_repair import CartpoleConsistencyEstimator
 import gym
@@ -86,8 +86,8 @@ def test_repair_gravity_in_cartpole_agent(launch_cartpole_sample_level):
             # No need to fix the model - we're winning! #TODO: This is an assumption: better to replace this with a good novelty detection mechanism
         else:
             consistency = check_obs_consistency(observation, meta_model, consistency_checker)
-            meta_model_repair = GreedyBestFirstSearchMetaModelRepair(fluents_to_repair, consistency_checker, repair_deltas,
-                                                                     consistency_threshold=desired_precision)
+            meta_model_repair = GreedyBestFirstSearchConstantFluentMetaModelRepair(fluents_to_repair, consistency_checker, repair_deltas,
+                                                                                   consistency_threshold=desired_precision)
             repair, _ = meta_model_repair.repair(meta_model, observation, delta_t=DEFAULT_DELTA_T)
             logger.info("Repair done (%s), iteration %d" % (repair,iteration))
             consistency_after = check_obs_consistency(observation, meta_model, consistency_checker)
@@ -125,8 +125,8 @@ def test_repair_gravity_offline():
     fluents_to_repair = [GRAVITY,]
     repair_deltas = [1.0,]
     desired_precision = 0.01
-    meta_model_repair = GreedyBestFirstSearchMetaModelRepair(fluents_to_repair, consistency_checker, repair_deltas,
-                                                             consistency_threshold=desired_precision)
+    meta_model_repair = GreedyBestFirstSearchConstantFluentMetaModelRepair(fluents_to_repair, consistency_checker, repair_deltas,
+                                                                           consistency_threshold=desired_precision)
 
     meta_model_repair.repair(meta_model, observation, delta_t=DEFAULT_DELTA_T)
     repaired_consistency = check_obs_consistency(observation, meta_model, consistency_checker)
@@ -186,8 +186,8 @@ def test_repair_bad_gravity_in_gym(launch_cartpole_sample_level):
             # No need to fix the model - we're winning! #TODO: This is an assumption: better to replace this with a good novelty detection mechanism
         else:
             consistency = check_obs_consistency(observation, meta_model, consistency_checker)
-            meta_model_repair = GreedyBestFirstSearchMetaModelRepair(fluents_to_repair, consistency_checker, repair_deltas,
-                                                                     consistency_threshold=desired_precision)
+            meta_model_repair = GreedyBestFirstSearchConstantFluentMetaModelRepair(fluents_to_repair, consistency_checker, repair_deltas,
+                                                                                   consistency_threshold=desired_precision)
             repair, _ = meta_model_repair.repair(meta_model, observation, delta_t=meta_model.delta_t)
             logger.info("Repair done (%s), iteration %d" % (repair,iteration))
             consistency_after = check_obs_consistency(observation, meta_model, consistency_checker)

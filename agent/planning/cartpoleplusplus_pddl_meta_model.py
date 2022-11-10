@@ -5,7 +5,7 @@ import logging
 from agent.planning.meta_model import *
 import numpy as np
 
-fh = logging.FileHandler("cartpoleplusplus_hydra.log",mode='w')
+fh = logging.FileHandler("cartpoleplusplus_hydra.log", mode='w')
 formatter = logging.Formatter('%(asctime)-15s %(name)s - %(levelname)s - %(message)s')
 fh.setFormatter(formatter)
 logger = logging.getLogger("cartpole_pddl_meta_model")
@@ -13,67 +13,18 @@ logger.setLevel(logging.INFO)
 logger.addHandler(fh)
 
 
-''' A generator for Pddl Objects '''
-class PddlObjectType():
-    ''' Accepts an object from SBState.objects '''
-    def __init__(self):
-        self.hyper_parameters = dict()
-        self.pddl_type="object" # This the PDDL+ type of this object.
-
-    ''' Subclasses should override this setting all attributes of that object '''
-    def _compute_obj_attributes(self, obj, problem_params:dict):
-        return dict()
-
-    ''' Subclasses should override this settign all attributes of that object that can be observed'''
-    def _compute_observable_obj_attributes(self, obj, problem_params:dict):
-        return dict()
-
-    ''' Populate a PDDL+ problem with details about this object '''
-    def add_object_to_problem(self, prob: PddlPlusProblem, obj, problem_params:dict):
-        name = self._get_name(obj)
-        prob.objects.append([name, self.pddl_type])
-        attributes = self._compute_obj_attributes(obj, problem_params)
-        for attribute in attributes:
-            value = attributes[attribute]
-            # If attribute is Boolean no need for an "=" sign
-            if isinstance(value,  bool):
-                if value==True:
-                    prob.init.append([attribute, name])
-                else: # value == False
-                    prob.init.append(['not', [attribute, name]])
-            else: # Attribute is a number
-                prob.init.append(['=', [attribute, name], value])
-
-    ''' Populate a PDDL+ state with details about this object '''
-    def add_object_to_state(self, pddl_state: PddlPlusState, obj, state_params:dict):
-        name = self._get_name(obj)
-        attributes = self._compute_observable_obj_attributes(obj, state_params)
-        for attribute in attributes:
-            value = attributes[attribute]
-            fluent_name = (attribute, name)
-            # If attribute is Boolean no need for an "=" sign
-            if isinstance(value,  bool):
-                if value==True:
-                    pddl_state.boolean_fluents.add(fluent_name)
-                # TODO: Think how to handle booean fluents with False value. Not as trivial as it sounds
-            else: # Attribute is a number
-                pddl_state.numeric_fluents[fluent_name]=value
-
-    def _get_name(self, obj):
-        return 'object_{}'.format(obj['id'])
-
 class BlockType(PddlObjectType):
     def __init__(self):
-        super(BlockType,self).__init__()
+        super(BlockType, self).__init__()
         self.pddl_type = "block"
         self.hyper_parameters["block_radius"] = 0.5
 
-    def _compute_obj_attributes(self, obj, problem_params:dict):
+    def _compute_obj_attributes(self, obj, problem_params: dict):
         obj_attributes = self._compute_observable_obj_attributes(obj, problem_params)
         # obj_attributes[""] = self.hyper_parameters[""]
         return obj_attributes
 
-    def _compute_observable_obj_attributes(self, obj, problem_params:dict):
+    def _compute_observable_obj_attributes(self, obj, problem_params: dict):
         obj_attributes = dict()
         obj_attributes["block_x"] = obj['x_position']
         obj_attributes["block_y"] = obj['y_position']
@@ -89,8 +40,9 @@ class BlockType(PddlObjectType):
     def _get_name(self, obj):
         return 'block_{}'.format(obj['id'])
 
+
 class CartPolePlusPlusMetaModel(MetaModel):
-    PLANNER_PRECISION = 5 # how many decimal points the planner can handle correctly
+    PLANNER_PRECISION = 5  # how many decimal points the planner can handle correctly
 
     def __init__(self):
         super().__init__(
@@ -98,8 +50,8 @@ class CartPolePlusPlusMetaModel(MetaModel):
             domain_file_name="cartpole_plus_plus_domain.pddl",
             delta_t=settings.CP_DELTA_T,
             metric='minimize(total-time)',
-            repairable_constants=('m_cart', 'l_pole', 'm_pole', 'force_mag', 'gravity', 'angle_limit'),
-            repair_deltas=(1.0, 0.1, 0.1, 1.0, 1.0, 0.1, 0.1),
+            repairable_constants=['m_cart', 'l_pole', 'm_pole', 'force_mag', 'gravity', 'angle_limit'],
+            repair_deltas=[1.0, 0.1, 0.1, 1.0, 1.0, 0.1, 0.1],
             constant_numeric_fluents={
                 'm_cart': 1.0,
                 'r_cart': 0.5,
@@ -111,7 +63,7 @@ class CartPolePlusPlusMetaModel(MetaModel):
                 'elapsed_time': 0.0,
                 'gravity': 9.81,
                 'time_limit': 1.0,
-                'angle_limit': 0.165, # ~10 degrees in rad
+                'angle_limit': 0.165,  # ~10 degrees in rad
                 # 'angle_limit': 0.205, # ~12 degrees in rad
                 # 'pos_limit': 2.4,
                 'wall_x_min': -5,
@@ -120,17 +72,18 @@ class CartPolePlusPlusMetaModel(MetaModel):
                 'wall_y_max': 5,
                 'wall_z_min': 0,
                 'wall_z_max': 10,
-                },
+            },
             constant_boolean_fluents={
-                'total_failure':False,
-                'ready':True,
-                'cart_available':True})
+                'total_failure': False,
+                'ready': True,
+                'cart_available': True})
 
         self.object_types = dict()
         self.object_types["block"] = BlockType()
 
-    ''' Translate the initial SBState, as observed, to a PddlPlusProblem object. 
-    Note that in the initial state, we ignore the location of the bird and assume it is on the slingshot. '''
+    """ Translate the initial SBState, as observed, to a PddlPlusProblem object. 
+    Note that in the initial state, we ignore the location of the bird and assume it is on the slingshot. """
+
     def create_pddl_problem(self, observation_array):
 
         pddl_problem = PddlPlusProblem()
@@ -143,9 +96,12 @@ class CartPolePlusPlusMetaModel(MetaModel):
 
         pddl_problem.objects.append(['dummy_obj', 'dummy'])
 
-        euler_pole = self.quaternion_to_euler(round(observation_array['pole']['x_quaternion'], 5), round(observation_array['pole']['y_quaternion'], 5), round(observation_array['pole']['z_quaternion'], 5), round(observation_array['pole']['w_quaternion'], 5))
-        obs_theta_x = round(euler_pole[0], 5) # XY reversed on purpose to match observation
-        obs_theta_y = round(euler_pole[1], 5) # XY reversed on purpose to match observation
+        euler_pole = self.quaternion_to_euler(round(observation_array['pole']['x_quaternion'], 5),
+                                              round(observation_array['pole']['y_quaternion'], 5),
+                                              round(observation_array['pole']['z_quaternion'], 5),
+                                              round(observation_array['pole']['w_quaternion'], 5))
+        obs_theta_x = round(euler_pole[0], 5)  # XY reversed on purpose to match observation
+        obs_theta_y = round(euler_pole[1], 5)  # XY reversed on purpose to match observation
         # obs_theta_x = np.radians(round(observation_array['pole']['x_position'], 5))
         # obs_theta_y = np.radians(round(observation_array['pole']['y_position'], 5))
 
@@ -156,55 +112,73 @@ class CartPolePlusPlusMetaModel(MetaModel):
         obs_pos_x_dot = round(observation_array['cart']['x_velocity'], 5)
         obs_pos_y_dot = round(observation_array['cart']['y_velocity'], 5)
 
-
         # A dictionary with global problem parameters
         problem_params = dict()
 
         # Add constants fluents
         for numeric_fluent in self.constant_numeric_fluents:
             pddl_problem.init.append(['=', [numeric_fluent], round(self.constant_numeric_fluents[numeric_fluent],
-                                                                   CartPolePlusPlusMetaModel.PLANNER_PRECISION)]) # TODO
+                                                                   CartPolePlusPlusMetaModel.PLANNER_PRECISION)])  # TODO
         for boolean_fluent in self.constant_boolean_fluents:
             if self.constant_boolean_fluents[boolean_fluent]:
                 pddl_problem.init.append([boolean_fluent])
             # else:
-                # pddl_problem.init.append(['not',[boolean_fluent]])
-
+            # pddl_problem.init.append(['not',[boolean_fluent]])
 
         # MAIN COMPONENTS: X and THETA + derivatives
-        pddl_problem.init.append(['=', ['pos_x'], round(obs_pos_x,CartPolePlusPlusMetaModel.PLANNER_PRECISION)])
+        pddl_problem.init.append(['=', ['pos_x'], round(obs_pos_x, CartPolePlusPlusMetaModel.PLANNER_PRECISION)])
         pddl_problem.init.append(['=', ['pos_y'], round(obs_pos_y, CartPolePlusPlusMetaModel.PLANNER_PRECISION)])
-        pddl_problem.init.append(['=', ['pos_x_dot'], round(obs_pos_x_dot, CartPolePlusPlusMetaModel.PLANNER_PRECISION)])
-        pddl_problem.init.append(['=', ['pos_y_dot'], round(obs_pos_y_dot, CartPolePlusPlusMetaModel.PLANNER_PRECISION)])
+        pddl_problem.init.append(
+            ['=', ['pos_x_dot'], round(obs_pos_x_dot, CartPolePlusPlusMetaModel.PLANNER_PRECISION)])
+        pddl_problem.init.append(
+            ['=', ['pos_y_dot'], round(obs_pos_y_dot, CartPolePlusPlusMetaModel.PLANNER_PRECISION)])
         pddl_problem.init.append(['=', ['theta_x'], round(obs_theta_x, CartPolePlusPlusMetaModel.PLANNER_PRECISION)])
         pddl_problem.init.append(['=', ['theta_y'], round(obs_theta_y, CartPolePlusPlusMetaModel.PLANNER_PRECISION)])
-        pddl_problem.init.append(['=', ['theta_x_dot'], round(obs_theta_x_dot, CartPolePlusPlusMetaModel.PLANNER_PRECISION)])
-        pddl_problem.init.append(['=', ['theta_y_dot'], round(obs_theta_y_dot, CartPolePlusPlusMetaModel.PLANNER_PRECISION)])
+        pddl_problem.init.append(
+            ['=', ['theta_x_dot'], round(obs_theta_x_dot, CartPolePlusPlusMetaModel.PLANNER_PRECISION)])
+        pddl_problem.init.append(
+            ['=', ['theta_y_dot'], round(obs_theta_y_dot, CartPolePlusPlusMetaModel.PLANNER_PRECISION)])
         pddl_problem.init.append(['=', ['F_x'], 0.0])
         pddl_problem.init.append(['=', ['F_y'], 0.0])
 
-        initial_Fx = 0.0 # TODO: import initial force based on the last action applied, split initial_F into X and Y directions.
+        initial_Fx = 0.0  # TODO: import initial force based on the last action applied, split initial_F into X and Y directions.
         initial_Fy = 0.0
 
         # TODO; WP: changed "self.constant_numeric_fluents['force_mag']" to "self.constant_numeric_fluents['F_x']" to "initial_F=0.0" at the beginning of calc_temp_x (verify that it's the correct thing to do).
-        calc_temp_x = (initial_Fx + (self.constant_numeric_fluents['m_pole'] * self.constant_numeric_fluents['l_pole']) *
-                     obs_theta_x_dot ** 2 * math.sin(obs_theta_x)) / (self.constant_numeric_fluents['m_cart'] + self.constant_numeric_fluents['m_pole'])
-        calc_theta_x_ddot = (self.constant_numeric_fluents['gravity'] * math.sin(obs_theta_x) - math.cos(obs_theta_x) * calc_temp_x) / (self.constant_numeric_fluents['l_pole'] * (4.0 / 3.0 - self.constant_numeric_fluents['m_pole'] * math.cos(obs_theta_x) ** 2 / (self.constant_numeric_fluents['m_cart'] + self.constant_numeric_fluents['m_pole'])))
-        calc_pos_x_ddot = calc_temp_x - (self.constant_numeric_fluents['m_pole'] * self.constant_numeric_fluents['l_pole']) * calc_theta_x_ddot * math.cos(obs_theta_x) / (self.constant_numeric_fluents['m_cart'] + self.constant_numeric_fluents['m_pole'])
+        calc_temp_x = (initial_Fx + (
+                self.constant_numeric_fluents['m_pole'] * self.constant_numeric_fluents['l_pole']) *
+                       obs_theta_x_dot ** 2 * math.sin(obs_theta_x)) / (
+                              self.constant_numeric_fluents['m_cart'] + self.constant_numeric_fluents['m_pole'])
+        calc_theta_x_ddot = (self.constant_numeric_fluents['gravity'] * math.sin(obs_theta_x) - math.cos(
+            obs_theta_x) * calc_temp_x) / (self.constant_numeric_fluents['l_pole'] * (
+                4.0 / 3.0 - self.constant_numeric_fluents['m_pole'] * math.cos(obs_theta_x) ** 2 / (
+                self.constant_numeric_fluents['m_cart'] + self.constant_numeric_fluents['m_pole'])))
+        calc_pos_x_ddot = calc_temp_x - (self.constant_numeric_fluents['m_pole'] * self.constant_numeric_fluents[
+            'l_pole']) * calc_theta_x_ddot * math.cos(obs_theta_x) / (
+                                  self.constant_numeric_fluents['m_cart'] + self.constant_numeric_fluents['m_pole'])
 
-        pddl_problem.init.append(['=', ['pos_x_ddot'], round(calc_pos_x_ddot, CartPolePlusPlusMetaModel.PLANNER_PRECISION)])
-        pddl_problem.init.append(['=', ['theta_x_ddot'], round(calc_theta_x_ddot, CartPolePlusPlusMetaModel.PLANNER_PRECISION)])
+        pddl_problem.init.append(
+            ['=', ['pos_x_ddot'], round(calc_pos_x_ddot, CartPolePlusPlusMetaModel.PLANNER_PRECISION)])
+        pddl_problem.init.append(
+            ['=', ['theta_x_ddot'], round(calc_theta_x_ddot, CartPolePlusPlusMetaModel.PLANNER_PRECISION)])
 
         # TODO; WP: changed "self.constant_numeric_fluents['force_mag']" to "self.constant_numeric_fluents['F_y']" to "initial_F=0.0" at the beginning of calc_temp_y (verify that it's the correct thing to do).
-        calc_temp_y = (initial_Fy + (self.constant_numeric_fluents['m_pole'] * self.constant_numeric_fluents['l_pole']) *
-                     obs_theta_y_dot ** 2 * math.sin(obs_theta_y)) / (self.constant_numeric_fluents['m_cart'] + self.constant_numeric_fluents['m_pole'])
-        calc_theta_y_ddot = (self.constant_numeric_fluents['gravity'] * math.sin(obs_theta_y) - math.cos(obs_theta_y) * calc_temp_y) / (self.constant_numeric_fluents['l_pole'] * (4.0 / 3.0 - self.constant_numeric_fluents['m_pole'] * math.cos(obs_theta_y) ** 2 / (self.constant_numeric_fluents['m_cart'] + self.constant_numeric_fluents['m_pole'])))
-        calc_pos_y_ddot = calc_temp_y - (self.constant_numeric_fluents['m_pole'] * self.constant_numeric_fluents['l_pole']) * calc_theta_y_ddot * math.cos(obs_theta_y) / (self.constant_numeric_fluents['m_cart'] + self.constant_numeric_fluents['m_pole'])
+        calc_temp_y = (initial_Fy + (
+                self.constant_numeric_fluents['m_pole'] * self.constant_numeric_fluents['l_pole']) *
+                       obs_theta_y_dot ** 2 * math.sin(obs_theta_y)) / (
+                              self.constant_numeric_fluents['m_cart'] + self.constant_numeric_fluents['m_pole'])
+        calc_theta_y_ddot = (self.constant_numeric_fluents['gravity'] * math.sin(obs_theta_y) - math.cos(
+            obs_theta_y) * calc_temp_y) / (self.constant_numeric_fluents['l_pole'] * (
+                4.0 / 3.0 - self.constant_numeric_fluents['m_pole'] * math.cos(obs_theta_y) ** 2 / (
+                self.constant_numeric_fluents['m_cart'] + self.constant_numeric_fluents['m_pole'])))
+        calc_pos_y_ddot = calc_temp_y - (self.constant_numeric_fluents['m_pole'] * self.constant_numeric_fluents[
+            'l_pole']) * calc_theta_y_ddot * math.cos(obs_theta_y) / (
+                                  self.constant_numeric_fluents['m_cart'] + self.constant_numeric_fluents['m_pole'])
 
-        pddl_problem.init.append(['=', ['pos_y_ddot'], round(calc_pos_y_ddot, CartPolePlusPlusMetaModel.PLANNER_PRECISION)])
-        pddl_problem.init.append(['=', ['theta_y_ddot'], round(calc_theta_y_ddot, CartPolePlusPlusMetaModel.PLANNER_PRECISION)])
-
-
+        pddl_problem.init.append(
+            ['=', ['pos_y_ddot'], round(calc_pos_y_ddot, CartPolePlusPlusMetaModel.PLANNER_PRECISION)])
+        pddl_problem.init.append(
+            ['=', ['theta_y_ddot'], round(calc_theta_y_ddot, CartPolePlusPlusMetaModel.PLANNER_PRECISION)])
 
         # FLYING BLOCKS AND THEIR ATTRIBUTES
         purposely_ignoring_blocks = True
@@ -218,7 +192,6 @@ class CartPolePlusPlusMetaModel(MetaModel):
                 # Add object of this type to the problem
                 type.add_object_to_problem(pddl_problem, bl, problem_params)
 
-
         # Add goal
         # pddl_problem.goal.append(['pole_position'])
         pddl_problem.goal.append(['not', ['total_failure']])
@@ -226,16 +199,19 @@ class CartPolePlusPlusMetaModel(MetaModel):
 
         return pddl_problem
 
-    ''' Translate the given observed SBState to a PddlPlusState object.
-    This is designed to handle intermediate state observed during execution '''
+    """ Translate the given observed SBState to a PddlPlusState object.
+    This is designed to handle intermediate state observed during execution """
+
     def create_pddl_state(self, observations_array):
         pddl_state = PddlPlusState()
 
         # A dictionary with global problem parameters
         state_params = dict()
 
-
-        euler_pole = self.quaternion_to_euler(round(observations_array['pole']['x_quaternion'], 5), round(observations_array['pole']['y_quaternion'], 5), round(observations_array['pole']['z_quaternion'], 5), round(observations_array['pole']['w_quaternion'], 5))
+        euler_pole = self.quaternion_to_euler(round(observations_array['pole']['x_quaternion'], 5),
+                                              round(observations_array['pole']['y_quaternion'], 5),
+                                              round(observations_array['pole']['z_quaternion'], 5),
+                                              round(observations_array['pole']['w_quaternion'], 5))
 
         obs_theta_x = round(euler_pole[0], 5)
         obs_theta_y = round(euler_pole[1], 5)
@@ -262,11 +238,11 @@ class CartPolePlusPlusMetaModel(MetaModel):
         return pddl_state
 
     def create_timed_action(self, action, time_step):
-        ''' Create a PDDL+ TimedAction object from a world action and state '''
+        """ Create a PDDL+ TimedAction object from a world action and state """
 
-        if (action==1):
+        if (action == 1):
             action_name = "move_cart_right dummy_obj"
-        elif (action==2):
+        elif (action == 2):
             action_name = "move_cart_left dummy_obj"
         elif (action == 3):
             action_name = "move_cart_forward dummy_obj"
@@ -299,4 +275,3 @@ class CartPolePlusPlusMetaModel(MetaModel):
         Z = np.arctan2(t3, t4)
 
         return (X, Y, Z)
-

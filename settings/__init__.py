@@ -37,9 +37,9 @@ CP_EPISODE_TIME_LIMIT = 1200
 CP_REPAIR_TIMEOUT = 180
 
 POLYCRAFT_DELTA_T = 1  # Time discretization
-POLYCRAFT_TIMEOUT = 300  # timeout for the planning phase (in seconds)
+POLYCRAFT_TIMEOUT = 180  # timeout for the planning phase (in seconds)
 POLYCRAFT_REPAIR_TIMEOUT = 180
-POLYCRAFT_CONSISTENCY_THRESHOLD = 1
+POLYCRAFT_CONSISTENCY_THRESHOLD = 2
 POLYCRAFT_REPAIR_MAX_ITERATIONS = 30
 
 OS_ROOT_PATH = path.abspath(os.sep)
@@ -49,7 +49,7 @@ SCIENCE_BIRDS_LEVELS_DIR = path.join(SCIENCE_BIRDS_BIN_DIR, 'linux', '9001_Data'
 POLYCRAFT_DIR = path.join(ROOT_PATH, 'bin', 'pal')
 SB_INIT_COLOR_MAP = path.join(ROOT_PATH, 'worlds', 'science_birds_interface', 'demo', 'ColorMap.json')
 SB_SIM_SPEED = 30  # run at real time
-SB_GT_FREQ = 30  # int(30/SB_SIM_SPEED)
+SB_GT_FREQ = 1  # int(30/SB_SIM_SPEED)
 # SB_GT_FREQ = 1
 SB_CLASSIFICATION_THRESHOLD = 0.38
 SB_N_FRAMES = 100
@@ -74,7 +74,7 @@ POLYCRAFT_HEADLESS = "xvfb-run -s '-screen 0 1280x1024x24'" # Prepend to Polycra
 POLYCRAFT_NON_NOVELTY_LEVEL_DIR = path.join(POLYCRAFT_DIR, "pogo_100_PN")   # Path to Polycraft pre-novelty levels
 POLYCRAFT_NOVELTY_LEVEL_DIR = path.join(POLYCRAFT_DIR, "shared_novelty", "POGO")
 POLYCRAFT_LEVEL_DIR = path.join(ROOT_PATH, 'bin', 'pal', 'POGO_100_PN')  # Path to the polycraft levels directory.  NOTE: Please update this in your "local_settings.py" (create it if it doesn't exist)
-POLYCRAFT_MAX_EXPLORATION_PLANNING_ATTEMPTS = 2 # Maximum number of times the polycraft agent will try to find a plan for an exploration task before giving up
+POLYCRAFT_MAX_EXPLORATION_PLANNING_ATTEMPTS = 4 # Maximum number of times the polycraft agent will try to find a plan for an exploration task before giving up
 POLYCRAFT_MAX_GENERATED_NODES = 10000  # Maximum number of nodes generated until planning is halted
 
 SB_PLANNING_DOCKER_PATH = path.join(ROOT_PATH, 'agent', 'planning', 'sb_planning')

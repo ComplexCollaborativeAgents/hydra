@@ -221,6 +221,7 @@
     )
 
     (:event explode_block
+        ; The actual explosion radius is 50 (in whatever units this is??). We use a value of 100 to help model chain reactions.
         :parameters (?bl_tnt - block ?bl_near - block)
         :precondition (and
             (> (block_life ?bl_near) 0)
@@ -285,10 +286,10 @@
         :precondition (and
             (= (active_bird) (bird_id ?b))
             (> (v_bird ?b) 0)
-            (<= (- (x_bird ?b) (bird_radius ?b)) (+ (x_platform ?pl) (/ (platform_width ?pl) (meta_platform_size)) ) )
-            (>= (+ (x_bird ?b) (bird_radius ?b)) (- (x_platform ?pl) (/ (platform_width ?pl) (meta_platform_size)) ) )
-            (>= (+ (y_bird ?b) (bird_radius ?b)) (- (y_platform ?pl) (/ (platform_height ?pl) (meta_platform_size)) ) )
-            (<= (- (y_bird ?b) (bird_radius ?b)) (+ (y_platform ?pl) (/ (platform_height ?pl) (meta_platform_size)) ) )
+            (<= (- (x_bird ?b) (* (bird_radius ?b) 1.2)) (+ (x_platform ?pl) (/ (platform_width ?pl) (meta_platform_size)) ) )
+            (>= (+ (x_bird ?b) (* (bird_radius ?b) 1.2)) (- (x_platform ?pl) (/ (platform_width ?pl) (meta_platform_size)) ) )
+            (>= (+ (y_bird ?b) (* (bird_radius ?b) 1.2)) (- (y_platform ?pl) (/ (platform_height ?pl) (meta_platform_size)) ) )
+            (<= (- (y_bird ?b) (* (bird_radius ?b) 1.2)) (+ (y_platform ?pl) (/ (platform_height ?pl) (meta_platform_size)) ) )
         )
         :effect (and
             (assign (v_bird ?b) 0)
@@ -318,23 +319,6 @@
   	    )
     )
 
-    ; (:action black_bird_action
-    ;   :parameters (?b - bird)
-    ;   :precondition (and
-    ;   	(= (active_bird) (bird_id ?b))
-    ;   	(= (bird_type ?b) 2)
-    ;   	(bird_released ?b)
-    ;     (= (bounce_count ?b) 0)
-    ;     (< (x_bird ?b) 800)
-    ;     (not (bird_tapped ?b))
-    ;   )
-    ;   :effect (and
-    ;   	(assign (vx_bird ?b) 0)
-    ;   	(assign (vy_bird ?b) 0)
-    ;   	(bird_tapped ?b)
-  	 ;  )
-    ; )
-
     (:action white_bird_action
         :parameters (?b - bird)
         :precondition (and
@@ -348,6 +332,7 @@
         :effect (and
       	    (assign (vx_bird ?b) 0)
       	    (assign (vy_bird ?b) 0)
+      	    (assign (bird_radius ?b) (/ (bird_radius ?b) 1.5))
       	    (bird_tapped ?b)
             (assign (bird_radius ?b) (/ (bird_radius ?b) 2))
   	    )

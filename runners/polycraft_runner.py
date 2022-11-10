@@ -1,4 +1,4 @@
-from runners.polycraft_dispatcher import PolycraftDispatcher
+from dispatcher.polycraft_dispatcher import PolycraftDispatcher
 from agent.polycraft_hydra_agent import PolycraftHydraAgent
 from agent.planning.polycraft_planning.fixed_planner import FixedPlanPlanner
 import argparse
@@ -15,7 +15,7 @@ LOG_PATH = pathlib.Path(settings.ROOT_PATH) / 'runners' / 'log' / 'hydra-polycra
 def config_logging():
     logger = logging.getLogger()
     fh = logging.FileHandler(LOG_PATH)
-    fh.setLevel(logging.DEBUG)
+    fh.setLevel(logging.INFO)
     formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     fh.setFormatter(formatter)
     logger.addHandler(fh)
@@ -40,11 +40,11 @@ def main():
 
     dispatcher = PolycraftDispatcher(agent=agent)
     try:
-        dispatcher.experiment_start(trials=trials)
+        dispatcher.run_experiment(trials=trials, standalone=True)
 
         dispatcher.run_trials()
     finally:
-        dispatcher.experiment_end() # Important to clean up memory and connection to polycraft server
+        dispatcher.cleanup_experiement() # Important to clean up memory and connection to polycraft server
 
 if __name__ == '__main__':
     main()

@@ -21,6 +21,7 @@ from agent.sb_hydra_agent import SBHydraAgent, RepairingSBHydraAgent
 import settings
 import logging
 from agent.planning.nyx.syntax import constants
+from runners.results_converter import convert_results
 
 logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("run_sb_states")
@@ -42,11 +43,14 @@ class AgentType(enum.Enum):
 
 NOVELTY = 0
 TYPE = [246]
-# NOVELTY_SET = {22: [1], 0: [222, 223, 224, 225, 226, 227]}  # Yoni
+NOVELTY_SET = {0: [246]}
+STARTING_LEVELS = range(4, 250, 25)
+START_LEVEL = 4
+# NOVELTY_SET = {22: [1], 0: [,222, 223, 224, 225, 226, 227]}  # Yoni
 # NOVELTY_SET = {23: [1], 0: [232, 233, 234, 235, 236, 237]}  # Wiktor
 # NOVELTY_SET = {24: [1], 0: [242, 243, 244, 245, 246, 247]}  # Jacob
 # NOVELTY_SET = {25: [1], 0: [252, 253, 254, 255, 256, 257]}  # Shiwali - I have updated the threshold
-SAMPLES = 20
+SAMPLES = 25
 
 AGENT = AgentType.RepairingHydra
 
@@ -377,7 +381,7 @@ def run_performance_stats(novelties: dict,
             number_samples = len(levels)
             if samples is not None:
                 number_samples = min(number_samples, samples)
-            levels = levels[20:20 + number_samples]
+            levels = levels[START_LEVEL:START_LEVEL + number_samples]
             # levels = random.sample(levels, number_samples)
 
             if level_lookup:
@@ -400,8 +404,8 @@ def run_performance_stats(novelties: dict,
 
             if results_directory is not None:
                 stats = compute_stats(results_directory, agent_type, agent_stats)
-                filename = "stats_{}_novelty{}_type{}_agent{}".format(settings.EXPERIMENT_NAME, novelty, novelty_type,
-                                                                      agent_type.name)
+                filename = "stats_{}_novelty{}_type{}_agent{}_from_level{}".format(settings.EXPERIMENT_NAME, novelty, novelty_type,
+                                                                      agent_type.name, START_LEVEL)
                 if suffix is None or len(suffix) == 0:
                     current_suffix = ''
                 else:
@@ -409,6 +413,10 @@ def run_performance_stats(novelties: dict,
                 filename = "{}{}.json".format(filename, current_suffix)
                 with open(stats_base_path / filename, 'w') as f:
                     json.dump(stats, f, sort_keys=True, indent=4)
+                    # infile = stats_base_path / filename
+                    # outfile = False
+                    # convert_results(infile, outfile)
+
 
 
 # def do_record_novelty_stats(novelty, novelty_type, config, agent_stats):
@@ -571,8 +579,10 @@ if __name__ == '__main__':
         settings.EXPERIMENT_NAME = alg + heuristic
         run_sb_stats(record_novelty_stats=True)
 
-    constants.SB_W_HELPFUL_ACTIONS = True
-    settings.SB_ALGO_STRING = 'gbfs'
-    settings.EXPERIMENT_NAME = 'helpful_actions'
-    run_sb_stats(record_novelty_stats=True)
+    for s_level in STARTING_LEVELS:
+        START_LEVEL = s_level
+        constants.SB_W_HELPFUL_ACTIONS = True
+        settings.SB_ALGO_STRING = 'gbfs'
+        settings.EXPERIMENT_NAME = 'helpful_actions'
+        run_sb_stats(record_novelty_stats=True)
 

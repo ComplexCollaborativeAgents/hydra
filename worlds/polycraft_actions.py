@@ -31,7 +31,7 @@ class PolyTP(PolycraftAction):
         return result
 
 class PolyMove(PolycraftAction):
-    ''' Move to one of the 8 neighboring cells '''
+    """ Move to one of the 8 neighboring cells """
     def __init__(self, move_dir:MoveDir, steps=1):
         super().__init__()
         self.move_dir = move_dir
@@ -107,7 +107,7 @@ class PolyBreak(PolycraftAction):
         return result
 
     def can_do(self, state:PolycraftState, env) -> bool:
-        ''' Make sure no entity is occupying the space where we want to place the tree tap'''
+        """ Make sure no entity is occupying the space where we want to place the tree tap"""
         if state.is_facing_type(BlockType.AIR.value):
             logger.info(f"Cannot do action {self.name} because facing block of type {state.facing_block}")
             return False
@@ -197,7 +197,7 @@ class PolyPlaceTreeTap(PolycraftAction):
         return result
 
     def can_do(self, state:PolycraftState, env) -> bool:
-        ''' Make sure no entity is occupying the space where we want to place the tree tap'''
+        """ Make sure no entity is occupying the space where we want to place the tree tap"""
         if is_facing_entity(state):
             logger.info(f"Cannot do action {self.name} because facing an entity")
             return False # Bug in polycraft - do not place tree tap on an agent
@@ -227,7 +227,7 @@ class PolyCollect(PolycraftAction):
 
 
 class PolyGiveUp(PolycraftAction):
-    ''' An action in which the agent gives up'''
+    """ An action in which the agent gives up"""
     def __str__(self):
         return "<PolyGiveUp success={}>".format(self.success)
 
@@ -272,7 +272,7 @@ class PolyTradeItems(PolycraftAction):
 
     @staticmethod
     def create_action(trader_id, trade_obj):
-        ''' Create a PolyCraftItem action from a given recipe object '''
+        """ Create a PolyCraftItem action from a given recipe object """
         trade_inputs = trade_obj['inputs']
 
         # Arrange trade inputs in the required format
@@ -300,7 +300,7 @@ class PolyCraftItem(PolycraftAction):
 
     @staticmethod
     def create_action(recipe_obj):
-        ''' Create a PolyCraftItem action from a given recipe object '''
+        """ Create a PolyCraftItem action from a given recipe object """
         slot_to_item = dict()
         recipe_inputs = recipe_obj['inputs']
 

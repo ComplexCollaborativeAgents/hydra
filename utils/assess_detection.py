@@ -2,7 +2,7 @@ from os import listdir, path
 import pickle
 import random
 
-from agent.consistency.observation import ScienceBirdsObservation
+from agent.consistency.sb_episode_log import SBEpisodeLog
 from agent.sb_hydra_agent import RepairingSBHydraAgent
 
 # SB_NON_NOVEL_OBS_DIR = '/home/klenk/Downloads/non_novel/'
@@ -17,7 +17,7 @@ from agent.sb_hydra_agent import RepairingSBHydraAgent
 #     false_positives = 0
 #     non_novel = random.choices(SB_NON_NOVEL_TESTS,k=90)
 #     for ob_file in non_novel:
-#         sb_ob : ScienceBirdsObservation = pickle.load(open(path.join(SB_NON_NOVEL_OBS_DIR, ob_file), "rb"))
+#         sb_ob : SBEpisodeLog = pickle.load(open(path.join(SB_NON_NOVEL_OBS_DIR, ob_file), "rb"))
 #         if hydra.should_repair(sb_ob):
 #             false_positives += 1
 #         ret.append(hydra.novelty_likelihood)
@@ -27,7 +27,7 @@ from agent.sb_hydra_agent import RepairingSBHydraAgent
 #     false_negatives = 0
 #     novel = random.choices(SB_NOVEL_TESTS,k=90)
 #     for ob_file in novel:
-#         sb_ob : ScienceBirdsObservation = pickle.load(open(path.join(SB_NON_NOVEL_OBS_DIR, ob_file), "rb"))
+#         sb_ob : SBEpisodeLog = pickle.load(open(path.join(SB_NON_NOVEL_OBS_DIR, ob_file), "rb"))
 #         if not hydra.should_repair(sb_ob):
 #             false_negative += 1
 #         ret.append(hydra.novelty_likelihood)

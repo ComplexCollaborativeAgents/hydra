@@ -5,7 +5,7 @@ from state_prediction.anomaly_detector_fc_multichannel import FocusedSBAnomalyDe
 os.environ['LANG'] = 'en_US'
 os.environ['PYOPENGL_PLATFORM'] = 'egl' # Uncommnet this line while running remotely
 
-from agent.consistency.observation import ScienceBirdsObservation
+from agent.consistency.sb_episode_log import SBEpisodeLog
 from agent.consistency.focused_anomaly_detector import *
 import settings
 import pickle
@@ -66,7 +66,7 @@ def test_UPenn_consistency_science_birds():
     print("Non novel cases:")
     for ob_file in SB_NON_NOVEL_TESTS:
         #load file
-        sb_ob : ScienceBirdsObservation = pickle.load(open(path.join(SB_NON_NOVEL_OBS_DIR, ob_file), "rb"))
+        sb_ob : SBEpisodeLog = pickle.load(open(path.join(SB_NON_NOVEL_OBS_DIR, ob_file), "rb"))
         novelties, novelty_likelihood = detector.detect(sb_ob)
         print("file={}, novelties found={}, novelty likelihood={}".format(ob_file, len(novelties), novelty_likelihood))
         if not novelties:
@@ -76,7 +76,7 @@ def test_UPenn_consistency_science_birds():
 
     print("Novel cases:")
     for ob_file in SB_NOVEL_TESTS:
-        sb_ob : ScienceBirdsObservation = pickle.load(open(path.join(SB_NOVEL_OBS_DIR, ob_file), "rb"))
+        sb_ob : SBEpisodeLog = pickle.load(open(path.join(SB_NOVEL_OBS_DIR, ob_file), "rb"))
         novelties, novelty_likelihood = detector.detect(sb_ob)
         print("file={}, novelties found={}, novelty likelihood={}".format(ob_file, len(novelties), novelty_likelihood))
         if novelties:

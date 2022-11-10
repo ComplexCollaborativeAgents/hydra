@@ -1,26 +1,24 @@
 import json
+#import shapely.geometry as geo
+import logging
 import os
 import pickle
 import subprocess
-import sys
 import threading
 import time
 from os import path
-import copy
-import math
+from typing import List
 
 import func_timeout
 import numpy as np
 
 import settings
 import worlds.science_birds_interface.client.agent_client as ac
-from worlds.science_birds_interface.trajectory_planner.trajectory_planner import SimpleTrajectoryPlanner
-from utils.host import Host
 from agent.planning.pddlplus_parser import PddlPlusProblem
-from utils.state import State, Action, World
-#import shapely.geometry as geo
-import logging
-
+from utils.host import Host
+from utils.state import Action, State, World
+from worlds.science_birds_interface.trajectory_planner.trajectory_planner import \
+    SimpleTrajectoryPlanner
 
 logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("Science Birds")
@@ -28,15 +26,23 @@ logger = logging.getLogger("Science Birds")
 class SBState(State):
     """Current State of Science Birds"""
     id = 0
-    def __init__(self,objs,image,game_state):
+    def __init__(self, objs:dict, image: np.ndarray, game_state:ac.GameState):
         super().__init__()
         self.objects = objs
         self.image = image
         self.game_state = game_state
         self.sling = None
 
-    def summary(self):
-        '''returns a summary of state'''
+    def is_terminal(self) -> bool:
+        return self.game_state.value == ac.GameState.WON or \
+            self.game_state.value == ac.GameState.LOST or \
+            self.game_state.value == ac.GameState.NEWTESTSET or \
+            self.game_state.value == ac.GameState.NEWTRAININGSET or \
+            self.game_state.value == ac.GameState.EVALUATION_TERMINATED or \
+            self.game_state.value == ac.GameState.REQUESTNOVELTYLIKELIHOOD
+
+    def summary(self) -> dict:
+        """returns a summary of state"""
         ret = {}
         for key, obj in self.objects.items():
             ret['{}_{}'.format(obj['type'],key)] = (obj['bbox'].centroid.x,obj['bbox'].centroid.y)
@@ -84,9 +90,9 @@ class ScienceBirds(World):
     We will make calls through the JAR to change the level
     """
 
-    sb_client = None
-    history = []
-    intermediate_states = []
+    sb_client:ac.AgentClient = None
+    history:List[SBAction] = []
+    intermediate_states:List[SBState] = []
     lock = threading.Lock()
 
     trajectory_planner = SimpleTrajectoryPlanner() # This is static to allow others to reason about it
@@ -206,7 +212,7 @@ class ScienceBirds(World):
         """
         assert None
 
-    def act(self, action):
+    def act(self, action: SBAction):
         """returns the new current state and reward"""
         if isinstance(action, SBShoot):
             logger.info("Executing action")
@@ -233,12 +239,12 @@ class ScienceBirds(World):
                                             self.intermediate_states]
                 time.sleep(2 / settings.SB_SIM_SPEED)
 
-                # On demand pause, allows the previous bird to disappear and the level to fully settle before taking the next shot.
-                self.sb_client.batch_ground_truth(20000, 1)
-                time.sleep(2 / settings.SB_SIM_SPEED)
+            # On demand pause, allows the previous bird to disappear and the level to fully settle before taking the next shot.
+            self.sb_client.batch_ground_truth(20000, 1)
+            time.sleep(2 / settings.SB_SIM_SPEED)
 
-               # if len(self.intermediate_states) < 3: # we should get some intermediate states
-               #     assert False
+            # if len(self.intermediate_states) < 3: # we should get some intermediate states
+            #     assert False
             # bird_trajd = self._get_bird_trajectory(self.intermediate_states)
             reward = self.sb_client.get_current_score() - prev_score
             self.get_current_state()
@@ -263,7 +269,7 @@ class ScienceBirds(World):
 
 
 #    @func_timeout.func_set_timeout(2)
-    def get_current_state(self):
+    def get_current_state(self) -> SBState:
         """
         side effects to set the current game status and sling objects on the environment
         """

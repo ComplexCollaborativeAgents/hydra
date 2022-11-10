@@ -1,52 +1,45 @@
+import logging
+
 import settings
-from agent.consistency.consistency_estimator import ConsistencyEstimator, DEFAULT_DELTA_T
-from agent.consistency.pddl_plus_simulator import PddlPlusSimulator, InconsistentPlanError
-from agent.consistency.sequence_consistency_estimator import SequenceConsistencyEstimator
-from agent.planning.polycraft_meta_model import PolycraftMetaModel
-from agent.repair.meta_model_repair import GreedyBestFirstSearchMetaModelRepair
+from agent.consistency.nyx_pddl_simulator import NyxPddlPlusSimulator
+from agent.repair.meta_model_repair import GreedyBestFirstSearchConstantFluentMetaModelRepair, RepairModule
+from agent.repair.polycraft_c_and_repair.polycraft_block_collect_repair import PolycraftBlockCollectRepair
+from agent.repair.polycraft_c_and_repair.polycraft_domain_consistency_estimator import \
+    PolycraftConsistencyEstimator
+from numpy import argmax
+
+logger = logging.getLogger("Polycraft")
 
 
-class MetaModelBasedConsistencyEstimator(ConsistencyEstimator):
-    PLAN_FAILED_CONSISTENCY_VALUE = 1000  # A constant representing the inconsistency value of a meta model in which the executed plan is inconsistent
+class PolycraftMetaModelRepair(RepairModule):
+    """ The meta model repair used for Polycraft. """
 
-    ''' Computes the consistency of a given observation w.r.t the given meta model using the given simulator '''
-    def compute_consistency(self, observation, meta_model, simulator: PddlPlusSimulator, delta_t):
-        try:
-            expected_trace, plan = simulator.get_expected_trace(observation, meta_model, delta_t)
-            observed_seq = observation.get_pddl_states_in_trace(meta_model)
-            consistency = self.estimate_consistency(expected_trace, observed_seq, delta_t)
-        except InconsistentPlanError:  # Sometimes the repair makes the executed plan be inconsistent, e.g., its preconditions are not satisfied
-            consistency = MetaModelBasedConsistencyEstimator.PLAN_FAILED_CONSISTENCY_VALUE
-        return consistency
-
-class PolycraftConsistencyEstimator(MetaModelBasedConsistencyEstimator):
-    def __init__(self, unique_prefix_size=100, discount_factor=0.9, consistency_threshold=0.01):
-        self.unique_prefix_size = unique_prefix_size
-        self.discount_factor = discount_factor
+    def __init__(self, meta_model, consistency_threshold=settings.POLYCRAFT_CONSISTENCY_THRESHOLD,
+                 time_limit=settings.POLYCRAFT_REPAIR_TIMEOUT, max_iterations=settings.POLYCRAFT_REPAIR_MAX_ITERATIONS):
+        super().__init__(meta_model, PolycraftConsistencyEstimator(meta_model))
         self.consistency_threshold = consistency_threshold
+        self.aspect_repair = [GreedyBestFirstSearchConstantFluentMetaModelRepair(self.meta_model,
+                                                                                 self.consistency_estimator,
+                                                                                 meta_model.repairable_constants,
+                                                                                 meta_model.repair_deltas,
+                                                                                 settings.POLYCRAFT_CONSISTENCY_THRESHOLD,
+                                                                                 max_iterations=100, time_limit=600)]
+        # self.aspect_repair = [PolycraftBlockCollectRepair(c_e) for c_e in
+        #                       self.consistency_estimator.block_outcome_estimators]
 
-    def estimate_consistency(self, simulation_trace: list, state_seq: list, delta_t: float = DEFAULT_DELTA_T):
-        """ Estimate consistency based on relevant values """
-        fluent_names = []
-        fluent_names.extend((fl[0],) for fl in simulation_trace[0].state.numeric_fluents.keys() if fl[0].startswith('count_'))
-        fluent_names.append(('selectedItem',))
-        # How is our agent's position stored?
-        consistency_checker = SequenceConsistencyEstimator(fluent_names, self.unique_prefix_size, self.discount_factor,
-                                                           self.consistency_threshold)
-        return consistency_checker.estimate_consistency(simulation_trace, state_seq, delta_t)
+    def repair(self, observation, delta_t=1.0):
+        descriptions = []
+        max_ic_index = argmax(self.consistency_estimator.latest_inconsistencies)
+        repair_attemtps = 0
+        max_repair_attempts = len(self.aspect_repair)  # TODO seems reasonable for now
+        while max(self.consistency_estimator.latest_inconsistencies) > self.consistency_threshold and \
+                repair_attemtps < max_repair_attempts:
+            description, _ = self.aspect_repair[max_ic_index].repair(observation, delta_t)
+            descriptions.append(str(description))
 
+            self.consistency_estimator.consistency_from_observations(self.meta_model, NyxPddlPlusSimulator(),
+                                                                     observation, delta_t)
+            max_ic_index = argmax(self.consistency_estimator.latest_inconsistencies)
+            repair_attemtps += 1
 
-class PolycraftMetaModelRepair(GreedyBestFirstSearchMetaModelRepair):
-    """ The meta model repair used for ScienceBirds. """
-
-    def __init__(self, meta_model=PolycraftMetaModel(),
-                 consistency_threshold=settings.POLYCRAFT_CONSISTENCY_THRESHOLD,
-                 time_limit=settings.POLYCRAFT_REPAIR_TIMEOUT,
-                 max_iterations=settings.POLYCRAFT_REPAIR_MAX_ITERATIONS):
-        constants_to_repair = meta_model.repairable_constants
-        repair_deltas = meta_model.repair_deltas
-        consistency_estimator = PolycraftConsistencyEstimator()
-        super().__init__(constants_to_repair, consistency_estimator, repair_deltas,
-                         consistency_threshold=consistency_threshold,
-                         max_iterations=max_iterations,
-                         time_limit=time_limit)
+        return descriptions, max(self.consistency_estimator.latest_inconsistencies)

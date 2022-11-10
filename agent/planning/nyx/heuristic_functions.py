@@ -14,7 +14,6 @@ from agent.planning.nyx.interval_heuristic import IntervalHeuristic
 active_heuristic = None  # A mechanism for setting the heuristic externally
 
 
-
 def get_heuristic_function(heuristic=constants.CUSTOM_HEURISTIC_ID, **kwargs):
     if heuristic == 0:
         return ZeroHeuristic()
@@ -74,6 +73,7 @@ class BadSBHeuristic(AbstractHeuristic):
     def evaluate(self, node):
         node.h = 50000 - node.state_vars["['points_score']"]
         return node.h
+
 
 class CartpoltHeuristic(AbstractHeuristic):
     # CARTPOLE HEURISTIC
@@ -142,6 +142,7 @@ class SBOneBirdHeuristic(AbstractHeuristic):
         active_bird_string = get_active_bird_string(node)
         if active_bird_string is None:
             if node.predecessor_action == constants.TIME_PASSING_ACTION:
+                # Time has passed but nothing is moving - this shot has ended.
                 if node.predecessor.state_vars == node.state_vars:
                     node.h = np.inf
                     return node.h
@@ -316,7 +317,7 @@ class SBOneBirdHeuristic(AbstractHeuristic):
         """
         # Plan:
         # 1. get pigs
-        # 2. find closest pig
+        # 2. find the closest pig
         # 3. divide distance to closets pig by?
         #   (scalar product of velocity and unit direction to pig. is that too involved?)
         # BIRD_X = 0
@@ -333,7 +334,9 @@ class SBOneBirdHeuristic(AbstractHeuristic):
             # passed pig, but might still be close enough to hit
             if min(dists) < 50 ** 2:
                 tot_speed = pow(bird_coords[2] ** 2 + bird_coords[3] ** 2, 0.5)
-                return pow(min(dists), 0.5)/(tot_speed * constants.DELTA_T)
+                if tot_speed == 0.0:
+                    return pow(min(dists), 0.5)
+                return pow(min(dists), 0.5) / (tot_speed * constants.DELTA_T)
             return SBOneBirdHeuristic.LARGE_VALUE
         value = max(0, math.sqrt(dists[closest_ind]) / (speed_in_direction * constants.DELTA_T))
         return int(value)
@@ -376,7 +379,8 @@ class SBBlockedPigsHeuristic(SBOneBirdHeuristic):
         self.sus_blocks_keys = set()
         for key, item in self.pig_x_keys.items():
             self.pig_dead_keys[item] = "['pig_dead" + item
-        self.sus_blocks_keys = self._check_sus_blocks(node, list(self.pig_x_keys.values()), list(self.targets_x_keys.values()))
+        self.sus_blocks_keys = self._check_sus_blocks(node, list(self.pig_x_keys.values()),
+                                                      list(self.targets_x_keys.values()))
 
     def _check_sus_blocks(self, node, pig_keys, block_keys):
         """
@@ -429,8 +433,13 @@ class SBBlockedPigsHeuristic(SBOneBirdHeuristic):
 class SBHelpfulAngleHeuristic(SBBlockedPigsHeuristic):
     """
     Calculates trajectories to pigs\blocks in front of or under pigs as a pre-processing step, and marks states
-    on those trajectories as 'preferred' so that they are tried first.
+    near those trajectories as 'preferred' so that they are tried first.
+    Note about deviation positioning: doing the calculation with floats and only adding the deviation at the end
+    is a less correct method for two reasons. 1) we want an approximate landing point in x, not y. 2) we want the
+    approximation to run through the entire trajectory, else we risk getting no solutions due to launch angle
+    quantization.
     """
+
     def __init__(self, blocking_blocks=False):
         """
         param: blocking_blocks: Should the heuristic consider blocks in front of/under pigs good targets?
@@ -473,7 +482,8 @@ class SBHelpfulAngleHeuristic(SBBlockedPigsHeuristic):
 
         if self.blocks_under_pigs:
             self.sus_blocks_keys = self._check_sus_blocks(node, live_pigs, self.sus_blocks_keys)
-            explosive_blocks = [obj_id for _, obj_id in self.targets_x_keys.items() if node.state_vars["['block_explosive" + obj_id]]
+            explosive_blocks = [obj_id for _, obj_id in self.targets_x_keys.items() if
+                                node.state_vars["['block_explosive" + obj_id]]
             for block_key in itertools.chain(self.sus_blocks_keys, explosive_blocks):
                 block_x = node.state_vars["['x_block" + block_key]
                 block_y = node.state_vars["['y_block" + block_key]
@@ -523,8 +533,16 @@ class SBHelpfulAngleHeuristic(SBBlockedPigsHeuristic):
         if active_bird_string is not None:
             if not node.state_vars["['bird_released'" + active_bird_string] and node.state_vars["['angle']"] > 0:
                 # Haven't fired yet - want to have all angles available first.
-                # print(node.state_vars["['x_bird'" + active_bird_string] + self.deviation, node.state_vars["['y_bird'" + active_bird_string], node.state_vars["['vx_bird'" + active_bird_string])
                 return True
+
+            if node.state_vars["['bird_tapped'" + active_bird_string]:
+                x_0 = node.state_vars["['x_bird'" + active_bird_string]
+                y_0 = node.state_vars["['y_bird'" + active_bird_string]
+                targets_xy = [(self.pigs_x[o_id], self.pigs_y[o_id]) for o_id in self.pigs_x.keys()]
+                dists = [(pig[0] - x_0) ** 2 + (pig[1] - y_0) ** 2 for pig in targets_xy]
+                if min(dists) < 30 ** 2:
+                    return True
+
             # else
             x_t = node.state_vars["['x_bird'" + active_bird_string] + self.deviation
             y_t = node.state_vars["['y_bird'" + active_bird_string]

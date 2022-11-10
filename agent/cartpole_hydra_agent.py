@@ -3,7 +3,7 @@ import random
 
 import numpy as np
 
-from agent.consistency.observation import CartPoleObservation
+from agent.consistency.episode_log import CartPoleObservation
 from agent.planning.cartpole_meta_model import CartPoleMetaModel
 from agent.planning.cartpole_planner import CartPolePlanner
 from agent.repair.cartpole_repair import CartpoleRepair
@@ -14,6 +14,7 @@ from typing import Type
 
 from worlds.wsu.wsu_dispatcher import WSUObserver
 from agent.hydra_agent import HydraAgent
+
 
 class CartpoleHydraAgent(HydraAgent):
     def __init__(self):
@@ -46,7 +47,7 @@ class CartpoleHydraAgent(HydraAgent):
         self.plan = None
         self.observations_list.append(self.current_observation)
         self.current_observation = CartPoleObservation()
-        self.last_performance.append(performance) # Records the last performance value, to show impact
+        self.last_performance.append(performance)  # Records the last performance value, to show impact
         return self.novelty_likelihood, self.novelty_threshold, self.novelty_type, self.novelty_characterization
 
     def choose_action(self, observation: CartPoleObservation) -> \
@@ -54,14 +55,18 @@ class CartpoleHydraAgent(HydraAgent):
 
         if self.plan is None:
             # self.meta_model.constant_numeric_fluents['time_limit'] = 4.0
-            self.meta_model.constant_numeric_fluents['time_limit'] = max(0.02, min(4.0, round((4.0 - ((self.steps) * 0.02)), 2)))
+            self.meta_model.constant_numeric_fluents['time_limit'] = max(0.02, min(4.0,
+                                                                                   round((4.0 - (self.steps * 0.02)),
+                                                                                         2)))
             self.plan = self.planner.make_plan(observation, 0)
             self.current_observation = CartPoleObservation()
             if len(self.plan) == 0:
                 self.plan_idx = 999
 
         if self.plan_idx >= self.replan_idx:
-            self.meta_model.constant_numeric_fluents['time_limit'] = max(0.02, min(4.0, round((4.0 - ((self.steps) * 0.02)), 2)))
+            self.meta_model.constant_numeric_fluents['time_limit'] = max(0.02, min(4.0,
+                                                                                   round((4.0 - (self.steps * 0.02)),
+                                                                                         2)))
             new_plan = self.planner.make_plan(observation, 0)
             self.current_observation = CartPoleObservation()
             if len(new_plan) != 0:
@@ -97,14 +102,14 @@ class CartpoleHydraAgent(HydraAgent):
 class RepairingCartpoleHydraAgent(CartpoleHydraAgent):
     def __init__(self):
         super().__init__()
-        self.repair_threshold = 0.975 # 195/200
+        self.repair_threshold = 0.975  # 195/200
         self.has_repaired = False
         self.detector = FocusedAnomalyDetector()
-        self.meta_model_repair = CartpoleRepair()
+        self.meta_model_repair = CartpoleRepair(self.meta_model)
 
-    def episode_end(self, performance: float, feedback: dict = None)-> \
+    def episode_end(self, performance: float, feedback: dict = None) -> \
             (float, float, int, dict):
-        super().episode_end(performance) # Update
+        super().episode_end(performance)  # Update
 
         novelty_likelihood, novelty_characterization, has_repaired = self.novelty_detection()
         self.novelty_likelihood = novelty_likelihood
@@ -115,40 +120,43 @@ class RepairingCartpoleHydraAgent(CartpoleHydraAgent):
 
         return self.novelty_likelihood, self.novelty_threshold, self.novelty_type, self.novelty_characterization
 
-
     def should_repair(self, observation: CartPoleObservation) -> bool:
-        ''' Checks if we should repair basd on the given observation '''
+        """ Checks if we should repair basd on the given observation """
         return self.novelty_existence is not False and self.last_performance[-1] < self.repair_threshold
 
-
     def novelty_detection(self):
-        ''' Computes the likelihood that the current observation is novel '''
+        """ Computes the likelihood that the current observation is novel """
         last_observation = self.observations_list[-1]
 
         if self.should_repair(last_observation):
             novelty_characterization, novelty_likelihood = self.repair_meta_model(last_observation)
+        else:
+            novelty_characterization = ''
 
         if self.novelty_existence is True:
             novelty_likelihood = 1.0
+        else:
+            novelty_likelihood = 0
 
-        return novelty_likelihood, novelty_characterization
+        return novelty_likelihood, novelty_characterization, True
 
     def repair_meta_model(self, last_observation):
-        ''' Repair the meta model based on the last observation '''
-
+        """ Repair the meta model based on the last observation """
+        novelty_characterization, novelty_likelihood = '', 0
         try:
-            repair, consistency = self.meta_model_repair.repair(self.meta_model, last_observation,
-                                                           delta_t=settings.CP_DELTA_T)
+            repair, consistency = self.meta_model_repair.repair(last_observation,
+                                                                delta_t=settings.CP_DELTA_T)
             self.log.info("Repaired meta model (repair string: %s)" % repair)
             nonzero = any(map(lambda x: x != 0, repair))
             if nonzero:
                 novelty_likelihood = 1.0
                 self.has_repaired = True
-                novelty_characterization = json.dumps(dict(zip(self.meta_model_repair.fluents_to_repair, repair)))
+                novelty_characterization = json.dumps(dict(zip(self.meta_model.repairable_constants, repair)))
             elif consistency > settings.CP_CONSISTENCY_THRESHOLD:
                 novelty_likelihood = 1.0
                 novelty_characterization = json.dumps({'Unknown novelty': 'no adjustments made'})
             self.consistency_scores.append(consistency)
+
         except Exception:
             pass
         return novelty_characterization, novelty_likelihood

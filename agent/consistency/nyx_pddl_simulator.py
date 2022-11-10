@@ -6,14 +6,14 @@ from typing import List, Tuple, Iterator, Dict, Union, Optional
 
 import logging
 
-from agent.consistency.observation import HydraObservation
+from agent.consistency.episode_log import HydraEpisodeLog
 from agent.consistency.pddl_plus_simulator import PddlPlusSimulator
 from agent.planning.meta_model import MetaModel
 from agent.planning.pddl_plus import PddlPlusPlan, PddlPlusProblem, PddlPlusDomain, PddlPlusWorldChange, \
     WorldChangeTypes, PddlPlusState
 
 from agent.planning.nyx import PDDL
-from agent.planning.nyx.syntax import constants as nyx_constants
+from agent.planning.nyx.syntax import constants as nyx_constants, constants
 from agent.planning.nyx.syntax.action import Action
 from agent.planning.nyx.syntax.event import Event
 from agent.planning.nyx.syntax.process import Process
@@ -33,11 +33,11 @@ class NyxPddlPlusSimulator(PddlPlusSimulator):
         super().__init__(allow_cascading_effects=allow_cascading_effects)
 
     def get_expected_trace(self,
-                           observation: HydraObservation,
+                           observation: HydraEpisodeLog,
                            meta_model: MetaModel,
                            delta_t: float = 0.05,
                            max_t: Optional[float] = None,
-                           max_iterations=1000) -> Tuple[Trace, PddlPlusPlan]:
+                           max_iterations=200) -> Tuple[Trace, PddlPlusPlan]:
         problem = meta_model.create_pddl_problem(observation.get_initial_state())
         domain = meta_model.create_pddl_domain(observation.get_initial_state())
         plan = observation.get_pddl_plan(meta_model)
@@ -50,7 +50,7 @@ class NyxPddlPlusSimulator(PddlPlusSimulator):
                  domain: PddlPlusDomain,
                  delta_t: float,
                  max_t: Optional[float] = None,
-                 max_iterations: int = 1000) -> SimulationOutput:
+                 max_iterations: int = 200) -> SimulationOutput:
         grounded_pddl = self.grounded_instance(domain, problem)
         return self.simulate_grounded_instance(plan_to_simulate,
                                                grounded_pddl,
@@ -63,7 +63,7 @@ class NyxPddlPlusSimulator(PddlPlusSimulator):
                                    grounded_pddl: PDDL.GroundedPDDLInstance,
                                    delta_t: float,
                                    max_t: Optional[float] = None,
-                                   max_iterations: int = 1000) -> SimulationOutput:
+                                   max_iterations: int = 200) -> SimulationOutput:
         nyx_constants.set_delta_t(delta_t)
         nyx_plan = self._nyx_plan(plan_to_simulate, grounded_pddl, delta_t, max_t=max_t)
         nyx_trace = nyx_plan.simulate(grounded_pddl.init_state,
@@ -146,25 +146,43 @@ class NyxPddlPlusSimulator(PddlPlusSimulator):
 
     @classmethod
     def _hydra_trace(cls, trace: NyxTrace, include_time_passing: bool = False) -> Trace:
-        hydra_trace = []
+        if constants.TEMPORAL_DOMAIN:
+            hydra_trace = []
 
-        current_state = None
-        happenings = []
-        for state in trace.iter(extended=True):
-            if current_state is not None and current_state.time != state.time:
-                hydra_trace.append(TraceItem(cls._hydra_state(current_state),
-                                             current_state.time,
-                                             happenings))
-                happenings = []
-            current_state = state
-            if state.predecessor_action:
-                if include_time_passing or state.predecessor_action is not nyx_constants.TIME_PASSING_ACTION:
-                    happenings.append(cls._hydra_world_change(state.predecessor_action))
+            current_state = None
+            happenings = []
+            for state in trace.iter(extended=True):
+                if current_state is not None and current_state.time != state.time:
+                    hydra_trace.append(TraceItem(cls._hydra_state(current_state),
+                                                 current_state.time,
+                                                 happenings))
+                    happenings = []
+                current_state = state
+                if state.predecessor_action:
+                    if include_time_passing or state.predecessor_action is not nyx_constants.TIME_PASSING_ACTION:
+                        happenings.append(cls._hydra_world_change(state.predecessor_action))
+            else:
+                if current_state is not None:
+                    hydra_trace.append(TraceItem(cls._hydra_state(current_state),
+                                                 current_state.time,
+                                                 happenings))
         else:
-            if current_state is not None:
-                hydra_trace.append(TraceItem(cls._hydra_state(current_state),
-                                             current_state.time,
+            hydra_trace_offset = []
+            for state in trace.iter(extended=True):
+                happenings = []
+                if state.predecessor_action is not None:
+                    happenings.append(cls._hydra_world_change(state.predecessor_action))
+                hydra_trace_offset.append(TraceItem(cls._hydra_state(state),
+                                             state.time,
                                              happenings))
+
+            hydra_trace = []
+            if hydra_trace_offset:
+                prev_state, prev_time, _ = hydra_trace_offset[0]
+                for state, time, happenings in hydra_trace_offset[1:]:
+                    hydra_trace.append(TraceItem(prev_state, prev_time, happenings))
+                    prev_state, prev_time = state, time
+                hydra_trace.append(TraceItem(prev_state, prev_time, []))
 
         return hydra_trace
 

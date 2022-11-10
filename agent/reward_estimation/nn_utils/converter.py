@@ -1,10 +1,10 @@
-from agent.consistency.observation import ScienceBirdsObservation
+from agent.consistency.sb_episode_log import SBEpisodeLog
 from agent.reward_estimation.nn_utils.obs_to_imgs import *
 from agent.reward_estimation.nn_utils.ab_dataset_tensor import *
 import pickle
 import settings
 
-def extract_state_action_from_observation(observation: ScienceBirdsObservation):
+def extract_state_action_from_observation(observation: SBEpisodeLog):
     obsimg = SBObs_to_Imgs()
     state, action, inter_states = obsimg.Obs_to_StateActionNextState(observation)
     print(state)
