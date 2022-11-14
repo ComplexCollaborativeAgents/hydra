@@ -4,20 +4,19 @@ import json
 import logging
 import os
 import pathlib
+from typing import List
 from xml.etree import ElementTree as ET
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas
 import seaborn as sns
+from dispatcher.sb_dispatcher import SBDispatcher
 import settings
-from agent.sb_hydra_agent import RepairingSBHydraAgent, SBHydraAgent
+from agent.sb_hydra_agent import SBHydraAgent # RepairingSBHydraAgent
 from pandas.core.frame import DataFrame
-from utils.generate_trials_sb import (NON_NOVEL_LEVELS, NON_NOVEL_TYPES,
-                                      NOVELTY_LEVELS, NOVELTY_TYPES,
-                                      collect_levels, generate_trial_sets,
+from utils.generate_trials_sb import (collect_levels, generate_trial_sets,
                                       unpack_trial_id)
-from worlds.science_birds import ScienceBirds
 
 from runners.constants import KNOWN, NON_NOVELTY_PERFORMANCE, NOVELTY, UNKNOWN
 from runners.run_sb_stats import (AgentType, diff_directories,
@@ -39,18 +38,18 @@ TEMPLATE_PATH = SB_CONFIG_PATH / 'test_config.xml'
 RESULTS_PATH = pathlib.Path(settings.ROOT_PATH) / "runners" / "experiments" / "ScienceBirds" / "SB_experiment"
 EXPORT_TRIALS = False   # Export trials xml file
 NUM_TRIALS = 1      # Number of trials to generate
-NUM_LEVELS = 5     # Levels per trial
+NUM_LEVELS = 3     # Levels per trial
 LEVELS_BEFORE_NOVELTY = 2   # Levels before novelty is introduced
 NOTIFY_NOVELTY = True
 REPETITION = 1   # If not set to None, the same sampled level will be used this many times before another is selected.
 NON_NOVEL_TO_USE = { # level and type of non-novel levels to use
     'novelty_level_0': [
-        "type222", "type223"
+        "type3610"
         ]
     }   
 NOVEL_TO_USE = {    # level and type of novel levels to use
-    'novelty_level_1': [
-        'type6'
+    'novelty_level_11': [
+        'type130'
     ]
 }
 
@@ -75,7 +74,6 @@ class NoveltyExperimentRunnerSB:
                  export_trials: bool = EXPORT_TRIALS,
                  results_path: pathlib.Path = RESULTS_PATH):
         
-        self.agent_type = agent_type
         self.novelties = novelties
         self.non_novelties = non_novelties
         self.num_trials = num_trials
@@ -83,6 +81,16 @@ class NoveltyExperimentRunnerSB:
         self.num_levels = num_levels
         self.levels_before_novelty = levels_before_novelty
         self.export_trials = export_trials
+
+        if agent_type == AgentType.Hydra:
+            self.agent = SBHydraAgent()
+        elif agent_type == AgentType.RepairingHydra:
+            raise NotImplementedError()
+            # self.agent =
+        else:
+            self.agent = SBHydraAgent()
+        
+        self.dispatcher = SBDispatcher(self.agent)
 
         self._results_directory_path = results_path
         if not os.path.exists(self._results_directory_path):
@@ -126,24 +134,14 @@ class NoveltyExperimentRunnerSB:
         pre_directories = glob_directories(SB_BIN_PATH, 'Agent*')
         post_directories = None
 
-        # Prepare list to pass by reference - collect agent stats not produced by the SB application
-        agent_stats = list()
-
         # Run the agent
-        try:
-            env = ScienceBirds(None, launch=True, config=config)
-            if self.agent_type == AgentType.Hydra:
-                hydra = SBHydraAgent(env, agent_stats)
-                hydra.main_loop(max_actions=10000)
-            elif self.agent_type == AgentType.RepairingHydra:
-                hydra = RepairingSBHydraAgent(env, agent_stats)
-                hydra.main_loop(max_actions=10000)
-        finally:
-            env.kill()
-            post_directories = glob_directories(SB_BIN_PATH, "Agent*")
+        self.dispatcher.run_experiment()    # Currently can only run 1 trial at a time
 
-        # with run_agent(config, self.agent_type, agent_stats):
-        #     post_directories = glob_directories(SB_BIN_PATH, "Agent*")
+        # Get agent stats
+        agent_results_list = list(self.dispatcher.results.values())[0]
+
+        # Collect results
+        post_directories = glob_directories(SB_BIN_PATH, "Agent*")
 
         # Identify the results directory that contains all of the .csv result files output by the SB application
         results_directory = diff_directories(pre_directories, post_directories)
@@ -153,11 +151,11 @@ class NoveltyExperimentRunnerSB:
             post_directories = glob_directories(SB_BIN_PATH, 'Agent*')
             results_directory = diff_directories(pre_directories, post_directories)
 
-        return self.compute_trial_stats(results_directory, agent_stats, trial_num, trial_type, novelty_level)
+        return self.compute_trial_stats(results_directory, agent_results_list, trial_num, trial_type, novelty_level)
 
     def compute_trial_stats(self,
                             results_directory: str,
-                            agent_stats: list,
+                            agent_results_list: List[dict],
                             trial_num: int,
                             trial_type: str,
                             novelty_level: str) -> pandas.DataFrame:
@@ -169,7 +167,7 @@ class NoveltyExperimentRunnerSB:
         trial = pandas.DataFrame(columns=['trial_num', 'trial_type', 'novelty_level', 'novelty_type', 
                                           'episode_type', 'episode_num', 'novelty_probability',
                                           'novelty_threshold', 'novelty', 'novelty_characterization',
-                                          'novelty_detection', 'performance', 'pass', 'num_repairs', 'repair_time'])
+                                          'predicted_novel', 'performance', 'pass', 'num_repairs', 'repair_time'])
 
         # bird_scores = collections.defaultdict(lambda: {"passed": 0, "failed": 0})
         logger.debug("Gathering stats from: {}".format(results_directory))
@@ -178,7 +176,7 @@ class NoveltyExperimentRunnerSB:
         for eval_data in evaluation_data:
             with open(eval_data) as f:
                 data = csv.DictReader(f)
-                for episode_num, row in enumerate(data):
+                for agent_results, row in zip(agent_results_list, data):
                     # birds = get_bird_count(os.path.join(SB_BIN_PATH, level_path))
                     status = row['LevelStatus']
                     level_name = row['levelName']
@@ -198,56 +196,32 @@ class NoveltyExperimentRunnerSB:
                         # for bird in birds.keys():
                         #     bird_scores[bird]['failed'] += 1
 
-                    score = float(row['Score'])
-                    
-                    novelty_probability = 0
-                    num_repairs = 0
-                    repair_time = 0
-                    novelty_detection = ""
-                    if len(agent_stats) > 0:
-                        print(agent_stats)
-                        if 'novelty_likelihood' in agent_stats[episode_num]:
-                            novelty_probability = agent_stats[episode_num]["novelty_likelihood"]
-                        if 'repair_calls' in agent_stats[episode_num]:
-                            num_repairs = agent_stats[episode_num]["repair_calls"]
-                        if 'repair_time' in agent_stats[episode_num]:
-                            repair_time = agent_stats[episode_num]["repair_time"]
-                        if 'pddl_novelty_likelihood' in agent_stats[episode_num]:
-                            pddl_novelty_likelihood = agent_stats[episode_num]["pddl_novelty_likelihood"]
-                        if 'unknown_object' in agent_stats[episode_num]:
-                            unknown_object = agent_stats[episode_num]['unknown_object']
-                        if 'reward_estimator_likelihood' in agent_stats[episode_num]:
-                            reward_estimator_likelihood = agent_stats[episode_num]['reward_estimator_likelihood']
-                        if 'novelty_detection' in agent_stats[episode_num]:
-                            novelty_detection = agent_stats[episode_num]['novelty_detection']
+                    score = float(row['Score']) 
 
-                    novelty_characterization = 0    # TODO: find a use for this?
                     novelty_threshold = 1   # TODO: figure out how to extract this
-                    novelty = 0     # TODO: This is a value used in Cartpole and not SB domain
 
                     # Override novelty level value based on whether this is from novelty level 0 or not
                     nl = novelty_level if is_novelty == NOVELTY else "0"
 
-                    result = pandas.DataFrame(data={
+                    data = {
                         'trial_num': [trial_num],
                         'trial_type': [trial_type],
                         'novelty_level': [nl],
                         'novelty_type': [novelty_type],
                         'episode_type': [is_novelty],
-                        'episode_num': [episode_num],
-                        'novelty_probability': [novelty_probability],
                         'novelty_threshold': [novelty_threshold],
-                        'novelty': [novelty],
-                        'novelty_characterization': [novelty_characterization],
-                        'novelty_detection': [novelty_detection],
                         'performance': [score],
-                        'pass': [status],
-                        'num_repairs': [num_repairs],
-                        'repair_time': [repair_time],
-                        'pddl_novelty_likelihood': [pddl_novelty_likelihood],
-                        'unknown_object': [unknown_object],
-                        'reward_estimator_likelihood': [reward_estimator_likelihood]
-                    })
+                        'pass': [status]
+                    }
+
+                    # Update data with experiment results
+                    for key, value in agent_results.items():
+                        if key in data and type(data[key]) == list:
+                            data[key].append(value)
+                        else:
+                            data[key] = [value]  
+
+                    result = pandas.DataFrame(data=data)
 
                     trial = trial.append(result)
 
@@ -477,6 +451,6 @@ class NoveltyExperimentRunnerSB:
 
 
 if __name__ == '__main__':
-    experiment_runner = NoveltyExperimentRunnerSB(AgentType.RepairingHydra, export_trials=True)
+    experiment_runner = NoveltyExperimentRunnerSB(AgentType.Hydra, export_trials=True)
     experiment_runner.run_experiment()
     # experiment_runner.run_experiment(configs=[SB_CONFIG_PATH / "trial_config_1_6.xml"])

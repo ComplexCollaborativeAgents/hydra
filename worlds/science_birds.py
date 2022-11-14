@@ -34,12 +34,12 @@ class SBState(State):
         self.sling = None
 
     def is_terminal(self) -> bool:
-        return self.game_state.value == ac.GameState.WON or \
-            self.game_state.value == ac.GameState.LOST or \
-            self.game_state.value == ac.GameState.NEWTESTSET or \
-            self.game_state.value == ac.GameState.NEWTRAININGSET or \
-            self.game_state.value == ac.GameState.EVALUATION_TERMINATED or \
-            self.game_state.value == ac.GameState.REQUESTNOVELTYLIKELIHOOD
+        return self.game_state == ac.GameState.WON or \
+            self.game_state == ac.GameState.LOST or \
+            self.game_state == ac.GameState.NEWTESTSET or \
+            self.game_state == ac.GameState.NEWTRAININGSET or \
+            self.game_state == ac.GameState.EVALUATION_TERMINATED or \
+            self.game_state == ac.GameState.REQUESTNOVELTYLIKELIHOOD
 
     def summary(self) -> dict:
         """returns a summary of state"""
@@ -215,7 +215,7 @@ class ScienceBirds(World):
     def act(self, action: SBAction):
         """returns the new current state and reward"""
         if isinstance(action, SBShoot):
-            logger.info("Executing action")
+            logger.info("Executing shoot action")
             self.history.append(action)
             prev_score = self.sb_client.get_current_score()
 
@@ -248,7 +248,7 @@ class ScienceBirds(World):
             # bird_trajd = self._get_bird_trajectory(self.intermediate_states)
             reward = self.sb_client.get_current_score() - prev_score
             self.get_current_state()
-            logger.info("Action executed ref_pt ({},{}) action ({},{}) reward {} len(intermediate_states) {}".format(action.ref_x, action.ref_y, action.dx, action.dy,reward,len(self.intermediate_states)))
+            logger.info("Shoot action executed ref_pt ({},{}) action ({},{}) reward {} len(intermediate_states) {}".format(action.ref_x, action.ref_y, action.dx, action.dy,reward,len(self.intermediate_states)))
             return self.cur_state, reward
         elif isinstance(action,SBLoadLevel):
             self.init_selected_level(action.level)
@@ -276,6 +276,7 @@ class ScienceBirds(World):
         image = None
         time.sleep(0.1) #As of 0.3.7 we should not need sleeps
         self.cur_game_window = self.sb_client.get_game_state()
+        logger.info(f"current window is {self.cur_game_window}")
         if self.cur_game_window != ac.GameState.PLAYING: # if you aren't playing you can't get ground truth anymore
             return SBState(None,None,self.cur_game_window)
 
@@ -284,6 +285,8 @@ class ScienceBirds(World):
         else:
             ground_truth = self.sb_client.get_ground_truth_without_screenshot()
         self.cur_state = SBState(ground_truth,image,self.cur_game_window)
+        logger.info(f"Updating cur_state to {self.cur_state.game_state}")
+        
         return self.cur_state
 
     def get_all_scores(self):

@@ -1,5 +1,5 @@
 username=$(whoami)
-for i in "science_birds" "Xvfb" "java"; do
+for i in "science_birds" "Xvfb" "java" "9001.x86_64"; do
     echo $i
     pid=$(ps -u "$username" | grep -i $i | head -n 1 | awk '{print $1;}')
     echo $pid
@@ -8,3 +8,5 @@ for i in "science_birds" "Xvfb" "java"; do
 	   kill $pid
     fi
 done
+
+
