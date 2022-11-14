@@ -7,12 +7,12 @@ from typing import List, Set, Tuple
 
 import numpy as np
 import pandas
-from hydra_agent import (NOVELTY_EXISTENCE_NOT_GIVEN, NOVELTY_LIKELIHOOD,
-                         PDDL_PROB, HydraAgent)
 
 import settings
 from agent.consistency.nyx_pddl_simulator import NyxPddlPlusSimulator
 from agent.consistency.sb_episode_log import SBEpisodeLog
+from agent.hydra_agent import (NOVELTY_EXISTENCE_NOT_GIVEN, NOVELTY_LIKELIHOOD,
+                               PDDL_PROB, HydraAgent)
 from agent.perception.perception import Perception, ProcessedSBState
 from agent.planning.nyx.syntax import constants
 from agent.planning.pddl_plus import PddlPlusPlan, PddlPlusState, TimedAction
@@ -70,6 +70,10 @@ class SBHydraAgent(HydraAgent):
         self.consistency = ScienceBirdsConsistencyEstimator()
 
         self._new_novelty_likelihood = settings.NOVELTY_POSSIBLE
+
+        self.current_stats = SBAgentStats(episode_start_time=time.perf_counter())
+        self.current_novelty = SBDetectionStats()
+        self.current_log = SBEpisodeLog()
 
         # Level tracking variables
         self.level_informed_novelty = False
@@ -152,7 +156,6 @@ class SBHydraAgent(HydraAgent):
         
         self.meta_model = ScienceBirdsMetaModel()
         self.planner = SBPlanner(self.meta_model)  # TODO: Discuss this w. Wiktor & Matt
-        self.initialize_processing_state_variables()
 
         self.training_level_backup = 0
 
@@ -192,6 +195,8 @@ class SBHydraAgent(HydraAgent):
             str((self.current_stats.cumulative_plan_time / (time.perf_counter() - self.current_stats.plan_total_time)))))
         logger.info("[hydra_agent_server] :: Overall time to attempt level {} = {}\n\n".format(self.current_level, str(
             (time.perf_counter() - self.current_stats.plan_total_time))))
+
+        self.perception.new_level = True
 
         if settings.NOVELTY_POSSIBLE:
             self.current_stats.num_objects = len(state.objects[0]['features'])
@@ -269,6 +274,7 @@ class SBHydraAgent(HydraAgent):
         """
         
         processed_state = self.perception.process_state(state)
+        self.current_log.state = processed_state
 
         self.shot_num += 1
         if processed_state:
@@ -358,12 +364,13 @@ class SBHydraAgent(HydraAgent):
         difference = self.reward_estimator.compute_estimated_reward_difference(self.current_log)
         self.level_novelty_indicators[REWARD_PROB].append(difference) 
 
-    def do(self, sb_action: SBAction, world: ScienceBirds) -> Tuple[SBState, float]:
+    def do(self, sb_action: SBAction, world: ScienceBirds, timestamp:str) -> Tuple[SBState, float]:
         """ Perform specified action within the environment, return the next state + resulting reward
 
         Args:
             sb_action (SBAction): Action to take
             world (ScienceBirds): Environment object
+            timestamp (str): Trial timestamp
 
         Returns:
             Tuple[SBState, float]: Next state + reward
@@ -374,10 +381,12 @@ class SBHydraAgent(HydraAgent):
         self.current_stats.rewards_per_shot.append(reward)
 
         self.current_log.intermediate_states = list(world.intermediate_states)
-        self.perception.process_observation(self.current_log)
+        
+        if self.current_log.state is not None:
+            self.perception.process_observation(self.current_log)
         if settings.DEBUG:
             self.current_log.log_observation(
-                '{}_{}_{}_{}'.format(self.current_level, self.shot_num, self.trial_timestamp,
+                '{}_{}_{}_{}'.format(self.current_level, self.shot_num, timestamp,
                                         self.planner.current_problem_prefix))
         logger.info("[hydra_agent_server] :: Reward {} Game State {}".format(reward, raw_state.game_state))
 

@@ -32,8 +32,8 @@ logger.setLevel(logging.INFO)
 RESULTS_PATH = pathlib.Path(settings.ROOT_PATH) / "runners" / "experiments" / "Polycraft"
 EXPERIMENT_NAME = 'novelty_results'
 NUM_TRIALS = 1      # Number of trials to generate
-NUM_LEVELS = 3     # Levels per trial
-LEVELS_BEFORE_NOVELTY = 1   # Levels before novelty is introduced
+NUM_LEVELS = 20     # Levels per trial
+LEVELS_BEFORE_NOVELTY = 10   # Levels before novelty is introduced
 REPETITION = 1   # If not set to None, the same sampled level will be used this many times before another is selected.
 DIFFICULTIES = ['E'] # E = Easy, M = Medium, H = Hard, A = All/Mixed difficulty
 NON_NOVEL_TO_USE = { # level and type of non-novel levels to use (The ones listed here are all that are currently available)
@@ -133,7 +133,7 @@ class NoveltyExperimentRunnerPolycraft:
             self.dispatcher.run_trials()
 
             self.process_experiment()
-            self.dispatcher.experiment_end()
+            self.dispatcher.cleanup_experiment()
 
     def process_trial_results(self, trial_id:str, results_list:List):
         trial = pandas.DataFrame(columns=['trial_num', 'trial_type', 'novelty_level', 'novelty_type', 'novelty_subtype',

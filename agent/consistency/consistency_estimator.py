@@ -8,7 +8,6 @@ from typing import List
 from agent.consistency.fast_pddl_simulator import *
 from agent.consistency.nyx_pddl_simulator import NyxPddlPlusSimulator
 from agent.consistency.trace_visualizer import plot_sb_observation, plot_expected_trace_for_obs
-from tests import test_utils
 logger = logging.getLogger("Polycraft")
 
 # Defaults

@@ -1,18 +1,20 @@
+import datetime
+import re
+import subprocess
+import time
+from os import chdir, path
+
 from pip._internal.utils.misc import captured_output
 
-from agent.planning.pddlplus_parser import PddlProblemExporter
-from utils.state import InvokeBasicRL
 # this will likely just be calling an executable
 import settings
-from os import path, chdir
-import subprocess
-import re
-from agent.planning.pddl_plus import *
-from agent.planning.sb_meta_model import *
-from agent.planning.nyx import nyx
-import datetime
-import time
 from agent.hydra_agent import HydraPlanner
+from agent.planning.nyx import nyx
+from agent.planning.pddl_plus import *
+from agent.planning.pddlplus_parser import PddlProblemExporter
+from agent.planning.sb_meta_model import *
+from worlds.science_birds import SBState
+from utils.state import InvokeBasicRL
 
 
 class SBPlanner(HydraPlanner):
@@ -26,7 +28,7 @@ class SBPlanner(HydraPlanner):
         self.current_problem_prefix = None
         self.plan = None
 
-    def make_plan(self, state, prob_complexity=0):
+    def make_plan(self, state:SBState, prob_complexity:int=0):
         """
         The plan should be a list of actions that are either executable in the environment
         or invoking the RL agent
@@ -37,23 +39,23 @@ class SBPlanner(HydraPlanner):
             return []
         pddl = self.meta_model.create_pddl_problem(state)
         if prob_complexity == 1:
-            self.write_problem_file(self.meta_model.create_simplified_problem(pddl))
+            self.write_pddl_file(self.meta_model.create_simplified_problem(pddl))
         elif prob_complexity == 2:
-            self.write_problem_file(self.meta_model.create_super_simplified_problem(pddl))
+            self.write_pddl_file(self.meta_model.create_super_simplified_problem(pddl))
         else:
-            self.write_problem_file(pddl)
+            self.write_pddl_file(pddl)
         return self.get_plan_actions()
 
-    def execute(self, plan, policy_learner):
-        """Converts the symbolic action into an environment action"""
-        # TODO: RONI: I THINK THIS IS DEPRECATED AND SHOULD BE REMOVED
-        assert False
-        if isinstance(plan[0], InvokeBasicRL):
-            return policy_learner.act_and_learn(plan[0].state)
-        if isinstance(plan[0], SBShoot):
-            return None
+    # def execute(self, plan, policy_learner):
+    #     """Converts the symbolic action into an environment action"""
+    #     # TODO: RONI: I THINK THIS IS DEPRECATED AND SHOULD BE REMOVED
+    #     assert False
+    #     if isinstance(plan[0], InvokeBasicRL):
+    #         return policy_learner.act_and_learn(plan[0].state)
+    #     if isinstance(plan[0], SBShoot):
+    #         return None
 
-    def write_problem_file(self, pddl_problem):
+    def write_pddl_file(self, pddl_problem:PddlPlusProblem):
         pddl_problem_file = "%s/sb_prob.pddl" % str(settings.SB_PLANNING_DOCKER_PATH)
         exporter = PddlProblemExporter()
         exporter.to_file(pddl_problem, pddl_problem_file)
@@ -64,7 +66,7 @@ class SBPlanner(HydraPlanner):
             exporter.to_file(pddl_problem, "{}/trace/problems/{}_problem.pddl".format(settings.SB_PLANNING_DOCKER_PATH,
                                                                                       self.current_problem_prefix))
 
-    def get_plan_actions(self, count=0):
+    def get_plan_actions(self, count:int=0):
         plan_actions = []
         planning_successful = False
 
@@ -99,12 +101,12 @@ class SBPlanner(HydraPlanner):
 
 
 
-    def extract_actions_from_plan_trace(self, plane_trace_file: str):
+    def extract_actions_from_plan_trace(self, plan_trace_file: str):
         """ Parses the given plan trace file and outputs the plan """
         plan_actions = PddlPlusPlan()
-        lines_list = open(plane_trace_file).readlines()
-        with open(plane_trace_file) as plan_trace_file:
-            for i, line in enumerate(plan_trace_file):
+        lines_list = open(plan_trace_file).readlines()
+        with open(plan_trace_file) as f:
+            for i, line in enumerate(f):
                 # print(str(i) + " =====> " + str(line))
                 if "No Plan Found!" in line:
                     plan_actions.append(TimedAction("out of memory", 1.0))

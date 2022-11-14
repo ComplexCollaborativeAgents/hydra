@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from typing import Dict, Any, List
 
-@dataclass()
+@dataclass
 class AgentStats:
     """Statistical values tracking the agent's performance
     """
@@ -26,12 +26,14 @@ class NoveltyDetectionStats:
 
 # ------------- POLYCRAFT STATS ------------- #
 
+@dataclass
 class PolycraftAgentStats(AgentStats):
     """Statistical values tracking the agent's performance in the Polycraft domain
     """
     failed_actions: int = 0 # Count how many actions have failed in a given level
     actions_since_planning: int = 0 # Count how many actions have been performed since we planned last
     
+@dataclass
 class PolycraftDetectionStats(NoveltyDetectionStats):
     """Statistical values tracking the agent's detection of novelty within an episode of the Polycraft Domain
     """
@@ -39,6 +41,7 @@ class PolycraftDetectionStats(NoveltyDetectionStats):
 
 # ------------- SCIENCE BIRDS STATS ------------- #
 
+@dataclass
 class SBAgentStats(AgentStats):
     """"""
     default_action_used: bool = False
@@ -49,6 +52,7 @@ class SBAgentStats(AgentStats):
     rewards_per_shot: List[float] = field(default_factory=list)
     repair_description: List[List[str]] = field(default_factory=list) # List of lists of repairs
 
+@dataclass
 class SBDetectionStats(NoveltyDetectionStats):
     """"""
     unknown_obj: bool = False
