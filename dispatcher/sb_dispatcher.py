@@ -128,7 +128,7 @@ class SBDispatcher(Dispatcher):
             
             if state.is_terminal():
                 success = state.game_state == GameState.WON or state.game_state == GameState.EVALUATION_TERMINATED
-                detection = self.agent.episode_end(state, success)
+                detection = self.agent.episode_end(success)
 
                 stats = self.agent.get_agent_stats()[-1]
 

@@ -165,11 +165,10 @@ class SBHydraAgent(HydraAgent):
         """
         self._initialize_processing_state_variables() 
 
-    def episode_end(self, state: SBState, success: bool) -> SBDetectionStats:
+    def episode_end(self, success: bool) -> SBDetectionStats:
         """Perform cleanup for the agent at the end of an episode
 
         Args:
-            state (SBState): State at the end of the episode
             success (bool): Whether the level succeeded or not
 
         """
@@ -197,9 +196,6 @@ class SBHydraAgent(HydraAgent):
             (time.perf_counter() - self.current_stats.plan_total_time))))
 
         self.perception.new_level = True
-
-        if settings.NOVELTY_POSSIBLE:
-            self.current_stats.num_objects = len(state.objects[0]['features'])
 
         self.novelty_stats.append(self.current_novelty)
         self.agent_stats.append(self.current_stats)
@@ -394,6 +390,9 @@ class SBHydraAgent(HydraAgent):
 
         self.episode_logs.append(self.current_log)
 
+        if settings.NOVELTY_POSSIBLE:
+            self.current_stats.num_objects = len(self.current_log.state.objects[0]['features'])
+
         return raw_state, reward
 
     def should_repair(self, episode_log: SBEpisodeLog) -> bool:
@@ -541,11 +540,10 @@ class SBHydraAgent(HydraAgent):
         else:
             return True
 
-    def _detect_novelty(self, success: bool, episode_log: SBEpisodeLog) -> bool:
+    def _detect_novelty(self, success: bool) -> bool:
         """Given an episode log, determine using the methods available (consistency, perception, reward_prediction, etc) whether or not novelty is present
 
         Args:
-            episode_log (HydraEpisodeLog):  episode log to examine
             success (bool): Whether or not the agent succeeded this level
 
         Returns:
