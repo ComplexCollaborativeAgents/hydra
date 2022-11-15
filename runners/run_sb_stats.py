@@ -17,7 +17,7 @@ from settings import EXPERIMENT_NAME
 from worlds.science_birds_interface.demo.naive_agent_groundtruth import ClientNaiveAgent
 
 import worlds.science_birds as sb
-from agent.sb_hydra_agent import SBHydraAgent, RepairingSBHydraAgent
+from agent.sb_hydra_agent import SBHydraAgent # , RepairingSBHydraAgent
 import settings
 import logging
 from agent.planning.nyx.syntax import constants
