@@ -21,6 +21,7 @@ from utils.generate_trials_sb import (collect_levels, generate_trial_sets,
 from runners.constants import KNOWN, NON_NOVELTY_PERFORMANCE, NOVELTY, UNKNOWN
 from runners.run_sb_stats import (AgentType, diff_directories,
                                   glob_directories, prepare_config)
+from utils.stats import AgentStats, NoveltyDetectionStats, SBAgentStats, SBDetectionStats
 
 # from runners.run_sb_stats import *
 
@@ -101,6 +102,19 @@ class NoveltyExperimentRunnerSB:
         # Collect levels
         self.load_levels()
 
+        # Setting up stats:
+        self.data_categories = [
+            'trial_id', 'trial_number', 'level', 'episode_number', 'performance',
+            'trial_type', 'episode_type', 
+            'novelty_level', 'novelty_type',
+            'novelty_threshold'
+        ]
+        self.data_categories.extend(list(AgentStats.__annotations__.keys()))
+        self.data_categories.extend(list(NoveltyDetectionStats.__annotations__.keys()))
+        self.data_categories.extend(list(SBAgentStats.__annotations__.keys()))
+        self.data_categories.extend(list(SBDetectionStats.__annotations__.keys()))
+        
+
     def load_levels(self):
         """
         Collect levels to be drawn upon when constructing trials
@@ -131,25 +145,15 @@ class NoveltyExperimentRunnerSB:
         else:
             config = config_file
 
-        pre_directories = glob_directories(SB_BIN_PATH, 'Agent*')
-        post_directories = None
-
         # Run the agent
         self.dispatcher.run_experiment()    # Currently can only run 1 trial at a time
 
         # Get agent stats
         agent_results_list = list(self.dispatcher.results.values())[0]
 
-        # Collect results
-        post_directories = glob_directories(SB_BIN_PATH, "Agent*")
-
-        # Identify the results directory that contains all of the .csv result files output by the SB application
-        results_directory = diff_directories(pre_directories, post_directories)
-
-        # Collect results
-        if results_directory is None:
-            post_directories = glob_directories(SB_BIN_PATH, 'Agent*')
-            results_directory = diff_directories(pre_directories, post_directories)
+        results_directories = glob_directories(SB_BIN_PATH, 'Agent*')
+        results_directories.sort(key=lambda x: str(x))
+        results_directory = results_directories[-1]
 
         return self.compute_trial_stats(results_directory, agent_results_list, trial_num, trial_type, novelty_level)
 
@@ -164,10 +168,7 @@ class NoveltyExperimentRunnerSB:
         agent_stats is a list of dicts - stats of the agent that are not produced by the Angry Birds simulation
         """
         
-        trial = pandas.DataFrame(columns=['trial_num', 'trial_type', 'novelty_level', 'novelty_type', 
-                                          'episode_type', 'episode_num', 'novelty_probability',
-                                          'novelty_threshold', 'novelty', 'novelty_characterization',
-                                          'predicted_novel', 'performance', 'pass', 'num_repairs', 'repair_time'])
+        trial = pandas.DataFrame(columns=self.data_categories)
 
         # bird_scores = collections.defaultdict(lambda: {"passed": 0, "failed": 0})
         logger.debug("Gathering stats from: {}".format(results_directory))
@@ -204,14 +205,13 @@ class NoveltyExperimentRunnerSB:
                     nl = novelty_level if is_novelty == NOVELTY else "0"
 
                     data = {
-                        'trial_num': [trial_num],
                         'trial_type': [trial_type],
                         'novelty_level': [nl],
                         'novelty_type': [novelty_type],
                         'episode_type': [is_novelty],
                         'novelty_threshold': [novelty_threshold],
                         'performance': [score],
-                        'pass': [status]
+                        # 'success': [status]   # Currently can get success from checking game_state during agent runtime, this is set in AgentStats
                     }
 
                     # Update data with experiment results
@@ -231,10 +231,7 @@ class NoveltyExperimentRunnerSB:
         """ Run a set of trials defined by self.novelties OR by a set of config files """
         
         trial_num = 0
-        experiment_results = pandas.DataFrame(columns=['trial_num', 'trial_type', 'novelty_level', 'novelty_type', 'episode_type',
-                                                       'episode_num', 'novelty_probability',
-                                                       'novelty_threshold', 'novelty', 'novelty_characterization', 'novelty_detection',
-                                                       'performance', 'pass', 'num_repairs', 'repair_time', 'pddl_novelty_likelihood', 'unknown_object', 'reward_estimator_likelihood'])
+        experiment_results = pandas.DataFrame(columns=self.data_categories)
         
         experiment_results_path = os.path.join(self._results_directory_path, "novelty_results.csv")
         with open(experiment_results_path, "w+") as f:

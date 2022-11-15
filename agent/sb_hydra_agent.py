@@ -124,7 +124,6 @@ class SBHydraAgent(HydraAgent):
             PLAN: list()
         }
 
-        self.num_objects = 0
         self._new_novelty_likelihood = False
 
     def episode_init(self, level_num:int, world: ScienceBirds):
@@ -146,7 +145,7 @@ class SBHydraAgent(HydraAgent):
         self.current_level = level_num
         self.level_informed_novelty = world.sb_client.get_novelty_info()
 
-        logger.info("Given novelty existence is {}".format(self.novelty_existence))
+        logger.info("Given novelty existence is {}".format(self.level_informed_novelty))
         time.sleep(2 / settings.SB_SIM_SPEED)
 
     def trial_start(self):
@@ -178,7 +177,8 @@ class SBHydraAgent(HydraAgent):
         self.completed_levels.append(success)
         self._detect_novelty(success)
 
-        self.current_novelty.novelty_detected = self._new_novelty_likelihood
+        self.current_stats.success = success    
+        self.current_novelty.novelty_detected = bool(self._new_novelty_likelihood)    # This value is overridden?
         self.current_novelty.pddl_prob = self.level_novelty_indicators[PDDL_PROB]
         self.current_novelty.reward_prob = self.level_novelty_indicators[REWARD_PROB]
         self.current_novelty.unknown_obj = self.level_novelty_indicators[UNKNOWN_OBJ]
@@ -192,16 +192,11 @@ class SBHydraAgent(HydraAgent):
         logger.info("[hydra_agent_server] :: Cumulative planning time only = {}".format(str(self.current_stats.cumulative_plan_time)))
         logger.info("[hydra_agent_server] :: Planning effort percentage = {}\n".format(
             str((self.current_stats.cumulative_plan_time / (time.perf_counter() - self.current_stats.plan_total_time)))))
-        logger.info("[hydra_agent_server] :: Overall time to attempt level {} = {}\n\n".format(self.current_level, str(
-            (time.perf_counter() - self.current_stats.plan_total_time))))
 
         self.perception.new_level = True
 
         self.novelty_stats.append(self.current_novelty)
         self.agent_stats.append(self.current_stats)
-        
-        self.current_novelty = None
-        self.current_stats = None
 
         return self.novelty_stats[-1]
 
@@ -386,12 +381,14 @@ class SBHydraAgent(HydraAgent):
                                         self.planner.current_problem_prefix))
         logger.info("[hydra_agent_server] :: Reward {} Game State {}".format(reward, raw_state.game_state))
 
-        self._record_novelty_indicators()
+        if settings.NOVELTY_POSSIBLE:
+            # num_objs = 0
+            # if len(self.current_log.state.objects) > 0:
+            #     num_objs = len(self.current_log.state.objects[0]['features'])
+            # self.current_stats.num_objects = num_objs
+            self._record_novelty_indicators()
 
         self.episode_logs.append(self.current_log)
-
-        if settings.NOVELTY_POSSIBLE:
-            self.current_stats.num_objects = len(self.current_log.state.objects[0]['features'])
 
         return raw_state, reward
 
@@ -417,7 +414,7 @@ class SBHydraAgent(HydraAgent):
 
         return False
 
-    def report_novelty(self) -> Tuple[float, float, Set[int], ]:
+    def report_novelty(self) -> Tuple[float, float, Set[int], int, str]:
         """ Report detected novelty in detect novelty function.
         Wrapper for _detect_novelty function, can be called from the dispatcher
         """

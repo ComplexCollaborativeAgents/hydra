@@ -33,6 +33,7 @@ class SBDispatcher(Dispatcher):
         self.agent = agent
         self.results = {}
         self.world = ScienceBirds(launch=True)
+        self.current_level = 0
 
     def report_novelty(self, state: SBState) -> dict:
         """ Return a dictionary with novelty detail and stats
@@ -81,9 +82,9 @@ class SBDispatcher(Dispatcher):
         """
         
         self.trial_timestamp = datetime.datetime.now().strftime("%y%m%d%H%M%S")
-        self.world.sb_client.ready_for_new_set()
+        # self.world.sb_client.ready_for_new_set()
         self.agent.trial_start()
-        level_num = self.world.sb_client.load_next_available_level()
+        episode_num = 0
         trial_id = datetime.datetime.now().strftime("%y%m%d%H%M%S")
 
         self.results[trial_id] = []
@@ -91,40 +92,48 @@ class SBDispatcher(Dispatcher):
         while True:
             state = self.world.get_current_state()
 
-            if state.game_state.value == GameState.MAIN_MENU.value:
-                self.world.sb_client.load_next_available_level()
-            elif state.game_state.value == GameState.NEWTRAININGSET.value:
+            if state.game_state == GameState.MAIN_MENU:
+                self.current_level = self.world.sb_client.load_next_available_level()
+            elif state.game_state == GameState.NEWTRIAL:    # We should not be reaching this state?
                 self.world.sb_client.ready_for_new_set()
-                self.world.sb_client.load_next_available_level()
-            elif state.game_state.value == GameState.EVALUATION_TERMINATED.value:
+                self.agent.trial_start()
+                self.current_level = self.world.sb_client.load_next_available_level()
+            elif state.game_state == GameState.NEWTRAININGSET:
+                self.world.sb_client.ready_for_new_set()
+                self.current_level = self.world.sb_client.load_next_available_level()
+            elif state.game_state == GameState.EVALUATION_TERMINATED:
                 self.cleanup_trial()
                 break
             else:
-                result = self.run_episode(level_num, trial_id, "0", state)
+                self.agent.episode_init(self.current_level, self.world)
+                result = self.run_episode(episode_num, self.current_level, trial_id, "0", state)
                 self.results[trial_id].append(result)
                 self.cleanup_episode()
+                episode_num += 1
 
     def cleanup_trial(self):
         """ Perform clean after running an experiment.
         """
-        self.agent.trial_end(self)
+        self.agent.trial_end()
 
-    def run_episode(self, level_number: int, trial_id:str, trial_number: int, starting_state:SBState) -> dict:
+    def run_episode(self, episode_number: int, level_number: int, trial_id:str, trial_number: int, starting_state:SBState) -> dict:
         """ Run one episode of the trial
         """
         
-        logger.info("------------ [{}] EPISODE {} START ------------".format(trial_number, level_number))
+        logger.info("------------ [{}] EPISODE {} START ------------".format(trial_number, episode_number))
         # start_time = time.time()
         state = starting_state
 
         while True:
             # reached_time = EPISODE_TIME_LIMIT < time.time() - start_time
 
-            logger.info("Running episode - {}".format(state.game_state))
-
             if state.game_state == GameState.REQUESTNOVELTYLIKELIHOOD:
-                logger.info("Reporting novelty")
-                self.agent.report_novelty()
+                novelty_likelihood, non_novelty_likelihood, ids, novelty_level, novelty_description = self.agent.report_novelty()
+                self.world.sb_client.report_novelty_likelihood(novelty_likelihood, non_novelty_likelihood, ids, novelty_level,
+                                                               novelty_description)
+
+                time.sleep(5 / settings.SB_SIM_SPEED)
+                state = self.world.get_current_state()
             
             if state.is_terminal():
                 success = state.game_state == GameState.WON or state.game_state == GameState.EVALUATION_TERMINATED
@@ -135,12 +144,14 @@ class SBDispatcher(Dispatcher):
                 result = {
                     'trial_id': trial_id,
                     'trial_number': trial_number,
-                    'level': self.world.current_level,
-                    'episode_number': level_number,
+                    'level': level_number,
+                    'episode_number': episode_number,
                 }
 
                 result.update(vars(detection))
                 result.update(vars(stats))
+
+                self.current_level = self.world.sb_client.load_next_available_level()
 
                 return result
 
@@ -149,15 +160,10 @@ class SBDispatcher(Dispatcher):
                 
                 action = self.agent.choose_action(state)
 
-                logger.info(f"Performing action {action}")
-
                 state, step_cost = self.agent.do(action, self.world, self.trial_timestamp)
-
-                logger.info(f"After action: {state.game_state}")
 
     def cleanup_episode(self):
         """ Perform cleanup after running an episode of a trial
         """
-        self.agent.episode_end()
 
 

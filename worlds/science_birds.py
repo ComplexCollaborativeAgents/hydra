@@ -38,8 +38,7 @@ class SBState(State):
             self.game_state == ac.GameState.LOST or \
             self.game_state == ac.GameState.NEWTESTSET or \
             self.game_state == ac.GameState.NEWTRAININGSET or \
-            self.game_state == ac.GameState.EVALUATION_TERMINATED or \
-            self.game_state == ac.GameState.REQUESTNOVELTYLIKELIHOOD
+            self.game_state == ac.GameState.EVALUATION_TERMINATED
 
     def summary(self) -> dict:
         """returns a summary of state"""
