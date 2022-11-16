@@ -38,8 +38,7 @@ class SBState(State):
             self.game_state == ac.GameState.LOST or \
             self.game_state == ac.GameState.NEWTESTSET or \
             self.game_state == ac.GameState.NEWTRAININGSET or \
-            self.game_state == ac.GameState.EVALUATION_TERMINATED or \
-            self.game_state == ac.GameState.REQUESTNOVELTYLIKELIHOOD
+            self.game_state == ac.GameState.EVALUATION_TERMINATED
 
     def summary(self) -> dict:
         """returns a summary of state"""
@@ -247,13 +246,12 @@ class ScienceBirds(World):
             #     assert False
             # bird_trajd = self._get_bird_trajectory(self.intermediate_states)
             reward = self.sb_client.get_current_score() - prev_score
-            self.get_current_state()
+            
             logger.info("Shoot action executed ref_pt ({},{}) action ({},{}) reward {} len(intermediate_states) {}".format(action.ref_x, action.ref_y, action.dx, action.dy,reward,len(self.intermediate_states)))
-            return self.cur_state, reward
+            return self.get_current_state(), reward
         elif isinstance(action,SBLoadLevel):
             self.init_selected_level(action.level)
-            self.get_current_state()
-            return self.cur_state, 0
+            return self.get_current_state(), 0
         else:
             assert False
 
@@ -276,7 +274,6 @@ class ScienceBirds(World):
         image = None
         time.sleep(0.1) #As of 0.3.7 we should not need sleeps
         self.cur_game_window = self.sb_client.get_game_state()
-        logger.info(f"current window is {self.cur_game_window}")
         if self.cur_game_window != ac.GameState.PLAYING: # if you aren't playing you can't get ground truth anymore
             return SBState(None,None,self.cur_game_window)
 
@@ -284,10 +281,8 @@ class ScienceBirds(World):
             image, ground_truth = self.sb_client.get_ground_truth_with_screenshot()
         else:
             ground_truth = self.sb_client.get_ground_truth_without_screenshot()
-        self.cur_state = SBState(ground_truth,image,self.cur_game_window)
-        logger.info(f"Updating cur_state to {self.cur_state.game_state}")
         
-        return self.cur_state
+        return SBState(ground_truth,image,self.cur_game_window)
 
     def get_all_scores(self):
         return self.sb_client.get_all_level_scores()

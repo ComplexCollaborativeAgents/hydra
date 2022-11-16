@@ -186,7 +186,7 @@ class PddlPlusState:
         objects = set()
         for fluent_name in self.numeric_fluents:
             # We expect every bird has an x coordinate in a fluent of the form (x_bird, birdname)
-            if len(fluent_name) == 2 and fluent_name.find(name) > -1:
+            if len(fluent_name) == 2 and fluent_name[0].find(name) > -1:
                 objects.add(fluent_name[1])
         return objects
 
