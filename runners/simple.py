@@ -1,3 +1,4 @@
+from dispatcher.sb_dispatcher import SBDispatcher
 import worlds.science_birds as sb
 from agent.sb_hydra_agent import RepairingSBHydraAgent
 import argparse
@@ -29,9 +30,10 @@ def parse():
 def main():
     config_logging()
     arguments = parse()
-    env = sb.ScienceBirds(None, launch=False, host=arguments.server)
-    hydra = RepairingSBHydraAgent(env)
-    hydra.main_loop()
+    # env = sb.ScienceBirds(None, launch=False, host=arguments.server)
+    hydra = RepairingSBHydraAgent()
+    dispatcher = SBDispatcher(hydra, launch=False, host=arguments.server)
+    dispatcher.run()
 
 
 if __name__ == '__main__':
