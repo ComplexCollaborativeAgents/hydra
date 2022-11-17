@@ -8,7 +8,6 @@ from typing import List
 from agent.consistency.fast_pddl_simulator import *
 from agent.consistency.nyx_pddl_simulator import NyxPddlPlusSimulator
 from agent.consistency.trace_visualizer import plot_sb_observation, plot_expected_trace_for_obs
-from tests import test_utils
 logger = logging.getLogger("Polycraft")
 
 # Defaults
@@ -105,6 +104,9 @@ class AspectConsistency:
 
         # If we expected the trade to end before it really did - this is inconsistent
         # assert len(expected_state_seq) >= len(observed_states)
+
+        if len(expected_state_seq) < len(observed_states):
+            return [abs(len(observed_states) - len(expected_state_seq))]
 
         exp_to_obs_step_ratio = 1
         consistency_per_state = []

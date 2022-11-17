@@ -218,13 +218,17 @@ class SBHydraAgent(HydraAgent):
 
         non_novelty_likelihood = 1 - novelty_likelihood
 
+        repair_description = ""
+        if 'repair description' in self.stats_for_level:
+            repair_description = self.stats_for_level['repair description']
+
         # placeholders for novelty information
         if len(self.novel_objects) > 0:
             ids = set([int(object_id_str) for object_id_str in self.novel_objects])
-            novelty_description = "Unknown type of objects detected"
+            novelty_description = f"Unknown type of objects detected | {repair_description}"
         else:
             ids = set()
-            novelty_description = "Uncharacterized novelty"
+            novelty_description = f"Uncharacterized novelty | {repair_description}"
         novelty_level = 0
 
         logger.info("[hydra_agent_server] :: Reporting novelty_likelihood: {}".format(novelty_likelihood))

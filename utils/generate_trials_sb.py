@@ -13,26 +13,17 @@ logger = logging.getLogger("generate_trials")
 logger.setLevel(logging.INFO)
 
 # Types and levels of novelty
+# NOVELTY_LEVELS = [
+#     'novelty_level_1', 'novelty_level_2', 'novelty_level_3',
+#     'novelty_level_11', 'novelty_level_12', 'novelty_level_13',
+#     'novelty_level_22', 'novelty_level_23', 'novelty_level_24', 'novelty_level_25'
+# ]
 NOVELTY_LEVELS = [
-    'novelty_level_1', 'novelty_level_2', 'novelty_level_3',
     'novelty_level_11', 'novelty_level_12', 'novelty_level_13',
-    'novelty_level_22', 'novelty_level_23', 'novelty_level_24', 'novelty_level_25'
+    'novelty_level_24', 'novelty_level_25',
+    'novelty_level_36', 'novelty_level_37', 'novelty_level_38',
 ]
 NON_NOVEL_LEVELS = ['novelty_level_0']
-NOVELTY_TYPES = [
-    "type1", "type2", "type4", "type5", "type6", "type7", "type8", "type9", "type10", 
-    "type12", "type14", "type15", "type20"
-    "type22", "type23", "type24", "type25", "type30", "type50", "type90", "type110", "type130"
-]
-NON_NOVEL_TYPES = [
-    "type2", "type4", "type5", "type6", "type7", 
-    "type22", "type23", "type24", "type25", "type26",
-    "type222", "type223", "type224", "type225", "type226", "type227",
-    "type232", "type233", "type234", "type235", "type236", "type237",
-    "type242", "type243", "type244", "type245", "type246", "type247",
-    "type252", "type253", "type254", "type255", "type256", "type257",
-    "type1150", "type1230", "type1320", "type1390", "type11130", "type12110",
-]
 
 # Constants
 SB_CONFIG_PATH = pathlib.Path(settings.ROOT_PATH) / 'data' / 'science_birds' / 'config'
@@ -89,10 +80,45 @@ def unpack_trial_id(trial_id: str) -> Tuple:
 
     return trial_num, num_levels, novelty, n_type, nn_type
 
+def find_novelty_levels(exclude_non_novel:bool=False) -> List[str]:
+    """Finds a list of novelty levels that exist
+
+    Args:
+        exclude_non_novel (bool): excludes non-novel levels
+
+    Returns:
+        List[str]: list of novelty levels
+    """
+    levels = os.listdir(settings.SCIENCE_BIRDS_LEVELS_DIR)
+
+    if exclude_non_novel:
+        levels = [l for l in levels if l not in NON_NOVEL_LEVELS]
+
+    return levels
+
+def find_novelty_types(level:str=None) -> List[str]:
+    """Finds a list of novelty types from each novelty level
+
+    Args:
+        level (str): Optional.  If level is specified, will only retrieve novelty types for a specified novelty level
+
+    Returns:
+        List[str]: List of novelty types
+    """
+
+    types_list = []
+
+    for novelty_lvl in find_novelty_levels():
+        if level is not None and level != novelty_lvl:
+            continue
+        dirpath = os.path.join(settings.SCIENCE_BIRDS_LEVELS_DIR, novelty_lvl)
+        types_list.extend(os.listdir(dirpath))
+
+    return types_list
 
 def collect_levels() -> Dict[str, List[str]]:
     """
-    Collects levels from the 
+    Collects levels from the directory of available levels
     """
     all_levels = {}
 
@@ -105,7 +131,7 @@ def collect_levels() -> Dict[str, List[str]]:
         non_novel_dirs = os.listdir(os.path.join(SB_LEVELS_PATH, non_novelty_level))
 
         # Collect non novelty levels
-        for non_novel_type in NON_NOVEL_TYPES:
+        for non_novel_type in find_novelty_types(non_novelty_level):
             if non_novel_type not in non_novel_dirs:
                 # Skip over types not present
                 logger.debug("non-novel level {} has no type: {}".format(non_novelty_level, non_novel_type))
@@ -124,14 +150,14 @@ def collect_levels() -> Dict[str, List[str]]:
 
             logger.debug("Non novelty {} has {} levels".format(non_novel_type, len(all_levels[non_novelty_level][non_novel_type])))
 
-    for novelty_level in NOVELTY_LEVELS:   # Iterate over all novelty levels
+    for novelty_level in find_novelty_levels(exclude_non_novel=True):   # Iterate over all novelty levels
         all_levels[novelty_level] = {}
 
         logger.info("Loading levels from novelty level {}".format(novelty_level))
         # NOTE: SB makes use of relative paths to each level from the root SB directory
         novelty_dirs = os.listdir(os.path.join(SB_LEVELS_PATH, novelty_level))
 
-        for novelty_type in NOVELTY_TYPES:  # Iterate over all novelty types
+        for novelty_type in find_novelty_types(novelty_level):  # Iterate over all novelty types
             if novelty_type not in novelty_dirs:
                 # Skip over types not present
                 logger.debug("novel level {} has no type: {}".format(novelty_level, novelty_type))
@@ -272,5 +298,3 @@ def generate_eval_trial_sets():
 
 if __name__ == "__main__":
     generate_eval_trial_sets()
-
-    
