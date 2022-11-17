@@ -11,17 +11,18 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas
 import seaborn as sns
-from dispatcher.sb_dispatcher import SBDispatcher
-import settings
-from agent.sb_hydra_agent import SBHydraAgent # RepairingSBHydraAgent
 from pandas.core.frame import DataFrame
-from utils.generate_trials_sb import (collect_levels, generate_trial_sets,
-                                      unpack_trial_id)
 
+import settings
+from agent.sb_hydra_agent import RepairingSBHydraAgent, SBHydraAgent
+from dispatcher.sb_dispatcher import SBDispatcher
 from runners.constants import KNOWN, NON_NOVELTY_PERFORMANCE, NOVELTY, UNKNOWN
 from runners.run_sb_stats import (AgentType, diff_directories,
                                   glob_directories, prepare_config)
-from utils.stats import AgentStats, NoveltyDetectionStats, SBAgentStats, SBDetectionStats
+from utils.generate_trials_sb import (collect_levels, generate_trial_sets,
+                                      unpack_trial_id)
+from utils.stats import (AgentStats, NoveltyDetectionStats, SBAgentStats,
+                         SBDetectionStats)
 
 # from runners.run_sb_stats import *
 
@@ -39,19 +40,25 @@ TEMPLATE_PATH = SB_CONFIG_PATH / 'test_config.xml'
 RESULTS_PATH = pathlib.Path(settings.ROOT_PATH) / "runners" / "experiments" / "ScienceBirds" / "SB_experiment"
 EXPORT_TRIALS = False   # Export trials xml file
 NUM_TRIALS = 1      # Number of trials to generate
-NUM_LEVELS = 3     # Levels per trial
-LEVELS_BEFORE_NOVELTY = 2   # Levels before novelty is introduced
+NUM_LEVELS = 20     # Levels per trial
+LEVELS_BEFORE_NOVELTY = 10   # Levels before novelty is introduced
 NOTIFY_NOVELTY = True
 REPETITION = 1   # If not set to None, the same sampled level will be used this many times before another is selected.
 NON_NOVEL_TO_USE = { # level and type of non-novel levels to use
     'novelty_level_0': [
-        "type3610"
+        "type3620"
         ]
-    }   
+    }
 NOVEL_TO_USE = {    # level and type of novel levels to use
-    'novelty_level_11': [
-        'type130'
-    ]
+    # 'novelty_level_11': [
+    #     'type130'
+    # ],
+    'novelty_level_36': [
+        'type20'
+    ],
+    # 'novelty_level_38':[
+    #     'type20'
+    # ]
 }
 
 
@@ -86,8 +93,7 @@ class NoveltyExperimentRunnerSB:
         if agent_type == AgentType.Hydra:
             self.agent = SBHydraAgent()
         elif agent_type == AgentType.RepairingHydra:
-            raise NotImplementedError()
-            # self.agent =
+            self.agent = RepairingSBHydraAgent()
         else:
             self.agent = SBHydraAgent()
         
@@ -127,7 +133,38 @@ class NoveltyExperimentRunnerSB:
         self.levels.clear()
         self.load_levels()
 
-    def run_trial(self, trial: list, trial_num: int, trial_type: str,  novelty_level: str, config_file: pathlib.Path = None) -> pandas.DataFrame:
+    def prepare_config(self, config:str, level_list:List[str], notify_novelty:bool):
+        """_summary_
+
+        Args:
+            config (str): Filepath to the config file that the science birds app will use
+            trial (List[str]): List of filepaths to levels to use in the trial
+            notify_novelty (bool): whether or not the trial is meant to inform the agent if there is novelty or not
+        """
+
+        # Create xml config file for the trial
+        tree = ET.parse(TEMPLATE_PATH)
+
+        if notify_novelty is not None:
+            xpath = './trials/trial'
+            trial = tree.getroot().find(xpath)
+            trial.set('notify_novelty', str(notify_novelty))
+
+        xpath = './trials/trial/game_level_set'
+        level_set = tree.getroot().find(xpath)
+        level_set.set('time_limit', '500000')
+        level_set.set('total_interaction_limit', '1000000')
+
+        for child in list(level_set):
+            level_set.remove(child)
+
+        for level in level_list:
+            relpath = os.path.relpath(level, SB_BIN_PATH)
+            ET.SubElement(level_set, 'game_levels', level_path=relpath)
+
+        tree.write(config)
+
+    def run_trial(self, trial_id:str, trial: List[str], trial_num: int, trial_type: str,  novelty_level: str, config_file: pathlib.Path = None) -> pandas.DataFrame:
         """ Run a trial """
 
         do_notify = trial_type == KNOWN
@@ -141,12 +178,13 @@ class NoveltyExperimentRunnerSB:
                 config = SB_CONFIG_PATH / "trial_config_{}_{}.xml".format(trial_num, date_time_str)
                 logger.debug("Exporting trial to {}".format(config))
 
-            prepare_config(TEMPLATE_PATH, config, trial, do_notify)
+            self.prepare_config(config, trial, do_notify)
         else:
             config = config_file
 
         # Run the agent
-        self.dispatcher.run_experiment()    # Currently can only run 1 trial at a time
+        self.dispatcher.set_trial_info(trial_id, config)    # Set info for dispatcher to use
+        self.dispatcher.run()
 
         # Get agent stats
         agent_results_list = list(self.dispatcher.results.values())[0]
@@ -182,8 +220,8 @@ class NoveltyExperimentRunnerSB:
                     status = row['LevelStatus']
                     level_name = row['levelName']
 
-                    # Novelty type is always the 2nd index (0 indexed)
-                    novelty_type = level_name.split(os.path.sep)[2]
+                    # Novelty type is always the 5th index (0 indexed)
+                    novelty_type = level_name.split(os.path.sep)[5]
                     
                     is_novelty = NOVELTY
 
@@ -211,7 +249,6 @@ class NoveltyExperimentRunnerSB:
                         'episode_type': [is_novelty],
                         'novelty_threshold': [novelty_threshold],
                         'performance': [score],
-                        # 'success': [status]   # Currently can get success from checking game_state during agent runtime, this is set in AgentStats
                     }
 
                     # Update data with experiment results
@@ -220,6 +257,10 @@ class NoveltyExperimentRunnerSB:
                             data[key].append(value)
                         else:
                             data[key] = [value]  
+
+                    # Override values with one gotten from results file
+                    data['level'] = [level_name]
+                    data['success'] = [status]
 
                     result = pandas.DataFrame(data=data)
 
@@ -261,7 +302,7 @@ class NoveltyExperimentRunnerSB:
                                 novelty_level = level_path.split('/')[1]    # TODO: make this cleaner
 
                         # Run the trial
-                        trial_results = self.run_trial([], trial_num, trial_type, novelty_level, config_file=config)
+                        trial_results = self.run_trial(config, [], trial_num, trial_type, novelty_level, config_file=config)
                         experiment_results = experiment_results.append(trial_results)
 
                         # Export results to file
@@ -270,6 +311,7 @@ class NoveltyExperimentRunnerSB:
 
                         trial_num += 1
                 else:
+                    # Generate a set of trials as according to above settings
                     trial_sets = generate_trial_sets(self.num_trials, self.num_levels, self.levels_before_novelty, 
                                                      self.repetition, self.non_novelties, self.novelties, self.levels)
 
@@ -279,7 +321,7 @@ class NoveltyExperimentRunnerSB:
                         logger.info("Starting trial {}".format(trial_id))
 
                         # Run the trial
-                        trial_results = self.run_trial(trial, trial_num, trial_type, novelty_level)
+                        trial_results = self.run_trial(trial_id, trial, trial_num, trial_type, novelty_level)
                         experiment_results = experiment_results.append(trial_results)
 
                         # Export results to file
@@ -448,6 +490,6 @@ class NoveltyExperimentRunnerSB:
 
 
 if __name__ == '__main__':
-    experiment_runner = NoveltyExperimentRunnerSB(AgentType.Hydra, export_trials=True)
+    experiment_runner = NoveltyExperimentRunnerSB(AgentType.RepairingHydra, export_trials=True)
     experiment_runner.run_experiment()
     # experiment_runner.run_experiment(configs=[SB_CONFIG_PATH / "trial_config_1_6.xml"])

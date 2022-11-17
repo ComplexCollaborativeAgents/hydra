@@ -129,7 +129,6 @@ class SBHydraAgent(HydraAgent):
     def episode_init(self, level_num:int, world: ScienceBirds):
         """Perform setup for the agent at the beginning of an episode
         """
-        self.current_level = world.sb_client.load_next_available_level()
         self.perception.new_level = True
         self.shot_num = 0
         self.level_novelty_indicators = {
@@ -392,28 +391,6 @@ class SBHydraAgent(HydraAgent):
 
         return raw_state, reward
 
-    def should_repair(self, episode_log: SBEpisodeLog) -> bool:
-        """ Choose if the agent should repair its meta model based on the given episode log.
-            If we are going to repair for a level, it will be a repair with the first shot's observations for that level.
-
-        Args:
-            episode_log (SBEpisodeLog): episode log to examine
-
-        Returns:
-            bool: whether or not a repair should be initiated
-        """
-        # If novelty existence is given, use the given
-        if self.current_stats.repair_calls >= settings.HYDRA_MODEL_REVISION_ATTEMPTS:
-            return False
-
-        if self.level_informed_novelty != NOVELTY_EXISTENCE_NOT_GIVEN:
-            return self.level_informed_novelty == 1
-
-        if self._new_novelty_likelihood:
-            return True
-
-        return False
-
     def report_novelty(self) -> Tuple[float, float, Set[int], int, str]:
         """ Report detected novelty in detect novelty function.
         Wrapper for _detect_novelty function, can be called from the dispatcher
@@ -431,40 +408,15 @@ class SBHydraAgent(HydraAgent):
         # placeholders for novelty information
         if len(self.novel_objects) > 0:
             ids = set([int(object_id_str) for object_id_str in self.novel_objects])
-            novelty_description = "Unknown type of objects detected"
+            novelty_description = f"Unknown type of objects detected | {self.current_stats.repair_description}"
         else:
             ids = set()
-            novelty_description = "Uncharacterized novelty"
+            novelty_description = f"Uncharacterized novelty | {self.current_stats.repair_description}"
         novelty_level = 0
 
         logger.info("[hydra_agent_server] :: Reporting novelty_likelihood: {}".format(novelty_likelihood))
 
         return novelty_likelihood, non_novelty_likelihood, ids, novelty_level, novelty_description
-
-    def repair_meta_model(self, episode_log: SBEpisodeLog):
-        """Call the repair object to repair the current meta model
-
-        Args:
-            episode_log (SBEpisodeLog): episode log to use for repairs
-        """
-        self.current_stats.repair_calls += 1
-
-        logger.info("Initiating repair number {}".format(self.current_stats.repair_calls))
-        start_repair_time = time.time()
-
-        try:
-            repair, consistency = self.meta_model_repair.repair(episode_log, delta_t=settings.SB_DELTA_T)
-            repair_description = ["Repair %s, %.2f" % (fluent, repair[i])
-                                  for i, fluent in enumerate(self.meta_model.repairable_constants)]
-            self.current_stats.repair_description.append(repair_description)
-            logger.info(
-                "Repair done! Consistency: %.2f, Repair:\n %s" % (consistency, "\n".join(repair_description)))
-        except:
-            # TODO: fix this hack, catch correct exception
-            import traceback
-            traceback.print_exc()
-            logger.info("Repair failed!")
-        self.current_stats.repair_time = time.time() - start_repair_time
 
     def _detect_level_novelty_with_ensemble(self, success:bool) -> bool:
         """_summary_
@@ -561,3 +513,62 @@ class SBHydraAgent(HydraAgent):
         self.current_novelty.novelty_detected = self._detect_level_novelty_with_ensemble(success)
         if (not settings.SB_LOOKBACK_ONLY_DETECTION) and (not self._new_novelty_likelihood) and self._count_previous_detected_levels() > 2:
             self._new_novelty_likelihood = self._detected_in_all_past_n(3)       
+
+
+class RepairingSBHydraAgent(SBHydraAgent):
+    def __init__(self):
+        super().__init__()
+    
+    def choose_action(self, state: SBState) -> SBAction:
+
+        if self.should_repair() and not settings.NO_REPAIR:
+            self.repair_meta_model()
+
+        return super().choose_action(state)
+    
+    def should_repair(self) -> bool:
+        """ Choose if the agent should repair its meta model based on the given episode log.
+            If we are going to repair for a level, it will be a repair with the first shot's observations for that level.
+
+        Returns:
+            bool: whether or not a repair should be initiated
+        """
+        # If novelty existence is given, use the given
+        # logger.info(f"SHOULD_REPAIR: repair calls: {self.current_stats.repair_calls} >= {settings.HYDRA_MODEL_REVISION_ATTEMPTS}: {self.current_stats.repair_calls >= settings.HYDRA_MODEL_REVISION_ATTEMPTS}")
+        if self.current_stats.repair_calls >= settings.HYDRA_MODEL_REVISION_ATTEMPTS:
+            return False
+
+        # If novelty existence is given
+        if self.level_informed_novelty != NOVELTY_EXISTENCE_NOT_GIVEN:
+            # logger.info(f"SHOULD_REPAIR: novelty given: {self.level_informed_novelty==1}")
+            return self.level_informed_novelty == 1
+
+
+        # logger.info(f"SHOULD_REPAIR: encountered: {self._new_novelty_likelihood}")
+        # If we've encountered novelty before
+        if self._new_novelty_likelihood:
+            return True
+
+        return False
+
+    def repair_meta_model(self):
+        """Call the repair object to repair the current meta model
+        """
+        self.current_stats.repair_calls += 1
+
+        logger.info("Initiating repair number {}".format(self.current_stats.repair_calls))
+        start_repair_time = time.time()
+
+        try:
+            repair, consistency = self.meta_model_repair.repair(self.current_log, delta_t=settings.SB_DELTA_T)
+            repair_description = ["Repair %s, %.2f" % (fluent, repair[i])
+                                  for i, fluent in enumerate(self.meta_model.repairable_constants)]
+            self.current_stats.repair_description.append(repair_description)
+            logger.info(
+                "Repair done! Consistency: %.2f, Repair:\n %s" % (consistency, "\n".join(repair_description)))
+        except:
+            # TODO: fix this hack, catch correct exception
+            import traceback
+            traceback.print_exc()
+            logger.info("Repair failed!")
+        self.current_stats.repair_time = time.time() - start_repair_time

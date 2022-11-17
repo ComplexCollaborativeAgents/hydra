@@ -1,7 +1,10 @@
 import datetime
 import logging
+import pathlib
 import time
+import os
 from typing import Dict, List
+from xml.etree import ElementTree as ET
 
 import settings
 from agent.sb_hydra_agent import SBHydraAgent
@@ -27,13 +30,28 @@ class SBDispatcher(Dispatcher):
     agent: SBHydraAgent           # hydra agent being tested
     trial_timestamp: str
     results:Dict[str, List[dict]]
+    launch: bool            # Whether or not to launch the SB server
+    host: str               # What host server to connect to
+    current_level: int      # level number assigned by ScienceBirds
+    episode_num: int        # Current episode number
+    trial_num: int          # Current trial number
+    export_trial: bool      # Whether or not to export trials
+    current_trial_id: str   # Current trial id
+    config_file: str        # Current config file in use
 
-    def __init__(self, agent:SBHydraAgent):
+    def __init__(self, agent:SBHydraAgent, launch:bool=True, host:str=None):
         self.trial_timestamp = datetime.datetime.now().strftime("%y%m%d%H%M%S")
         self.agent = agent
+        self.trials = {}
         self.results = {}
-        self.world = ScienceBirds(launch=True)
+        self.launch = launch
+        self.host = host
+        self.world = None   # Set to none so that the environment can be loaded with the correct levels on trial start
         self.current_level = 0
+        self.episode_num = 0
+        self.trial_num = 0
+        self.current_trial_id = ""
+        self.config_file = ""
 
     def report_novelty(self, state: SBState) -> dict:
         """ Return a dictionary with novelty detail and stats
@@ -50,12 +68,16 @@ class SBDispatcher(Dispatcher):
         return {}
 
 
-    def run(self):
-        """ Run an evaluation for self.agent in self.world
+    def set_trial_info(self, trial_id:str, config:str):
+        self.current_trial_id = trial_id
+        self.config_file = config
+        logger.info(f"Next trial ({trial_id}) will be run with {config}")
 
-        Raises:
-            NotImplementedError
+    def run(self, trials_to_run:int = -1):
+        """ Run an evaluation for self.agent in self.world
         """
+        self.episode_num = 0
+
         self.run_experiment()
         self.cleanup_experiment()
 
@@ -71,23 +93,28 @@ class SBDispatcher(Dispatcher):
 
         self.run_trial()
         self.cleanup_trial()
+        self.trial_num += 1
 
     def cleanup_experiment(self):
         """ Perform cleanup after running the experiment
         """
-        self.world.kill()
+        if self.world is not None and self.launch:
+            self.world.kill()
+            self.world = None
 
     def run_trial(self):
         """ Run a trial for the experiment
         """
-        
-        self.trial_timestamp = datetime.datetime.now().strftime("%y%m%d%H%M%S")
-        # self.world.sb_client.ready_for_new_set()
-        self.agent.trial_start()
-        episode_num = 0
-        trial_id = datetime.datetime.now().strftime("%y%m%d%H%M%S")
 
-        self.results[trial_id] = []
+        if self.world is None and self.launch:
+            # science birds world object handles config = None
+            self.world = ScienceBirds(launch=self.launch, config=self.config_file, host=self.host)
+
+        self.trial_timestamp = datetime.datetime.now().strftime("%y%m%d%H%M%S")
+        self.agent.trial_start()
+        trial_progress = 0
+
+        self.results[self.current_trial_id] = []
 
         while True:
             state = self.world.get_current_state()
@@ -106,21 +133,27 @@ class SBDispatcher(Dispatcher):
                 break
             else:
                 self.agent.episode_init(self.current_level, self.world)
-                result = self.run_episode(episode_num, self.current_level, trial_id, "0", state)
-                self.results[trial_id].append(result)
+
+                result = self.run_episode(state)
+                self.results[self.current_trial_id].append(result)
                 self.cleanup_episode()
-                episode_num += 1
+                trial_progress += 1
+                self.episode_num += 1
 
     def cleanup_trial(self):
         """ Perform clean after running an experiment.
         """
         self.agent.trial_end()
+        if self.world is not None and self.launch:
+            self.world.kill()
+            self.world = None
+        time.sleep(10)
 
-    def run_episode(self, episode_number: int, level_number: int, trial_id:str, trial_number: int, starting_state:SBState) -> dict:
+    def run_episode(self, starting_state:SBState) -> dict:
         """ Run one episode of the trial
         """
         
-        logger.info("------------ [{}] EPISODE {} START ------------".format(trial_number, episode_number))
+        logger.info("------------ [{}] EPISODE {} START ------------".format(self.trial_num, self.episode_num))
         # start_time = time.time()
         state = starting_state
 
@@ -142,10 +175,10 @@ class SBDispatcher(Dispatcher):
                 stats = self.agent.get_agent_stats()[-1]
 
                 result = {
-                    'trial_id': trial_id,
-                    'trial_number': trial_number,
-                    'level': level_number,
-                    'episode_number': episode_number,
+                    'trial_id': self.current_trial_id,
+                    'trial_number': self.trial_num,
+                    'level': self.current_level,    # TODO: extract level name info from config file?
+                    'episode_number': self.episode_num,
                 }
 
                 result.update(vars(detection))

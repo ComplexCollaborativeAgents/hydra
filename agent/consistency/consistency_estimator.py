@@ -105,6 +105,9 @@ class AspectConsistency:
         # If we expected the trade to end before it really did - this is inconsistent
         # assert len(expected_state_seq) >= len(observed_states)
 
+        if len(expected_state_seq) < len(observed_states):
+            return [abs(len(observed_states) - len(expected_state_seq))]
+
         exp_to_obs_step_ratio = 1
         consistency_per_state = []
         for obs_index, obs_state in enumerate(observed_states):
