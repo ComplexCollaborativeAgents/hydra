@@ -166,7 +166,6 @@ class SBDispatcher(Dispatcher):
                                                                novelty_description)
 
                 time.sleep(5 / settings.SB_SIM_SPEED)
-                state = self.world.get_current_state()
             
             if state.is_terminal():
                 success = state.game_state == GameState.WON or state.game_state == GameState.EVALUATION_TERMINATED
@@ -193,7 +192,14 @@ class SBDispatcher(Dispatcher):
                 
                 action = self.agent.choose_action(state)
 
-                state, step_cost = self.agent.do(action, self.world, self.trial_timestamp)
+                new_state, step_cost = self.agent.do(action, self.world, self.trial_timestamp)
+                logger.info(f"New state after action is: {new_state.game_state}")
+                state = new_state
+            else:
+                time.sleep(5.0) # Wait for simulation to settle TEMPORARY
+                new_state = self.world.get_current_state()
+                logger.info(f"New state after loop is: {new_state.game_state}")
+                state = new_state
 
     def cleanup_episode(self):
         """ Perform cleanup after running an episode of a trial

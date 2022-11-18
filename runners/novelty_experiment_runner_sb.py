@@ -299,7 +299,7 @@ class NoveltyExperimentRunnerSB:
                             if 'novelty_level_0' in level_path:
                                 continue
                             else:
-                                novelty_level = level_path.split('/')[1]    # TODO: make this cleaner
+                                novelty_level = level_path.split('/')[2]    # TODO: make this cleaner
 
                         # Run the trial
                         trial_results = self.run_trial(config, [], trial_num, trial_type, novelty_level, config_file=config)
@@ -492,4 +492,4 @@ class NoveltyExperimentRunnerSB:
 if __name__ == '__main__':
     experiment_runner = NoveltyExperimentRunnerSB(AgentType.RepairingHydra, export_trials=True)
     experiment_runner.run_experiment()
-    # experiment_runner.run_experiment(configs=[SB_CONFIG_PATH / "trial_config_1_6.xml"])
+    # experiment_runner.run_experiment(configs=[SB_CONFIG_PATH / "debug_config.xml"])
