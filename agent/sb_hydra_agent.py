@@ -161,9 +161,9 @@ class SBHydraAgent(HydraAgent):
     def trial_end(self):
         """Perform setup for the agent at the end of a trial
         """
-        with open("novelty_stats_{}".format(datetime.datetime.now().strftime("%y%m%d%H%M%S")), 'w+') as f:
-            for ns in self.novelty_stats:
-                f.write(f"{str(ns)}\n")
+        # with open("novelty_stats_{}".format(datetime.datetime.now().strftime("%y%m%d%H%M%S")), 'w+') as f:
+        #     for ns in self.novelty_stats:
+        #         f.write(f"{str(ns)}\n")
 
         self.agent_stats = []
         self.novelty_stats = []
