@@ -100,13 +100,13 @@ class SBDispatcher(Dispatcher):
         """
         if self.world is not None and self.launch:
             self.world.kill()
-            self.world = None
+        self.world = None
 
     def run_trial(self):
         """ Run a trial for the experiment
         """
 
-        if self.world is None and self.launch:
+        if self.world is None:
             # science birds world object handles config = None
             self.world = ScienceBirds(launch=self.launch, config=self.config_file, host=self.host)
 
@@ -146,7 +146,7 @@ class SBDispatcher(Dispatcher):
         self.agent.trial_end()
         if self.world is not None and self.launch:
             self.world.kill()
-            self.world = None
+        self.world = None
         time.sleep(10)
 
     def run_episode(self, starting_state:SBState) -> dict:
@@ -154,11 +154,16 @@ class SBDispatcher(Dispatcher):
         """
         
         logger.info("------------ [{}] EPISODE {} START ------------".format(self.trial_num, self.episode_num))
-        # start_time = time.time()
+        start_time = time.time()
         state = starting_state
 
         while True:
-            # reached_time = EPISODE_TIME_LIMIT < time.time() - start_time
+            reached_time = EPISODE_TIME_LIMIT < time.time() - start_time
+
+            if reached_time:
+                self.current_level = self.world.sb_client.load_next_available_level()
+                logger.info("Reached internal time limit, moving on to next level...")
+                break
 
             if state.game_state == GameState.REQUESTNOVELTYLIKELIHOOD:
                 novelty_likelihood, non_novelty_likelihood, ids, novelty_level, novelty_description = self.agent.report_novelty()

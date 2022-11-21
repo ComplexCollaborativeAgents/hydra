@@ -161,6 +161,12 @@ class SBHydraAgent(HydraAgent):
     def trial_end(self):
         """Perform setup for the agent at the end of a trial
         """
+        # with open("novelty_stats_{}".format(datetime.datetime.now().strftime("%y%m%d%H%M%S")), 'w+') as f:
+        #     for ns in self.novelty_stats:
+        #         f.write(f"{str(ns)}\n")
+
+        self.agent_stats = []
+        self.novelty_stats = []
         self._initialize_processing_state_variables() 
 
     def episode_end(self, success: bool) -> SBDetectionStats:
@@ -177,7 +183,7 @@ class SBHydraAgent(HydraAgent):
         self._detect_novelty(success)
 
         self.current_stats.success = success    
-        self.current_novelty.novelty_detected = bool(self._new_novelty_likelihood)    # This value is overridden?
+        # self.current_novelty.novelty_detected = bool(self._new_novelty_likelihood)    # This value is overridden?
         self.current_novelty.pddl_prob = self.level_novelty_indicators[PDDL_PROB]
         self.current_novelty.reward_prob = self.level_novelty_indicators[REWARD_PROB]
         self.current_novelty.unknown_obj = self.level_novelty_indicators[UNKNOWN_OBJ]
