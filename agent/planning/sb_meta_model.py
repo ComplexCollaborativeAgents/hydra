@@ -539,8 +539,8 @@ class ScienceBirdsMetaModel(MetaModel):
         """ Creates an SB action from a PDDL action_angle_time triple outputted by the planner """
         # Compute angle from action time
         pddl_state = self.create_pddl_problem(processed_state).get_init_state()
-        angle = self.action_time_to_angle(timed_action.start_at, pddl_state)
-
+        angle_from_plan = self.action_time_to_angle(timed_action.start_at, pddl_state)
+        angle = angle_from_plan * 1.005
         # Convert angle to release point
         tp = SB.ScienceBirds.trajectory_planner
         ref_point = tp.get_reference_point(processed_state.sling)
