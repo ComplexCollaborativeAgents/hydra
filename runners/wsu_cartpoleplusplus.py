@@ -24,10 +24,10 @@ def main(config_file_cmd = None):
     # WSU_CARTPOLE = pathlib.Path(settings.ROOT_PATH) / 'worlds' / 'wsu' / 'configs' / 'demo-client.config'
     # WSU_CARTPOLE = pathlib.Path(settings.ROOT_PATH) / 'worlds' / 'wsu' / 'configs' / 'local-client.config'
     # WSU_CARTPOLE = pathlib.Path(settings.ROOT_PATH) / 'worlds' / 'wsu' / 'configs' / 'parc-mockn-cartpole.config'
-    # WSU_CARTPOLE = pathlib.Path(settings.ROOT_PATH) / 'worlds' / 'wsu' / 'configs' / 'gui-client.config'
+    WSU_CARTPOLE = pathlib.Path(settings.ROOT_PATH) / 'worlds' / 'wsu' / 'configs' / 'gui-client.config'
 
     # UNCOMMENT THE BELOW CONFIG FILE FOR WSU EVALUATION
-    WSU_CARTPOLE = pathlib.Path(settings.ROOT_PATH) / 'runners' / 'client.config'
+    # WSU_CARTPOLE = pathlib.Path(settings.ROOT_PATH) / 'runners' / 'client.config'
 
 
     if (config_file_cmd):
@@ -45,7 +45,7 @@ def main(config_file_cmd = None):
 
     log_file = LOG_PATH / "hydra.{}.txt".format(settings.HYDRA_INSTANCE_ID)
     observer = CartpolePlusPlusHydraAgentObserver(agent_type=agent_type_arg) if USE_HYDRA else WSUObserver()
-    dispatcher = WSUDispatcher(observer, config_file=str(WSU_CARTPOLE), debug=True, printout=False, logfile=str(log_file), ignore_secret=False)
+    dispatcher = WSUDispatcher(observer, config_file=str(WSU_CARTPOLE), debug=True, printout=False, logfile=str(log_file), ignore_secret=True)
     dispatcher.run()
 
 

@@ -18,15 +18,6 @@
     (wall_x_min) (wall_x_max) (wall_y_min) (wall_y_max) (wall_z_min) (wall_z_max)
     (block_x ?bl - block) (block_y ?bl - block) (block_z ?bl - block) (block_r ?bl - block)
     (block_x_dot ?bl - block) (block_y_dot ?bl - block) (block_z_dot ?bl - block) (block_active ?bl - block)
-
-
-    (coeff_pos_x)(coeff_pos_y)
-    (coeff_theta_x)(coeff_theta_y)
-    (coeff_push_forward)(coeff_push_back)
-    (coeff_push_left)(coeff_push_right)
-
-    (coeff_block_mvmt_x)(coeff_block_mvmt_y)(coeff_block_mvmt_z)
-    (coeff_block_wall_bounce) (coeff_block_v_mag)
   )
 
 
@@ -77,10 +68,10 @@
     :parameters (?d - dummy)
     :precondition (and (ready) (not (total_failure)))
     :effect (and
-        (increase (pos_x) (* #t (* (coeff_pos_x) (pos_x_dot)) ) )
-        (increase (pos_y) (* #t (* (coeff_pos_y) (pos_y_dot)) ) )
-        (increase (theta_x) (* #t (* (coeff_theta_x) (theta_x_dot)) ) )
-        (increase (theta_y) (* #t (* (coeff_theta_y) (theta_y_dot)) ) )
+        (increase (pos_x) (* #t (pos_x_dot)) )
+        (increase (pos_y) (* #t (pos_y_dot)) )
+        (increase (theta_x) (* #t (theta_x_dot)))
+        (increase (theta_y) (* #t (theta_y_dot)))
         (increase (pos_x_dot) (* #t (pos_x_ddot)) )
         (increase (pos_y_dot) (* #t (pos_y_ddot)) )
         (increase (theta_x_dot) (* #t (theta_x_ddot)) )
@@ -95,9 +86,9 @@
     :parameters (?bl - block)
     :precondition (and (block_active ?bl) (ready) (not (total_failure)))
     :effect (and
-        (increase (block_x ?bl) (* #t (* (* (coeff_block_mvmt_x) (coeff_block_v_mag)) (block_x_dot ?bl)) ) )
-        (increase (block_y ?bl) (* #t (* (* (coeff_block_mvmt_y) (coeff_block_v_mag)) (block_y_dot ?bl)) ) )
-        (increase (block_z ?bl) (* #t (* (* (coeff_block_mvmt_z) (coeff_block_v_mag)) (block_z_dot ?bl)) ) )
+        (increase (block_x ?bl) (* #t (block_x_dot ?bl)) )
+        (increase (block_y ?bl) (* #t (block_y_dot ?bl)) )
+        (increase (block_z ?bl) (* #t (block_z_dot ?bl)) )
     )
   )
 
@@ -109,7 +100,7 @@
                          )
       )
       :effect (and
-          (assign (block_x_dot ?bl) (* (* (coeff_block_wall_bounce) (block_x_dot ?bl)) -1.0))
+          (assign (block_x_dot ?bl) (* (block_x_dot ?bl) -1.0))
       )
   )
 
@@ -121,7 +112,7 @@
                          )
       )
       :effect (and
-          (assign (block_y_dot ?bl) (* (* (coeff_block_wall_bounce) (block_y_dot ?bl)) -1.0))
+          (assign (block_y_dot ?bl) (* (block_y_dot ?bl) -1.0))
       )
   )
 
@@ -133,7 +124,7 @@
                          )
       )
       :effect (and
-          (assign (block_z_dot ?bl) (* (* (coeff_block_wall_bounce) (block_z_dot ?bl)) -1.0))
+          (assign (block_z_dot ?bl) (* (block_z_dot ?bl) -1.0))
       )
   )
 
@@ -175,7 +166,7 @@
     	(not (total_failure))
 	)
     :effect (and
-      (assign (F_x) (* (coeff_push_right) (force_mag)) )
+      (assign (F_x) (force_mag))
       (assign (F_y) 0.0)
       (not (cart_available))
   	)
@@ -190,7 +181,7 @@
     	(not (total_failure))
 	)
     :effect (and
-      (assign (F_x) (* (* (coeff_push_left) (force_mag)) -1.0) )
+      (assign (F_x) (* (force_mag) -1.0))
       (assign (F_y) 0.0)
       (not (cart_available))
   	)
@@ -205,7 +196,7 @@
       (not (total_failure))
   )
     :effect (and
-      (assign (F_y) (* (* (coeff_push_back) (force_mag)) -1.0) )
+      (assign (F_y) (* (force_mag) -1.0))
       (assign (F_x) 0.0)
       (not (cart_available))
     )
@@ -220,7 +211,7 @@
       (not (total_failure))
   )
     :effect (and
-      (assign (F_y) (* (coeff_push_forward) (force_mag)) )
+      (assign (F_y) (force_mag))
       (assign (F_x) 0.0)
       (not (cart_available))
     )

@@ -61,7 +61,7 @@ class CartpolePlusPlusRepair(RepairModule):
 
     def __init__(self, meta_model: MetaModel,
                  consistency_checker: DomainConsistency = CartpolePlusPlusConsistencyEstimator(),
-                 consistency_threshold=settings.CP_CONSISTENCY_THRESHOLD):
+                 consistency_threshold=settings.CP_CONSISTENCY_THRESHOLD, repair_index= 0):
         super().__init__(meta_model, consistency_checker)
         self.aspect_repair = [GreedyBestFirstSearchConstantFluentMetaModelRepair(meta_model, consistency_checker,
                                                                                  meta_model.repairable_constants,

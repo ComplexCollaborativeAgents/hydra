@@ -50,8 +50,14 @@ class CartPolePlusPlusMetaModel(MetaModel):
             domain_file_name="cartpole_plus_plus_domain.pddl",
             delta_t=settings.CP_DELTA_T,
             metric='minimize(total-time)',
-            repairable_constants=['m_cart', 'l_pole', 'm_pole', 'force_mag', 'gravity', 'angle_limit'],
-            repair_deltas=[1.0, 0.1, 0.1, 1.0, 1.0, 0.1, 0.1],
+            repairable_constants=[#['m_cart', 'l_pole', 'm_pole', 'force_mag', 'gravity'], # WP: REMOVED ANGLE_LIMIT FROM REPAIRABLE FLUENTS
+                                  # ['m_cart', 'l_pole', 'm_pole', 'force_mag', 'gravity', 'angle_limit'],
+                                  ['coeff_pos_x', 'coeff_pos_y', 'coeff_theta_x', 'coeff_theta_y','coeff_push_left','coeff_push_right','coeff_push_back','coeff_push_forward'],
+                                  ['coeff_block_mvmt_x','coeff_block_mvmt_y','coeff_block_mvmt_z','coeff_block_v_mag','coeff_block_wall_bounce']],
+            repair_deltas=[#[1.0, 0.1, 0.1, 1.0, 1.0, 0.1], # WP: REMOVED ANGLE_LIMIT FROM REPAIRABLE FLUENTS
+                           # [1.0, 0.1, 0.1, 1.0, 1.0, 0.1, 0.1],
+                          # [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+                           [1.0, 1.0, 1.0, 1.0, 1.0]],
             constant_numeric_fluents={
                 'm_cart': 1.0,
                 'r_cart': 0.5,
@@ -73,7 +79,23 @@ class CartPolePlusPlusMetaModel(MetaModel):
                 'wall_y_max': 5,
                 'wall_z_min': 0,
                 'wall_z_max': 10,
+
+                'coeff_pos_x': 1.0,
+                'coeff_pos_y': 1.0,
+                'coeff_theta_x': 1.0,
+                'coeff_theta_y': 1.0,
+                'coeff_push_left': 1.0,
+                'coeff_push_right': 1.0,
+                'coeff_push_back': 1.0,
+                'coeff_push_forward': 1.0,
+
+                'coeff_block_mvmt_x': 1.0,
+                'coeff_block_mvmt_y': 1.0,
+                'coeff_block_mvmt_z': 1.0,
+                'coeff_block_v_mag': 1.0,
+                'coeff_block_wall_bounce': 1.0,
             },
+
             constant_boolean_fluents={
                 'total_failure': False,
                 'ready': True,

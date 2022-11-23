@@ -66,17 +66,21 @@ class GreedyBestFirstSearchConstantFluentMetaModelRepair(AspectRepair):
                  max_iterations=100, time_limit=180):
         self.fluents_to_repair = fluents_to_repair
         self.deltas = deltas
+        self.repair_index = 0
         self.consistency_threshold = consistency_threshold
         self.max_iterations = max_iterations
         self.time_limit = time_limit
 
         super().__init__(meta_model, consistency_estimator)
 
+    def set_repair_index(self, repair_idx):
+        self.repair_index = repair_idx
+
     def _heuristic(self, repair, consistency):
         """ The heuristic to use to prioritize repairs"""
         change_cardinality = 0
         for i, change in enumerate(repair):
-            change_cardinality = change_cardinality + abs(change / self.deltas[i])
+            change_cardinality = change_cardinality + abs(change / (self.deltas[self.repair_index][i]))
         return consistency + change_cardinality
 
     def repair(self, observation, delta_t=1.0):
@@ -85,7 +89,7 @@ class GreedyBestFirstSearchConstantFluentMetaModelRepair(AspectRepair):
         start_time = time.time()
         # Initialize OPEN
         open_list = []
-        repair = [0] * len(self.fluents_to_repair)  # Repair is a list, in order of the fluents_to_repair list
+        repair = [0] * len(self.fluents_to_repair[self.repair_index])  # Repair is a list, in order of the fluents_to_repair list
         expected_states, observed_states = self.consistency_estimator.get_traces_from_simulator(observation,
                                                                                                 self.meta_model,
                                                                                                 self.simulator, delta_t)
@@ -153,9 +157,9 @@ class GreedyBestFirstSearchConstantFluentMetaModelRepair(AspectRepair):
     def expand(self, repair):
         """ Expand the given repair by generating new repairs from it """
         new_repairs = []
-        for i, fluent in enumerate(self.fluents_to_repair):
+        for i, fluent in enumerate(self.fluents_to_repair[self.repair_index]):
             if repair[i] >= 0:
-                change_to_fluent = repair[i] + self.deltas[i]
+                change_to_fluent = repair[i] + self.deltas[self.repair_index][i]
                 # if self.current_meta_model.constant_numeric_fluents[self.fluents_to_repair[i]] + change_to_fluent >= 0:
                     # Don't allow negative fluents TODO: Better would be "don't allow fluent to change sign"
                 new_repair = list(repair)
@@ -163,7 +167,7 @@ class GreedyBestFirstSearchConstantFluentMetaModelRepair(AspectRepair):
                 new_repairs.append(new_repair)
             if repair[i] <= 0:
                 # Note: if repair has zero for the current fluent, add both +delta and -delta states to open
-                change_to_fluent = repair[i] - self.deltas[i]
+                change_to_fluent = repair[i] - self.deltas[self.repair_index][i]
                 # if self.current_meta_model.constant_numeric_fluents[self.fluents_to_repair[i]] + change_to_fluent >= 0:
                     # Don't allow negative fluents TODO: Better would be "don't allow fluent to change sign"
                 new_repair = list(repair)
@@ -173,13 +177,13 @@ class GreedyBestFirstSearchConstantFluentMetaModelRepair(AspectRepair):
 
     def _do_change(self, change: list):
         for i, change_to_fluent in enumerate(change):
-            self.meta_model.constant_numeric_fluents[self.fluents_to_repair[i]] = \
-                self.meta_model.constant_numeric_fluents[self.fluents_to_repair[i]] + change_to_fluent
+            self.meta_model.constant_numeric_fluents[self.fluents_to_repair[self.repair_index][i]] = \
+                self.meta_model.constant_numeric_fluents[self.fluents_to_repair[self.repair_index][i]] + change_to_fluent
 
     def _undo_change(self, change: list):
         for i, change_to_fluent in enumerate(change):
-            self.meta_model.constant_numeric_fluents[self.fluents_to_repair[i]] = \
-                self.meta_model.constant_numeric_fluents[self.fluents_to_repair[i]] - change_to_fluent
+            self.meta_model.constant_numeric_fluents[self.fluents_to_repair[self.repair_index][i]] = \
+                self.meta_model.constant_numeric_fluents[self.fluents_to_repair[self.repair_index][i]] - change_to_fluent
 
     def is_incumbent_good_enough(self, consistency: float):
         """ Return True if the incumbent is good enough """

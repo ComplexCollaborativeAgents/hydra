@@ -229,7 +229,7 @@ class RepairingCartpolePlusPlusHydraAgent(CartpolePlusPlusHydraAgent):
             # observed_seq = observation.get_pddl_states_in_trace(self.meta_model)
             base_consistency = self.consistency_checker.consistency_from_trace(expected_trace, observed_sequence, delta_t=settings.CP_DELTA_T)
             self.current_base_consistency = base_consistency
-            # print("base consistency score:{}".format(base_consistency))
+            print("base consistency score:{}".format(base_consistency))
 
             return (base_consistency > settings.CP_REPAIR_CONSISTENCY_THRESHOLD)
 
@@ -266,22 +266,48 @@ class RepairingCartpolePlusPlusHydraAgent(CartpolePlusPlusHydraAgent):
         novelty_likelihood = self.novelty_likelihood
         novelty_characterization = self.novelty_characterization
 
+        expected_trace, observed_sequence = self.consistency_checker.get_traces_from_simulator(last_observation,
+                                                                                               self.meta_model,
+                                                                                               self.simulator,
+                                                                                               settings.CP_DELTA_T)
+
+        base_consistency = self.consistency_checker.consistency_from_trace(expected_trace, observed_sequence,
+                                                                           delta_t=settings.CP_DELTA_T)
+
+        print("\n\nObserverd Sequence len {}".format(len(observed_sequence)))
+        print("Expected Trace len {}".format(len(expected_trace)))
+        print("\nself current base consisitency= {}".format(self.current_base_consistency))
+        print("local base consisitency= {}\n\n".format(base_consistency))
+
         # try:
-        repair, consistency = self.meta_model_repair.repair(last_observation,
-                                                       delta_t=settings.CP_DELTA_T)
-        # print("selected repair= {}".format(repair))
-        self.log.info("Repaired meta model (repair string: %s)" % repair)
-        nonzero = any(map(lambda x: x != 0, repair))
-        if nonzero:
-            novelty_likelihood = 1.0
-            self.has_repaired = True
-            # TODO: quick bugfix: currently only one aspect repair exists for cartpole. Needs to report the correct names of repairable fluents.
-            novelty_characterization = json.dumps(dict(zip(self.meta_model_repair.aspect_repair[0].fluents_to_repair, repair)))
-            # print("\n\nNOVELTY => {},{} (consistency={})".format(self.meta_model_repair.aspect_repair[0].fluents_to_repair, repair, consistency))
-        elif consistency > settings.CP_DETECTION_CONSISTENCY_THRESHOLD:
+        # repair, consistency = self.meta_model_repair.repair(last_observation,
+        #                                                delta_t=settings.CP_DELTA_T)
+
+        # repair = []
+        consistency = 0.0
+        # repair_index = 0
+        for i in range(len(self.meta_model.repairable_constants)):
+            self.meta_model_repair.aspect_repair[0].set_repair_index(i) # change set of repairable fluents
+            repair, consistency = self.meta_model_repair.repair(last_observation, delta_t=settings.CP_DELTA_T)
+
+            print("selected repair[{}]= {}".format(self.meta_model_repair.aspect_repair[0].repair_index,repair))
+            self.log.info("Repaired meta model (repair string: %s)" % repair)
+            nonzero = any(map(lambda x: x != 0, repair))
+            if nonzero:
+                novelty_likelihood = 1.0
+                self.has_repaired = True
+                # TODO: quick bugfix: currently only one aspect repair exists for cartpole. Needs to report the correct names of repairable fluents.
+                novelty_characterization = json.dumps(dict(zip(self.meta_model_repair.aspect_repair[0].fluents_to_repair[i], repair)))
+                print("\n\nNOVELTY => {},{} (consistency={})".format(self.meta_model_repair.aspect_repair[0].fluents_to_repair[i], repair, consistency))
+                break
+
+        if consistency > settings.CP_DETECTION_CONSISTENCY_THRESHOLD and not self.has_repaired:
             novelty_likelihood = 1.0
             novelty_characterization = json.dumps({'Unknown novelty': 'no adjustments made'})
-            # print("\n\nUNKNOWN NOVELTY (consistency={})\n\n".format(consistency))
+            print("\n\nUNKNOWN NOVELTY (consistency={})\n\n".format(consistency))
+
+        self.meta_model_repair.aspect_repair[0].set_repair_index(0) # reset the list of repairable fluents
+
         self.consistency_scores.append(consistency)
         # except Exception:
         #     print('repair error caught') # TODO
