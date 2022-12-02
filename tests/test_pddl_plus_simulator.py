@@ -3,7 +3,7 @@ from os import path
 import pytest
 
 from agent.repair.meta_model_repair import *
-from agent.repair.sb_repair import BirdLocationConsistencyEstimator
+from agent.repair.sb_consistency_estimators.bird_location_consistency import BirdLocationConsistencyEstimator
 import tests.test_utils as test_utils
 
 DATA_DIR = path.join(settings.ROOT_PATH, 'data')
@@ -176,11 +176,13 @@ def test_fast_sim():
 
     simulator = PddlPlusSimulator()
     vanilla_sim_expected_trace, _ = simulator.get_expected_trace(observation, meta_model, delta_t)
-    vanilla_sim_consistency = consistency_estimator.estimate_consistency(vanilla_sim_expected_trace, observed_seq, delta_t)
+    vanilla_sim_consistency = consistency_estimator.consistency_from_trace(vanilla_sim_expected_trace, observed_seq,
+                                                                           delta_t=delta_t)
 
     simulator = CachingPddlPlusSimulator()
     caching_sim_expected_trace, _ = simulator.get_expected_trace(observation, meta_model, delta_t)
-    caching_sim_consistency = consistency_estimator.estimate_consistency(caching_sim_expected_trace, observed_seq, delta_t)
+    caching_sim_consistency = consistency_estimator.consistency_from_trace(caching_sim_expected_trace, observed_seq,
+                                                                           delta_t=delta_t)
 
     assert(vanilla_sim_consistency==caching_sim_consistency)
     assert(len(vanilla_sim_expected_trace)==len(caching_sim_expected_trace))

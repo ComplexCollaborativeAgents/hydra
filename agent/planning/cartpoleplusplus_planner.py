@@ -207,24 +207,3 @@ class CartPolePlusPlusPlanner(HydraPlanner):
             out_file.write(str.encode("\n Stderr: \n"))
             out_file.write(completed_process.stderr)
         out_file.close()
-
-#
-# ''' A planner that fires at the given angle. Useful for debugging and testing'''
-# class PlannerStub():
-#     def __init__(self, shoot_angle: float, meta_model = MetaModel()):
-#         self.meta_model = meta_model
-#         self.sb_state = None
-#         self.shoot_angle = shoot_angle
-#
-#     def make_plan(self,state,prob_complexity=0):
-#         '''
-#         The plan should be a list of actions that are either executable in the environment
-#         or invoking the RL agent
-#         '''
-#         self.sb_state = state
-#         return self.get_plan_actions()
-#
-#     def get_plan_actions(self,count=0):
-#         pddl_state =self.meta_model.create_pddl_problem(self.sb_state).get_init_state()
-#         action_time = self.meta_model.angle_to_action_time(self.shoot_angle, pddl_state)
-#         return [ ["dummy_action", self.shoot_angle, action_time]]

@@ -13,9 +13,7 @@ import seaborn as sns
 import settings
 from agent.sb_hydra_agent import RepairingSBHydraAgent, SBHydraAgent
 from pandas.core.frame import DataFrame
-from utils.generate_trials_sb import (NON_NOVEL_LEVELS, NON_NOVEL_TYPES,
-                                      NOVELTY_LEVELS, NOVELTY_TYPES,
-                                      collect_levels, generate_trial_sets,
+from utils.generate_trials_sb import (collect_levels, generate_trial_sets,
                                       unpack_trial_id)
 from worlds.science_birds import ScienceBirds
 
@@ -45,12 +43,12 @@ NOTIFY_NOVELTY = True
 REPETITION = 1   # If not set to None, the same sampled level will be used this many times before another is selected.
 NON_NOVEL_TO_USE = { # level and type of non-novel levels to use
     'novelty_level_0': [
-        "type222", "type223"
+        "type3610"
         ]
     }   
 NOVEL_TO_USE = {    # level and type of novel levels to use
-    'novelty_level_1': [
-        'type6'
+    'novelty_level_36': [
+        'type10'
     ]
 }
 

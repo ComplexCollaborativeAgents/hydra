@@ -140,3 +140,4 @@ scratchpad.py
 # Logs and Data
 .log
 .csv
+*_problem.pddl

@@ -10,7 +10,6 @@ import os.path as path
 import settings
 from agent.cartpole_hydra_agent import CartpoleHydraAgentObserver, RepairingCartpoleHydraAgent, CartpoleHydraAgent
 from agent.planning.cartpole_meta_model import CartPoleMetaModel
-from agent.repairing_hydra_agent import RepairingGymHydraAgent
 import time
 from agent.planning.cartpole_meta_model import *
 from agent.gym_hydra_agent import *

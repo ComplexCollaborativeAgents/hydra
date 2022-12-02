@@ -1,6 +1,6 @@
 from agent.planning.cartpole_planner import CartPolePlanner
 from agent.planning.cartpole_meta_model import *
-from agent.consistency.observation import CartPoleObservation
+from agent.consistency.episode_log import CartPoleObservation
 import time
 import copy
 import numpy as np
@@ -14,6 +14,7 @@ REPAIR_CALLS = "repair_calls"
 REPAIR_TIME = "repair_time"
 
 logger = logging.getLogger("gym_hydra_agent")
+
 
 class GymHydraAgent:
     def __init__(self, env, starting_seed=False):
@@ -32,15 +33,17 @@ class GymHydraAgent:
         plan = self.cartpole_planner.make_plan(self.observation, 0)
         # print("\n\nPLAN LENGTH: ", len(plan))
         if debug_info:
-            print ("\nINITIAL STATE: ", self.observation)
+            print("\nINITIAL STATE: ", self.observation)
             print("GYM INITIAL STATE: ", self.env.state)
 
         n_steps = 1
         cartpole_obs = CartPoleObservation()
 
         if debug_info:
-            initial_state_exec = (self.observation[0], self.observation[1], self.observation[2], self.observation[3], 0.00)
-            state_values_list = (self.cartpole_planner.extract_state_values_from_trace("%s/plan_cartpole_prob.pddl" % str(settings.CARTPOLE_PLANNING_DOCKER_PATH)))
+            initial_state_exec = (
+            self.observation[0], self.observation[1], self.observation[2], self.observation[3], 0.00)
+            state_values_list = (self.cartpole_planner.extract_state_values_from_trace(
+                "%s/plan_cartpole_prob.pddl" % str(settings.CARTPOLE_PLANNING_DOCKER_PATH)))
             # state_values_list.insert(0, initial_state_exec)
             full_plan_trace = []
             # full_plan_trace.append(initial_state_exec)
@@ -50,10 +53,10 @@ class GymHydraAgent:
         while True:
             self.env.render()
             time.sleep(0.05)
-            if itt<len(plan):
+            if itt < len(plan):
                 action = 1 if plan[itt].action_name == "move_cart_right dummy_obj" else 0
             else:
-                action = random.randint(0,1) # Choose random action if plan failed
+                action = random.randint(0, 1)  # Choose random action if plan failed
             cartpole_obs.actions.append(action)
             cartpole_obs.states.append(self.observation)
             self.observation, reward, done, info = self.env.step(action)
@@ -62,19 +65,19 @@ class GymHydraAgent:
             # cartpole_obs.states.append(self.observation)
             if debug_info:
                 full_plan_trace.append(state_values_list[itt])
-                print ("\nSTEP: ", n_steps, str(round(n_steps*0.02,4)) + "s")
-                print (action)
-                print (self.observation)
-                print (full_plan_trace[-1])
+                print("\nSTEP: ", n_steps, str(round(n_steps * 0.02, 4)) + "s")
+                print(action)
+                print(self.observation)
+                print(full_plan_trace[-1])
                 # print ((full_plan_trace[-2][0],full_plan_trace[-1][1],full_plan_trace[-2][2],full_plan_trace[-1][3])) if len(full_plan_trace) > 1 else print(full_plan_trace[-1])
-                print ("REWARD:", reward)
-                print (done)
+                print("REWARD:", reward)
+                print(done)
 
             n_steps += 1
             itt += 1
 
             if done or n_steps >= 201:
-                print ("\n\nFINISHED\nSCORE: ", sum(cartpole_obs.rewards))
+                print("\n\nFINISHED\nSCORE: ", sum(cartpole_obs.rewards))
                 self.env.close()
                 break
 
@@ -83,7 +86,7 @@ class GymHydraAgent:
                 emergency_plan = False
 
                 temp_plan = copy.copy(plan)
-                self.meta_model.constant_numeric_fluents['time_limit'] = round((4.0 - ((n_steps-1)*0.02)), 2)
+                self.meta_model.constant_numeric_fluents['time_limit'] = round((4.0 - ((n_steps - 1) * 0.02)), 2)
                 plan = self.cartpole_planner.make_plan(self.observation, 0)
                 if (len(plan)) == 0:
                     emergency_plan = True
@@ -93,7 +96,8 @@ class GymHydraAgent:
                     # plan = self.cartpole_planner.make_plan(self.observation, 0)
 
                 if debug_info:
-                    state_values_list = (self.cartpole_planner.extract_state_values_from_trace("%s/plan_cartpole_prob.pddl" % str(settings.CARTPOLE_PLANNING_DOCKER_PATH)))
+                    state_values_list = (self.cartpole_planner.extract_state_values_from_trace(
+                        "%s/plan_cartpole_prob.pddl" % str(settings.CARTPOLE_PLANNING_DOCKER_PATH)))
 
                 itt = 0
 
@@ -103,10 +107,10 @@ class GymHydraAgent:
         # DOES NOT INCLUDE THE FINAL STATE (i.e. GOAL STATE)
         self.observations_list.append(cartpole_obs)
         if debug_info:
-            print ("\n\nCARTPOLE OBSERVATIONS")
-            print (cartpole_obs.states)
-            print (cartpole_obs.actions)
-            print (sum(cartpole_obs.rewards))
+            print("\n\nCARTPOLE OBSERVATIONS")
+            print(cartpole_obs.states)
+            print(cartpole_obs.actions)
+            print(sum(cartpole_obs.rewards))
             self.plot_plan_vs_execution(full_plan_trace, cartpole_obs, n_steps)
 
     def reset_with_seed(self):
@@ -115,12 +119,12 @@ class GymHydraAgent:
         return np.array(self.env.state)
 
     def find_last_obs(self):
-        if len(self.observations_list)==0:
+        if len(self.observations_list) == 0:
             return None
         else:
             return self.observations_list[-1]
 
-    def plot_plan_vs_execution(self, plan_vals, exec_vals : CartPoleObservation, steps):
+    def plot_plan_vs_execution(self, plan_vals, exec_vals: CartPoleObservation, steps):
 
         plan_xs = []
         plan_x_dots = []
@@ -144,8 +148,8 @@ class GymHydraAgent:
             plan_theta_dots.append(plan_vals[j][3])
 
         plt.title('Cart Position (X)')
-        plt.plot(np.arange(1,steps,1), exec_xs, label='exec')
-        plt.plot(np.arange(1,steps,1), plan_xs, label='plan')
+        plt.plot(np.arange(1, steps, 1), exec_xs, label='exec')
+        plt.plot(np.arange(1, steps, 1), plan_xs, label='plan')
         plt.xlabel('steps')
         plt.xticks(np.arange(0, steps, 40))
         plt.ylabel('values')
@@ -186,9 +190,9 @@ class RepairingGymHydraAgent(GymHydraAgent):
         self.consistency_checker = CartpoleConsistencyEstimator()
         self.desired_precision = 0.01
 
-    ''' Checks if the meta model should be repaired based on the given observation. Note: can also consider past observations'''
     def should_repair(self, observation):
-        if sum(observation.rewards)>195:
+        """ Checks if the meta model should be repaired based on the given observation. Note: can also consider past observations"""
+        if sum(observation.rewards) > 195:
             return False
         else:
             return True
@@ -200,14 +204,14 @@ class RepairingGymHydraAgent(GymHydraAgent):
             if not self.should_repair(observation):
                 logger.info("No need to repair")
                 return
-            meta_model_repair = CartpoleRepair()
+            meta_model_repair = CartpoleRepair(self.meta_model)
             start_time = time.time()
-            repair, consistency = meta_model_repair.repair(self.meta_model, observation, delta_t=settings.CP_DELTA_T)
-            repair_time = time.time()-start_time
+            repair, consistency = meta_model_repair.repair(observation, delta_t=settings.CP_DELTA_T)
+            repair_time = time.time() - start_time
             repair_description = ["Repair %s, %.2f" % (fluent, repair[i])
                                   for i, fluent in enumerate(meta_model_repair.fluents_to_repair)]
 
             logger.info("Repair done! Repair time %.2f, Consistency: %.2f, Repair:\n %s" % (
-            repair_time, consistency, "\n".join(repair_description)))
+                repair_time, consistency, "\n".join(repair_description)))
 
         super().run(debug_info, max_actions)

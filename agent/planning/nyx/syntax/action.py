@@ -42,6 +42,8 @@ class Action(HappeningMixin):
         '\n  preconditions: ' + str([list(i) for i in self.preconditions]) + \
         '\n  effects: ' + str([list(i) for i in self.effects])
 
+    __repr__ = __str__
+
     #-----------------------------------------------
     # Equality
     #-----------------------------------------------

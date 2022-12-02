@@ -1,6 +1,6 @@
-'''
+"""
 This module runs a set of experiments to evaluate the performance of our ScienceBirds agent
-'''
+"""
 import json
 import random
 from agent.gym_hydra_agent import *
@@ -18,8 +18,8 @@ def load_lookup():
         return obj
 
 
-''' Run experiments iwth the repairing Hydra agent '''
 def run_repairing_sb_experiments():
+    """ Run experiments iwth the repairing Hydra agent """
     # samples = 1000
     # novelties = {0: [2], 1: [6, 7, 8, 9, 10], 2: [6, 7, 8, 9, 10], 3: [6, 7]}
     # novelties = {3: [7]}

@@ -21,7 +21,7 @@ def generate_obs_of_no_op(env, agent, iterations):
 def trajectories_to_pddl_files(dump_path = pathlib.Path(settings.ROOT_PATH) / "data" / "polycraft" / "dumps", num_of_obs = 3):
     ''' Analizes an obseration and outputs PDDL state and action files corresponding to the observed trajectories '''
     dumps_path = pathlib.Path(settings.ROOT_PATH) / "data" / "polycraft" / "dumps"
-    meta_model = PolycraftMetaModel()
+    meta_model = PolycraftMetaModel(active_task=PolycraftTask.CRAFT_POGO.create_instance())
     for i in range(num_of_obs):
         with open(dumps_path / f"polycraft_obs_actions_{i}.pddl", "w") as actions_file:
             with open(dumps_path / f"polycraft_obs_{i}.p", "rb") as in_file:

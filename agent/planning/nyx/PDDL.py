@@ -47,7 +47,8 @@ class GroundedPDDLInstance:
         self._objects = None
         self._initialize_state()
         self._goals_code, self.goals = JIT.compile_expression(self.problem.goals, name='goals')
-        if self.problem.metric != ['total-time'] and self.problem.metric != ['total-actions'] and self.problem.metric is not None:
+        if self.problem.metric != ['total-time'] and self.problem.metric != ['total-actions'] \
+                and self.problem.metric is not None:
             self._metric_code, self.metric = JIT.compile_expression([self.problem.metric], name='metric')
         self.processes = self._groundify_happenings(self.domain.processes)
         self.events = self._groundify_happenings(self.domain.events)
@@ -75,7 +76,9 @@ class GroundedPDDLInstance:
     def _groundify(variables: dict, objects: dict):
         grounded_vars = []
         for var_name, type_pairs in variables.items():
-            grounded_type_instances = [objects[type_name] for _, type_name in type_pairs.items()]
+            grounded_type_instances = [objects[type_name] for _, type_name in
+                                       type_pairs.items()]  # if objects.get(type_name)]
+            # Only ground objects of a type if there are any objects of that type.
             for almost_grounded in itertools.product(*grounded_type_instances):
                 grounded_vars.append([var_name] + list(almost_grounded))
         return grounded_vars
@@ -96,9 +99,28 @@ class GroundedPDDLInstance:
                 preconditions_tree.add_happening(grounded_happening)
         return preconditions_tree
 
-class PDDL_Parser:
+    def __str__(self):
+        res = 'Domain: ' + self.domain.name + '\n'
+        res += 'Problem' + self.problem.name + '\n'
+        res += 'Initial state: ' + str(self.init_state) + '\n'
+        res += 'actions: \n'
+        for action in self.actions:
+            res += action.name + '\npreconditions: ' + str(action.preconditions) + '\neffects: ' + str(
+                action.effects) + '\n'
+        res += 'events: \n'
+        for event in self.events:
+            res += event.name + '\npreconditions: ' + str(event.preconditions) + '\neffects: ' + str(
+                event.effects) + '\n'
+        res += 'processes: \n'
+        for process in self.processes:
+            res += process.name + '\npreconditions: ' + str(process.preconditions) + '\neffects: ' + str(
+                process.effects) + '\n'
+        return res
 
-    SUPPORTED_REQUIREMENTS = [':strips', ':adl', ':negative-preconditions', ':typing', ':time', ':fluents', ':continuous-effects', ':disjunctive-preconditions', ':semantic-attachment']
+
+class PDDL_Parser:
+    SUPPORTED_REQUIREMENTS = [':strips', ':adl', ':negative-preconditions', ':typing', ':time', ':fluents',
+                              ':continuous-effects', ':disjunctive-preconditions', ':semantic-attachment']
 
     def __init__(self, domain_file, problem_file):
         self.domain = PDDLDomain()
@@ -107,39 +129,39 @@ class PDDL_Parser:
         self.parse_problem(problem_file)
         self.grounded_instance = GroundedPDDLInstance(self.domain, self.problem)
 
-    #-----------------------------------------------
+    # -----------------------------------------------
     # Tokens
-    #-----------------------------------------------
+    # -----------------------------------------------
 
     def scan_tokens(self, filename):
-        with open(filename,'r') as f:
+        with open(filename, 'r') as f:
             # Remove single line comments
             str = re.sub(r';.*$', '', f.read(), flags=re.MULTILINE).lower()
         # Tokenize
         stack = []
-        list = []
+        token_list = []
         for t in re.findall(r'[()]|[^\s()]+', str):
             if t == '(':
-                stack.append(list)
-                list = []
+                stack.append(token_list)
+                token_list = []
             elif t == ')':
                 if stack:
-                    l = list
-                    list = stack.pop()
-                    list.append(l)
+                    l = token_list
+                    token_list = stack.pop()
+                    token_list.append(l)
                 else:
                     raise Exception('Missing open parentheses')
             else:
-                list.append(t)
+                token_list.append(t)
         if stack:
             raise Exception('Missing close parentheses')
-        if len(list) != 1:
+        if len(token_list) != 1:
             raise Exception('Malformed expression')
-        return list[0]
+        return token_list[0]
 
-    #-----------------------------------------------
+    # -----------------------------------------------
     # Parse domain
-    #-----------------------------------------------
+    # -----------------------------------------------
 
     def parse_domain(self, domain_filename):
         tokens = self.scan_tokens(domain_filename)
@@ -175,48 +197,49 @@ class PDDL_Parser:
                     self.parse_event(group)
                 elif t == ':process':
                     self.parse_process(group)
-                else: self.parse_domain_extended(t, group)
+                else:
+                    self.parse_domain_extended(t, group)
         else:
             raise Exception('File ' + domain_filename + ' does not match domain pattern')
 
     def parse_domain_extended(self, t, group):
         print(str(t) + ' is not recognized in domain')
 
-    #-----------------------------------------------
+    # -----------------------------------------------
     # Parse hierarchy
-    #-----------------------------------------------
+    # -----------------------------------------------
 
     def parse_hierarchy(self, group, structure, name, redefine):
-        list = []
+        token_list = []
         while group:
             if redefine and group[0] in structure:
                 raise Exception('Redefined supertype of ' + group[0])
             elif group[0] == '-':
-                if not list:
+                if not token_list:
                     raise Exception('Unexpected hyphen in ' + name)
                 group.pop(0)
                 type = group.pop(0)
                 if not type in structure:
                     structure[type] = []
-                structure[type] += list
-                list = []
+                structure[type] += token_list
+                token_list = []
             else:
-                list.append(group.pop(0))
-        if list:
+                token_list.append(group.pop(0))
+        if token_list:
             if not 'object' in structure:
                 structure['object'] = []
-            structure['object'] += list
+            structure['object'] += token_list
 
-    #-----------------------------------------------
+    # -----------------------------------------------
     # Parse constants
-    #-----------------------------------------------
+    # -----------------------------------------------
 
     def parse_constants(self, group, name):
         self.parse_hierarchy(group, self.domain.constants, name, False)
 
-    #-----------------------------------------------
+    # -----------------------------------------------
     # Parse objects
-    #-----------------------------------------------
+    # -----------------------------------------------
 
     def parse_objects(self, group, name):
         self.parse_hierarchy(group, self.problem.objects, name, False)
@@ -228,9 +251,9 @@ class PDDL_Parser:
     def parse_types(self, group):
         self.parse_hierarchy(group, self.domain.types, 'types', True)
 
-    #-----------------------------------------------
+    # -----------------------------------------------
     # Parse predicates
-    #-----------------------------------------------
+    # -----------------------------------------------
 
     def parse_predicates(self, group):
         for pred in group:
@@ -244,9 +267,9 @@ class PDDL_Parser:
                 if t == '-':
                     if not untyped_variables:
                         raise Exception('Unexpected hyphen in predicates')
-                    type = pred.pop(0)
+                    predicate_type = pred.pop(0)
                     while untyped_variables:
-                        arguments[untyped_variables.pop(0)] = type
+                        arguments[untyped_variables.pop(0)] = predicate_type
                 else:
                     untyped_variables.append(t)
             while untyped_variables:
@@ -269,18 +292,18 @@ class PDDL_Parser:
                 if t == '-':
                     if not untyped_variables:
                         raise Exception('Unexpected hyphen in functions')
-                    type = func.pop(0)
+                    predicate_type = func.pop(0)
                     while untyped_variables:
-                        arguments[untyped_variables.pop(0)] = type
+                        arguments[untyped_variables.pop(0)] = predicate_type
                 else:
                     untyped_variables.append(t)
             while untyped_variables:
                 arguments[untyped_variables.pop(0)] = 'object'
             self.domain.functions[function_name] = arguments
 
-    #-----------------------------------------------
+    # -----------------------------------------------
     # Parse action
-    #-----------------------------------------------
+    # -----------------------------------------------
 
     def parse_action(self, group):
         name = group.pop(0)
@@ -319,7 +342,8 @@ class PDDL_Parser:
             elif t == ':effect':
                 # effects = group.pop(0)
                 self.split_predicates(group.pop(0), effects, name, ' effects')
-            else: extensions = self.parse_action_extended(t, group)
+            else:
+                extensions = self.parse_action_extended(t, group)
         self.domain.actions.append(Action(name, parameters, preconditions, effects))
 
     def parse_action_extended(self, t, group):
@@ -417,13 +441,14 @@ class PDDL_Parser:
     def parse_process_extended(self, t, group):
         print(str(t) + ' is not recognized in process')
 
-    #-----------------------------------------------
+    # -----------------------------------------------
     # Parse problem
-    #-----------------------------------------------
+    # -----------------------------------------------
 
     def parse_problem(self, problem_filename):
         def frozenset_of_tuples(data):
             return frozenset([tuple(t) for t in data])
+
         tokens = self.scan_tokens(problem_filename)
         if type(tokens) is list and tokens.pop(0) == 'define':
             self.problem.name = 'unknown'
@@ -436,7 +461,7 @@ class PDDL_Parser:
                     if self.domain.name != group[0]:
                         raise Exception('Different domain specified in problem file')
                 elif t == ':requirements':
-                    pass # Ignore requirements in problem, parse them in the domain
+                    pass  # Ignore requirements in problem, parse them in the domain
                 elif t == ':objects':
                     self.parse_objects(group, t)
                 elif t == ':init':
@@ -449,16 +474,17 @@ class PDDL_Parser:
                     self.problem.goals = goals
                 elif t == ':metric':
                     self.problem.metric = group.pop(0)
-                else: self.parse_problem_extended(t, group)
+                else:
+                    self.parse_problem_extended(t, group)
         else:
             raise Exception('File ' + problem_filename + ' does not match problem pattern')
 
     def parse_problem_extended(self, t, group):
         print(str(t) + ' is not recognized in problem')
 
-    #-----------------------------------------------
+    # -----------------------------------------------
     # Split predicates
-    #-----------------------------------------------
+    # -----------------------------------------------
 
     def split_predicates(self, group, preds, name, part):
         if not type(group) is list:
@@ -476,11 +502,12 @@ class PDDL_Parser:
                 preds.append(predicate)
 
 
-#-----------------------------------------------
+# -----------------------------------------------
 # Main
-#-----------------------------------------------
+# -----------------------------------------------
 if __name__ == '__main__':
     import sys, pprint
+
     domain = sys.argv[1]
     problem = sys.argv[2]
     parser = PDDL_Parser(domain, problem)

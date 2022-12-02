@@ -1,6 +1,8 @@
 import sklearn.metrics as metrics
 import numpy as np
-from agent.repair.sb_repair import ScienceBirdsConsistencyEstimator, BirdLocationConsistencyEstimator, BlockNotDeadConsistencyEstimator
+from agent.repair.sb_consistency_estimators.sb_domain_consistency_estimator import ScienceBirdsConsistencyEstimator
+from agent.repair.sb_consistency_estimators.bird_location_consistency import BirdLocationConsistencyEstimator
+from agent.repair.sb_consistency_estimators.block_dead_consistency import BlockNotDeadConsistencyEstimator
 import enum
 import pathlib
 from typing import List

@@ -1,10 +1,10 @@
 import pytest
 
-from agent.repair.sb_repair import BirdLocationConsistencyEstimator
+from agent.repair.sb_consistency_estimators.bird_location_consistency import BirdLocationConsistencyEstimator
 from agent.sb_hydra_agent import *
-from agent.planning.simple_planner import *
+from agent.planning.simple_sb_planner import *
 import matplotlib.pyplot
-from agent.repair.focused_repair import *
+from worlds.science_birds import ScienceBirds
 
 logger = test_utils.create_logger("test_model_repair")
 
@@ -27,7 +27,7 @@ def _inject_fault_to_meta_model(meta_model : ScienceBirdsMetaModel, fluent_to_ch
 @pytest.mark.skip("This test works, but is slow")
 def test_repair_gravity_in_agent(save_obs=False,plot_obs_vs_exp=False):
     # Setup environment and agent
-    env = sb.ScienceBirds(None, launch=True, config='test_consistency_config.xml')
+    env = ScienceBirds(None, launch=True, config='test_consistency_config.xml')
     _adjust_game_speed()
     hydra = SBHydraAgent(env)
 
@@ -71,8 +71,8 @@ def test_repair_gravity_in_agent(save_obs=False,plot_obs_vs_exp=False):
             # No need to fix the model - we're winning! #TODO: This is an assumption: better to replace this with a good novelty detection mechanism
         else:
             consistency = check_obs_consistency(observation, meta_model, consistency_checker)
-            meta_model_repair = GreedyBestFirstSearchMetaModelRepair(fluents_to_repair, consistency_checker, repair_deltas,
-                                                                     consistency_threshold=desired_precision)
+            meta_model_repair = GreedyBestFirstSearchConstantFluentMetaModelRepair(fluents_to_repair, consistency_checker, repair_deltas,
+                                                                                   consistency_threshold=desired_precision)
             repair, _ = meta_model_repair.repair(meta_model, observation, delta_t=DEFAULT_DELTA_T)
             logger.info("Repair done (%s), iteration %d" % (repair,iteration))
             consistency_after = check_obs_consistency(observation, meta_model, consistency_checker)
@@ -93,33 +93,10 @@ def test_repair_gravity_offline():
     repair_deltas = [1.0,]
     desired_precision = 20
     consistency_estimator = ScienceBirdsConsistencyEstimator()
-    meta_model_repair = GreedyBestFirstSearchMetaModelRepair(fluents_to_repair, consistency_estimator, repair_deltas,
-                                                             consistency_threshold=desired_precision)
+    meta_model_repair = GreedyBestFirstSearchConstantFluentMetaModelRepair(fluents_to_repair, consistency_estimator, repair_deltas,
+                                                                           consistency_threshold=desired_precision)
 
     _test_repair_gravity_offline(meta_model_repair)
-
-''' Repair gravity based on an observed state NOTE: If changed code that may affect the observations, rerun test_repair_gravity_in_agent() with save_obs=True'''
-def test_repair_gravity_offline_mma_repair():
-    # Repair model
-    fluents_to_repair = [GRAVITY_FACTOR,]
-    repair_deltas = [1.0,]
-    desired_precision = 20
-    consistency_estimator = ScienceBirdsConsistencyEstimator()
-    meta_model_repair = MmoBasedMetaModelRepair(fluents_to_repair, consistency_estimator, repair_deltas,
-                                                             consistency_threshold=desired_precision)
-    _test_repair_gravity_offline(meta_model_repair)
-
-''' Repair gravity based on an observed state NOTE: If changed code that may affect the observations, rerun test_repair_gravity_in_agent() with save_obs=True'''
-def test_repair_gravity_offline_focused_repair():
-    # Repair model
-    desired_precision = 20
-    consistency_estimator = ScienceBirdsConsistencyEstimator()
-    meta_model = ScienceBirdsMetaModel()
-
-    meta_model_repair = FocusedMetaModelRepair(meta_model.repairable_constants, consistency_estimator, meta_model.repair_deltas,
-                                                             consistency_threshold=desired_precision)
-    _test_repair_gravity_offline(meta_model_repair)
-
 
 ''' Test repair gravity, using an observation file created by the test_repair_gravity_in_agent(True,...) method '''
 def _test_repair_gravity_offline(meta_model_repair):

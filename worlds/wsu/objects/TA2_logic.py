@@ -302,7 +302,10 @@ class TA2Logic(object):
         # Get number of logical CPUs
         num_logical_cpu = psutil.cpu_count(logical=True)
         # Get CPU max speed in MHz
-        cpu_max_speed = psutil.cpu_freq().max
+        try:
+            cpu_max_speed = psutil.cpu_freq().max
+        except NotImplementedError:
+            cpu_max_speed = 3000
         # Get total physical RAM in bytes
         physical_ram = psutil.virtual_memory().total
         result = dict({'num_physical_cpu': num_physical_cpu,

@@ -2,7 +2,7 @@ from os import listdir, path
 import pickle
 import random
 
-from agent.consistency.observation import ScienceBirdsObservation
+from agent.consistency.episode_log import ScienceBirdsObservation
 from agent.sb_hydra_agent import RepairingSBHydraAgent
 
 # SB_NON_NOVEL_OBS_DIR = '/home/klenk/Downloads/non_novel/'

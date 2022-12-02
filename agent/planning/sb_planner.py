@@ -16,9 +16,9 @@ from agent.hydra_agent import HydraPlanner
 
 
 class SBPlanner(HydraPlanner):
-    domain_file = None     # TODO: RONI: IS THIS DEPRECATED?
-    problem = None # current state of the world     # TODO: RONI: IS THIS DEPRECATED?
-    SB_OFFSET = 1     # TODO: RONI: IS THIS DEPRECATED?
+    domain_file = None  # TODO: RONI: IS THIS DEPRECATED?
+    problem = None  # current state of the world     # TODO: RONI: IS THIS DEPRECATED?
+    SB_OFFSET = 1  # TODO: RONI: IS THIS DEPRECATED?
 
     def __init__(self, meta_model: ScienceBirdsMetaModel = ScienceBirdsMetaModel()):
         super().__init__(meta_model)
@@ -32,7 +32,8 @@ class SBPlanner(HydraPlanner):
         or invoking the RL agent
         """
         if settings.NO_PLANNING:
-            self.current_problem_prefix = datetime.datetime.now().strftime("%y%m%d_%H%M%S") # need a prefix for observations
+            self.current_problem_prefix = datetime.datetime.now().strftime(
+                "%y%m%d_%H%M%S")  # need a prefix for observations
             return []
         pddl = self.meta_model.create_pddl_problem(state)
         if prob_complexity == 1:
@@ -47,9 +48,9 @@ class SBPlanner(HydraPlanner):
         """Converts the symbolic action into an environment action"""
         # TODO: RONI: I THINK THIS IS DEPRECATED AND SHOULD BE REMOVED
         assert False
-        if isinstance(plan[0],InvokeBasicRL):
+        if isinstance(plan[0], InvokeBasicRL):
             return policy_learner.act_and_learn(plan[0].state)
-        if isinstance(plan[0],SBShoot):
+        if isinstance(plan[0], SBShoot):
             return None
 
     def write_problem_file(self, pddl_problem):
@@ -62,6 +63,7 @@ class SBPlanner(HydraPlanner):
             subprocess.run(cmd, shell=True)
             exporter.to_file(pddl_problem, "{}/trace/problems/{}_problem.pddl".format(settings.SB_PLANNING_DOCKER_PATH,
                                                                                       self.current_problem_prefix))
+
     def get_plan_actions(self, count=0):
         plan_actions = []
         planning_successful = False
@@ -69,11 +71,12 @@ class SBPlanner(HydraPlanner):
         try:
             # TODO create NYX object and get stats from it
             self.plan, self.explored_states = nyx.runner("%s/sb_domain.pddl" % str(settings.SB_PLANNING_DOCKER_PATH),
-                                   "%s/sb_prob.pddl" % str(settings.SB_PLANNING_DOCKER_PATH),
-                                   ['-vv', '-to:%s' % str(settings.SB_TIMEOUT), '-noplan', '-search:' + settings.SB_ALGO_STRING,
-                                    '-custom_heuristic:' + settings.SB_HEURISTIC_STRING, '-th:10',
-                                    # '-th:%s' % str(self.meta_model.constant_numeric_fluents['time_limit']),
-                                    '-t:%s' % str(settings.SB_DELTA_T)])
+                                                         "%s/sb_prob.pddl" % str(settings.SB_PLANNING_DOCKER_PATH),
+                                                         ['-vv', '-to:%s' % str(settings.SB_TIMEOUT), '-noplan',
+                                                          '-search:' + settings.SB_ALGO_STRING,
+                                                          '-custom_heuristic:' + settings.SB_HEURISTIC_STRING, '-th:10',
+                                                          # '-th:%s' % str(self.meta_model.constant_numeric_fluents['time_limit']),
+                                                          '-t:%s' % str(settings.SB_DELTA_T)])
 
             plan_actions = self.extract_actions_from_plan_trace(
                 "%s/plan_sb_prob.pddl" % str(settings.SB_PLANNING_DOCKER_PATH))
@@ -94,8 +97,10 @@ class SBPlanner(HydraPlanner):
             plan_actions = []
         return plan_actions, planning_successful
 
-    ''' Parses the given plan trace file and outputs the plan '''
+
+
     def extract_actions_from_plan_trace(self, plane_trace_file: str):
+        """ Parses the given plan trace file and outputs the plan """
         plan_actions = PddlPlusPlan()
         lines_list = open(plane_trace_file).readlines()
         with open(plane_trace_file) as plan_trace_file:
@@ -131,11 +136,13 @@ class SBPlanner(HydraPlanner):
         unobscured_plan_list = []
 
         # COPY DOMAIN FILE TO VAL DIRECTORY FOR VALIDATION.
-        cmd = 'cp {}/sb_domain.pddl {}/val_domain.pddl'.format(str(settings.SB_PLANNING_DOCKER_PATH), str(settings.VAL_DOCKER_PATH))
+        cmd = 'cp {}/sb_domain.pddl {}/val_domain.pddl'.format(str(settings.SB_PLANNING_DOCKER_PATH),
+                                                               str(settings.VAL_DOCKER_PATH))
         subprocess.run(cmd, shell=True)
 
         # COPY PROBLEM FILE TO VAL DIRECTORY FOR VALIDATION.
-        cmd = 'cp {}/sb_prob.pddl {}/val_prob.pddl'.format(str(settings.SB_PLANNING_DOCKER_PATH), str(settings.VAL_DOCKER_PATH))
+        cmd = 'cp {}/sb_prob.pddl {}/val_prob.pddl'.format(str(settings.SB_PLANNING_DOCKER_PATH),
+                                                           str(settings.VAL_DOCKER_PATH))
         subprocess.run(cmd, shell=True)
 
         with open("%s/docker_plan_trace.txt" % str(settings.SB_PLANNING_DOCKER_PATH)) as plan_trace_file:
@@ -152,28 +159,38 @@ class SBPlanner(HydraPlanner):
             val_plan.write(acn)
         val_plan.close()
 
-
         chdir("%s" % settings.VAL_DOCKER_PATH)
 
         completed_process = subprocess.run(('docker', 'build', '-t', 'val_from_dockerfile', '.'), capture_output=True)
         out_file = open("docker_build_trace.txt", "wb")
         out_file.write(completed_process.stdout)
-        if len(completed_process.stderr)>0:
+        if len(completed_process.stderr) > 0:
             out_file.write(str.encode("\n Stderr: \n"))
             out_file.write(completed_process.stderr)
         out_file.close()
 
-        completed_process = subprocess.run(('docker', 'run', 'val_from_dockerfile', 'val_domain.pddl', 'val_prob.pddl', 'val_plan.pddl'), capture_output=True)
+        completed_process = subprocess.run(
+            ('docker', 'run', 'val_from_dockerfile', 'val_domain.pddl', 'val_prob.pddl', 'val_plan.pddl'),
+            capture_output=True)
         out_file = open("docker_validation_trace.txt", "wb")
         out_file.write(completed_process.stdout)
-        if len(completed_process.stderr)>0:
+        if len(completed_process.stderr) > 0:
             out_file.write(str.encode("\n Stderr: \n"))
             out_file.write(completed_process.stderr)
         out_file.close()
+
+    @staticmethod
+    def get_bird(pddl_state, bird_id: int):
+        """ Get the bird with the given bird id"""
+        for bird in pddl_state.get_objects('bird'):  # TODO: Can change this to be more efficient
+            if bird_id == int(pddl_state[("bird_id", bird)]):
+                return bird
+        raise ValueError("Bird %d not found in state" % bird_id)
 
 
 class PlannerStub:
     """ A planner that fires at the given angle. Useful for debugging and testing"""
+
     def __init__(self, shoot_angle: float, meta_model=ScienceBirdsMetaModel()):
         self.meta_model = meta_model
         self.sb_state = None
@@ -188,7 +205,9 @@ class PlannerStub:
         return self.get_plan_actions()
 
     def get_plan_actions(self, count=0):
-        pddl_state =self.meta_model.create_pddl_problem(self.sb_state).get_init_state()
+        pddl_state = self.meta_model.create_pddl_problem(self.sb_state).get_init_state()
         action_time = self.meta_model.angle_to_action_time(self.shoot_angle, pddl_state)
-        action_name = 'pa-twang %s' % pddl_state.get_active_bird()
-        return [ TimedAction(action_name, action_time) ]
+        active_bird_id = int(pddl_state['active_bird'])
+        active_bird = SBPlanner.get_bird(pddl_state, active_bird_id)
+        action_name = 'pa-twang %s' % active_bird
+        return [TimedAction(action_name, action_time)]

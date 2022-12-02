@@ -1,35 +1,31 @@
-from agent.consistency.trace_visualizer import plot_expected_trace_for_obs
-from agent.planning.nyx.PDDL import PDDL_Parser
-from agent.planning.nyx.syntax import constants
-from agent.reward_estimation.reward_estimator import RewardEstimator
-import pickle
 import datetime
-import time
 
+import numpy
 import pandas
+import pickle
 
-import settings
-from agent.hydra_agent import logger, NN_PROB, PDDL_PROB, NOVELTY_EXISTENCE_NOT_GIVEN, NOVELTY_LIKELIHOOD
+from agent.reward_estimation.reward_estimator import RewardEstimator
+from agent.hydra_agent import HydraAgent
+from agent.hydra_agent import PDDL_PROB, NOVELTY_EXISTENCE_NOT_GIVEN, NOVELTY_LIKELIHOOD
+from agent.planning.nyx.syntax import constants
 from agent.planning.sb_planner import SBPlanner
 from agent.repair.meta_model_repair import *
-import numpy
-# from state_prediction.anomaly_detector_fc_multichannel import FocusedSBAnomalyDetector
-
-# TODO: Maybe push this to the settings file? then every module just adds a logger
-from agent.repair.sb_repair import ScienceBirdsConsistencyEstimator, ScienceBirdsMetaModelRepair
-from agent.gym_hydra_agent import REPAIR_CALLS, REPAIR_TIME, logger
+from agent.repair.sb_consistency_estimators.sb_domain_consistency_estimator import ScienceBirdsConsistencyEstimator
+from agent.repair.sb_repair import ScienceBirdsMetaModelRepair
 from utils.point2D import Point2D
 from worlds.science_birds_interface.client.agent_client import GameState
-from agent.hydra_agent import HydraAgent
 
+# TODO: Maybe push this to the settings file? then every module just adds a logger
+# from state_prediction.anomaly_detector_fc_multichannel import FocusedSBAnomalyDetector
 logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
+
+REPAIR_CALLS = "repair_calls"
+REPAIR_TIME = "repair_time"
 logger = logging.getLogger("hydra_agent")
 
-from agent.reward_estimation.reward_estimator import RewardEstimator
-import pickle
 
 # Flags from ANU
-NOVELTY_EXISTENCE_NOT_GIVEN = -1 # The self.novelty_existance value indicating that novelty detection is not given by the environment
+NOVELTY_EXISTENCE_NOT_GIVEN = -1  # The self.novelty_existance value indicating that novelty detection is not given by the environment
 
 # stats_per_level dictionary keys
 # NN_PROB = "nn_novelty_likelihood" this originally was the state-based detector written by UPenn
@@ -61,6 +57,7 @@ class SBHydraAgent(HydraAgent):
         if env is not None:
             env.sb_client.set_game_simulation_speed(settings.SB_SIM_SPEED)
         self.agent_stats = agent_stats
+        self.meta_model = ScienceBirdsMetaModel()
         self.consistency_estimator = ScienceBirdsConsistencyEstimator()
         self.current_level = 0
         self.novelty_detections = list()
@@ -167,7 +164,6 @@ class SBHydraAgent(HydraAgent):
                 self.handle_game_playing(observation, raw_state)
                 if settings.NOVELTY_POSSIBLE:
                     self.num_objects = len(raw_state.objects[0]['features'])
-                    # print("number of objects is {}".format(self.num_objects))
                     self._record_novelty_indicators(observation)
             elif raw_state.game_state.value == GameState.WON.value:
                 self.handle_game_won()
@@ -196,8 +192,6 @@ class SBHydraAgent(HydraAgent):
         logger.info("unexpected main menu page, reload the level : %s" % self.current_level)
         self.current_level = self.env.sb_client.load_next_available_level()
 
-    #        self.novelty_existence = self.env.sb_client.get_novelty_info()
-
     def handle_new_trial(self):
         """ Handle what happens when the agent receives a NEWTRIAL request"""
 
@@ -224,13 +218,17 @@ class SBHydraAgent(HydraAgent):
 
         non_novelty_likelihood = 1 - novelty_likelihood
 
+        repair_description = ""
+        if 'repair description' in self.stats_for_level:
+            repair_description = self.stats_for_level['repair description']
+
         # placeholders for novelty information
         if len(self.novel_objects) > 0:
             ids = set([int(object_id_str) for object_id_str in self.novel_objects])
-            novelty_description = "Unknown type of objects detected"
+            novelty_description = f"Unknown type of objects detected | {repair_description}"
         else:
             ids = set()
-            novelty_description = "Uncharacterized novelty"
+            novelty_description = f"Uncharacterized novelty | {repair_description}"
         novelty_level = 0
 
         logger.info("[hydra_agent_server] :: Reporting novelty_likelihood: {}".format(novelty_likelihood))
@@ -286,7 +284,10 @@ class SBHydraAgent(HydraAgent):
             if settings.NO_PDDL_CONSISTENCY:
                 pddl_prob = UNDEFINED
             else:
-                pddl_prob = check_obs_consistency(observation, self.meta_model, self.consistency_estimator)
+
+                pddl_prob = self.consistency_estimator.consistency_from_simulator(observation, self.meta_model,
+                                                                                  NyxPddlPlusSimulator(),
+                                                                                  self.meta_model.delta_t)
             self.level_novelty_indicators[PDDL_PROB].append(pddl_prob)
 
         difference = self.reward_estimator.compute_estimated_reward_difference(observation)
@@ -371,7 +372,6 @@ class SBHydraAgent(HydraAgent):
             'ColumnName.PASS': status
         }, ignore_index=True)
 
-
         if settings.SB_LEVEL_NOVELTY_DETECTION_ENSEMBLE_THRESHOLD is None:
             is_novel_df = rf.predict(X)
             predicted_probabilities = rf.predict_proba(X)
@@ -380,7 +380,8 @@ class SBHydraAgent(HydraAgent):
             predicted_probabilities = rf.predict_proba(X)
             is_novel_df = (predicted_probabilities[:, 1] >= detection_threshold).astype('int')
 
-        logger.info("[hydra_agent_server] :: Novelty detection input vector: {}; predicted probabilities: {}".format(X.to_dict(), predicted_probabilities))
+        logger.info("[hydra_agent_server] :: Novelty detection input vector: {}; predicted probabilities: {}".format(
+            X.to_dict(), predicted_probabilities))
 
         if is_novel_df[0] == 0:
             return False
@@ -394,14 +395,14 @@ class SBHydraAgent(HydraAgent):
             self._new_novelty_likelihood = self.novelty_existence
             return
 
-        if (not self._new_novelty_likelihood) and (settings.SB_LOOKBACK_ONLY_DETECTION) and (
+        if (not self._new_novelty_likelihood) and settings.SB_LOOKBACK_ONLY_DETECTION and (
                 len(self.completed_levels) >= settings.SB_LOOKBACK_HORIZON):
             # print("\n\nlast {} levels: {}".format(settings.SB_LOOKBACK_HORIZON, self.completed_levels[-settings.SB_LOOKBACK_HORIZON:]))
             if not any(self.completed_levels[-settings.SB_LOOKBACK_HORIZON:]):
                 self._new_novelty_likelihood = True
                 return
 
-        '''looks at the history of detections in previous levels and returns true when novelty has been detected for 3 contiguous episodes'''
+        """looks at the history of detections in previous levels and returns true when novelty has been detected for 3 contiguous episodes"""
         # self.novelty_detections.append(self._detect_level_novelty())
         self.novelty_detections.append(self._detect_level_novelty_with_ensemble(success))
         if (not settings.SB_LOOKBACK_ONLY_DETECTION) and (not self._new_novelty_likelihood) and len(
@@ -530,7 +531,8 @@ class SBHydraAgent(HydraAgent):
             ## TAP UPDATE
             if len(plan) > 1 and "bird_action" in plan[1].action_name:
                 t_time = int((plan[1].start_at - plan[0].start_at) * 1000)
-                sb_action = self.meta_model.create_sb_action(timed_action, processed_state, tap_timing=t_time)
+                sb_action = self.meta_model.create_sb_action(timed_action, processed_state, tap_timing=t_time - 500)
+                # "-500" is a magic number - caused by some mismatch between the planner and the game.
                 logger.info("[hydra_agent_server] :: Taking tap action: [{}] {}ms after launch. ".format(
                     str(plan[1].action_name), str(t_time)))
             else:
@@ -577,7 +579,8 @@ class SBHydraAgent(HydraAgent):
                                                                self.planner.current_problem_prefix,
                                                                unknown_objs.__str__()))
         try:
-            active_bird = pddl_state.get_active_bird()
+            active_bird_id = int(pddl_state['active_bird'])
+            active_bird = SBPlanner.get_bird(pddl_state, active_bird_id)
         except:
             active_bird = None  # TODO catch only appropriate exception
         try:
@@ -652,7 +655,13 @@ class RepairingSBHydraAgent(SBHydraAgent):
             agent_stats = list()
         settings.NOVELTY_POSSIBLE = True
         self.revision_attempts = 0
-        self.meta_model_repair = ScienceBirdsMetaModelRepair(self.meta_model)
+
+        self.meta_model = ScienceBirdsMetaModel()
+        self.meta_model_repair = ScienceBirdsMetaModelRepair(self.meta_model,
+                                                             self.consistency_estimator,
+                                                             settings.SB_CONSISTENCY_THRESHOLD,
+                                                             settings.SB_REPAIR_MAX_ITERATIONS,
+                                                             settings.SB_REPAIR_TIMEOUT)
 
     def reinit(self):
         super().reinit()
@@ -660,7 +669,7 @@ class RepairingSBHydraAgent(SBHydraAgent):
 
     def process_final_observation(self):
         """ This is called after winning or losing a level. """
-        self.stats_for_level[NOVELTY_LIKELIHOOD]=self._new_novelty_likelihood
+        self.stats_for_level[NOVELTY_LIKELIHOOD] = self._new_novelty_likelihood
         # The consistency score per level for this level is the mean over the consistency scored of this level's observations
         # self.pddl_prob_per_level.insert(0,
         # sum(self.stats_for_level[PDDL_PROB]) / len(self.stats_for_level[PDDL_PROB]))
@@ -707,9 +716,13 @@ class RepairingSBHydraAgent(SBHydraAgent):
         logger.info("Initiating repair number {}".format(self.revision_attempts))
         start_repair_time = time.time()
         try:
-            repair, consistency = self.meta_model_repair.repair(self.meta_model, last_obs, delta_t=settings.SB_DELTA_T)
+            repair, consistency = self.meta_model_repair.repair(last_obs, delta_t=settings.SB_DELTA_T)
             repair_description = ["Repair %s, %.2f" % (fluent, repair[i])
-                                  for i, fluent in enumerate(self.meta_model_repair.fluents_to_repair)]
+                                  for i, fluent in enumerate(self.meta_model.repairable_constants)]
+            if self.stats_for_level.get('repair description'):
+                self.stats_for_level['repair description'].append(repair_description)
+            else:
+                self.stats_for_level['repair description'] = repair_description
             logger.info(
                 "Repair done! Consistency: %.2f, Repair:\n %s" % (consistency, "\n".join(repair_description)))
         except:
@@ -724,7 +737,6 @@ class RepairingSBHydraAgent(SBHydraAgent):
         Checks if the current model should be repaired
         If we are going to repair for a level, it will be a repair with the first shot's observations for that level.
         """
-
         # If novelty existence is given, use the given
         if self.revision_attempts >= settings.HYDRA_MODEL_REVISION_ATTEMPTS:
             return False
