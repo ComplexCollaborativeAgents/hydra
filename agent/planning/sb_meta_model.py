@@ -436,7 +436,7 @@ class ScienceBirdsMetaModel(MetaModel):
                          domain_file_name="sb_domain.pddl",
                          delta_t=settings.SB_DELTA_T,
                          metric='minimize(total-time)',
-                         repairable_constants=[
+                         repairable_constants=[[
                              # 'meta_wood_multiplier',
                              # 'meta_stone_multiplier',
                              # 'meta_ice_multiplier',
@@ -445,12 +445,11 @@ class ScienceBirdsMetaModel(MetaModel):
                              'base_life_pig_multiplier',
                              # 'explosion_damage',
                              # 'fall_damage',
-                             'gravity_factor'
-
-                         ],
+                             'gravity_factor']
+                         ], # TODO WP: changed from single list to list of lists for phase 2 & 3 repair
                          repair_deltas=[
-                             1, 50, 0.1  # 50, 10
-                         ],
+                             [1, 50, 0.1]  # 50, 10
+                         ], # TODO WP: changed from single list to list of lists for phase 2 & 3 repair
                          constant_numeric_fluents={
                              'active_bird': 0,
                              'angle_rate': 20,
@@ -697,7 +696,7 @@ class ScienceBirdsMetaModel(MetaModel):
                                 # This is some edge perception case like birds being identified as wood, e.g. 11:130
                                 default_factor = 'redBird_wood_damage_factor'
                             self.constant_numeric_fluents[fluent_string] = self.constant_numeric_fluents[default_factor]
-                            self.repairable_constants.append(fluent_string)
+                            self.repairable_constants[0].append(fluent_string) # TODO WP: This is terrible, needs updating properly
                         pddl_problem.init.append(['=',
                                                   ['bird_block_damage', bird_str, block_str],
                                                   self.constant_numeric_fluents[

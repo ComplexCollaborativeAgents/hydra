@@ -21,8 +21,8 @@ class CartPoleMetaModel(MetaModel):
             domain_file_name="cartpole_domain.pddl",
             delta_t=settings.CP_DELTA_T,
             metric='minimize(total-time)',
-            repairable_constants=('m_cart', 'l_pole', 'm_pole', 'force_mag', 'gravity', 'angle_limit', 'x_limit'),
-            repair_deltas=(1.0, 0.1, 0.1, 1.0, 1.0, 0.1, 0.1),
+            repairable_constants=[['m_cart', 'l_pole', 'm_pole', 'force_mag', 'gravity', 'angle_limit', 'x_limit']],
+            repair_deltas=[[1.0, 0.1, 0.1, 1.0, 1.0, 0.1, 0.1]],
             constant_numeric_fluents={
                 'm_cart': 1.0,
                 'friction_cart': 0.0,

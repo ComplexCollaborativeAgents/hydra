@@ -87,11 +87,26 @@ class MetaModel:
         self.constant_numeric_fluents = dict(constant_numeric_fluents)
         self.constant_boolean_fluents = dict(constant_boolean_fluents)
 
-        self.repairable_constants = list(repairable_constants)
+        self.repairable_constants = list()
+
+        for rc_list in repairable_constants:
+            self.repairable_constants.append(list(rc_list))
+
+        # self.repairable_constants = list(repairable_constants)
+
+        self.repair_deltas = []
+
+
         if repair_deltas is None:
-            self.repair_deltas = [1.0] * len(self.repairable_constants)
+            for rc_list in self.repairable_constants:
+                self.repair_deltas.append([1.0] * len(rc_list))
         else:
-            self.repair_deltas = repair_deltas
+            for rd_list in repair_deltas:
+                self.repair_deltas.append(list(rd_list))
+        # if repair_deltas is None:
+        #     self.repair_deltas = [1.0] * len(self.repairable_constants)
+        # else:
+        #     self.repair_deltas = repair_deltas
 
         self.metric = metric
         self.current_domain = None

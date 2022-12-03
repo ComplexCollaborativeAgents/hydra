@@ -64,6 +64,9 @@ def translate_expression(tokens):
     elif first_token in ['+', '-', '*', '/']:
         return "round({} {} {}, constants.NUMBER_PRECISION)". \
             format(translate_expression(tokens[1]), first_token, translate_expression(tokens[2]))
+    elif first_token == '^':
+        return "round(pow({},{}), constants.NUMBER_PRECISION)". \
+            format(translate_expression(tokens[1]), translate_expression(tokens[2]))
     else:
         # defer resolution to state
         return state_var(tokens)
@@ -80,7 +83,7 @@ def translate_statement(tokens):
 
     if check_numeric(first_token):
         return first_token
-    elif first_token in ['+', '-', '*', '/', '=', '>=', '<=', '>', '<', '#t']:
+    elif first_token in ['+', '-', '*', '/', '^', '=', '>=', '<=', '>', '<', '#t']:
         return translate_expression(tokens)
     elif first_token in state_operators.keys():
         if first_token == 'assign':

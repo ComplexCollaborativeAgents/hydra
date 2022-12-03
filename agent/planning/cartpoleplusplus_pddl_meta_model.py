@@ -46,16 +46,23 @@ class CartPolePlusPlusMetaModel(MetaModel):
 
     def __init__(self):
         super().__init__(
-            docker_path=settings.CARTPOLEPLUSPLUS_PLANNING_DOCKER_PATH,
+            docker_path=settings.CARTPOLEPLUSPLUS_DOMAIN_PATH,
             domain_file_name="cartpole_plus_plus_domain.pddl",
             delta_t=settings.CP_DELTA_T,
             metric='minimize(total-time)',
-            repairable_constants=['m_cart', 'l_pole', 'm_pole', 'force_mag', 'gravity', 'angle_limit'],
-            repair_deltas=[1.0, 0.1, 0.1, 1.0, 1.0, 0.1, 0.1],
+            repairable_constants=[['m_cart', 'l_pole', 'm_pole', 'force_mag', 'gravity'], # WP: REMOVED ANGLE_LIMIT FROM REPAIRABLE FLUENTS
+                                  # ['m_cart', 'l_pole', 'm_pole', 'force_mag', 'gravity', 'angle_limit'],
+                                  ['coeff_pos_x', 'coeff_pos_y', 'coeff_theta_x', 'coeff_theta_y','coeff_push_left','coeff_push_right','coeff_push_back','coeff_push_forward'],
+                                  ['coeff_block_mvmt_x','coeff_block_mvmt_y','coeff_block_mvmt_z','coeff_block_v_mag','coeff_block_wall_bounce']],
+            repair_deltas=[[1.0, 0.1, 0.1, 1.0, 1.0, 0.1], # WP: REMOVED ANGLE_LIMIT FROM REPAIRABLE FLUENTS
+                           # [1.0, 0.1, 0.1, 1.0, 1.0, 0.1, 0.1],
+                           [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+                           [1.0, 1.0, 1.0, 1.0, 1.0]],
             constant_numeric_fluents={
                 'm_cart': 1.0,
                 'r_cart': 0.5,
                 'l_pole': 1.0,
+                # 'l_pole': 0.8,  # TODO: check this from branch "m30_cartpole++_temp"
                 # 'l_pole': 0.5, # original OpenAI Gym version
                 'm_pole': 0.1,
                 'force_mag': 10.0,
@@ -72,7 +79,23 @@ class CartPolePlusPlusMetaModel(MetaModel):
                 'wall_y_max': 5,
                 'wall_z_min': 0,
                 'wall_z_max': 10,
+
+                'coeff_pos_x': 1.0,
+                'coeff_pos_y': 1.0,
+                'coeff_theta_x': 1.0,
+                'coeff_theta_y': 1.0,
+                'coeff_push_left': 1.0,
+                'coeff_push_right': 1.0,
+                'coeff_push_back': 1.0,
+                'coeff_push_forward': 1.0,
+
+                'coeff_block_mvmt_x': 1.0,
+                'coeff_block_mvmt_y': 1.0,
+                'coeff_block_mvmt_z': 1.0,
+                'coeff_block_v_mag': 1.0,
+                'coeff_block_wall_bounce': 1.0,
             },
+
             constant_boolean_fluents={
                 'total_failure': False,
                 'ready': True,
@@ -96,17 +119,21 @@ class CartPolePlusPlusMetaModel(MetaModel):
 
         pddl_problem.objects.append(['dummy_obj', 'dummy'])
 
+        # NOTE: THETA/POLE X_POSITION AND Y_POSITION ARE REVERSED & MISNAMED!!!
+        # X = PITCH AND Y = ROLL ANGLES (INSTEAD OF ABSOLUTE X AND Y POSITIONS WRT THE WORLD FRAME)
         euler_pole = self.quaternion_to_euler(round(observation_array['pole']['x_quaternion'], 5),
                                               round(observation_array['pole']['y_quaternion'], 5),
                                               round(observation_array['pole']['z_quaternion'], 5),
                                               round(observation_array['pole']['w_quaternion'], 5))
-        obs_theta_x = round(euler_pole[0], 5)  # XY reversed on purpose to match observation
-        obs_theta_y = round(euler_pole[1], 5)  # XY reversed on purpose to match observation
+        obs_theta_x = round(euler_pole[1], 5)  # XY reversed on purpose to match observation
+        obs_theta_y = round(euler_pole[0], 5)  # XY reversed on purpose to match observation
         # obs_theta_x = np.radians(round(observation_array['pole']['x_position'], 5))
         # obs_theta_y = np.radians(round(observation_array['pole']['y_position'], 5))
+        obs_theta_x_dot = round(observation_array['pole']['y_velocity'],
+                                5)  # XY reversed on purpose to match observation
+        obs_theta_y_dot = round(observation_array['pole']['x_velocity'],
+                                5)  # XY reversed on purpose to match observation
 
-        obs_theta_x_dot = round(observation_array['pole']['x_velocity'], 5)
-        obs_theta_y_dot = round(observation_array['pole']['y_velocity'], 5)
         obs_pos_x = round(observation_array['cart']['x_position'], 5)
         obs_pos_y = round(observation_array['cart']['y_position'], 5)
         obs_pos_x_dot = round(observation_array['cart']['x_velocity'], 5)
@@ -117,7 +144,15 @@ class CartPolePlusPlusMetaModel(MetaModel):
 
         # Add constants fluents
         for numeric_fluent in self.constant_numeric_fluents:
-            pddl_problem.init.append(['=', [numeric_fluent], round(self.constant_numeric_fluents[numeric_fluent],
+            if (numeric_fluent == 'm_cart' or numeric_fluent == 'm_pole') and \
+                    round(self.constant_numeric_fluents['m_cart'],CartPolePlusPlusMetaModel.PLANNER_PRECISION)==0.0 and \
+                    round(self.constant_numeric_fluents['m_pole'], CartPolePlusPlusMetaModel.PLANNER_PRECISION) == 0.0:
+                pddl_problem.init.append(['=', [numeric_fluent], round(self.constant_numeric_fluents[numeric_fluent],
+                                                                       CartPolePlusPlusMetaModel.PLANNER_PRECISION)+0.00001])
+                # TODO: ADDED OFFSET - these combined values in a denominator throw many errors if adjusted incorrectly by the repair
+
+            else:
+                pddl_problem.init.append(['=', [numeric_fluent], round(self.constant_numeric_fluents[numeric_fluent],
                                                                    CartPolePlusPlusMetaModel.PLANNER_PRECISION)])  # TODO
         for boolean_fluent in self.constant_boolean_fluents:
             if self.constant_boolean_fluents[boolean_fluent]:
@@ -146,16 +181,16 @@ class CartPolePlusPlusMetaModel(MetaModel):
 
         # TODO; WP: changed "self.constant_numeric_fluents['force_mag']" to "self.constant_numeric_fluents['F_x']" to "initial_F=0.0" at the beginning of calc_temp_x (verify that it's the correct thing to do).
         calc_temp_x = (initial_Fx + (
-                self.constant_numeric_fluents['m_pole'] * self.constant_numeric_fluents['l_pole']) *
+                    self.constant_numeric_fluents['m_pole'] * self.constant_numeric_fluents['l_pole']) *
                        obs_theta_x_dot ** 2 * math.sin(obs_theta_x)) / (
-                              self.constant_numeric_fluents['m_cart'] + self.constant_numeric_fluents['m_pole'])
+                                  self.constant_numeric_fluents['m_cart'] + self.constant_numeric_fluents['m_pole'])
         calc_theta_x_ddot = (self.constant_numeric_fluents['gravity'] * math.sin(obs_theta_x) - math.cos(
             obs_theta_x) * calc_temp_x) / (self.constant_numeric_fluents['l_pole'] * (
-                4.0 / 3.0 - self.constant_numeric_fluents['m_pole'] * math.cos(obs_theta_x) ** 2 / (
-                self.constant_numeric_fluents['m_cart'] + self.constant_numeric_fluents['m_pole'])))
+                    4.0 / 3.0 - self.constant_numeric_fluents['m_pole'] * math.cos(obs_theta_x) ** 2 / (
+                        self.constant_numeric_fluents['m_cart'] + self.constant_numeric_fluents['m_pole'])))
         calc_pos_x_ddot = calc_temp_x - (self.constant_numeric_fluents['m_pole'] * self.constant_numeric_fluents[
             'l_pole']) * calc_theta_x_ddot * math.cos(obs_theta_x) / (
-                                  self.constant_numeric_fluents['m_cart'] + self.constant_numeric_fluents['m_pole'])
+                                      self.constant_numeric_fluents['m_cart'] + self.constant_numeric_fluents['m_pole'])
 
         pddl_problem.init.append(
             ['=', ['pos_x_ddot'], round(calc_pos_x_ddot, CartPolePlusPlusMetaModel.PLANNER_PRECISION)])
@@ -164,16 +199,16 @@ class CartPolePlusPlusMetaModel(MetaModel):
 
         # TODO; WP: changed "self.constant_numeric_fluents['force_mag']" to "self.constant_numeric_fluents['F_y']" to "initial_F=0.0" at the beginning of calc_temp_y (verify that it's the correct thing to do).
         calc_temp_y = (initial_Fy + (
-                self.constant_numeric_fluents['m_pole'] * self.constant_numeric_fluents['l_pole']) *
+                    self.constant_numeric_fluents['m_pole'] * self.constant_numeric_fluents['l_pole']) *
                        obs_theta_y_dot ** 2 * math.sin(obs_theta_y)) / (
-                              self.constant_numeric_fluents['m_cart'] + self.constant_numeric_fluents['m_pole'])
+                                  self.constant_numeric_fluents['m_cart'] + self.constant_numeric_fluents['m_pole'])
         calc_theta_y_ddot = (self.constant_numeric_fluents['gravity'] * math.sin(obs_theta_y) - math.cos(
             obs_theta_y) * calc_temp_y) / (self.constant_numeric_fluents['l_pole'] * (
-                4.0 / 3.0 - self.constant_numeric_fluents['m_pole'] * math.cos(obs_theta_y) ** 2 / (
-                self.constant_numeric_fluents['m_cart'] + self.constant_numeric_fluents['m_pole'])))
+                    4.0 / 3.0 - self.constant_numeric_fluents['m_pole'] * math.cos(obs_theta_y) ** 2 / (
+                        self.constant_numeric_fluents['m_cart'] + self.constant_numeric_fluents['m_pole'])))
         calc_pos_y_ddot = calc_temp_y - (self.constant_numeric_fluents['m_pole'] * self.constant_numeric_fluents[
             'l_pole']) * calc_theta_y_ddot * math.cos(obs_theta_y) / (
-                                  self.constant_numeric_fluents['m_cart'] + self.constant_numeric_fluents['m_pole'])
+                                      self.constant_numeric_fluents['m_cart'] + self.constant_numeric_fluents['m_pole'])
 
         pddl_problem.init.append(
             ['=', ['pos_y_ddot'], round(calc_pos_y_ddot, CartPolePlusPlusMetaModel.PLANNER_PRECISION)])
@@ -181,7 +216,7 @@ class CartPolePlusPlusMetaModel(MetaModel):
             ['=', ['theta_y_ddot'], round(calc_theta_y_ddot, CartPolePlusPlusMetaModel.PLANNER_PRECISION)])
 
         # FLYING BLOCKS AND THEIR ATTRIBUTES
-        purposely_ignoring_blocks = True
+        purposely_ignoring_blocks = False
         # Add objects to problem
         if len(observation_array['blocks']) == 0 or purposely_ignoring_blocks:
             pddl_problem.objects.append(['dummy_block', 'block'])
@@ -213,10 +248,12 @@ class CartPolePlusPlusMetaModel(MetaModel):
                                               round(observations_array['pole']['z_quaternion'], 5),
                                               round(observations_array['pole']['w_quaternion'], 5))
 
-        obs_theta_x = round(euler_pole[0], 5)
-        obs_theta_y = round(euler_pole[1], 5)
-        obs_theta_x_dot = round(observations_array['pole']['x_velocity'], 5)
-        obs_theta_y_dot = round(observations_array['pole']['y_velocity'], 5)
+        # NOTE: THETA/POLE X_POSITION AND Y_POSITION ARE REVERSED & MISNAMED!!!
+        # X = PITCH AND Y = ROLL ANGLES (INSTEAD OF ABSOLUTE X AND Y POSITIONS WRT THE WORLD FRAME)
+        obs_theta_x = round(euler_pole[1], 5)  # XY reversed on purpose to match observation
+        obs_theta_y = round(euler_pole[0], 5)  # XY reversed on purpose to match observation
+        obs_theta_x_dot = round(observations_array['pole']['y_velocity'], 5)  # XY reversed on purpose to match observation
+        obs_theta_y_dot = round(observations_array['pole']['x_velocity'], 5)  # XY reversed on purpose to match observation
 
         obs_pos_x = round(observations_array['cart']['x_position'], 5)
         obs_pos_y = round(observations_array['cart']['y_position'], 5)
@@ -235,14 +272,18 @@ class CartPolePlusPlusMetaModel(MetaModel):
         for sp_key in state_params:
             pddl_state.numeric_fluents[tuple([sp_key])] = state_params[sp_key]
 
+        for bl in observations_array['blocks']:
+            type = self.object_types["block"]
+            type.add_object_to_state(pddl_state, bl, state_params)
+
         return pddl_state
 
     def create_timed_action(self, action, time_step):
-        """ Create a PDDL+ TimedAction object from a world action and state """
+        ''' Create a PDDL+ TimedAction object from a world action and state '''
 
-        if (action == 1):
+        if (action==1):
             action_name = "move_cart_right dummy_obj"
-        elif (action == 2):
+        elif (action==2):
             action_name = "move_cart_left dummy_obj"
         elif (action == 3):
             action_name = "move_cart_forward dummy_obj"
