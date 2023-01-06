@@ -6,7 +6,7 @@ import pickle
 
 from agent.reward_estimation.reward_estimator import RewardEstimator
 from agent.hydra_agent import HydraAgent
-from agent.hydra_agent import PDDL_PROB, NOVELTY_EXISTENCE_NOT_GIVEN, NOVELTY_LIKELIHOOD
+from agent.hydra_agent import PDDL_INCONSISTENCY, NOVELTY_EXISTENCE_NOT_GIVEN, NOVELTY_LIKELIHOOD
 from agent.planning.nyx.syntax import constants
 from agent.planning.sb_planner import SBPlanner
 from agent.repair.meta_model_repair import *
@@ -83,7 +83,7 @@ class SBHydraAgent(HydraAgent):
         self.stats_for_level['expanded nodes'] = []
         self.level_novelty_indicators = {
             REWARD_PROB: list(),
-            PDDL_PROB: list(),
+            PDDL_INCONSISTENCY: list(),
             UNKNOWN_OBJ: list(),
             PLAN: list()
         }
@@ -119,7 +119,7 @@ class SBHydraAgent(HydraAgent):
         self.stats_for_level['expanded nodes'] = []
         self.level_novelty_indicators = {
             REWARD_PROB: list(),
-            PDDL_PROB: list(),
+            PDDL_INCONSISTENCY: list(),
             UNKNOWN_OBJ: list(),
             PLAN: list()
         }
@@ -264,14 +264,14 @@ class SBHydraAgent(HydraAgent):
         logging.info("Computing novelty likelihood...")
 
         if self.novelty_existence in [0, 1]:
-            self.level_novelty_indicators[PDDL_PROB].append(UNDEFINED)
+            self.level_novelty_indicators[PDDL_INCONSISTENCY].append(UNDEFINED)
             self.level_novelty_indicators[UNKNOWN_OBJ].append(UNDEFINED)
             self.level_novelty_indicators[REWARD_PROB].append(UNDEFINED)
             return
 
         if observation.hasUnknownObj():
             # self.level_novelty_indicators[PDDL_PROB].append(UNDEFINED)
-            self.level_novelty_indicators[PDDL_PROB].append(
+            self.level_novelty_indicators[PDDL_INCONSISTENCY].append(
                 1000)  ### add a high value because if there is a new object, the PDDL is highly inconsistent.
             self.level_novelty_indicators[UNKNOWN_OBJ].append(True)
             self.novel_objects = observation.get_novel_object_ids()
@@ -284,7 +284,7 @@ class SBHydraAgent(HydraAgent):
                 pddl_prob = self.consistency_estimator.consistency_from_simulator(observation, self.meta_model,
                                                                                   NyxPddlPlusSimulator(),
                                                                                   self.meta_model.delta_t)
-            self.level_novelty_indicators[PDDL_PROB].append(pddl_prob)
+            self.level_novelty_indicators[PDDL_INCONSISTENCY].append(pddl_prob)
 
         difference = self.reward_estimator.compute_estimated_reward_difference(observation)
         self.level_novelty_indicators[REWARD_PROB].append(difference)
@@ -296,7 +296,7 @@ class SBHydraAgent(HydraAgent):
         if True in self.level_novelty_indicators[UNKNOWN_OBJ]:
             has_new_object = True
 
-        pddl_consistency_list = [x for x in self.level_novelty_indicators[PDDL_PROB] if x is not None]
+        pddl_consistency_list = [x for x in self.level_novelty_indicators[PDDL_INCONSISTENCY] if x is not None]
         if len(pddl_consistency_list) > 0:
             mean_pddl_inconsistency = sum(pddl_consistency_list) / len(pddl_consistency_list)
         else:
@@ -331,7 +331,7 @@ class SBHydraAgent(HydraAgent):
         else:
             has_unknown_object = 0
 
-        pddl_list = self.level_novelty_indicators[PDDL_PROB]
+        pddl_list = self.level_novelty_indicators[PDDL_INCONSISTENCY]
 
         if all(v is None for v in pddl_list):
             max_pddl_inconsistency = 1000
@@ -412,7 +412,7 @@ class SBHydraAgent(HydraAgent):
         self.completed_levels.append(success)
         self._infer_novelty_existence(success)
         self.stats_for_level[NOVELTY_LIKELIHOOD] = bool(self._new_novelty_likelihood)
-        self.stats_for_level[PDDL_PROB] = self.level_novelty_indicators[PDDL_PROB]
+        self.stats_for_level[PDDL_INCONSISTENCY] = self.level_novelty_indicators[PDDL_INCONSISTENCY]
         self.stats_for_level[REWARD_PROB] = self.level_novelty_indicators[REWARD_PROB]
         self.stats_for_level[UNKNOWN_OBJ] = self.level_novelty_indicators[UNKNOWN_OBJ]
         self.stats_for_level['novelty_detections'] = self.novelty_detections
@@ -440,7 +440,7 @@ class SBHydraAgent(HydraAgent):
         self.stats_for_level['planning times'] = []
         self.stats_for_level['expanded nodes'] = []
         self.level_novelty_indicators = {
-            PDDL_PROB: list(),
+            PDDL_INCONSISTENCY: list(),
             UNKNOWN_OBJ: list(),
             REWARD_PROB: list(),
             PLAN: list()

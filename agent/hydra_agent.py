@@ -19,7 +19,7 @@ NOVELTY_EXISTENCE_NOT_GIVEN = -1 # The self.novelty_existence value indicating t
 
 # stats_per_level dictionary keys
 NN_PROB = "nn_novelty_likelihood"
-PDDL_PROB = "pddl_novelty_likelihood"
+PDDL_INCONSISTENCY = "pddl_novelty_likelihood"
 NOVELTY_LIKELIHOOD = "novelty_likelihood"
 
 class HydraPlanner(metaclass=ABCMeta):
@@ -92,7 +92,7 @@ class HydraAgent(metaclass=ABCMeta):
     meta_model_repair: RepairModule # Object that repairs the meta model
 
     # Novelty + consistency detection
-    consistency: DomainConsistency
+    consistency_estimator: DomainConsistency
     perception: Perception
     reward_estimator: RewardEstimator
     
@@ -229,7 +229,7 @@ class HydraAgent(metaclass=ABCMeta):
         raise NotImplementedError()
 
     @abstractmethod
-    def _detect_novelty(self, episode_log: HydraEpisodeLog) -> bool:
+    def _detect_if_current_episode_is_novel(self, episode_log: HydraEpisodeLog) -> bool:
         """Given an episode log, determine using the methods available (consistency, perception, reward_prediction, etc) whether or not novelty is present
 
         Args:

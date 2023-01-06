@@ -1,6 +1,6 @@
 .DS_store
 bin/sciencebirds_linux
-bin/linux/
+bin/linux_nov2/
 bin/pal/
 *.wbproj
 

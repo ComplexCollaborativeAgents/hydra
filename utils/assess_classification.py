@@ -1,7 +1,7 @@
 import random
 import os
 import settings
-from agent.perception import perception
+#from agent.perception import perception
 from sklearn.metrics import classification_report, confusion_matrix
 from sklearn.model_selection import train_test_split
 import sklearn.linear_model as lm
@@ -48,6 +48,7 @@ OBJECT_CLASSES = {'bird_black_1': 'blackBird',
                'wizard': 'wizard',
                'butterfly': 'butterfly'}
 
+
 OBJECT_CLASSES_EDITED = {
     'bird_black': 'blackBird',
     'bird_white': 'birdWhite',
@@ -83,51 +84,6 @@ OBJECT_CLASSES_EDITED = {
     'butterfly': 'butterfly'
 }
 
-header = \
-'''<evaluation>
-  <novelty_detection_measurement step="1" measure_in_training="False" measure_in_testing="False" />
-  <trials>
-    <trial id="0" number_of_executions="1" checkpoint_time_limit="200" checkpoint_interaction_limit="200" notify_novelty="False">
-      <game_level_set mode="training" time_limit="700000" total_interaction_limit="500000" attempt_limit_per_level="1" allow_level_selection="False">'''
-
-footer = \
-'''
-      </game_level_set>
-    </trial>
-  </trials>
-</evaluation>'''
-
-
-
-def generate_config_files(name = './count_unknown_object.xml',
-         levels_rel_path = 'Levels/novelty_level_0/type2/Levels/'):
-    strs = []
-    probs = os.listdir(os.path.join(settings.SCIENCE_BIRDS_BIN_DIR,'linux',levels_rel_path))
-    for prob in probs:
-        strs.append('\n<game_levels level_path = "./{}{}" />'.format(
-            levels_rel_path,
-            prob))
-
-    with open(name,'w') as f:
-        f.writelines(header)
-        f.writelines(strs)
-        f.writelines(footer)
-    print(strs)
-
-def prune_log_files():
-    directory = os.path.join(settings.ROOT_PATH,'data','science_birds','consistency','objects')
-    for x in os.listdir(directory):
-        str = []
-        with open(os.path.join(directory,x),'r') as file:
-            str = file.readlines()
-        with open(os.path.join(directory,'{}.csv'.format(x)),'w') as file:
-            for line in str:
-                if line.find(' class ') > 0:
-                    file.write(line[line.find(' class ')+7:])
-
-count = 0
-
-
 def type_to_class(type):
     classes = OBJECT_CLASSES
     if type in classes:
@@ -151,17 +107,17 @@ def object_class_convert(obj_label: str):
         return OBJECT_CLASSES_EDITED[trunc_label]
 
 
-def train_classifier(file=os.path.join(settings.ROOT_PATH,'data/science_birds/perception/pII/non_novel_objects.csv'), on_full_data=False):
-    reader = csv.DictReader(open(file, 'r'), perception.classification_cols())
+def train_classifier(file=os.path.join(settings.ROOT_PATH,'data/science_birds/perception/pIII/non_novel_objects.csv'), on_full_data=False):
+    #reader = csv.DictReader(open(file, 'r'), perception.classification_cols())
     df = pd.read_csv(file)
     print(len(df.iloc[:, 0]))
     y = [type_to_class(x) for x in df.iloc[:, 0]]
     x = df.iloc[:, 1:]
     logreg = lm.LogisticRegression(max_iter=500000, multi_class='ovr')
     if not on_full_data:
-        x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.1)
+        x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2)
         logreg.fit(x_train.values, y_train)
-        predictions = logreg.predict(x_test)
+        predictions = logreg.predict(x_test.values)
         print(classification_report(y_test, predictions))
     else:
         logreg.fit(x.values,y)
@@ -169,10 +125,10 @@ def train_classifier(file=os.path.join(settings.ROOT_PATH,'data/science_birds/pe
 # probably need some preprocessing
 
 def test_classifier(logreg,file = os.path.join(settings.ROOT_PATH,'data/science_birds/perception/object_class_level_1.csv')):
-    reader = csv.DictReader(open(file, 'r'), perception.classification_cols())
     df = pd.read_csv(file)
     performance=[]
     for row in df.to_numpy():
+        #print(row)
         type = type_to_class(row[0])
         prediction = logreg.predict_proba([row[1:]])
         proposal = logreg.classes_[prediction[0].argmax()]
@@ -202,18 +158,19 @@ if __name__ == '__main__':
     import pickle
 
     #### train/load
-    logreg = train_classifier(on_full_data=True)
-    pickle.dump(logreg, open('{}/data/science_birds/perception/logreg_pII_v2.p'.format(settings.ROOT_PATH), 'wb'))
+    # logreg = train_classifier(on_full_data=True)
+    # pickle.dump(logreg, open('{}/data/science_birds/perception/logreg_pIII.p'.format(settings.ROOT_PATH), 'wb'))
 
 
     ### test
-    #logreg = pickle.load(open('{}/data/science_birds/perception/logreg_pII.p'.format(settings.ROOT_PATH), 'rb'))
-    #performance = test_classifier(logreg, file=os.path.join(settings.ROOT_PATH,'data/science_birds/perception/pII/novel_objects_level1_type_9_10.csv'))
+    logreg = pickle.load(open('{}/data/science_birds/perception/logreg_pIII.p'.format(settings.ROOT_PATH), 'rb'))
+    performance = test_classifier(logreg, file=os.path.join(settings.ROOT_PATH,'data/science_birds/perception/pIII/novel_object_type22.csv'))
+    #performance = test_classifier(logreg, file=os.path.join(settings.ROOT_PATH,'data/science_birds/perception/pIII/novel_object_level11_type50.csv'))
     #performance= test_classifier(logreg, file=os.path.join(settings.ROOT_PATH,'data/science_birds/perception/pII/object_class.csv'))
     #performance = test_classifier(logreg, file=os.path.join(settings.ROOT_PATH,'data/science_birds/perception/pII/non_novel_objects.csv'))
 
-    # for item in performance:
-    #     print(item)
+    for item in performance:
+        print(item)
 
 
 #    pickle.dump(logreg,open('{}/data/science_birds/perception/logreg.p'.format(settings.ROOT_PATH), 'wb'))

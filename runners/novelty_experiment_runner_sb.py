@@ -40,22 +40,51 @@ TEMPLATE_PATH = SB_CONFIG_PATH / 'test_config.xml'
 RESULTS_PATH = pathlib.Path(settings.ROOT_PATH) / "runners" / "experiments" / "ScienceBirds" / "SB_experiment"
 EXPORT_TRIALS = False   # Export trials xml file
 NUM_TRIALS = 1      # Number of trials to generate
-NUM_LEVELS = 20     # Levels per trial
-LEVELS_BEFORE_NOVELTY = 10   # Levels before novelty is introduced
-NOTIFY_NOVELTY = True
+NUM_LEVELS = 2     # Levels per trial
+LEVELS_BEFORE_NOVELTY = 2  # Levels before novelty is introduced
+NOTIFY_NOVELTY = False
 REPETITION = 1   # If not set to None, the same sampled level will be used this many times before another is selected.
 NON_NOVEL_TO_USE = { # level and type of non-novel levels to use
     'novelty_level_0': [
-        "type3620"
+        "type2244"
+        #"type2243"
+        #"type2242"
+        #"type2241"
+        #"type2240"
+        #"type2250"
+        #"type2251"
+        #"type2252"
+        #"type2253"
+        #"type2254"
+        #"type2342"
+        #"type2373"
+        #"type2461"
+        #"type2462"
+        #"type2463"
+        #"type2464"
+        #"type2470"
+        #"type2471"
+        #"type2472"
+        #"type2473"
+        #"type2474"
+        #"type2560"
+        #"type2561"
+        #"type2562"
+        #"type2563"
+        #"type2570"
+        #"type2571"
+        #"type2572"
+        #"type2573"
+        #"type2574"
         ]
     }
 NOVEL_TO_USE = {    # level and type of novel levels to use
-    # 'novelty_level_11': [
-    #     'type130'
-    # ],
-    'novelty_level_36': [
-        'type20'
+    'novelty_level_11': [
+        'type130'
     ],
+    # 'novelty_level_22': [
+    #     'type43'
+    #],
     # 'novelty_level_38':[
     #     'type20'
     # ]
@@ -279,7 +308,8 @@ class NoveltyExperimentRunnerSB:
             experiment_results.to_csv(f, index=False)
 
         for _ in range(self.num_trials):
-            for trial_type in [UNKNOWN, KNOWN]:
+            #for trial_type in [UNKNOWN, KNOWN]:
+            for trial_type in [UNKNOWN]:
                 if configs is not None:
                     for config in configs:
                         logger.debug("Using config file: {}".format)
