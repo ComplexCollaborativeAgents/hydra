@@ -294,11 +294,11 @@ class PddlPlusSimulator:
                 old_value = float(state.numeric_fluents[fluent_name])
                 delta = self._eval(effect[2], state, delta_t)
                 if effect_type == "increase":
-                    new_value = old_value + delta
+                    new_value = round(old_value + delta, 10)
                 elif effect_type == "decrease":
-                    new_value = old_value - delta
+                    new_value = round(old_value - delta, 10)
                 elif effect_type == "assign":
-                    new_value = delta
+                    new_value = round(delta, 10)
                 else:
                     raise NotImplementedError("Currently not supporting %s" % effect_type)
 

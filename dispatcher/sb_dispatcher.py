@@ -170,7 +170,7 @@ class SBDispatcher(Dispatcher):
                 self.world.sb_client.report_novelty_likelihood(novelty_likelihood, non_novelty_likelihood, ids, novelty_level,
                                                                novelty_description)
 
-                time.sleep(5 / settings.SB_SIM_SPEED)
+                time.sleep(5.0 / settings.SB_SIM_SPEED)
             
             if state.is_terminal():
                 success = state.game_state == GameState.WON or state.game_state == GameState.EVALUATION_TERMINATED
@@ -201,7 +201,7 @@ class SBDispatcher(Dispatcher):
                 logger.info(f"New state after action is: {new_state.game_state}")
                 state = new_state
             else:
-                time.sleep(5.0) # Wait for simulation to settle TEMPORARY
+                time.sleep(10.0) # Wait for simulation to settle TEMPORARY
                 new_state = self.world.get_current_state()
                 logger.info(f"New state after loop is: {new_state.game_state}")
                 state = new_state

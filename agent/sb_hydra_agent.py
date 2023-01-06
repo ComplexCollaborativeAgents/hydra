@@ -10,6 +10,7 @@ import pandas
 
 import settings
 from agent.consistency.nyx_pddl_simulator import NyxPddlPlusSimulator
+from agent.consistency.fast_pddl_simulator import CachingPddlPlusSimulator
 from agent.consistency.sb_episode_log import SBEpisodeLog
 from agent.hydra_agent import (NOVELTY_EXISTENCE_NOT_GIVEN, NOVELTY_LIKELIHOOD,
                                PDDL_PROB, HydraAgent)
@@ -353,7 +354,7 @@ class SBHydraAgent(HydraAgent):
                 pddl_prob = UNDEFINED
             else:
                 pddl_prob = self.consistency.consistency_from_simulator(self.current_log, self.meta_model,
-                                                                        NyxPddlPlusSimulator(),
+                                                                        CachingPddlPlusSimulator(),
                                                                         self.meta_model.delta_t)
             self.level_novelty_indicators[PDDL_PROB].append(pddl_prob)
 

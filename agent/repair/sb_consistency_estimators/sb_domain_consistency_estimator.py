@@ -5,6 +5,7 @@ from agent.consistency.consistency_estimator import DomainConsistency, AspectCon
 from agent.consistency.nyx_pddl_simulator import NyxPddlPlusSimulator
 from agent.consistency.pddl_plus_simulator import PddlPlusSimulator, InconsistentPlanError
 from agent.planning.sb_meta_model import ScienceBirdsMetaModel
+from agent.planning.pddl_plus import PddlPlusGrounder
 from agent.repair.sb_consistency_estimators.bird_location_consistency import BirdLocationConsistencyEstimator
 from agent.repair.sb_consistency_estimators.block_dead_consistency import BlockNotDeadConsistencyEstimator
 from agent.repair.sb_consistency_estimators.pig_dead_consistency import PigDeadConsistencyEstimator
@@ -28,6 +29,7 @@ class ScienceBirdsConsistencyEstimator(DomainConsistency):
         if self.use_simplified_problems:
             problem = meta_model.create_simplified_problem(problem)
         domain = meta_model.create_pddl_domain(observation.get_initial_state())
+        domain = PddlPlusGrounder().ground_domain(domain, problem)
         plan = observation.get_pddl_plan(meta_model)
         (_, _, expected_trace,) = simulator.simulate(plan, problem, domain, delta_t=delta_t)
         observed_seq = observation.get_pddl_states_in_trace(meta_model)
