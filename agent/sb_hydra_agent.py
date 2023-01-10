@@ -177,7 +177,6 @@ class SBHydraAgent(HydraAgent):
         self._need_to_repair = self.made_plan and not success
         self.completed_levels.append(success)
 
-
         self.current_stats.success = success
         self.current_novelty.pddl_prob = self.level_novelty_indicators[PDDL_INCONSISTENCY]
         self.current_novelty.reward_prob = self.level_novelty_indicators[REWARD_DISCREPENCY]
@@ -374,13 +373,19 @@ class SBHydraAgent(HydraAgent):
         Wrapper for _detect_novelty function, can be called from the dispatcher
         """
 
-        logger.info("[hydra_agent_server] :: Requesting Novelty Likelihood. Novelty likelihood is {}".format(self._new_novelty_likelihood))
-
         novelty_likelihood = 0.0
         non_novelty_likelihood = 1.0
         ids = set()
         novelty_level = 0
-        novelty_description= "None"
+        novelty_description = "None"
+
+        if len(self.novelty_stats) > 0:
+            previous_episode_novelty_determination = self.novelty_stats[-1]
+            if all(previous_episode_novelty_determination.unknown_obj):
+                novelty_likelihood = 1.0
+                non_novelty_likelihood = 0.0
+                novelty_description = "novel object or agent"
+        logger.info("[hydra_agent_server] :: Reporting novelty detection. Likelihood {}, characterization {}".format(novelty_likelihood, novelty_description))
         return novelty_likelihood, non_novelty_likelihood, ids, novelty_level, novelty_description
 
     def _detect_level_novelty_with_ensemble(self, success:bool) -> bool:
@@ -467,7 +472,7 @@ class SBHydraAgent(HydraAgent):
         logger.info("Determining if a level is novel based on recorded novelty indicators")
         logger.info("Unknown object indicator is {}".format(self.level_novelty_indicators[UNKNOWN_OBJ_EXISTS]))
         logger.info("PDDL inconsistency indicator is {}".format(self.level_novelty_indicators[PDDL_INCONSISTENCY]))
-        logger.info("Reward discrepcency indicator is {}".format(self.level_novelty_indicators[REWARD_DISCREPENCY]))
+        logger.info("Reward discrepency indicator is {}".format(self.level_novelty_indicators[REWARD_DISCREPENCY]))
 
         return False
 
