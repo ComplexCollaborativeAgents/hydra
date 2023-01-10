@@ -1,6 +1,9 @@
 import settings
 from agent.consistency.consistency_estimator import AspectConsistency, DEFAULT_DELTA_T
-
+import logging
+logging.basicConfig(format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger("novelty_experiment_runner")
+logger.setLevel(logging.INFO)
 
 class PigDeadConsistencyEstimator(AspectConsistency):
     """
@@ -23,5 +26,6 @@ class PigDeadConsistencyEstimator(AspectConsistency):
         """
         if pddl_plan is None:
             pddl_plan = []
-        pigs_not_dead = self._objects_in_last_frame(simulation_trace, state_seq, in_sim=True, in_obs=False)
+        pigs_not_dead = self._objects_in_last_frame(simulation_trace, state_seq, in_sim=True, in_obs=True)
+        logger.info("[pig_dead_consistency] :: number of mismatched pigs {}".format(pigs_not_dead))
         return pigs_not_dead * 50

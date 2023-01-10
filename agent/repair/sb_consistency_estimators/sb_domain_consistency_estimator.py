@@ -48,7 +48,7 @@ class ScienceBirdsConsistencyEstimator(DomainConsistency):
         try:
             expected_trace, observed_seq, plan = self._get_traces_from_simulator(observation, meta_model, simulator,
                                                                                  delta_t)
-            consistency = self.consistency_from_trace(expected_trace, observed_seq, plan, delta_t=delta_t)
+            consistency = self.consistency_from_trace(expected_trace, observed_seq, plan, delta_t=delta_t, agg_func=sum)
         except InconsistentPlanError as e:
             # Sometimes the repair makes the executed plan be inconsistent, e.g., its preconditions are not satisfied
             consistency = AspectConsistency.PLAN_FAILED_CONSISTENCY_VALUE

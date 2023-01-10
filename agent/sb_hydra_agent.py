@@ -260,6 +260,7 @@ class SBHydraAgent(HydraAgent):
         
         processed_state = self.perception.process_state(state)
         self.current_log.state = processed_state
+        self.current_stats.default_action_used = False
 
         self.shot_num += 1
         if processed_state:
@@ -331,7 +332,10 @@ class SBHydraAgent(HydraAgent):
             return
 
         self.level_novelty_indicators[UNKNOWN_OBJ_EXISTS].append(self.current_log.hasUnknownObj())
-        self.level_novelty_indicators[PDDL_INCONSISTENCY].append(self.consistency_estimator.consistency_from_simulator(self.current_log, self.meta_model,CachingPddlPlusSimulator(),self.meta_model.delta_t))
+        if self.current_stats.default_action_used:
+            self.level_novelty_indicators[PDDL_INCONSISTENCY].append(None)
+        else:
+            self.level_novelty_indicators[PDDL_INCONSISTENCY].append(self.consistency_estimator.consistency_from_simulator(self.current_log, self.meta_model,CachingPddlPlusSimulator(),self.meta_model.delta_t))
         self.level_novelty_indicators[REWARD_DISCREPENCY].append(None)
         #self.level_novelty_indicators[PDDL_INCONSISTENCY].append(self.consistency.consistency_from_simulator(self.current_log, self.meta_model,NyxPddlPlusSimulator(),self.meta_model.delta_t))
         #self.level_novelty_indicators[REWARD_DISCREPENCY].append(self.reward_estimator.compute_estimated_reward_difference(self.current_log))
