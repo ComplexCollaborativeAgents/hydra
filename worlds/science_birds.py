@@ -234,6 +234,10 @@ class ScienceBirds(World):
                 self.intermediate_states = self.sb_client.shoot_and_record_ground_truth(action.ref_x + action.dx,
                                                                                         action.ref_y + action.dy, 0,
                                                                                         action.tap, settings.SB_GT_FREQ)
+
+                for _ in range(3):
+                    self.intermediate_states.extend(self.sb_client.batch_ground_truth(1, 300))
+                
                 self.intermediate_states = [SBState(intermediate_state, None, None) for intermediate_state in
                                             self.intermediate_states]
                 time.sleep(2 / settings.SB_SIM_SPEED)
