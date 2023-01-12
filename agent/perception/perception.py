@@ -33,12 +33,16 @@ class Perception():
         '''Taken from naive_agent_groundtruth'''
         self.model = np.loadtxt("{}/data/science_birds/perception/model".format(settings.ROOT_PATH), delimiter=",")
         self.target_class = list(map(lambda x: x.replace("\n", ""), open('{}/data/science_birds/perception/target_class'.format(settings.ROOT_PATH)).readlines()))
-        self.logreg = pickle.load(open('{}/data/science_birds/perception/logreg_pII_v2.p'.format(settings.ROOT_PATH),'rb'))
+        self.logreg = pickle.load(open('{}/data/science_birds/perception/logreg_pIII.p'.format(settings.ROOT_PATH),'rb'))
         self.threshold = settings.SB_CLASSIFICATION_THRESHOLD
         self.new_level = True
+
         self.writer = csv.DictWriter(open('object_class.csv','w'), fieldnames=classification_cols())
-        if settings.DEBUG:
-            self.writer.writeheader()
+        # if settings.DEBUG:
+        #     with open('object_class_new.csv', 'a') as f:
+        #         writer = csv.DictWriter(f, fieldnames=classification_cols())
+        #         writer.writeheader()
+        #         f.flush()
 
 
     def process_observation(self, ob):
@@ -67,7 +71,10 @@ class Perception():
         if self.new_level and settings.DEBUG:
             for obj in vision.alljson:
                 if 'coordinates' in obj['geometry']:
-                    self.writer.writerow(self.obj_dictionary(obj))
+                    with open('object_class_new.csv', 'a') as f:
+                        writer = csv.DictWriter(f, fieldnames=classification_cols())
+                        writer.writerow(self.obj_dictionary(obj))
+                        f.flush()
             self.new_level = False
 
         # try:
@@ -102,80 +109,7 @@ class Perception():
                     new_objs[obj['properties']['id']] = new_obj
                 else:
                     new_objs[obj['properties']['id']] = new_obj
-
-        # for platform in self.merge_platforms(platforms):
-        #     new_objs[platform['id']] = platform
-
-        # bird_types = []
-        # for type, objs in vision.allObj.items():
-        #     if "bird" in type.lower():
-        #         bird_types.append(type)
-        # bird_types = sorted(bird_types)
-#         id = 0
-#         new_objs = {}
-#         for bird_type in bird_types:
-#             for obj in vision.allObj[bird_type]:
-#                 obj: GameObject
-#                 poly = Polygon([(i[0], i[1]) for i in obj.vertices])
-#                 new_objs[id] = {'type': bird_type,
-# #                                'bbox': box(obj.top_left[0], obj.top_left[1],
-# #                                            obj.bottom_right[0], obj.bottom_right[1])
-#                                 'polygon':poly}
-#                 id += 1
-#
-#         for type, objs in vision.allObj.items():
-#             if type in bird_types:
-#                 continue
-#
-#             for obj in objs:
-#                 obj: GameObject
-#                 poly = Polygon([(i[0], i[1]) for i in obj.vertices])
-#                 new_objs[id] = {'type':type,
-#                                 #'bbox':box(obj.top_left[0],obj.top_left[1],
-#                                 #            obj.bottom_right[0],obj.bottom_right[1]),
-#                                 'polygon':poly
-#                                 }
-#                 if type == 'unknown':
-#                     for state_obj in state.objects:
-#                         if 'vertices' in state_obj and obj.vertices == state_obj['vertices']:
-#                             new_objs[id]['colormap'] = state_obj['colormap']
-#                     assert 'colormap' in new_objs[id].keys()
-#                 id+=1
-
         return ProcessedSBState(state, new_objs, vision.find_slingshot_mbr()[0])
-
-    def merge_platforms(self,platforms):
-        '''
-        merge all platforms that are touching one another into a single object
-        return a list of platforms
-        '''
-        ids = [k['id'] for k in platforms]
-        touches = dict((id,[]) for id in ids)
-
-        for plat_1 in platforms:
-            for plat_2 in platforms:
-                if plat_1['id'] != plat_2['id'] and plat_1['polygon'].intersects(plat_2['polygon']):
-                    touches[plat_1['id']].append(plat_2)
-
-        ret = []
-        open_list = []
-        try:
-            for plat in platforms:
-                poly = plat['polygon']
-                if plat['id'] not in ids:
-                    continue
-                ids.remove(plat['id'])
-                open_list = touches[plat['id']]
-                while open_list:
-                    plat_2 = open_list.pop(0)
-                    if plat_2['id'] in ids:
-                        poly = poly.union(plat_2['polygon'])
-                        ids.remove(plat_2['id'])
-                        open_list.extend(touches[plat_2['id']])
-                ret.append({'id':plat['id'],'polygon':poly,'type':'platform'})
-        except TopologicalError:
-            logging.info("Ill-formed platform. Returning an empty list for the platforms")
-        return ret
 
     def classify_object_for_data_collection(self, obj_json, translate_to_features=True):
         object_label = obj_json['properties']['label']
@@ -194,7 +128,6 @@ class Perception():
             return pred_type
         else:
             return 'unknown'
-
 
     def add_qsrs_to_input(self,dictionary):
         '''augments symbolic input with qualitative spatial relationships and returns
@@ -229,8 +162,6 @@ def classification_cols():
     cols = ['class', 'num_vertices',  'area']
     cols.extend(colormap)
     return cols
-
-
 
 
 ''' A Science bird after it was processed by the perception module '''

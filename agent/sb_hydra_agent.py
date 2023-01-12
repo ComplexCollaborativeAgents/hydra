@@ -13,7 +13,7 @@ from agent.consistency.nyx_pddl_simulator import NyxPddlPlusSimulator
 from agent.consistency.fast_pddl_simulator import CachingPddlPlusSimulator
 from agent.consistency.sb_episode_log import SBEpisodeLog
 from agent.hydra_agent import (NOVELTY_EXISTENCE_NOT_GIVEN, NOVELTY_LIKELIHOOD,
-                               PDDL_PROB, HydraAgent)
+                               PDDL_INCONSISTENCY, HydraAgent)
 from agent.perception.perception import Perception, ProcessedSBState
 from agent.planning.nyx.syntax import constants
 from agent.planning.pddl_plus import PddlPlusPlan, PddlPlusState, TimedAction
@@ -32,10 +32,10 @@ from worlds.science_birds import SBAction, SBState, ScienceBirds
 
 # stats_per_level dictionary keys
 # NN_PROB = "nn_novelty_likelihood" this originally was the state-based detector written by UPenn
-REWARD_PROB = "reward_estimator_likelihood"
-PDDL_PROB = "pddl_novelty_likelihood"
+REWARD_DISCREPENCY = "reward_estimator_likelihood"
+PDDL_INCONSISTENCY = "pddl_novelty_likelihood"
 NOVELTY_LIKELIHOOD = "novelty_likelihood"
-UNKNOWN_OBJ = "unknown_object"
+UNKNOWN_OBJ_EXISTS = "unknown_object"
 PLAN = "plan"
 UNDEFINED = None
 
@@ -47,7 +47,7 @@ logger = logging.getLogger("Science Birds")
 class SBHydraAgent(HydraAgent):
     meta_model: ScienceBirdsMetaModel
     planner: SBPlanner
-    consistency: ScienceBirdsConsistencyEstimator
+    consistency_estimator: ScienceBirdsConsistencyEstimator
     meta_model_repair: ScienceBirdsMetaModelRepair
 
     current_state: SBState
@@ -67,17 +67,13 @@ class SBHydraAgent(HydraAgent):
         self.planner = SBPlanner(self.meta_model)
         self.meta_model_repair = ScienceBirdsMetaModelRepair(self.meta_model)
         self.reward_estimator = RewardEstimator()
-
-        self.consistency = ScienceBirdsConsistencyEstimator()
-
-        self._new_novelty_likelihood = settings.NOVELTY_POSSIBLE
+        self.consistency_estimator = ScienceBirdsConsistencyEstimator()
 
         self.current_stats = SBAgentStats(episode_start_time=time.perf_counter())
         self.current_novelty = SBDetectionStats()
         self.current_log = SBEpisodeLog()
 
         # Level tracking variables
-        self.level_informed_novelty = False
         self.current_level = 0
         self.shot_num = 0
 
@@ -115,13 +111,11 @@ class SBHydraAgent(HydraAgent):
     def _initialize_processing_state_variables(self):
         self.perception = Perception()
         self.completed_levels = []
-
         self.novel_objects = []
-
         self.level_novelty_indicators = {
-            REWARD_PROB: list(),
-            PDDL_PROB: list(),
-            UNKNOWN_OBJ: list(),
+            REWARD_DISCREPENCY: list(),
+            PDDL_INCONSISTENCY: list(),
+            UNKNOWN_OBJ_EXISTS: list(),
             PLAN: list()
         }
 
@@ -133,9 +127,9 @@ class SBHydraAgent(HydraAgent):
         self.perception.new_level = True
         self.shot_num = 0
         self.level_novelty_indicators = {
-            PDDL_PROB: list(),
-            UNKNOWN_OBJ: list(),
-            REWARD_PROB: list(),
+            PDDL_INCONSISTENCY: list(),
+            UNKNOWN_OBJ_EXISTS: list(),
+            REWARD_DISCREPENCY: list(),
             PLAN: list()
         }
         self.current_stats = SBAgentStats(episode_start_time=time.perf_counter())
@@ -166,6 +160,7 @@ class SBHydraAgent(HydraAgent):
         #     for ns in self.novelty_stats:
         #         f.write(f"{str(ns)}\n")
 
+        logger.info("Novelty detection stats are {}".format(self.novelty_stats))
         self.agent_stats = []
         self.novelty_stats = []
         self._initialize_processing_state_variables() 
@@ -181,26 +176,19 @@ class SBHydraAgent(HydraAgent):
         # 
         self._need_to_repair = self.made_plan and not success
         self.completed_levels.append(success)
-        self._detect_novelty(success)
 
-        self.current_stats.success = success    
-        # self.current_novelty.novelty_detected = bool(self._new_novelty_likelihood)    # This value is overridden?
-        self.current_novelty.pddl_prob = self.level_novelty_indicators[PDDL_PROB]
-        self.current_novelty.reward_prob = self.level_novelty_indicators[REWARD_PROB]
-        self.current_novelty.unknown_obj = self.level_novelty_indicators[UNKNOWN_OBJ]
+        self.current_stats.success = success
+        self.current_novelty.pddl_prob = self.level_novelty_indicators[PDDL_INCONSISTENCY]
+        self.current_novelty.reward_prob = self.level_novelty_indicators[REWARD_DISCREPENCY]
+        self.current_novelty.unknown_obj = self.level_novelty_indicators[UNKNOWN_OBJ_EXISTS]
+        self.current_novelty.novelty_detected = self._detect_if_current_episode_is_novel(success)
 
-        logger.info("[hydra_agent_server] :: Level novelty indicators {}".format(self.level_novelty_indicators))
-        # logger.info("[hydra_agent_server] :: Novelty detections from new code {}".format(self.current_novelty.novelty_detected))
-        logger.info(
-            "[hydra_agent_server] :: Novelty likelihood from the new code {}".format(self._new_novelty_likelihood))
         logger.info("[hydra_agent_sever] :: Novelty existence notification is {}".format(self.level_informed_novelty))
         logger.info("[hydra_agent_server] :: Level {} Complete - WIN={}".format(self.current_level, success))
         logger.info("[hydra_agent_server] :: Cumulative planning time only = {}".format(str(self.current_stats.cumulative_plan_time)))
         logger.info("[hydra_agent_server] :: Planning effort percentage = {}\n".format(
             str((self.current_stats.cumulative_plan_time / (time.perf_counter() - self.current_stats.plan_total_time)))))
-
         self.perception.new_level = True
-
         self.novelty_stats.append(self.current_novelty)
         self.agent_stats.append(self.current_stats)
 
@@ -272,6 +260,7 @@ class SBHydraAgent(HydraAgent):
         
         processed_state = self.perception.process_state(state)
         self.current_log.state = processed_state
+        self.current_stats.default_action_used = False
 
         self.shot_num += 1
         if processed_state:
@@ -336,30 +325,21 @@ class SBHydraAgent(HydraAgent):
             return sb_action
     
     def _record_novelty_indicators(self):
-
-
         if self.level_informed_novelty == 0 or self.level_informed_novelty == 1:
-            self.level_novelty_indicators[PDDL_PROB].append(UNDEFINED)
-            self.level_novelty_indicators[UNKNOWN_OBJ].append(UNDEFINED)
-            self.level_novelty_indicators[REWARD_PROB].append(UNDEFINED)
+            self.level_novelty_indicators[PDDL_INCONSISTENCY].append(UNDEFINED)
+            self.level_novelty_indicators[UNKNOWN_OBJ_EXISTS].append(UNDEFINED)
+            self.level_novelty_indicators[REWARD_DISCREPENCY].append(UNDEFINED)
             return
 
-        if self.current_log.hasUnknownObj():
-            self.level_novelty_indicators[PDDL_PROB].append(1000)  ### add a high value because if there is a new object, the PDDL is highly inconsistent.
-            self.level_novelty_indicators[UNKNOWN_OBJ].append(True)
-            self.novel_objects = self.current_log.get_novel_object_ids()
+        self.level_novelty_indicators[UNKNOWN_OBJ_EXISTS].append(self.current_log.hasUnknownObj())
+        if self.current_stats.default_action_used:
+            self.level_novelty_indicators[PDDL_INCONSISTENCY].append(None)
         else:
-            self.level_novelty_indicators[UNKNOWN_OBJ].append(False)
-            if settings.NO_PDDL_CONSISTENCY:
-                pddl_prob = UNDEFINED
-            else:
-                pddl_prob = self.consistency.consistency_from_simulator(self.current_log, self.meta_model,
-                                                                        CachingPddlPlusSimulator(),
-                                                                        self.meta_model.delta_t)
-            self.level_novelty_indicators[PDDL_PROB].append(pddl_prob)
+            self.level_novelty_indicators[PDDL_INCONSISTENCY].append(self.consistency_estimator.consistency_from_simulator(self.current_log, self.meta_model,CachingPddlPlusSimulator(),self.meta_model.delta_t))
+        self.level_novelty_indicators[REWARD_DISCREPENCY].append(None)
+        #self.level_novelty_indicators[PDDL_INCONSISTENCY].append(self.consistency.consistency_from_simulator(self.current_log, self.meta_model,NyxPddlPlusSimulator(),self.meta_model.delta_t))
+        #self.level_novelty_indicators[REWARD_DISCREPENCY].append(self.reward_estimator.compute_estimated_reward_difference(self.current_log))
 
-        difference = self.reward_estimator.compute_estimated_reward_difference(self.current_log)
-        self.level_novelty_indicators[REWARD_PROB].append(difference) 
 
     def do(self, sb_action: SBAction, world: ScienceBirds, timestamp:str) -> Tuple[SBState, float]:
         """ Perform specified action within the environment, return the next state + resulting reward
@@ -388,14 +368,8 @@ class SBHydraAgent(HydraAgent):
         logger.info("[hydra_agent_server] :: Reward {} Game State {}".format(reward, raw_state.game_state))
 
         if settings.NOVELTY_POSSIBLE:
-            # num_objs = 0
-            # if len(self.current_log.state.objects) > 0:
-            #     num_objs = len(self.current_log.state.objects[0]['features'])
-            # self.current_stats.num_objects = num_objs
             self._record_novelty_indicators()
-
         self.episode_logs.append(self.current_log)
-
         return raw_state, reward
 
     def report_novelty(self) -> Tuple[float, float, Set[int], int, str]:
@@ -403,26 +377,19 @@ class SBHydraAgent(HydraAgent):
         Wrapper for _detect_novelty function, can be called from the dispatcher
         """
 
-        logger.info("[hydra_agent_server] :: Requesting Novelty Likelihood. Novelty likelihood is {}".format(
-            self._new_novelty_likelihood))
-        if self._new_novelty_likelihood:
-            novelty_likelihood = 1.0
-        else:
-            novelty_likelihood = 0.0
-
-        non_novelty_likelihood = 1.0 - novelty_likelihood
-
-        # placeholders for novelty information
-        if len(self.novel_objects) > 0:
-            ids = set([int(object_id_str) for object_id_str in self.novel_objects])
-            novelty_description = f"Unknown type of objects detected | {self.current_stats.repair_description}"
-        else:
-            ids = set()
-            novelty_description = f"Uncharacterized novelty | {self.current_stats.repair_description}"
+        novelty_likelihood = 0.0
+        non_novelty_likelihood = 1.0
+        ids = set()
         novelty_level = 0
+        novelty_description = "None"
 
-        logger.info("[hydra_agent_server] :: Reporting novelty_likelihood: {}".format(novelty_likelihood))
-
+        if len(self.novelty_stats) > 0:
+            previous_episode_novelty_determination = self.novelty_stats[-1]
+            if all(previous_episode_novelty_determination.unknown_obj):
+                novelty_likelihood = 1.0
+                non_novelty_likelihood = 0.0
+                novelty_description = "novel object or agent"
+        logger.info("[hydra_agent_server] :: Reporting novelty detection. Likelihood {}, characterization {}".format(novelty_likelihood, novelty_description))
         return novelty_likelihood, non_novelty_likelihood, ids, novelty_level, novelty_description
 
     def _detect_level_novelty_with_ensemble(self, success:bool) -> bool:
@@ -438,12 +405,12 @@ class SBHydraAgent(HydraAgent):
         with open(ENSEMBLE_MODEL, 'rb') as f:
             rf = pickle.load(f)
 
-        if True in self.level_novelty_indicators[UNKNOWN_OBJ]:
+        if True in self.level_novelty_indicators[UNKNOWN_OBJ_EXISTS]:
             has_unknown_object = 1
         else:
             has_unknown_object = 0
 
-        pddl_list = self.level_novelty_indicators[PDDL_PROB]
+        pddl_list = self.level_novelty_indicators[PDDL_INCONSISTENCY]
 
         if all(v is None for v in pddl_list):
             max_pddl_inconsistency = 1000
@@ -452,12 +419,12 @@ class SBHydraAgent(HydraAgent):
             max_pddl_inconsistency = np.nanmax(pddl_list)
             avg_pddl_inconsistency = np.nanmean(pddl_list)
 
-        if len(self.level_novelty_indicators[REWARD_PROB]) == 0:
+        if len(self.level_novelty_indicators[REWARD_DISCREPENCY]) == 0:
             max_reward_difference = 0
             avg_reward_difference = 0
         else:
-            max_reward_difference = np.nanmax(self.level_novelty_indicators[REWARD_PROB])
-            avg_reward_difference = np.nanmean(self.level_novelty_indicators[REWARD_PROB])
+            max_reward_difference = np.nanmax(self.level_novelty_indicators[REWARD_DISCREPENCY])
+            avg_reward_difference = np.nanmean(self.level_novelty_indicators[REWARD_DISCREPENCY])
 
         if success == True:
             status = 1
@@ -496,7 +463,8 @@ class SBHydraAgent(HydraAgent):
         else:
             return True
 
-    def _detect_novelty(self, success: bool) -> bool:
+
+    def _detect_if_current_episode_is_novel(self, success: bool) -> bool:
         """Given an episode log, determine using the methods available (consistency, perception, reward_prediction, etc) whether or not novelty is present
 
         Args:
@@ -505,21 +473,12 @@ class SBHydraAgent(HydraAgent):
         Returns:
             bool: Whether or not novelty was detected
         """
-        logger.info("Level has informed novelty of: {}".format(self.level_informed_novelty))
-        if (self.level_informed_novelty == 0) or (self.level_informed_novelty == 1):
-            self._new_novelty_likelihood = self.level_informed_novelty
-            return
+        logger.info("Determining if a level is novel based on recorded novelty indicators")
+        logger.info("Unknown object indicator is {}".format(self.level_novelty_indicators[UNKNOWN_OBJ_EXISTS]))
+        logger.info("PDDL inconsistency indicator is {}".format(self.level_novelty_indicators[PDDL_INCONSISTENCY]))
+        logger.info("Reward discrepency indicator is {}".format(self.level_novelty_indicators[REWARD_DISCREPENCY]))
 
-        if (not self._new_novelty_likelihood) and settings.SB_LOOKBACK_ONLY_DETECTION and (
-                len(self.completed_levels) >= settings.SB_LOOKBACK_HORIZON):
-            if not any(self.completed_levels[-settings.SB_LOOKBACK_HORIZON:]):
-                self._new_novelty_likelihood = True
-                return
-
-        # looks at the history of detections in previous levels and returns true when novelty has been detected for 3 contiguous episodes        
-        self.current_novelty.novelty_detected = self._detect_level_novelty_with_ensemble(success)
-        if (not settings.SB_LOOKBACK_ONLY_DETECTION) and (not self._new_novelty_likelihood) and self._count_previous_detected_levels() > 2:
-            self._new_novelty_likelihood = self._detected_in_all_past_n(3)       
+        return False
 
 
 class RepairingSBHydraAgent(SBHydraAgent):

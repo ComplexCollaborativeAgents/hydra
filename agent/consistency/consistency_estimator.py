@@ -146,7 +146,7 @@ class AspectConsistency:
 
         # Compute consistency of every observed state
         consistency_per_state = self._compute_consistency_per_unmatched_state(simulation_trace, state_seq, delta_t)
-
+        logger.info("[consistency_estimator] :: Consistency per state is {}".format(consistency_per_state))
         # Aggregate the consistency
         discount = 1.0
         max_error = 0
@@ -161,6 +161,11 @@ class AspectConsistency:
             discount = discount * self.discount_factor
 
         return max_error
+
+
+    def _consistency_from_unmatched_trace_max_value_of_var(self, simulation_trace: list, state_seq: list, delta_t: float = DEFAULT_DELTA_T):
+
+        return None
 
     def _compute_consistency_per_unmatched_state(self, expected_state_seq: list, observed_states: list,
                                                  delta_t: float = DEFAULT_DELTA_T):
@@ -244,12 +249,19 @@ class AspectConsistency:
         last_state_in_obs = observations[-1]
         obs_objs = last_state_in_obs.get_objects(self.fluent_template)
         last_state_in_sim = simulation_trace[-1][0]
+        logger.info("[consistency_estimator] :: Last state in episode log: {}".format(last_state_in_obs))
+        logger.info("[consistency_estimator] :: Last state in simulator: {}".format(last_state_in_sim))
         sim_objs = last_state_in_sim.get_objects(self.fluent_template)
         for obj in sim_objs:
             # All object fluents exist in the simulation, but the object might be 'dead'
-            if in_sim and last_state_in_sim[(self.fluent_template + '_life', obj)] > 0 and obj not in obs_objs:
+            logger.info("[consistency_estimator] :: is object dead {}".format((self.fluent_template + '_dead', obj) in last_state_in_sim))
+            logger.info("[consistency_estimator] :: is object life <= 0".format((last_state_in_sim[(self.fluent_template + '_life', obj)])))
+            is_dead_in_sim = ((self.fluent_template + '_dead', obj) in last_state_in_sim or (last_state_in_sim[(self.fluent_template + '_life', obj)] <= 0))
+            logger.info("[consistency_estimator] :: is object dead in trace {}".format(obj not in obs_objs))
+            is_dead_in_obs = obj not in obs_objs
+            if in_sim and not is_dead_in_sim and is_dead_in_obs:
                 non_matching_obj += 1
-            if in_obs and last_state_in_sim[(self.fluent_template + '_life', obj)] <= 0 and obj in obs_objs:
+            if in_obs and is_dead_in_sim and not is_dead_in_obs:
                 non_matching_obj += 1
         return non_matching_obj
 

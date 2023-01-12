@@ -691,7 +691,7 @@ class PolycraftHydraAgent(HydraAgent):
         if isinstance(self.planner, PolycraftPlanner):
             self.planner.meta_model = meta_model
 
-    def _detect_novelty(self, state: PolycraftState, world: Polycraft, only_current_state:bool = True) -> Tuple[float, str]:
+    def _detect_if_current_episode_is_novel(self, state: PolycraftState, world: Polycraft, only_current_state:bool = True) -> Tuple[float, str]:
         """Computes the likelihood that the current observation is novel
 
         Args:
@@ -756,7 +756,7 @@ class PolycraftHydraAgent(HydraAgent):
         No Return arguments. Updates agent objects for novelty characterization stats
         and novelty reporting for the tournament.
         """
-        novelty_likelihood, novelty_characterization = self._detect_novelty(state, world)
+        novelty_likelihood, novelty_characterization = self._detect_if_current_episode_is_novel(state, world)
 
         if stats.novelty_detection and report_novelty and not self.novelty_reported:
             world.poly_client.REPORT_NOVELTY(level="0", confidence=f"{novelty_likelihood}",
@@ -822,7 +822,7 @@ class PolycraftHydraAgent(HydraAgent):
             return True
         elif self.current_stats.failed_actions > 0 and self.current_stats.failed_actions % self.exploration_rate == 0:
             return True
-        self._detect_novelty(state, world, only_current_state=False)
+        self._detect_if_current_episode_is_novel(state, world, only_current_state=False)
         return self.current_detection.novelty_detected
 
     def repair_meta_model(self, state: PolycraftState, world: Polycraft):
