@@ -299,6 +299,8 @@ class BirdType(SBPddlObjectType):
         else:
             obj_attributes["x_bird"] = get_x_coordinate(obj)
             obj_attributes["y_bird"] = get_y_coordinate(obj, ground_offset)
+            #print("centroid {}".format(obj[1]['polygon'].centroid))
+            #print("computed attributes (x, y) ({},{})".format(obj_attributes["x_bird"], obj_attributes["y_bird"]))
 
             # Need to separate the case where we're before shooting the bird and after.
             # Before: the bird location is considered as the location of the slingshot,
@@ -448,9 +450,8 @@ class ScienceBirdsMetaModel(MetaModel):
                              'gravity_factor'
 
                          ],
-                         repair_deltas=[
-                             1, 50, 0.1  # 50, 10
-                         ],
+                         repair_deltas=[1, 50, 0.1  # 50, 10
+                                    ],
                          constant_numeric_fluents={
                              'active_bird': 0,
                              'angle_rate': 20,
@@ -468,6 +469,7 @@ class ScienceBirdsMetaModel(MetaModel):
                              'meta_ice_multiplier': 1.0,
                              'v_bird_change': 0.0,
                              'gravity_factor': 9.81,
+                             #'gravity_factor': 0.1,
                              'meta_platform_size': 2,
                              'base_life_pig_multiplier': 0.0,
                              'fall_damage': 50,

@@ -57,6 +57,7 @@ def normalization_reward(reward_output):
 
 
 def normalization(state_input, action_input, reward_output):
+    action_input = action_input.astype(np.float)
     state_max = np.load("{}/agent/reward_estimation/state_max.npy".format(settings.ROOT_PATH))
     state_min = np.load("{}/agent/reward_estimation/state_min.npy".format(settings.ROOT_PATH))
     action_max = np.load("{}/agent/reward_estimation/action_max.npy".format(settings.ROOT_PATH))
@@ -71,7 +72,7 @@ def normalization(state_input, action_input, reward_output):
 
     for j in range(5):
         if action_max[j] != action_min[j]:
-            action_input[:, j] = (action_input[:, j] - action_min[j]) / (action_max[j] - action_min[j])
+            action_input[:, j] = ((action_input[:, j] - action_min[j])) / (action_max[j] - action_min[j])
         else:
             action_input[:, j] = 0.0
     reward_output = (reward_output[:, 0] - reward_min[0]) / (reward_max[0] - reward_min[0])

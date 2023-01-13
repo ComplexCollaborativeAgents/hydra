@@ -336,7 +336,7 @@ class SBHydraAgent(HydraAgent):
             self.level_novelty_indicators[PDDL_INCONSISTENCY].append(None)
         else:
             self.level_novelty_indicators[PDDL_INCONSISTENCY].append(self.consistency_estimator.consistency_from_simulator(self.current_log, self.meta_model,CachingPddlPlusSimulator(),self.meta_model.delta_t))
-        self.level_novelty_indicators[REWARD_DISCREPENCY].append(None)
+        #self.level_novelty_indicators[REWARD_DISCREPENCY].append(self.reward_estimator.compute_estimated_reward_difference(self.current_log))
         #self.level_novelty_indicators[PDDL_INCONSISTENCY].append(self.consistency.consistency_from_simulator(self.current_log, self.meta_model,NyxPddlPlusSimulator(),self.meta_model.delta_t))
         #self.level_novelty_indicators[REWARD_DISCREPENCY].append(self.reward_estimator.compute_estimated_reward_difference(self.current_log))
 
@@ -487,10 +487,15 @@ class RepairingSBHydraAgent(SBHydraAgent):
     
     def choose_action(self, state: SBState) -> SBAction:
 
-        if self.should_repair() and not settings.NO_REPAIR:
+        return super().choose_action(state)
+
+    def episode_end(self, success: bool) -> SBDetectionStats:
+        novelty_stats = super().episode_end(success)
+
+        if self.should_repair():
             self.repair_meta_model()
 
-        return super().choose_action(state)
+        return novelty_stats
     
     def should_repair(self) -> bool:
         """ Choose if the agent should repair its meta model based on the given episode log.
@@ -512,7 +517,7 @@ class RepairingSBHydraAgent(SBHydraAgent):
 
         # logger.info(f"SHOULD_REPAIR: encountered: {self._new_novelty_likelihood}")
         # If we've encountered novelty before
-        if self._new_novelty_likelihood:
+        if self.current_novelty.pddl_prob[-1] and self.current_novelty.pddl_prob[-1] > 50:
             return True
 
         return False
@@ -527,6 +532,7 @@ class RepairingSBHydraAgent(SBHydraAgent):
 
         try:
             repair, consistency = self.meta_model_repair.repair(self.current_log, delta_t=settings.SB_DELTA_T)
+            print(repair, consistency)
             repair_description = ["Repair %s, %.2f" % (fluent, repair[i])
                                   for i, fluent in enumerate(self.meta_model.repairable_constants)]
             self.current_stats.repair_description.append(repair_description)

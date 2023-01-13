@@ -163,9 +163,38 @@ class AspectConsistency:
         return max_error
 
 
-    def _consistency_from_unmatched_trace_max_value_of_var(self, simulation_trace: list, state_seq: list, delta_t: float = DEFAULT_DELTA_T):
+    def _consistency_from_2D_trajectory_max_height(self, simulation_trace: list, state_seq: list, delta_t: float = DEFAULT_DELTA_T):
+        ## get all relevant objects from the first state of observed log
+        objects = state_seq[0].get_objects(self.fluent_template)
 
-        return None
+        max_heights_in_sim = dict()
+        max_heights_in_trace = dict()
+
+        for object in objects:
+            max_heights_in_sim[object] = 0
+            max_heights_in_trace[object] = 0
+            for state in simulation_trace:
+                simulation_state = state[0]
+                x = simulation_state[('x' + '_' + self.fluent_template, object)]
+                y = simulation_state[('y' + '_' + self.fluent_template, object)]
+                if y > max_heights_in_sim[object]:
+                    max_heights_in_sim[object] = y
+
+            for state in state_seq:
+                x = state[('x' + '_' + self.fluent_template, object)]
+                y = state[('y' + '_' + self.fluent_template, object)]
+                if y >= max_heights_in_trace[object]:
+                    max_heights_in_trace[object] = y
+
+        sum_difference_in_heights = 0
+        for object in objects:
+            #print("max height of {} in sim {}".format(object, max_heights_in_sim[object]))
+            #print("max height in {} trace {}".format(object, max_heights_in_trace[object]))
+            sum_difference_in_heights += abs(max_heights_in_sim[object] - max_heights_in_trace[object])
+
+        average_different_in_heights = float(sum_difference_in_heights) / len(objects)
+        logging.debug("[consistency_estimator] :: average consistency in maximum height {}".format(average_different_in_heights))
+        return average_different_in_heights
 
     def _compute_consistency_per_unmatched_state(self, expected_state_seq: list, observed_states: list,
                                                  delta_t: float = DEFAULT_DELTA_T):
@@ -249,15 +278,15 @@ class AspectConsistency:
         last_state_in_obs = observations[-1]
         obs_objs = last_state_in_obs.get_objects(self.fluent_template)
         last_state_in_sim = simulation_trace[-1][0]
-        logger.info("[consistency_estimator] :: Last state in episode log: {}".format(last_state_in_obs))
-        logger.info("[consistency_estimator] :: Last state in simulator: {}".format(last_state_in_sim))
+        logger.debug("[consistency_estimator] :: Last state in episode log: {}".format(last_state_in_obs))
+        logger.debug("[consistency_estimator] :: Last state in simulator: {}".format(last_state_in_sim))
         sim_objs = last_state_in_sim.get_objects(self.fluent_template)
         for obj in sim_objs:
             # All object fluents exist in the simulation, but the object might be 'dead'
-            logger.info("[consistency_estimator] :: is object dead {}".format((self.fluent_template + '_dead', obj) in last_state_in_sim))
-            logger.info("[consistency_estimator] :: is object life <= 0".format((last_state_in_sim[(self.fluent_template + '_life', obj)])))
+            logger.debug("[consistency_estimator] :: is object dead {}".format((self.fluent_template + '_dead', obj) in last_state_in_sim))
+            logger.debug("[consistency_estimator] :: is object life <= 0".format((last_state_in_sim[(self.fluent_template + '_life', obj)])))
             is_dead_in_sim = ((self.fluent_template + '_dead', obj) in last_state_in_sim or (last_state_in_sim[(self.fluent_template + '_life', obj)] <= 0))
-            logger.info("[consistency_estimator] :: is object dead in trace {}".format(obj not in obs_objs))
+            logger.debug("[consistency_estimator] :: is object dead in trace {}".format(obj not in obs_objs))
             is_dead_in_obs = obj not in obs_objs
             if in_sim and not is_dead_in_sim and is_dead_in_obs:
                 non_matching_obj += 1
@@ -326,7 +355,9 @@ class DomainConsistency:
         # example for polycraft: if there are unknown objects, return 1. Otherwise, weighted average of aspects.
         self.latest_inconsistencies = [c_e.consistency_from_trace(simulation_trace, state_seq, plan, delta_t=delta_t)
                            for c_e in self.aspect_estimators]
-        return agg_func(self.latest_inconsistencies)
+        computed_consistency = agg_func(self.latest_inconsistencies)
+        logging.info("[consistency_estimator] :: computed consistency is {}".format(computed_consistency))
+        return computed_consistency
 
     def suggested_fluents(self):
         """

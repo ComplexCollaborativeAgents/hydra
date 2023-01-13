@@ -162,7 +162,8 @@ class GreedyBestFirstSearchConstantFluentMetaModelRepair(AspectRepair):
 
         repair_description = ["Repair %s, %.2f" % (fluent, incumbent_repair[i])
                               for i, fluent in enumerate(self.meta_model.repairable_constants)]
-        return repair_description, incumbent_consistency
+        #return repair_description, incumbent_consistency
+        return incumbent_repair, incumbent_consistency
 
     def expand(self, repair):
         """ Expand the given repair by generating new repairs from it """

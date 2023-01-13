@@ -1,3 +1,5 @@
+import logging
+
 from agent.consistency.consistency_estimator import AspectConsistency, DEFAULT_DELTA_T
 
 
@@ -16,4 +18,7 @@ class BirdLocationConsistencyEstimator(AspectConsistency):
         """
         if pddl_plan is None:
             pddl_plan = []
-        return self._trajectory_compare(simulation_trace, state_seq, delta_t)
+        bird_height_consistency = self._consistency_from_2D_trajectory_max_height(simulation_trace, state_seq, delta_t)
+        logging.info("[bird_location_consistency] :: consistency due to mismatch in bird height {}".format(bird_height_consistency))
+        return bird_height_consistency
+        #return self._trajectory_compare(simulation_trace, state_seq, delta_t)
