@@ -190,11 +190,12 @@ class GreedyBestFirstSearchConstantFluentMetaModelRepair(AspectRepair):
         for i, change_to_fluent in enumerate(change):
             self.meta_model.constant_numeric_fluents[self.fluents_to_repair[i]] = \
                 self.meta_model.constant_numeric_fluents[self.fluents_to_repair[i]] + change_to_fluent
-
+            logging.info("[meta_model_repair] :: do_change {}, {} to {}".format(self.meta_model.uuid, self.fluents_to_repair[i], self.meta_model.constant_numeric_fluents[self.fluents_to_repair[i]]))
     def _undo_change(self, change: list):
         for i, change_to_fluent in enumerate(change):
             self.meta_model.constant_numeric_fluents[self.fluents_to_repair[i]] = \
                 self.meta_model.constant_numeric_fluents[self.fluents_to_repair[i]] - change_to_fluent
+            logging.info("[meta_model_repair] :: un_do_change {}, {} to {}".format(self.meta_model.uuid, self.fluents_to_repair[i], self.meta_model.constant_numeric_fluents[self.fluents_to_repair[i]]))
 
     def is_incumbent_good_enough(self, consistency: float):
         """ Return True if the incumbent is good enough """

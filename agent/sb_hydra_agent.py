@@ -63,11 +63,6 @@ class SBHydraAgent(HydraAgent):
     def __init__(self):
         super().__init__()
 
-        self.meta_model = ScienceBirdsMetaModel()
-        self.planner = SBPlanner(self.meta_model)
-        self.meta_model_repair = ScienceBirdsMetaModelRepair(self.meta_model)
-        self.reward_estimator = RewardEstimator()
-        self.consistency_estimator = ScienceBirdsConsistencyEstimator()
 
         self.current_stats = SBAgentStats(episode_start_time=time.perf_counter())
         self.current_novelty = SBDetectionStats()
@@ -146,10 +141,11 @@ class SBHydraAgent(HydraAgent):
         """Perform setup for the agent at the start of a trial
         """
         logger.info("New Trial Request Received. Refresh agent.")
-        
         self.meta_model = ScienceBirdsMetaModel()
-        self.planner = SBPlanner(self.meta_model)  # TODO: Discuss this w. Wiktor & Matt
-
+        self.planner = SBPlanner(self.meta_model)
+        self.reward_estimator = RewardEstimator()
+        self.consistency_estimator = ScienceBirdsConsistencyEstimator()
+        self.meta_model_repair = ScienceBirdsMetaModelRepair(self.meta_model, self.consistency_estimator)
         self.training_level_backup = 0
 
 
@@ -532,12 +528,14 @@ class RepairingSBHydraAgent(SBHydraAgent):
 
         try:
             repair, consistency = self.meta_model_repair.repair(self.current_log, delta_t=settings.SB_DELTA_T)
-            print(repair, consistency)
             repair_description = ["Repair %s, %.2f" % (fluent, repair[i])
                                   for i, fluent in enumerate(self.meta_model.repairable_constants)]
             self.current_stats.repair_description.append(repair_description)
             logger.info(
                 "Repair done! Consistency: %.2f, Repair:\n %s" % (consistency, "\n".join(repair_description)))
+            repaired_constant_description = ["Constant {}, repaired val {}".format(constant, self.meta_model.constant_numeric_fluents[constant])
+                                             for i, constant in enumerate(self.meta_model.repairable_constants)]
+            logger.info("[sb_hydra_agent] :: Updated meta model {} by {}".format(self.meta_model.uuid, repaired_constant_description))
         except:
             # TODO: fix this hack, catch correct exception
             import traceback

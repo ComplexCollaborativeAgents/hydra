@@ -1,5 +1,6 @@
 import copy
 import math
+import uuid
 
 from agent.perception.perception import ProcessedSBState
 from agent.planning.pddlplus_parser import *
@@ -518,6 +519,10 @@ class ScienceBirdsMetaModel(MetaModel):
         self.object_types["platform"] = PlatformType()
         self.object_types["slingshot"] = SlingshotType()
         self.object_types["unknown"] = UnknownType()
+
+
+        self.uuid = uuid.uuid1()
+        logging.info("[sb_meta_model] :: initing meta_model {}".format(self.uuid))
 
     def get_slingshot(self, sb_state: ProcessedSBState):
         """ Get the slingshot object """

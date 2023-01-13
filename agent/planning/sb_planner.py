@@ -33,6 +33,7 @@ class SBPlanner(HydraPlanner):
         The plan should be a list of actions that are either executable in the environment
         or invoking the RL agent
         """
+        logging.info("[sb_planner] :: Planning with meta model: {}".format(self.meta_model.uuid))
         if settings.NO_PLANNING:
             self.current_problem_prefix = datetime.datetime.now().strftime(
                 "%y%m%d_%H%M%S")  # need a prefix for observations
