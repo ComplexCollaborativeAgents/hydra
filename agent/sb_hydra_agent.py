@@ -144,7 +144,7 @@ class SBHydraAgent(HydraAgent):
         self.meta_model = ScienceBirdsMetaModel()
         self.planner = SBPlanner(self.meta_model)
         self.reward_estimator = RewardEstimator()
-        self.consistency_estimator = ScienceBirdsConsistencyEstimator()
+        self.consistency_estimator = ScienceBirdsConsistencyEstimator(simulator=CachingPddlPlusSimulator())
         self.meta_model_repair = ScienceBirdsMetaModelRepair(self.meta_model, self.consistency_estimator)
         self.training_level_backup = 0
 
@@ -331,7 +331,7 @@ class SBHydraAgent(HydraAgent):
         if self.current_stats.default_action_used:
             self.level_novelty_indicators[PDDL_INCONSISTENCY].append(None)
         else:
-            self.level_novelty_indicators[PDDL_INCONSISTENCY].append(self.consistency_estimator.consistency_from_simulator(self.current_log, self.meta_model,CachingPddlPlusSimulator(),self.meta_model.delta_t))
+            self.level_novelty_indicators[PDDL_INCONSISTENCY].append(self.consistency_estimator.consistency_from_simulator(self.current_log, self.meta_model,self.meta_model.delta_t))
         #self.level_novelty_indicators[REWARD_DISCREPENCY].append(self.reward_estimator.compute_estimated_reward_difference(self.current_log))
         #self.level_novelty_indicators[PDDL_INCONSISTENCY].append(self.consistency.consistency_from_simulator(self.current_log, self.meta_model,NyxPddlPlusSimulator(),self.meta_model.delta_t))
         #self.level_novelty_indicators[REWARD_DISCREPENCY].append(self.reward_estimator.compute_estimated_reward_difference(self.current_log))
@@ -513,7 +513,7 @@ class RepairingSBHydraAgent(SBHydraAgent):
 
         # logger.info(f"SHOULD_REPAIR: encountered: {self._new_novelty_likelihood}")
         # If we've encountered novelty before
-        if self.current_novelty.pddl_prob[-1] and self.current_novelty.pddl_prob[-1] > 50:
+        if self.current_novelty.pddl_prob[-1] and self.current_novelty.pddl_prob[-1] > settings.SB_SHOULD_REPAIR_THRESHOLD:
             return True
 
         return False

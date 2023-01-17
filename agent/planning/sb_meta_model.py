@@ -443,15 +443,14 @@ class ScienceBirdsMetaModel(MetaModel):
                              # 'meta_wood_multiplier',
                              # 'meta_stone_multiplier',
                              # 'meta_ice_multiplier',
+                             'gravity_factor',
                              'v_bird_change',
                              # 'meta_platform_size',
                              'base_life_pig_multiplier',
                              # 'explosion_damage',
                              # 'fall_damage',
-                             'gravity_factor'
-
                          ],
-                         repair_deltas=[1, 50, 0.1  # 50, 10
+                         repair_deltas=[0.1, 1, 50  # 50, 10
                                     ],
                          constant_numeric_fluents={
                              'active_bird': 0,

@@ -235,8 +235,8 @@ class ScienceBirds(World):
                                                                                         action.ref_y + action.dy, 0,
                                                                                         action.tap, settings.SB_GT_FREQ)
 
-                for _ in range(3):
-                    self.intermediate_states.extend(self.sb_client.batch_ground_truth(1, 300))
+                #for _ in range(3):
+                    #self.intermediate_states.extend(self.sb_client.batch_ground_truth(1, 300))
                 
                 self.intermediate_states = [SBState(intermediate_state, None, None) for intermediate_state in
                                             self.intermediate_states]

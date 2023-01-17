@@ -18,10 +18,10 @@ class ScienceBirdsConsistencyEstimator(DomainConsistency):
     Checks consistency for SB
     """
 
-    def __init__(self, use_simplified_problems=True):
+    def __init__(self, use_simplified_problems=True, simulator: PddlPlusSimulator = NyxPddlPlusSimulator()):
         # ExternalAgentLocationConsistencyEstimator()
         super().__init__([BirdLocationConsistencyEstimator(), BlockNotDeadConsistencyEstimator(),
-                          PigDeadConsistencyEstimator()])
+                          PigDeadConsistencyEstimator()], simulator)
         self.use_simplified_problems = use_simplified_problems
 
     def _get_traces_from_simulator(self, observation, meta_model, simulator: PddlPlusSimulator, delta_t):
@@ -35,8 +35,12 @@ class ScienceBirdsConsistencyEstimator(DomainConsistency):
         observed_seq = observation.get_pddl_states_in_trace(meta_model)
         return expected_trace, observed_seq, plan
 
+
+    def consistency_from_observations(self, meta_model, simulator, observation, delta_t):
+        return self.consistency_from_simulator(observation, meta_model, delta_t)
+
     def consistency_from_simulator(self, observation, meta_model: ScienceBirdsMetaModel,
-                                   simulator: PddlPlusSimulator = NyxPddlPlusSimulator(),
+                                   #simulator: PddlPlusSimulator = NyxPddlPlusSimulator(),
                                    delta_t: float = settings.SB_DELTA_T):
         """
         Computes the consistency of a given observation w.r.t the given meta model using the given simulator
@@ -46,7 +50,7 @@ class ScienceBirdsConsistencyEstimator(DomainConsistency):
         #  time (not all birds at once), so probably has no effect on simulation. Should check and if so remove
         #  simplification.
         try:
-            expected_trace, observed_seq, plan = self._get_traces_from_simulator(observation, meta_model, simulator,
+            expected_trace, observed_seq, plan = self._get_traces_from_simulator(observation, meta_model, self.simulator,
                                                                                  delta_t)
             consistency = self.consistency_from_trace(expected_trace, observed_seq, plan, delta_t=delta_t, agg_func=sum)
         except InconsistentPlanError as e:

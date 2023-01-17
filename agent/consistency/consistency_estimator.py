@@ -333,7 +333,8 @@ class DomainConsistency:
     Aggregates consistency estimation for a domain, based on a set of aspect-specific values.
     """
 
-    def __init__(self, aspect_estimators: List[AspectConsistency]):
+    def __init__(self, aspect_estimators: List[AspectConsistency], simulator: PddlPlusSimulator = NyxPddlPlusSimulator()):
+        self.simulator = simulator
         self.aspect_estimators = aspect_estimators
         self.latest_inconsistencies = [0 for _ in range(len(self.aspect_estimators))]
 

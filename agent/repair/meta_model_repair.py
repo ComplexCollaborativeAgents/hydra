@@ -199,4 +199,5 @@ class GreedyBestFirstSearchConstantFluentMetaModelRepair(AspectRepair):
 
     def is_incumbent_good_enough(self, consistency: float):
         """ Return True if the incumbent is good enough """
+        logging.info("[meta_model_repair] :: is incumbent good enough {}; threshold {}".format(consistency < self.consistency_threshold, self.consistency_threshold))
         return consistency < self.consistency_threshold
