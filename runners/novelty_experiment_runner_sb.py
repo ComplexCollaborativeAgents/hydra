@@ -39,14 +39,14 @@ TEMPLATE_PATH = SB_CONFIG_PATH / 'test_config.xml'
 # Options
 RESULTS_PATH = pathlib.Path(settings.ROOT_PATH) / "runners" / "experiments" / "ScienceBirds" / "SB_experiment"
 EXPORT_TRIALS = False   # Export trials xml file
-NUM_TRIALS = 1      # Number of trials to generate
-NUM_LEVELS = 2     # Levels per trial
-LEVELS_BEFORE_NOVELTY = 2  # Levels before novelty is introduced
+NUM_TRIALS = 5      # Number of trials to generate
+NUM_LEVELS = 30     # Levels per trial
+LEVELS_BEFORE_NOVELTY = 7  # Levels before novelty is introduced
 NOTIFY_NOVELTY = False
 REPETITION = 1   # If not set to None, the same sampled level will be used this many times before another is selected.
 NON_NOVEL_TO_USE = { # level and type of non-novel levels to use
     'novelty_level_0': [
-        "type2244"
+        "type1230"
         #"type2243"
         #"type2242"
         #"type2241"
@@ -79,14 +79,22 @@ NON_NOVEL_TO_USE = { # level and type of non-novel levels to use
         ]
     }
 NOVEL_TO_USE = {    # level and type of novel levels to use
-    'novelty_level_11': [
-        'type130'
+    'novelty_level_12': [
+        'type30'
     ],
     # 'novelty_level_22': [
     #     'type43'
-    #],
-    # 'novelty_level_38':[
+    # ],
+    # 'novelty_level_37':[
     #     'type20'
+    # ],
+    # 'novelty_level_38':[
+    #     'type20',
+    #     'type10',
+    #     'type11',
+    #     'type12',
+    #     'type13',
+    #     'type14'
     # ]
 }
 
@@ -307,44 +315,13 @@ class NoveltyExperimentRunnerSB:
         with open(experiment_results_path, "w+") as f:
             experiment_results.to_csv(f, index=False)
 
-        for _ in range(self.num_trials):
-            #for trial_type in [UNKNOWN, KNOWN]:
-            for trial_type in [UNKNOWN]:
-                if configs is not None:
-                    for config in configs:
-                        logger.debug("Using config file: {}".format)
-
-                        # Get trial details
-                        tree = ET.parse(config)
-
-                        if tree.getroot().find('./trials/trial').get('notify_novelty'):
-                            notify_novelty = KNOWN
-                        else:
-                            notify_novelty = UNKNOWN
-                        novelty_level = "0"
-
-                        level_tags = tree.getroot().find('./trials/trial/game_level_set')
-                        for level_tag in level_tags:
-                            level_path = level_tag.attrib['level_path']
-                            if 'novelty_level_0' in level_path:
-                                continue
-                            else:
-                                novelty_level = level_path.split('/')[2]    # TODO: make this cleaner
-
-                        # Run the trial
-                        trial_results = self.run_trial(config, [], trial_num, trial_type, novelty_level, config_file=config)
-                        experiment_results = experiment_results.append(trial_results)
-
-                        # Export results to file
-                        with open(experiment_results_path, "a") as f:
-                            trial_results.to_csv(f, index=False, header=False)
-
-                        trial_num += 1
-                else:
-                    # Generate a set of trials as according to above settings
-                    trial_sets = generate_trial_sets(self.num_trials, self.num_levels, self.levels_before_novelty, 
-                                                     self.repetition, self.non_novelties, self.novelties, self.levels)
-
+            if configs is None:
+                # Generate a set of trials as according to above settings
+                trial_sets = generate_trial_sets(self.num_trials, self.num_levels, self.levels_before_novelty, 
+                                                    self.repetition, self.non_novelties, self.novelties, self.levels)
+                
+                #for trial_type in [UNKNOWN, KNOWN]:
+                for trial_type in [UNKNOWN]:
                     for trial_id, trial in trial_sets.items():
                         # Extract novelty level from the trial id
                         _, _, novelty_level, _, _  = unpack_trial_id(trial_id)
@@ -352,13 +329,47 @@ class NoveltyExperimentRunnerSB:
 
                         # Run the trial
                         trial_results = self.run_trial(trial_id, trial, trial_num, trial_type, novelty_level)
-                        experiment_results = experiment_results.append(trial_results)
+                        experiment_results = experiment_results.append(trial_results)   # Update dataframe
 
                         # Export results to file
                         with open(experiment_results_path, "a") as f:
                             trial_results.to_csv(f, index=False, header=False)
 
                         trial_num += 1
+
+            else:   # Configs is not None, use that instead of generating a new trial
+                #for trial_type in [UNKNOWN, KNOWN]:
+                for trial_type in [UNKNOWN]:
+                    for _ in range(self.num_trials):
+                        for config in configs:
+                            logger.debug("Using config file: {}".format)
+
+                            # Get trial details
+                            tree = ET.parse(config)
+
+                            if tree.getroot().find('./trials/trial').get('notify_novelty'):
+                                notify_novelty = KNOWN
+                            else:
+                                notify_novelty = UNKNOWN
+                            novelty_level = "0"
+
+                            level_tags = tree.getroot().find('./trials/trial/game_level_set')
+                            for level_tag in level_tags:
+                                level_path = level_tag.attrib['level_path']
+                                if 'novelty_level_0' in level_path:
+                                    continue
+                                else:
+                                    novelty_level = level_path.split('/')[2]    # TODO: make this cleaner
+
+                            # Run the trial
+                            trial_results = self.run_trial(config, [], trial_num, trial_type, novelty_level, config_file=config)
+                            experiment_results = experiment_results.append(trial_results)
+
+                            # Export results to file
+                            with open(experiment_results_path, "a") as f:
+                                trial_results.to_csv(f, index=False, header=False)
+
+                            trial_num += 1
 
     @staticmethod
     def categorize_examples_for_novelty_detection(dataframe):
