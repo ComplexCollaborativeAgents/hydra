@@ -40,13 +40,13 @@ TEMPLATE_PATH = SB_CONFIG_PATH / 'test_config.xml'
 RESULTS_PATH = pathlib.Path(settings.ROOT_PATH) / "runners" / "experiments" / "ScienceBirds" / "SB_experiment"
 EXPORT_TRIALS = False   # Export trials xml file
 NUM_TRIALS = 1      # Number of trials to generate
-NUM_LEVELS = 2     # Levels per trial
-LEVELS_BEFORE_NOVELTY = 2  # Levels before novelty is introduced
+NUM_LEVELS = 30    # Levels per trial
+LEVELS_BEFORE_NOVELTY = 7  # Levels before novelty is introduced
 NOTIFY_NOVELTY = False
 REPETITION = 1   # If not set to None, the same sampled level will be used this many times before another is selected.
 NON_NOVEL_TO_USE = { # level and type of non-novel levels to use
     'novelty_level_0': [
-        "type2244"
+        "type1230"
         #"type2243"
         #"type2242"
         #"type2241"
@@ -79,8 +79,8 @@ NON_NOVEL_TO_USE = { # level and type of non-novel levels to use
         ]
     }
 NOVEL_TO_USE = {    # level and type of novel levels to use
-    'novelty_level_11': [
-        'type130'
+    'novelty_level_12': [
+        'type30'
     ],
     # 'novelty_level_22': [
     #     'type43'
