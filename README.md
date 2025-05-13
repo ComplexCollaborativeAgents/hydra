@@ -1,4 +1,9 @@
 # HYDRA
+HYDRA is a framework for building embodied agents that adapt to an open, contunuously evolving worlds. The framework implements a hybrid AI architecture comprising computer vision, AI planning, deep reinforcement learning, and diagnosis & repair algorithms. 
+
+Relevant materials:
+[AI Journal](https://arxiv.org/abs/2306.06272) | [Demonstration Video](https://drive.google.com/file/d/1BE31CxThdg0Xr4ZLUsdL9ZfXLI8nGZKZ/view?usp=sharing)
+
 ## Setting up Science Birds
 1. Unzip the science birds executable for your systems in the binary directory
    - Look at .gitlab-ci.yml for detailed instructions
